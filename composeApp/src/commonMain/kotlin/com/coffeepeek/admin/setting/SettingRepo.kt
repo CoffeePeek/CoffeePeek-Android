@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.setting
 
 import com.coffeepeek.api.mapper.UserMapper.toUser
+import com.coffeepeek.api.model.User
 import com.coffeepeek.api.model.response.AuthResp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -20,14 +21,16 @@ class SettingRepo(
 
     companion object {
         private const val API_KEY = "API_KEYS"
-
+        private const val USER_ID = "USER_ID"
     }
 
 
     val setAuth: suspend (AuthResp?) -> Unit = { database.settingRepository.saveSerializable(API_KEY, it) }
     val getAuth: suspend () -> AuthResp? = { database.settingRepository.readSerializable(API_KEY) }
     val authFlow = database.settingRepository.readSerializableFlow<AuthResp>(API_KEY).asState(runBlocking { getAuth() })
-    val userFlow = authFlow.map { it?.toUser() }.asState(runBlocking { getAuth()?.toUser() })
+    val getUser: suspend () -> User? = { database.settingRepository.readSerializable(USER_ID) }
+    val setUser: suspend (User?) -> Unit = { database.settingRepository.saveSerializable(USER_ID, it) }
+    val userFlow = database.settingRepository.readSerializableFlow<User>(USER_ID).asState(runBlocking { getUser() })
 
 
     private fun <T> Flow<T>.asState(default: T) = stateIn(preferenceScope, SharingStarted.Eagerly, default)

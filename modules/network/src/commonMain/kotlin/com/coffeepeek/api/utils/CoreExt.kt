@@ -20,7 +20,7 @@ suspend inline fun <reified T : DataResponse> HttpResponse.getResult(): Result<T
     return runCatching {
         val apiResponse = body<ApiResponse<T>>()
         if (apiResponse.isSuccess && apiResponse.data != null) {
-            apiResponse.data!!
+            apiResponse.data
         } else {
             throw ApiException(apiResponse.message)
         }
@@ -32,10 +32,26 @@ suspend inline fun <reified T : DataResponse> Result<HttpResponse>.getResult(): 
         val response = getOrThrow()
         val apiResponse = response.body<ApiResponse<T>>()
         if (apiResponse.isSuccess && apiResponse.data != null) {
-            apiResponse.data!!
+            apiResponse.data
         } else {
             throw ApiException(apiResponse.message)
         }
+    }
+}
+
+suspend inline fun Result<HttpResponse>.getIsSuccessResult(): Result<Boolean> {
+    return runCatching {
+        val response = getOrThrow()
+        val apiResponse = response.body<ApiResponse<Boolean>>()
+        apiResponse.data == true
+    }
+}
+
+suspend inline fun Result<HttpResponse>.getStringResult(): Result<String> {
+    return runCatching {
+        val response = getOrThrow()
+        val apiResponse = response.body<ApiResponse<String>>()
+        apiResponse.data as String
     }
 }
 

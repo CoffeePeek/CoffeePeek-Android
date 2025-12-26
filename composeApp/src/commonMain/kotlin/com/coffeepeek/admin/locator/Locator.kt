@@ -35,14 +35,14 @@ abstract class ALocator {
     val fpClient by lazy {
         CoffeePeekClient(
             url = Constants.DOMAIN_URL,
-            getToken = { setting.authFlow.value },
+            getToken = { runBlocking { setting.getAuth() } },
             saveToken = { runBlocking { setting.setAuth(it) } },
             debug = true,
             cacheFolder = cacheFolder
         )
     }
 
-    val flowerRepo by lazy { CoffeePeekRepo(fpClient) }
+    val repo by lazy { CoffeePeekRepo(fpClient) }
 
     abstract val urlFetcher: CustomUrlFetcher
 }

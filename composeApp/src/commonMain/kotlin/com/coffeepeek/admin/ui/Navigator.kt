@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.ui
 
+import com.coffeepeek.admin.ui.screen.auth.registr.RegisterScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -10,16 +11,18 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import com.coffeepeek.admin.theme.Theme
 import com.coffeepeek.admin.ui.dialogs.ErrorDialog
+import com.coffeepeek.admin.ui.dialogs.LoadingDialog
 import com.coffeepeek.admin.ui.screen.auth.AuthScreen
-import com.coffeepeek.admin.ui.screen.home.HomeScreen
+import com.coffeepeek.admin.ui.screen.main.MainScreen
 import com.coffeepeek.admin.utils.ErrorHandler
+import com.coffeepeek.admin.utils.LoadingHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -28,45 +31,50 @@ import kotlinx.serialization.Serializable
 object Navigator {
 
     private val navigatorScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val navigate = MutableSharedFlow<Screen>()
 
+    private val _navigationEvents = MutableSharedFlow<NavEvent>()
+    val navigationEvents = _navigationEvents.asSharedFlow()
+
+    sealed interface NavEvent {
+        data class NavigateTo(val screen: Screen) : NavEvent
+        data class SelectTab(val tab: Screen) : NavEvent
+        data object PopBack : NavEvent
+        data object NavigateUp : NavEvent
+    }
 
     @Serializable
     sealed interface Screen {
+        //Экраны вне навигейшн бара, прописывать здесь + BaseNavigator + Navigator.navigationEvents в MainScreen
+        @Serializable data object Auth : Screen
+        @Serializable data object Register : Screen
+        @Serializable data object Main : Screen
 
-        @Serializable
-        data object PopBack : Screen
+        //ГРАФЫ
+        @Serializable data object FeedGraph : Screen
+        @Serializable data object MapGraph : Screen
+        @Serializable data object VacanciesGraph : Screen
+        @Serializable data object ProfileGraph : Screen
 
-        @Serializable
-        data object NavigateUp : Screen
+        //Табы
+        @Serializable data object FeedTab : Screen
+        @Serializable data object MapTab : Screen
+        @Serializable data object VacanciesTab : Screen
+        @Serializable data object ProfileTab : Screen
 
-        @Serializable
-        data class Chain(val first: Screen, val second: Screen) : Screen
-
-        @Serializable
-        data object Auth : Screen
-
-        @Serializable
-        data object Home : Screen
-
-        @Serializable
-        data object Profile : Screen
-
-        @Serializable
-        data class EditItem(val itemID: String?) : Screen
-
+        //Внутренние экраны(добавлять для перехода сюда + в граф в MainScreen)
+        @Serializable data class EditItem(val itemID: String?) : Screen
     }
 
     fun navigate(screen: Screen) {
-        navigatorScope.launch { navigate.emit(screen) }
+        navigatorScope.launch { _navigationEvents.emit(NavEvent.NavigateTo(screen)) }
+    }
+
+    fun selectTab(tab: Screen) {
+        navigatorScope.launch { _navigationEvents.emit(NavEvent.SelectTab(tab)) }
     }
 
     fun popBack() {
-        navigatorScope.launch { navigate(Screen.PopBack) }
-    }
-
-    fun navigateUp() {
-        navigatorScope.launch { navigate(Screen.NavigateUp) }
+        navigatorScope.launch { _navigationEvents.emit(NavEvent.PopBack) }
     }
 
     @Composable
@@ -74,45 +82,51 @@ object Navigator {
         vm: NavigatorViewModel = viewModel { NavigatorViewModel() }
     ) {
         val errorMessage = ErrorHandler.errorMessage.collectAsState().value
+        val loading = LoadingHandler.isLoading.collectAsState().value
+        val user = vm.user
+
         ErrorDialog(
             show = errorMessage != null,
             message = errorMessage ?: "",
             onDismiss = { ErrorHandler.clearError() }
         )
-        val user = vm.user.collectAsState().value
-        if (user == null) AuthScreen()
-        else BaseNavigator()
+        LoadingDialog(show = loading)
+
+        val startDestination = if (user?.userID.isNullOrEmpty()) Screen.Auth else Screen.Main
+
+        BaseNavigator(startDestination)
     }
 
     @Composable
-    private fun BaseNavigator() {
+    private fun BaseNavigator(startDestination: Screen) {
         val nav = rememberNavController()
-        LaunchedEffect(Unit) {
-            navigate
-                .onEach {
-                    when (it) {
-                        is Screen.NavigateUp -> nav.navigateUp()
-                        is Screen.PopBack -> nav.popBackStack()
-                        is Screen.Chain -> {
-                            when (it.first) {
-                                is Screen.NavigateUp -> nav.popBackStack()
-                                is Screen.PopBack -> nav.popBackStack()
-                                else -> nav.navigate(it.first)
-                            }
-                            navigatorScope.launch { navigate.emit(it.second) }
-                        }
 
-                        else -> nav.navigate(it)
+        LaunchedEffect(Unit) {
+            navigationEvents.onEach { event ->
+                when (event) {
+                    is NavEvent.PopBack -> nav.popBackStack()
+                    is NavEvent.NavigateUp -> nav.navigateUp()
+                    is NavEvent.NavigateTo -> {
+                        when (event.screen) {
+                            Screen.Auth, Screen.Register, Screen.Main -> nav.navigate(event.screen)
+                            else -> {
+//                                if (nav.currentDestination?.route != Screen.Main::class.qualifiedName) { }
+                            }
+                        }
                     }
-                }.launchIn(this)
+                    else -> Unit
+                }
+            }.launchIn(this)
         }
+
         NavHost(
             navController = nav,
-            startDestination = Screen.Home,
+            startDestination = startDestination,
             modifier = Modifier.fillMaxSize().background(brush = Theme.brush)
         ) {
-            composable<Screen.Home> { HomeScreen() }
+            composable<Screen.Auth> { AuthScreen() }
+            composable<Screen.Register> { RegisterScreen() }
+            composable<Screen.Main> { MainScreen() }
         }
     }
-
 }

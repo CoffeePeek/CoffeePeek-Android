@@ -29,7 +29,7 @@ object Theme {
 
 
     val brush = Brush.verticalGradient(
-        colors = listOf(Colors.green, Colors.greenLight, Colors.greenLight)
+        colors = listOf(Colors.lightYellowBg, Colors.lightYellowBg, Colors.lightYellowBg)
     )
 //    linearGradient(
 //        colors = listOf(Colors.green, Colors.greenLight),

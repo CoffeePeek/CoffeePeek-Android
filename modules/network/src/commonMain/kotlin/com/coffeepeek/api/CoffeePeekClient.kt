@@ -15,10 +15,7 @@ import io.ktor.client.plugins.cache.storage.FileStorage
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.plugin
-import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.HttpHeaders
-import io.ktor.http.auth.AuthScheme
 import io.ktor.serialization.kotlinx.json.json
 import java.io.File
 
@@ -29,17 +26,13 @@ class CoffeePeekClient(
     url: String,
     cacheFolder: File,
     private val debug: Boolean,
-    getToken: () -> AuthResp?,
-    saveToken: (AuthResp?) -> Unit
+    private val getToken: () -> AuthResp?,
+    private val saveToken: (AuthResp?) -> Unit
 ) {
-
     private val refreshClient = createClient {
         install(ContentNegotiation) { json(json = JsonExt.json) }
         defaultRequest {
             url(url)
-            getToken()?.let {
-                header(HttpHeaders.Authorization, "${AuthScheme.Bearer} ${it.accessToken}")
-            }
         }
     }.also { intercept(it) }
 
@@ -47,29 +40,33 @@ class CoffeePeekClient(
 
     val client = createClient {
         install(ContentNegotiation) { json(json = JsonExt.json) }
+
         defaultRequest {
             url(url)
-            getToken()?.let {
-                header(HttpHeaders.Authorization, "${AuthScheme.Bearer} ${it.accessToken}")
-            }
         }
+
         install(Auth) {
             bearer {
                 loadTokens {
-                    return@loadTokens getToken()?.let { BearerTokens(it.accessToken, it.refreshToken) }
-                    val pairs = authService.createUser().getOrThrow()
-                    saveToken(pairs)
-                    BearerTokens(pairs.accessToken, pairs.refreshToken)
+                    val tokens = getToken()
+                    if (tokens != null) {
+                        BearerTokens(tokens.accessToken, tokens.refreshToken)
+                    } else null
                 }
                 refreshTokens {
-                    var tokens = getToken()
-                    if (tokens == null) tokens = authService.createUser().getOrThrow()
-                    tokens = authService.authRefresh(tokens.refreshToken).getOrThrow()
-                    saveToken(tokens)
-                    BearerTokens(tokens.accessToken, tokens.refreshToken)
+                    val oldTokens = getToken() ?: return@refreshTokens null
+                    try {
+                        val newTokens = authService.authRefresh(oldTokens.refreshToken).getOrThrow()
+                        saveToken(newTokens)
+
+                        BearerTokens(newTokens.accessToken, newTokens.refreshToken)
+                    } catch (e: Exception) {
+                        null
+                    }
                 }
             }
         }
+
         install(HttpCache) {
             publicStorage(FileStorage(cacheFolder))
         }
@@ -79,12 +76,11 @@ class CoffeePeekClient(
         if (debug) httpClient.plugin(HttpSend).intercept {
             val message = it.asCurlString()
             println(message)
-            execute(it).also {
-                val resp = it.response.bodyAsText(Charsets.UTF_8)
-                println("CURL ${it.response.status.value}")
+            execute(it).also { responseCall ->
+                val resp = responseCall.response.bodyAsText(Charsets.UTF_8)
+                println("CURL ${responseCall.response.status.value}")
             }
         }
     }
-
 
 }

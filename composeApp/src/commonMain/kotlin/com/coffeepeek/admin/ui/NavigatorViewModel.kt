@@ -5,7 +5,7 @@ import com.coffeepeek.admin.locator.Locator
 
 class NavigatorViewModel: BaseViewModel() {
 
-    val user = Locator.setting.userFlow
+    val user = Locator.setting.userFlow.value
 
 
 }
