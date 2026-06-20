@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.ui.screen.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,7 +63,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
@@ -139,13 +144,6 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
                 SettingsRow(
                     icon = Icons.Outlined.Favorite,
                     label = "Избранные кофейни",
-                    trailing = {
-                        Text(
-                            text = state.reviewCount.toString(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
                     showArrow = false,
                     onClick = {},
                 )
@@ -153,13 +151,6 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
                 SettingsRow(
                     icon = Icons.Outlined.RateReview,
                     label = "Мои отзывы",
-                    trailing = {
-                        Text(
-                            text = state.reviewCount.toString(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
                     showArrow = false,
                     onClick = {},
                 )
@@ -167,13 +158,6 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
                 SettingsRow(
                     icon = Icons.Outlined.LocationOn,
                     label = "Посещённые места",
-                    trailing = {
-                        Text(
-                            text = state.checkInCount.toString(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
                     showArrow = false,
                     onClick = {},
                 )
@@ -378,95 +362,123 @@ private fun ThemeMode.icon() = when (this) {
 @Composable
 private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
+    var anchorWidth by remember { mutableStateOf(0.dp) }
+    val density = LocalDensity.current
+    val menuMinWidth = 168.dp
+    val menuWidth = anchorWidth.coerceAtLeast(menuMinWidth)
+    val selectShape = RoundedCornerShape(CpDimens.selectRadius)
 
-    Box {
-        Row(
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true }
-                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
-            verticalAlignment = Alignment.CenterVertically,
+                .size(36.dp)
+                .clip(RoundedCornerShape(CpDimens.radiusSm))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
         ) {
-            // Иконка текущей темы
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(CpDimens.radiusSm))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = current.icon(),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-            Spacer(Modifier.width(CpDimens.spacing3))
-            Text(
-                text = "Тема оформления",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
-            // Текущее значение + стрелка
-            Text(
-                text = current.label(),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.width(4.dp))
             Icon(
-                imageVector = Icons.Outlined.ExpandMore,
+                imageVector = Icons.Outlined.SettingsBrightness,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
         }
+        Spacer(Modifier.width(CpDimens.spacing3))
+        Text(
+            text = "Тема оформления",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            modifier = Modifier.weight(1f),
+        )
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.background(MaterialTheme.colorScheme.surface),
-        ) {
-            ThemeMode.entries.forEach { mode ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = mode.label(),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (mode == current)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurface,
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = mode.icon(),
-                            contentDescription = null,
-                            tint = if (mode == current)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    },
-                    trailingIcon = if (mode == current) {
-                        {
+        Box(modifier = Modifier.wrapContentWidth(Alignment.End)) {
+            Row(
+                modifier = Modifier
+                    .wrapContentWidth()
+                    .height(CpDimens.buttonHeight)
+                    .onGloballyPositioned { coords ->
+                        anchorWidth = with(density) { coords.size.width.toDp() }
+                    }
+                    .clip(selectShape)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, selectShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .clickable { expanded = true }
+                    .padding(horizontal = CpDimens.spacing3),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+            ) {
+                Text(
+                    text = current.label(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Icon(
+                    imageVector = Icons.Outlined.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                offset = DpOffset(x = anchorWidth - menuWidth, y = 0.dp),
+                modifier = Modifier.width(menuWidth),
+                shape = selectShape,
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 4.dp,
+            ) {
+                ThemeMode.entries.forEach { mode ->
+                    val isSelected = mode == current
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = mode.label(),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (isSelected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
+                            )
+                        },
+                        onClick = {
+                            onSelect(mode)
+                            expanded = false
+                        },
+                        leadingIcon = {
                             Icon(
-                                imageVector = Icons.Outlined.Check,
+                                imageVector = mode.icon(),
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = if (isSelected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                                 modifier = Modifier.size(18.dp),
                             )
-                        }
-                    } else null,
-                    onClick = {
-                        onSelect(mode)
-                        expanded = false
-                    },
-                )
+                        },
+                        trailingIcon = if (isSelected) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Outlined.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                        } else {
+                            null
+                        },
+                    )
+                }
             }
         }
     }
