@@ -1,28 +1,36 @@
 package com.coffeepeek.admin.ui.screen.auth
 
-import com.coffeepeek.admin.ui.component.AppButton
-import com.coffeepeek.admin.ui.component.AppTextField
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.app_name
 import coffeepeek.composeapp.generated.resources.eco_system
@@ -31,76 +39,80 @@ import coffeepeek.composeapp.generated.resources.login
 import coffeepeek.composeapp.generated.resources.no_account
 import coffeepeek.composeapp.generated.resources.password
 import coffeepeek.composeapp.generated.resources.registr
-import com.coffeepeek.admin.theme.Colors
+import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.component.AppButton
+import com.coffeepeek.admin.ui.component.AppTextField
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 
 object AuthScreen {
 
     @Composable
     operator fun invoke(
-        vm: AuthViewModel = viewModel { AuthViewModel() }
+        vm: AuthViewModel = koinViewModel(),
     ) {
         val email by vm.email.collectAsState()
         val password by vm.password.collectAsState()
-        val emailError by vm.emailError.collectAsState()
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(CpDimens.spacing6),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(CpDimens.spacing10))
 
-            Box(
+            // ── Логотип ──────────────────────────────────────────────────────
+            Row(
                 modifier = Modifier
-                    .size(64.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Colors.brandColor),
-                contentAlignment = Alignment.Center
+                    .size(CpDimens.headerLogoSize)
+                    .clip(RoundedCornerShape(CpDimens.radiusMd))
+                    .background(MaterialTheme.colorScheme.primary),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = Icons.Default.LocalCafe,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
+                Text(
+                    text = "CP",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
+            Spacer(modifier = Modifier.height(CpDimens.spacing4))
 
             Text(
-                stringResource(Res.string.app_name),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
+                text = stringResource(Res.string.app_name),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
             )
-            Text(stringResource(Res.string.eco_system), fontSize = 14.sp, color = Colors.textGray)
+            Text(
+                text = stringResource(Res.string.eco_system),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(CpDimens.spacing8))
 
-            Spacer(modifier = Modifier.height(24.dp))
-
+            // ── Карточка формы ────────────────────────────────────────────────
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(16.dp))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(CpDimens.cardRadius),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.padding(CpDimens.cardPadding),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
                         text = stringResource(Res.string.entry),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = CpDimens.spacing4),
                     )
 
                     AppTextField(
@@ -109,10 +121,9 @@ object AuthScreen {
                         onValueChange = vm::onEmailChange,
                         placeholder = "name@example.com",
                         leadingIcon = Icons.Outlined.Email,
-                        errorText = emailError
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(CpDimens.spacing3))
 
                     AppTextField(
                         label = stringResource(Res.string.password),
@@ -120,73 +131,87 @@ object AuthScreen {
                         onValueChange = vm::onPasswordChange,
                         placeholder = "••••••••",
                         leadingIcon = Icons.Outlined.Lock,
-                        isPassword = true
+                        isPassword = true,
                     )
 
-
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(CpDimens.spacing6))
 
                     AppButton(
                         text = stringResource(Res.string.login),
-                        onClick = { vm.onLoginClick() }
+                        onClick = { vm.onLoginClick() },
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(CpDimens.spacing4))
 
                     Row {
                         Text(
-                            stringResource(Res.string.no_account),
-                            color = Colors.brandColor,
-                            fontSize = 14.sp
+                            text = stringResource(Res.string.no_account),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
-                            stringResource(Res.string.registr),
-                            color = Colors.brandColor,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.clickable { Navigator.navigate(Navigator.Screen.Register) }
+                            text = " " + stringResource(Res.string.registr),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable {
+                                Navigator.navigate(Navigator.Screen.Register)
+                            },
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
-                    OrContinueWithDivider()
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(CpDimens.spacing5))
+                    OrDivider()
+                    Spacer(modifier = Modifier.height(CpDimens.spacing5))
                     GoogleButton()
                 }
             }
+
+            Spacer(modifier = Modifier.height(CpDimens.spacing8))
         }
     }
 }
 
 @Composable
-private fun OrContinueWithDivider() {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        HorizontalDivider(modifier = Modifier.weight(1f))
-        Text(
-            " или продолжить с ",
-            fontSize = 12.sp,
-            color = Colors.textGray,
-            modifier = Modifier.padding(horizontal = 8.dp)
+private fun OrDivider() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.outlineVariant,
         )
-        HorizontalDivider(modifier = Modifier.weight(1f))
+        Text(
+            text = "  или  ",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.outlineVariant,
+        )
     }
 }
 
 @Composable
 private fun GoogleButton() {
     OutlinedButton(
-        onClick = { },
-        modifier = Modifier.fillMaxWidth().height(48.dp),
-        shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black)
+        onClick = {},
+        modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
+        shape = RoundedCornerShape(CpDimens.buttonRadius),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
     ) {
-        Text(
-            "G",
-            fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
-            modifier = Modifier.padding(end = 8.dp)
+        Icon(
+            imageVector = Icons.Outlined.Email,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp).padding(end = 0.dp),
         )
-        Text("Google")
+        Text(
+            text = "  Google",
+            style = MaterialTheme.typography.labelLarge,
+        )
     }
 }

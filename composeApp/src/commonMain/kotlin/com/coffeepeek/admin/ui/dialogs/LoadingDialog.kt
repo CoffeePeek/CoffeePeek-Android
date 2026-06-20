@@ -21,8 +21,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.coffeepeek.admin.theme.Colors
-
 object LoadingDialog {
 
     @Composable
@@ -41,7 +39,7 @@ object LoadingDialog {
             ) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 6.dp,
                     modifier = Modifier.defaultMinSize(minWidth = 120.dp)
                 ) {
@@ -51,7 +49,7 @@ object LoadingDialog {
                         verticalArrangement = Arrangement.Center
                     ) {
                         CircularProgressIndicator(
-                            color = Colors.brandColor,
+                            color = MaterialTheme.colorScheme.primary,
                             strokeWidth = 4.dp,
                             modifier = Modifier.size(48.dp)
                         )
@@ -64,7 +62,7 @@ object LoadingDialog {
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 16.sp
                                 ),
-                                color = Color.Black.copy(alpha = 0.8f)
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                             )
                         }
                     }

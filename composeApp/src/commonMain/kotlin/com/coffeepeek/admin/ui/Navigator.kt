@@ -1,21 +1,25 @@
 package com.coffeepeek.admin.ui
 
+import com.coffeepeek.admin.ui.screen.addshop.AddShopScreen
 import com.coffeepeek.admin.ui.screen.auth.registr.RegisterScreen
+import com.coffeepeek.admin.ui.screen.editprofile.EditProfileScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.compose.viewmodel.koinViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.coffeepeek.admin.theme.Theme
 import com.coffeepeek.admin.ui.dialogs.ErrorDialog
 import com.coffeepeek.admin.ui.dialogs.LoadingDialog
 import com.coffeepeek.admin.ui.screen.auth.AuthScreen
 import com.coffeepeek.admin.ui.screen.main.MainScreen
+import com.coffeepeek.admin.ui.screen.shop.ShopDetailScreen
 import com.coffeepeek.admin.utils.ErrorHandler
 import com.coffeepeek.admin.utils.LoadingHandler
 import kotlinx.coroutines.CoroutineScope
@@ -44,25 +48,26 @@ object Navigator {
 
     @Serializable
     sealed interface Screen {
-        //Экраны вне навигейшн бара, прописывать здесь + BaseNavigator + Navigator.navigationEvents в MainScreen
+        // Root screens (outside bottom nav)
         @Serializable data object Auth : Screen
         @Serializable data object Register : Screen
         @Serializable data object Main : Screen
 
-        //ГРАФЫ
+        // Graphs
         @Serializable data object FeedGraph : Screen
         @Serializable data object MapGraph : Screen
-        @Serializable data object VacanciesGraph : Screen
         @Serializable data object ProfileGraph : Screen
 
-        //Табы
+        // Tabs
         @Serializable data object FeedTab : Screen
         @Serializable data object MapTab : Screen
-        @Serializable data object VacanciesTab : Screen
         @Serializable data object ProfileTab : Screen
 
-        //Внутренние экраны(добавлять для перехода сюда + в граф в MainScreen)
+        // Inner screens (add here + in the graph in MainScreen)
+        @Serializable data class ShopDetail(val shopId: String) : Screen
         @Serializable data class EditItem(val itemID: String?) : Screen
+        @Serializable data object AddShop : Screen
+        @Serializable data object EditProfile : Screen
     }
 
     fun navigate(screen: Screen) {
@@ -79,11 +84,11 @@ object Navigator {
 
     @Composable
     operator fun invoke(
-        vm: NavigatorViewModel = viewModel { NavigatorViewModel() }
+        vm: NavigatorViewModel = koinViewModel(),
     ) {
         val errorMessage = ErrorHandler.errorMessage.collectAsState().value
         val loading = LoadingHandler.isLoading.collectAsState().value
-        val user = vm.user
+        val isLoggedIn = vm.isLoggedIn.collectAsState().value
 
         ErrorDialog(
             show = errorMessage != null,
@@ -92,7 +97,7 @@ object Navigator {
         )
         LoadingDialog(show = loading)
 
-        val startDestination = if (user?.userID.isNullOrEmpty()) Screen.Auth else Screen.Main
+        val startDestination = if (isLoggedIn) Screen.Main else Screen.Auth
 
         BaseNavigator(startDestination)
     }
@@ -106,14 +111,7 @@ object Navigator {
                 when (event) {
                     is NavEvent.PopBack -> nav.popBackStack()
                     is NavEvent.NavigateUp -> nav.navigateUp()
-                    is NavEvent.NavigateTo -> {
-                        when (event.screen) {
-                            Screen.Auth, Screen.Register, Screen.Main -> nav.navigate(event.screen)
-                            else -> {
-//                                if (nav.currentDestination?.route != Screen.Main::class.qualifiedName) { }
-                            }
-                        }
-                    }
+                    is NavEvent.NavigateTo -> nav.navigate(event.screen)
                     else -> Unit
                 }
             }.launchIn(this)
@@ -122,11 +120,17 @@ object Navigator {
         NavHost(
             navController = nav,
             startDestination = startDestination,
-            modifier = Modifier.fillMaxSize().background(brush = Theme.brush)
+            modifier = Modifier.fillMaxSize(),
         ) {
             composable<Screen.Auth> { AuthScreen() }
             composable<Screen.Register> { RegisterScreen() }
             composable<Screen.Main> { MainScreen() }
+            composable<Screen.ShopDetail> { backStack ->
+                val route = backStack.toRoute<Screen.ShopDetail>()
+                ShopDetailScreen(shopId = route.shopId)
+            }
+            composable<Screen.AddShop> { AddShopScreen() }
+            composable<Screen.EditProfile> { EditProfileScreen() }
         }
     }
 }

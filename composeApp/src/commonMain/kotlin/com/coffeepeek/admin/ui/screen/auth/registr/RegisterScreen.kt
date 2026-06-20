@@ -2,9 +2,8 @@ package com.coffeepeek.admin.ui.screen.auth.registr
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,7 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
@@ -28,7 +26,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -38,17 +35,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.enter
 import coffeepeek.composeapp.generated.resources.error_enter_password_length
@@ -58,17 +51,18 @@ import coffeepeek.composeapp.generated.resources.name
 import coffeepeek.composeapp.generated.resources.name_hint
 import coffeepeek.composeapp.generated.resources.password
 import coffeepeek.composeapp.generated.resources.registr
-import com.coffeepeek.admin.theme.Colors
+import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.AppTextField
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 
 object RegisterScreen {
 
     @Composable
     operator fun invoke(
-        vm: RegisterViewModel = viewModel { RegisterViewModel() }
+        vm: RegisterViewModel = koinViewModel(),
     ) {
         val name by vm.name.collectAsState()
         val email by vm.email.collectAsState()
@@ -80,56 +74,60 @@ object RegisterScreen {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(CpDimens.spacing6),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(CpDimens.spacing10))
 
-            Box(
+            // ── Логотип ──────────────────────────────────────────────────────
+            Row(
                 modifier = Modifier
-                    .size(64.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Colors.brandColor),
-                contentAlignment = Alignment.Center
+                    .size(CpDimens.headerLogoSize)
+                    .clip(RoundedCornerShape(CpDimens.radiusMd))
+                    .background(MaterialTheme.colorScheme.primary),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = Icons.Default.LocalCafe,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
+                Text(
+                    text = "CP",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(CpDimens.spacing4))
 
-            Text("CoffeePeek", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Text(
-                stringResource(Res.string.join_community),
-                fontSize = 14.sp,
-                color = Colors.textGray
+                text = "CoffeePeek",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = stringResource(Res.string.join_community),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(CpDimens.spacing8))
 
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(16.dp))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(CpDimens.cardRadius),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.padding(CpDimens.cardPadding),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
                         text = stringResource(Res.string.registr),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = CpDimens.spacing4),
                     )
 
                     AppTextField(
@@ -137,10 +135,10 @@ object RegisterScreen {
                         value = name,
                         onValueChange = vm::onNameChange,
                         placeholder = stringResource(Res.string.name_hint),
-                        leadingIcon = Icons.Outlined.Person
+                        leadingIcon = Icons.Outlined.Person,
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(CpDimens.spacing3))
 
                     AppTextField(
                         label = "Email",
@@ -148,10 +146,10 @@ object RegisterScreen {
                         onValueChange = vm::onEmailChange,
                         placeholder = "your@email.com",
                         leadingIcon = Icons.Outlined.Email,
-                        errorText = emailError
+                        errorText = emailError,
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(CpDimens.spacing3))
 
                     AppTextField(
                         label = stringResource(Res.string.password),
@@ -160,139 +158,131 @@ object RegisterScreen {
                         placeholder = "••••••••",
                         leadingIcon = Icons.Outlined.Lock,
                         isPassword = true,
-                        errorText = passwordError
+                        errorText = passwordError,
                     )
 
                     if (passwordError == null) {
                         Text(
                             text = stringResource(Res.string.error_enter_password_length),
-                            fontSize = 12.sp,
-                            color = Colors.textGray,
-                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp, start = 4.dp),
-                            textAlign = TextAlign.Start
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp, start = CpDimens.inputPadding),
+                            textAlign = TextAlign.Start,
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(CpDimens.spacing4))
 
                     Row(
                         verticalAlignment = Alignment.Top,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Checkbox(
                             checked = isTermsAccepted,
                             onCheckedChange = vm::onTermsCheckedChange,
-                            colors = CheckboxDefaults.colors(checkedColor = Colors.brandColor),
-                            modifier = Modifier.size(24.dp)
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = MaterialTheme.colorScheme.primary,
+                            ),
+                            modifier = Modifier.size(24.dp),
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(CpDimens.spacing3))
                         TermsText()
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(CpDimens.spacing6))
 
                     AppButton(
                         text = stringResource(Res.string.registr),
                         onClick = { vm.onRegisterClick() },
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(CpDimens.spacing4))
 
                     Row {
                         Text(
-                            stringResource(Res.string.have_account),
-                            color = Colors.brandColor,
-                            fontSize = 14.sp
+                            text = stringResource(Res.string.have_account),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
-                            stringResource(Res.string.enter),
-                            color = Colors.brandColor,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.clickable { Navigator.popBack() }
+                            text = " " + stringResource(Res.string.enter),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable { Navigator.popBack() },
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
-                    OrContinueWithDivider()
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(CpDimens.spacing5))
+                    OrDivider()
+                    Spacer(modifier = Modifier.height(CpDimens.spacing5))
                     GoogleButton()
                 }
             }
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(CpDimens.spacing6))
         }
     }
 }
 
 @Composable
 private fun TermsText() {
+    val primary = MaterialTheme.colorScheme.primary
     val linkStyles = TextLinkStyles(
-        style = SpanStyle(
-            color = Colors.brandColor,
-            fontWeight = FontWeight.Medium
-        )
+        style = SpanStyle(color = primary),
     )
 
     val annotatedString = buildAnnotatedString {
         append("Я принимаю ")
-        val termsLink = LinkAnnotation.Url(
-            url = "https://plugins.jetbrains.com/plugin/9960-json-to-kotlin-class-jsontokotlinclass-/versions/stable",
-            styles = linkStyles
-        )
-        withLink(termsLink) {
-            append("условия использования")
-        }
-
+        withLink(
+            LinkAnnotation.Url(
+                url = "https://coffeepeek.by/terms",
+                styles = linkStyles,
+            )
+        ) { append("условия использования") }
         append(" и ")
-
-        val privacyLink = LinkAnnotation.Url(
-            url = "https://www.youtube.com/",
-            styles = linkStyles
-        )
-        withLink(privacyLink) {
-            append("политику конфиденциальности")
-        }
+        withLink(
+            LinkAnnotation.Url(
+                url = "https://coffeepeek.by/privacy",
+                styles = linkStyles,
+            )
+        ) { append("политику конфиденциальности") }
     }
 
     Text(
         text = annotatedString,
-        style = MaterialTheme.typography.bodySmall.copy(
-            color = Colors.textGray,
-            fontSize = 13.sp,
-            lineHeight = 18.sp
-        )
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 
 @Composable
-private fun OrContinueWithDivider() {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFEEEEEE))
+private fun OrDivider() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
         Text(
-            " или продолжить с ",
-            fontSize = 12.sp,
-            color = Colors.textGray,
-            modifier = Modifier.padding(horizontal = 8.dp)
+            text = "  или  ",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFEEEEEE))
+        HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
 @Composable
 private fun GoogleButton() {
     OutlinedButton(
-        onClick = { },
-        modifier = Modifier.fillMaxWidth().height(48.dp),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, Color.LightGray),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black)
+        onClick = {},
+        modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
+        shape = RoundedCornerShape(CpDimens.buttonRadius),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
     ) {
-        Text(
-            "G",
-            fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
-            modifier = Modifier.padding(end = 8.dp)
-        )
-        Text("Google")
+        Text(text = "G  Google", style = MaterialTheme.typography.labelLarge)
     }
 }

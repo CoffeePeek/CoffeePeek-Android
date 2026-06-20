@@ -2,26 +2,76 @@ package com.coffeepeek.admin.theme
 
 import androidx.compose.ui.graphics.Color
 
-object Colors {
+object CpColor {
 
+    // ── Brand ─────────────────────────────────────────────────────────────────
+    val Primary        = Color(0xFFEAB308)
+    val PrimaryHover   = Color(0xFFFACC15)
+    val PrimaryDark    = Color(0xFFCA8A04)
+    val PrimaryLight   = Color(0xFFFEF3C7)
+    val PrimaryTint10  = Color(0x1AEAB308)
 
-    val brandColor = Color(0xFFB54B00)
-    val lightYellowBg = Color(0xFFFFF8E1)
-    val lightYellowBorder = Color(0xFFFFE082)
-    val textGray = Color(0xFF666666)
+    val GoldWarm       = Color(0xFFD4A84B)
+    val GoldWarmHover  = Color(0xFFB68A2E)
+    val GoldWarmSoft   = Color(0xFFF8F1DD)
 
-    val inputBg = Color(0xFFF3F3F3)
+    // ── Semantic ──────────────────────────────────────────────────────────────
+    val Success        = Color(0xFF22C55E)
+    val Error          = Color(0xFFEF4444)
+    val Warning        = Color(0xFFEAB308)
+    val Info           = Color(0xFF3B82F6)
 
-    val errorColor = Color(0xFFB00020)
+    // ── Light palette ─────────────────────────────────────────────────────────
+    val LightBackground    = Color(0xFFFAFAF9)
+    val LightSurface       = Color(0xFFFFFFFF)
+    val LightSurfaceAlt    = Color(0xFFF9F8F6)
+    val LightCard          = Color(0xFFFFFFFF)
+    val LightInput         = Color(0xFFFFFFFF)
+    val LightBadge         = Color(0xFFF3F4F6)
+    val LightTextPrimary   = Color(0xFF1C1917)
+    val LightTextSecondary = Color(0xFF78716C)
+    val LightTextMuted     = Color(0xFF75706B)
+    val LightTextTertiary  = Color(0xFF6B7280)
+    val LightTextOnPrimary = Color(0xFF1A1412)
+    val LightBorder        = Color(0xFFE7E5E4)
+    val LightBorderSubtle  = Color(0xFFE5E1DA)
+    val LightBorderHover   = Color(0xFFD1D5DB)
+    val LightOverlay       = Color(0x80000000)
 
-    val background20 = Color(0x33000000)
-    val background5 = Color(0x0D000000)
-    val background2 = Color(0x05000000)
+    // ── Dark palette ──────────────────────────────────────────────────────────
+    val DarkBackground    = Color(0xFF1A1412)
+    val DarkSurface       = Color(0xFF2D241F)
+    val DarkSurfaceAlt    = Color(0xFF2D241F)
+    val DarkCard          = Color(0xFF2D241F)
+    val DarkInput         = Color(0xFF1A1412)
+    val DarkBadge         = Color(0xFF2D241F)
+    val DarkTextPrimary   = Color(0xFFFFFFFF)
+    val DarkTextSecondary = Color(0xFFA39E93)
+    val DarkTextMuted     = Color(0xFFA8A8A8)
+    val DarkTextTertiary  = Color(0xFF5C544F)
+    val DarkTextOnPrimary = Color(0xFF1A1412)
+    val DarkBorder        = Color(0xFF3D2F28)
+    val DarkBorderSubtle  = Color(0xFF3D2F28)
+    val DarkBorderHover   = Color(0xFF4A3D35)
+    val DarkOverlay       = Color(0x80000000)
+}
 
-    val cardBackground = Color(0xE6DDECD2)
+// Legacy aliases — используются в старых компонентах, постепенно заменяем на CpColor
+@Deprecated("Use CpColor.Primary", ReplaceWith("CpColor.Primary"))
+val Colors get() = LegacyColors
 
-    val greenDark = Color(0xFF327500)
-    val green = Color(0xFF83B955)
-    val greenLight = Color(0xFFD9F5D3)
-
+object LegacyColors {
+    val brandColor      = CpColor.Primary
+    val lightYellowBg   = CpColor.PrimaryLight
+    val lightYellowBorder = CpColor.GoldWarm
+    val textGray        = CpColor.LightTextSecondary
+    val inputBg         = CpColor.LightBadge
+    val errorColor      = CpColor.Error
+    val background20    = Color(0x33000000)
+    val background5     = Color(0x0D000000)
+    val background2     = Color(0x05000000)
+    val cardBackground  = Color(0xE6DDECD2)
+    val greenDark       = Color(0xFF327500)
+    val green           = CpColor.Success
+    val greenLight      = Color(0xFFD9F5D3)
 }

@@ -20,8 +20,10 @@ import androidx.compose.ui.unit.dp
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.image_not_available
 import com.coffeepeek.api.model.response.ItemResp
-import com.coffeepeek.admin.theme.Colors
-import com.coffeepeek.admin.theme.Theme
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.Color
+import com.coffeepeek.admin.theme.CpColor
+import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.utils.KamelExt.FlowerImage
 
 object ItemCard {
@@ -37,9 +39,9 @@ object ItemCard {
             modifier = modifier
                 .padding(4.dp)
                 .fillMaxSize()
-                .clip(Theme.shape)
-                .background(Colors.cardBackground)
-                .border(Theme.border, Theme.shape)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(CpDimens.radiusSm))
+                .background(CpColor.LightSurface)
+                .border(BorderStroke(0.5.dp, Color.Gray), androidx.compose.foundation.shape.RoundedCornerShape(CpDimens.radiusSm))
                 .clickable(onClick = onClick)
 
         ){

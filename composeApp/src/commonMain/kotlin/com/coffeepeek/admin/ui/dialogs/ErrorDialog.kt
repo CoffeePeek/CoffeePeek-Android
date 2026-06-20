@@ -28,7 +28,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.coffeepeek.admin.theme.Colors
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 object ErrorDialog {
@@ -44,7 +43,7 @@ object ErrorDialog {
             Dialog(onDismissRequest = onDismiss) {
                 Surface(
                     shape = RoundedCornerShape(28.dp),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 6.dp,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -80,7 +79,7 @@ object ErrorDialog {
                                 fontSize = 20.sp
                             ),
                             textAlign = TextAlign.Center,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -89,7 +88,7 @@ object ErrorDialog {
                             text = message,
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -98,8 +97,8 @@ object ErrorDialog {
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Colors.brandColor,
-                                contentColor = Color.White
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor   = MaterialTheme.colorScheme.onPrimary,
                             ),
                             shape = RoundedCornerShape(12.dp)
                         ) {

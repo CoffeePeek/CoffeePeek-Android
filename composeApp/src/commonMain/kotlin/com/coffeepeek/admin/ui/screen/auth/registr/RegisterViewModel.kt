@@ -12,10 +12,9 @@ import coffeepeek.composeapp.generated.resources.error_term_of_user
 import coffeepeek.composeapp.generated.resources.error_valid_email
 import coffeepeek.composeapp.generated.resources.maybe_later
 import com.coffeepeek.admin.base.BaseViewModel
-import com.coffeepeek.admin.locator.Locator
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.ErrorHandler
-import com.coffeepeek.api.model.User
+import com.coffeepeek.domain.repository.AuthRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,9 +27,9 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 
 @OptIn(FlowPreview::class)
-class RegisterViewModel : BaseViewModel() {
-
-    private val authService = Locator.repo.authService
+class RegisterViewModel(
+    private val authRepository: AuthRepository,
+) : BaseViewModel() {
 
     private val _name = MutableStateFlow("")
     val name = _name.asStateFlow()
@@ -54,7 +53,7 @@ class RegisterViewModel : BaseViewModel() {
 
     init {
         observePasswordInput()
-            observeEmailInput()
+        observeEmailInput()
     }
 
     private fun observeEmailInput() {
@@ -105,12 +104,11 @@ class RegisterViewModel : BaseViewModel() {
 
     private suspend fun checkEmailAvailability(email: String) {
         try {
-            val isTaken = authService.checkEmail(email).getOrThrow()
-
-            if (isTaken) {
-                _emailError.value = getString(Res.string.email_no_exist)
+            val isTaken = authRepository.isEmailTaken(email).getOrThrow()
+            _emailError.value = if (isTaken) {
+                getString(Res.string.email_no_exist)
             } else {
-                _emailError.value = null
+                null
             }
         } catch (e: Exception) {
             ErrorHandler.showError(e.message.toString())
@@ -119,8 +117,8 @@ class RegisterViewModel : BaseViewModel() {
 
     fun onRegisterClick() {
         launchRequest(
-            onSuccess = { Navigator.navigate(Navigator.Screen.Main) },
-            errorMessage = Res.string.error_registr
+            onSuccess = { Navigator.navigate(Navigator.Screen.Auth) },
+            errorMessage = Res.string.error_registr,
         ) {
             val currentName = _name.value.trim()
             val currentEmail = _email.value.trim()
@@ -163,9 +161,7 @@ class RegisterViewModel : BaseViewModel() {
                 return@launchRequest
             }
 
-            val id = authService.registrationUser(currentEmail, currentName, currentPassword)
-                .getOrThrow()
-            Locator.setting.setUser(User(id))
+            authRepository.register(currentName, currentEmail, currentPassword).getOrThrow()
         }
     }
 }

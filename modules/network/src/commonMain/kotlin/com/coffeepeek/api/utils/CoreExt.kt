@@ -5,8 +5,10 @@ import com.coffeepeek.api.model.DataResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
@@ -119,3 +121,24 @@ suspend fun HttpClient.getResult(
 ): Result<HttpResponse> {
     return runCatching { get(urlString, block) }
 }
+
+suspend fun HttpClient.putResult(
+    urlString: String,
+    block: HttpRequestBuilder.() -> Unit = {}
+): Result<HttpResponse> {
+    return runCatching { put(urlString, block) }
+}
+
+suspend fun HttpClient.deleteResult(
+    urlString: String,
+    block: HttpRequestBuilder.() -> Unit = {}
+): Result<HttpResponse> {
+    return runCatching { delete(urlString, block) }
+}
+
+fun HttpResponse.extractRefreshToken(): String? =
+    headers["Set-Cookie"]
+        ?.split(";")
+        ?.firstOrNull { it.trim().startsWith("refreshToken=") }
+        ?.substringAfter("refreshToken=")
+        ?.trim()

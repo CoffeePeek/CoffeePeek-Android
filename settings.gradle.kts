@@ -33,5 +33,7 @@ plugins {
 }
 
 include(":composeApp")
+include(":modules:domain")
+include(":modules:data")
 include(":modules:network")
 include(":modules:room")

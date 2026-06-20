@@ -49,7 +49,7 @@ object KamelExt {
             val data = when {
                 data is String -> when {
                     data.startsWith("https://") or data.startsWith("http://") -> CustomUrl(data)
-                    else -> CustomUrl("${Constants.DOMAIN_URL}file/$data")
+                    else -> CustomUrl("${Constants.BASE_URL}api/file/$data")
                 }
 
                 else -> data

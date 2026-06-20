@@ -19,7 +19,6 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.serialization.kotlinx.json.json
 import java.io.File
 
-
 internal expect fun createClient(block: HttpClientConfig<*>.() -> Unit = {}): HttpClient
 
 class CoffeePeekClient(
@@ -27,40 +26,31 @@ class CoffeePeekClient(
     cacheFolder: File,
     private val debug: Boolean,
     private val getToken: () -> AuthResp?,
-    private val saveToken: (AuthResp?) -> Unit
+    private val saveToken: (AuthResp?) -> Unit,
 ) {
-    private val refreshClient = createClient {
+    val plainClient: HttpClient = createClient {
         install(ContentNegotiation) { json(json = JsonExt.json) }
-        defaultRequest {
-            url(url)
-        }
+        defaultRequest { url(url) }
     }.also { intercept(it) }
 
-    private val authService = AuthService(refreshClient)
+    val authService: AuthService by lazy { AuthService(client, plainClient) }
 
-    val client = createClient {
+    val client: HttpClient = createClient {
         install(ContentNegotiation) { json(json = JsonExt.json) }
-
-        defaultRequest {
-            url(url)
-        }
+        defaultRequest { url(url) }
 
         install(Auth) {
             bearer {
                 loadTokens {
-                    val tokens = getToken()
-                    if (tokens != null) {
-                        BearerTokens(tokens.accessToken, tokens.refreshToken)
-                    } else null
+                    getToken()?.let { BearerTokens(it.accessToken, it.refreshToken) }
                 }
                 refreshTokens {
                     val oldTokens = getToken() ?: return@refreshTokens null
                     try {
-                        val newTokens = authService.authRefresh(oldTokens.refreshToken).getOrThrow()
+                        val newTokens = authService.refresh(oldTokens.refreshToken).getOrThrow()
                         saveToken(newTokens)
-
                         BearerTokens(newTokens.accessToken, newTokens.refreshToken)
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         null
                     }
                 }
@@ -73,14 +63,14 @@ class CoffeePeekClient(
     }.also { intercept(it) }
 
     private fun intercept(httpClient: HttpClient) {
-        if (debug) httpClient.plugin(HttpSend).intercept {
-            val message = it.asCurlString()
-            println(message)
-            execute(it).also { responseCall ->
-                val resp = responseCall.response.bodyAsText(Charsets.UTF_8)
-                println("CURL ${responseCall.response.status.value}")
+        if (debug) {
+            httpClient.plugin(HttpSend).intercept {
+                val message = it.asCurlString()
+                println(message)
+                execute(it).also { responseCall ->
+                    println("CURL ${responseCall.response.status.value}")
+                }
             }
         }
     }
-
 }

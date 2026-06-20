@@ -34,7 +34,7 @@ abstract class ALocator {
 
     val fpClient by lazy {
         CoffeePeekClient(
-            url = Constants.DOMAIN_URL,
+            url = Constants.BASE_URL,
             getToken = { runBlocking { setting.getAuth() } },
             saveToken = { runBlocking { setting.setAuth(it) } },
             debug = true,
