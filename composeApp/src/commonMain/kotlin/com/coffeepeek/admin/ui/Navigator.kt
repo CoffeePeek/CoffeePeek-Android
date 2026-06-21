@@ -2,12 +2,17 @@ package com.coffeepeek.admin.ui
 
 import com.coffeepeek.admin.ui.screen.addshop.AddShopScreen
 import com.coffeepeek.admin.ui.screen.auth.registr.RegisterScreen
+import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesScreen
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileScreen
+import com.coffeepeek.admin.ui.screen.favorites.FavoritesScreen
+import com.coffeepeek.admin.ui.screen.reviews.MyReviewsScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.navigation.compose.NavHost
@@ -19,6 +24,7 @@ import com.coffeepeek.admin.ui.dialogs.ErrorDialog
 import com.coffeepeek.admin.ui.dialogs.LoadingDialog
 import com.coffeepeek.admin.ui.screen.auth.AuthScreen
 import com.coffeepeek.admin.ui.screen.main.MainScreen
+import com.coffeepeek.admin.ui.screen.review.CreateReviewScreen
 import com.coffeepeek.admin.ui.screen.shop.ShopDetailScreen
 import com.coffeepeek.admin.utils.ErrorHandler
 import com.coffeepeek.admin.utils.LoadingHandler
@@ -26,7 +32,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -68,6 +76,53 @@ object Navigator {
         @Serializable data class EditItem(val itemID: String?) : Screen
         @Serializable data object AddShop : Screen
         @Serializable data object EditProfile : Screen
+        @Serializable data object Favorites : Screen
+        @Serializable data object MyReviews : Screen
+        @Serializable data object VisitedPlaces : Screen
+        @Serializable data class CreateReview(val shopId: String) : Screen
+    }
+
+    data class MapShopFocus(
+        val shopId: String,
+        val latitude: Double,
+        val longitude: Double,
+        val title: String,
+    )
+
+    private val _pendingMapFocus = MutableStateFlow<MapShopFocus?>(null)
+    val pendingMapFocus = _pendingMapFocus.asStateFlow()
+
+    private val _pendingTabSelection = MutableStateFlow<Screen?>(null)
+    val pendingTabSelection = _pendingTabSelection.asStateFlow()
+
+    fun consumeMapFocus() {
+        _pendingMapFocus.value = null
+    }
+
+    fun consumeTabSelection() {
+        _pendingTabSelection.value = null
+    }
+
+    fun openShopOnMap(shopId: String, latitude: Double, longitude: Double, title: String) {
+        navigatorScope.launch {
+            _pendingMapFocus.value = MapShopFocus(shopId, latitude, longitude, title)
+            _pendingTabSelection.value = Screen.MapTab
+            _navigationEvents.emit(NavEvent.PopBack)
+        }
+    }
+
+    fun Screen.isHandledByRootNav(): Boolean = when (this) {
+        is Screen.Auth,
+        is Screen.Register,
+        is Screen.Main,
+        is Screen.ShopDetail,
+        is Screen.AddShop,
+        is Screen.EditProfile,
+        is Screen.CreateReview,
+        is Screen.Favorites,
+        is Screen.MyReviews,
+        is Screen.VisitedPlaces -> true
+        else -> false
     }
 
     fun navigate(screen: Screen) {
@@ -75,7 +130,10 @@ object Navigator {
     }
 
     fun selectTab(tab: Screen) {
-        navigatorScope.launch { _navigationEvents.emit(NavEvent.SelectTab(tab)) }
+        navigatorScope.launch {
+            _pendingTabSelection.value = tab
+            _navigationEvents.emit(NavEvent.SelectTab(tab))
+        }
     }
 
     fun popBack() {
@@ -88,7 +146,7 @@ object Navigator {
     ) {
         val errorMessage = ErrorHandler.errorMessage.collectAsState().value
         val loading = LoadingHandler.isLoading.collectAsState().value
-        val isLoggedIn = vm.isLoggedIn.collectAsState().value
+        val isLoggedIn by vm.isLoggedIn.collectAsState()
 
         ErrorDialog(
             show = errorMessage != null,
@@ -97,13 +155,17 @@ object Navigator {
         )
         LoadingDialog(show = loading)
 
-        val startDestination = if (isLoggedIn) Screen.Main else Screen.Auth
+        LaunchedEffect(isLoggedIn) {
+            if (!isLoggedIn) {
+                ErrorHandler.clearError()
+            }
+        }
 
-        BaseNavigator(startDestination)
+        BaseNavigator(isLoggedIn = isLoggedIn)
     }
 
     @Composable
-    private fun BaseNavigator(startDestination: Screen) {
+    private fun BaseNavigator(isLoggedIn: Boolean) {
         val nav = rememberNavController()
 
         LaunchedEffect(Unit) {
@@ -111,26 +173,39 @@ object Navigator {
                 when (event) {
                     is NavEvent.PopBack -> nav.popBackStack()
                     is NavEvent.NavigateUp -> nav.navigateUp()
-                    is NavEvent.NavigateTo -> nav.navigate(event.screen)
+                    is NavEvent.NavigateTo -> {
+                        if (event.screen.isHandledByRootNav()) {
+                            nav.navigate(event.screen)
+                        }
+                    }
                     else -> Unit
                 }
             }.launchIn(this)
         }
 
-        NavHost(
-            navController = nav,
-            startDestination = startDestination,
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            composable<Screen.Auth> { AuthScreen() }
-            composable<Screen.Register> { RegisterScreen() }
-            composable<Screen.Main> { MainScreen() }
-            composable<Screen.ShopDetail> { backStack ->
-                val route = backStack.toRoute<Screen.ShopDetail>()
-                ShopDetailScreen(shopId = route.shopId)
+        key(isLoggedIn) {
+            NavHost(
+                navController = nav,
+                startDestination = if (isLoggedIn) Screen.Main else Screen.Auth,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                composable<Screen.Auth> { AuthScreen() }
+                composable<Screen.Register> { RegisterScreen() }
+                composable<Screen.Main> { MainScreen() }
+                composable<Screen.ShopDetail> { backStack ->
+                    val route = backStack.toRoute<Screen.ShopDetail>()
+                    ShopDetailScreen(shopId = route.shopId)
+                }
+                composable<Screen.AddShop> { AddShopScreen() }
+                composable<Screen.EditProfile> { EditProfileScreen() }
+                composable<Screen.CreateReview> { backStack ->
+                    val route = backStack.toRoute<Screen.CreateReview>()
+                    CreateReviewScreen(shopId = route.shopId)
+                }
+                composable<Screen.Favorites> { FavoritesScreen() }
+                composable<Screen.MyReviews> { MyReviewsScreen() }
+                composable<Screen.VisitedPlaces> { VisitedPlacesScreen() }
             }
-            composable<Screen.AddShop> { AddShopScreen() }
-            composable<Screen.EditProfile> { EditProfileScreen() }
         }
     }
 }

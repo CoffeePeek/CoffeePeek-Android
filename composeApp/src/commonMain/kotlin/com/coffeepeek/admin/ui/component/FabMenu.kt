@@ -9,17 +9,16 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
-import com.coffeepeek.admin.utils.DrawableExt.toPainterResource
-import org.jetbrains.compose.resources.DrawableResource
 
 object FabMenu {
 
     data class Menu(
-        val resource: DrawableResource
+        val icon: ImageVector,
     )
 
 
@@ -52,7 +51,7 @@ object FabMenu {
                         .size(buttonSize)
                 ) {
                     Icon(
-                        painter = menu.resource.toPainterResource(),
+                        imageVector = menu.icon,
                         contentDescription = null
                     )
                 }

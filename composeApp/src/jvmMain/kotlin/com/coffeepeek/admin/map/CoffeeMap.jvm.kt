@@ -18,6 +18,10 @@ actual fun CoffeeMap(
     onBoundsChanged: (MapBounds) -> Unit,
     onShopClick: (MapShop) -> Unit,
     modifier: Modifier,
+    cameraTarget: Pair<Double, Double>?,
+    cameraZoom: Float?,
+    onCameraTargetApplied: () -> Unit,
+    isDarkTheme: Boolean,
 ) {
     Box(
         modifier = modifier

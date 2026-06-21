@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.ui.screen.auth.registr
 
+import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,10 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -51,6 +48,8 @@ import coffeepeek.composeapp.generated.resources.name
 import coffeepeek.composeapp.generated.resources.name_hint
 import coffeepeek.composeapp.generated.resources.password
 import coffeepeek.composeapp.generated.resources.registr
+import com.coffeepeek.admin.auth.GoogleSignInButton
+import com.coffeepeek.admin.auth.isGoogleSignInConfigured
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
@@ -135,7 +134,7 @@ object RegisterScreen {
                         value = name,
                         onValueChange = vm::onNameChange,
                         placeholder = stringResource(Res.string.name_hint),
-                        leadingIcon = Icons.Outlined.Person,
+                        leadingIcon = CpIcons.User,
                     )
 
                     Spacer(modifier = Modifier.height(CpDimens.spacing3))
@@ -145,7 +144,7 @@ object RegisterScreen {
                         value = email,
                         onValueChange = vm::onEmailChange,
                         placeholder = "your@email.com",
-                        leadingIcon = Icons.Outlined.Email,
+                        leadingIcon = CpIcons.Email,
                         errorText = emailError,
                     )
 
@@ -156,7 +155,7 @@ object RegisterScreen {
                         value = password,
                         onValueChange = vm::onPasswordChange,
                         placeholder = "••••••••",
-                        leadingIcon = Icons.Outlined.Lock,
+                        leadingIcon = CpIcons.Lock,
                         isPassword = true,
                         errorText = passwordError,
                     )
@@ -214,10 +213,16 @@ object RegisterScreen {
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(CpDimens.spacing5))
-                    OrDivider()
-                    Spacer(modifier = Modifier.height(CpDimens.spacing5))
-                    GoogleButton()
+                    if (isGoogleSignInConfigured()) {
+                        Spacer(modifier = Modifier.height(CpDimens.spacing5))
+                        OrDivider()
+                        Spacer(modifier = Modifier.height(CpDimens.spacing5))
+                        GoogleSignInButton(
+                            onResult = { result ->
+                                result.onSuccess(vm::onGoogleLogin)
+                            },
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(CpDimens.spacing6))
@@ -269,20 +274,5 @@ private fun OrDivider() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-    }
-}
-
-@Composable
-private fun GoogleButton() {
-    OutlinedButton(
-        onClick = {},
-        modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
-        shape = RoundedCornerShape(CpDimens.buttonRadius),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = MaterialTheme.colorScheme.onSurface,
-        ),
-    ) {
-        Text(text = "G  Google", style = MaterialTheme.typography.labelLarge)
     }
 }

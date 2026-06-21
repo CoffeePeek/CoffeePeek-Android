@@ -164,4 +164,13 @@ class RegisterViewModel(
             authRepository.register(currentName, currentEmail, currentPassword).getOrThrow()
         }
     }
+
+    fun onGoogleLogin(idToken: String) {
+        launchRequest(
+            errorMessage = Res.string.maybe_later,
+            onSuccess = { Navigator.navigate(Navigator.Screen.Main) },
+        ) {
+            authRepository.googleLogin(idToken).getOrThrow()
+        }
+    }
 }

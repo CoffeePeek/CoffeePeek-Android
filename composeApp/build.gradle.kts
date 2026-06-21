@@ -28,6 +28,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation("androidx.exifinterface:exifinterface:1.4.1")
             implementation(libs.yandex.mapkit)
+            implementation("com.google.android.gms:play-services-auth:21.3.0")
         }
         commonMain.dependencies {
             implementation(project(":modules:domain"))
@@ -40,7 +41,7 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
-            implementation(compose.materialIconsExtended)
+            implementation(libs.phosphor.icon)
 
             implementation(libs.androidx.navigation)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
@@ -83,6 +84,17 @@ val mapkitApiKey: String = run {
     }
 }
 
+val googleWebClientId: String = run {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        val props = Properties()
+        localPropertiesFile.inputStream().use { props.load(it) }
+        props.getProperty("GOOGLE_WEB_CLIENT_ID", "")
+    } else {
+        ""
+    }
+}
+
 android {
     namespace = Config.APPLICATION_ID
     compileSdk = Config.COMPILE_SDK
@@ -98,6 +110,7 @@ android {
         versionCode = appVersionCode.get()
         versionName = appVersionName.get()
         buildConfigField("String", "MAPKIT_API_KEY", "\"$mapkitApiKey\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
     packaging {
         resources {

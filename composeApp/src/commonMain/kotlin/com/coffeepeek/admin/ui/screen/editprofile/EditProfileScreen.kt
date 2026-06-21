@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.ui.screen.editprofile
 
+import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,18 +9,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,15 +73,15 @@ fun EditProfileScreen(vm: EditProfileViewModel = koinViewModel()) {
                 },
                 navigationIcon = {
                     IconButton(onClick = { Navigator.popBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(CpIcons.Back, contentDescription = "Назад")
                     }
                 },
                 actions = {
                     if (state.isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp).padding(end = 4.dp),
+                        CoffeePeekLoader(
+                            modifier = Modifier.padding(end = 4.dp),
+                            size = CpDimens.loaderButton,
                             strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.primary,
                         )
                         Spacer(Modifier.width(CpDimens.spacing3))
                     } else {
@@ -113,7 +111,7 @@ fun EditProfileScreen(vm: EditProfileViewModel = koinViewModel()) {
     ) { padding ->
         if (state.isLoading) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                CoffeePeekLoader()
             }
             return@Scaffold
         }
@@ -200,9 +198,9 @@ fun EditProfileScreen(vm: EditProfileViewModel = koinViewModel()) {
                 ),
             ) {
                 if (state.isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(CpDimens.loaderButton),
+                    CoffeePeekLoader(
                         color = MaterialTheme.colorScheme.onPrimary,
+                        size = CpDimens.loaderButton,
                         strokeWidth = 2.dp,
                     )
                 } else {

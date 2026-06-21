@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.ui.screen.checkins
 
+import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,12 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.domain.model.CheckIn
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -47,7 +45,7 @@ fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = koinViewModel()) {
                 title = { Text("Посещённые места") },
                 navigationIcon = {
                     IconButton(onClick = { Navigator.popBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(CpIcons.Back, contentDescription = "Назад")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -59,7 +57,7 @@ fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = koinViewModel()) {
     ) { padding ->
         when {
             state.isLoading -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CoffeePeekLoader()
             }
             state.error != null -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Text(state.error ?: "Ошибка", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -92,7 +90,7 @@ private fun CheckInCard(checkIn: CheckIn, onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(CpDimens.spacing3)) {
             androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.LocationOn, null, tint = MaterialTheme.colorScheme.primary)
+                Icon(CpIcons.Location, null, tint = MaterialTheme.colorScheme.primary)
                 Text(
                     text = checkIn.shopName.ifBlank { "Кофейня" },
                     style = MaterialTheme.typography.titleSmall,

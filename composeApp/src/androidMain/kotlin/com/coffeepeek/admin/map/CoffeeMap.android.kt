@@ -1,13 +1,19 @@
 package com.coffeepeek.admin.map
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.coffeepeek.domain.model.MapBounds
@@ -27,7 +33,13 @@ import com.yandex.mapkit.mapview.MapView
 private const val DEFAULT_LAT = 53.9045
 private const val DEFAULT_LON = 27.5615
 private const val DEFAULT_ZOOM = 12f
-private const val MAP_INITIALIZED_TAG = "map_initialized"
+
+private data class PlacemarkEntry(
+    val placemark: PlacemarkMapObject,
+    var isSelected: Boolean,
+    var latitude: Double,
+    var longitude: Double,
+)
 
 @Composable
 actual fun CoffeeMap(
@@ -36,16 +48,67 @@ actual fun CoffeeMap(
     onBoundsChanged: (MapBounds) -> Unit,
     onShopClick: (MapShop) -> Unit,
     modifier: Modifier,
+    cameraTarget: Pair<Double, Double>?,
+    cameraZoom: Float?,
+    onCameraTargetApplied: () -> Unit,
+    isDarkTheme: Boolean,
 ) {
     val context = LocalContext.current
+    val appContext = context.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
     val onBoundsChangedState = rememberUpdatedState(onBoundsChanged)
     val onShopClickState = rememberUpdatedState(onShopClick)
+    val onCameraTargetAppliedState = rememberUpdatedState(onCameraTargetApplied)
 
-    val mapView = remember { MapView(context) }
-    val placemarks = remember { mutableMapOf<String, PlacemarkMapObject>() }
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { /* MapKit handles absence gracefully after request */ }
+
+    LaunchedEffect(Unit) {
+        val fineGranted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!fineGranted && !coarseGranted) {
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                ),
+            )
+        }
+    }
+
+    val mapView = remember { MapView(appContext) }
+    val placemarks = remember { mutableMapOf<String, PlacemarkEntry>() }
+    val defaultIcon = remember { MapMarkerIcons.provider(appContext, selected = false) }
+    val selectedIcon = remember { MapMarkerIcons.provider(appContext, selected = true) }
+    val iconStyle = remember {
+        IconStyle()
+            .setAnchor(MapMarkerIcons.anchor())
+            .setScale(1f)
+    }
 
     DisposableEffect(lifecycleOwner, mapView) {
+        val map = mapView.mapWindow.map
+        val cameraListener = object : CameraListener {
+            override fun onCameraPositionChanged(
+                map: Map,
+                cameraPosition: CameraPosition,
+                cameraUpdateReason: CameraUpdateReason,
+                finished: Boolean,
+            ) {
+                if (finished) {
+                    onBoundsChangedState.value(map.visibleRegion.toMapBounds())
+                }
+            }
+        }
+        map.addCameraListener(cameraListener)
+
         val startMap = {
             MapKitFactory.getInstance().onStart()
             mapView.onStart()
@@ -70,60 +133,67 @@ actual fun CoffeeMap(
 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            map.removeCameraListener(cameraListener)
+            placemarks.values.forEach { entry ->
+                map.mapObjects.remove(entry.placemark)
+            }
+            placemarks.clear()
             stopMap()
         }
+    }
+
+    LaunchedEffect(cameraTarget, cameraZoom, mapView) {
+        val target = cameraTarget ?: return@LaunchedEffect
+        val map = mapView.mapWindow.map
+        map.move(
+            CameraPosition(
+                Point(target.first, target.second),
+                cameraZoom ?: 16f,
+                0f,
+                0f,
+            ),
+            Animation(Animation.Type.SMOOTH, 0.45f),
+            null,
+        )
+        onCameraTargetAppliedState.value()
+    }
+
+    LaunchedEffect(isDarkTheme, mapView) {
+        mapView.mapWindow.map.isNightModeEnabled = isDarkTheme
+    }
+
+    LaunchedEffect(shops, selectedShopId, mapView) {
+        val map = mapView.mapWindow.map
+        syncPlacemarks(
+            map = map,
+            shops = shops,
+            selectedShopId = selectedShopId,
+            placemarks = placemarks,
+            defaultIcon = defaultIcon,
+            selectedIcon = selectedIcon,
+            iconStyle = iconStyle,
+            onShopClick = { shop -> onShopClickState.value(shop) },
+        )
     }
 
     AndroidView(
         modifier = modifier,
         factory = {
             mapView.apply {
+                val initialTarget = cameraTarget
+                    ?.let { Point(it.first, it.second) }
+                    ?: Point(DEFAULT_LAT, DEFAULT_LON)
                 mapWindow.map.move(
-                    CameraPosition(Point(DEFAULT_LAT, DEFAULT_LON), DEFAULT_ZOOM, 0f, 0f),
+                    CameraPosition(
+                        initialTarget,
+                        cameraZoom ?: if (cameraTarget != null) 16f else DEFAULT_ZOOM,
+                        0f,
+                        0f,
+                    ),
                     Animation(Animation.Type.SMOOTH, 0f),
                     null,
                 )
             }
-        },
-        update = { view ->
-            val map = view.mapWindow.map
-
-            if (view.getTag(MAP_INITIALIZED_TAG.tagId()) != true) {
-                map.addCameraListener(object : CameraListener {
-                    override fun onCameraPositionChanged(
-                        map: Map,
-                        cameraPosition: CameraPosition,
-                        cameraUpdateReason: CameraUpdateReason,
-                        finished: Boolean,
-                    ) {
-                        if (finished) {
-                            onBoundsChangedState.value(map.visibleRegion.toMapBounds())
-                        }
-                    }
-                })
-                view.setTag(MAP_INITIALIZED_TAG.tagId(), true)
-                onBoundsChangedState.value(map.visibleRegion.toMapBounds())
-            }
-
-            syncPlacemarks(
-                map = map,
-                shops = shops,
-                selectedShopId = selectedShopId,
-                placemarks = placemarks,
-                onShopClick = { shop ->
-                    onShopClickState.value(shop)
-                    map.move(
-                        CameraPosition(
-                            Point(shop.latitude, shop.longitude),
-                            map.cameraPosition.zoom,
-                            0f,
-                            0f,
-                        ),
-                        Animation(Animation.Type.SMOOTH, 0.3f),
-                        null,
-                    )
-                },
-            )
         },
     )
 }
@@ -132,29 +202,54 @@ private fun syncPlacemarks(
     map: Map,
     shops: List<MapShop>,
     selectedShopId: String?,
-    placemarks: MutableMap<String, PlacemarkMapObject>,
+    placemarks: MutableMap<String, PlacemarkEntry>,
+    defaultIcon: com.yandex.runtime.image.ImageProvider,
+    selectedIcon: com.yandex.runtime.image.ImageProvider,
+    iconStyle: IconStyle,
     onShopClick: (MapShop) -> Unit,
 ) {
     val shopIds = shops.map { it.id }.toSet()
     placemarks.keys.filter { it !in shopIds }.toList().forEach { id ->
-        placemarks.remove(id)?.let { map.mapObjects.remove(it) }
+        placemarks.remove(id)?.let { entry ->
+            map.mapObjects.remove(entry.placemark)
+        }
     }
 
     shops.forEach { shop ->
         val point = Point(shop.latitude, shop.longitude)
-        val placemark = placemarks.getOrPut(shop.id) {
-            map.mapObjects.addPlacemark(point).apply {
+        val isSelected = shop.id == selectedShopId
+        val entry = placemarks.getOrPut(shop.id) {
+            val placemark = map.mapObjects.addPlacemark(point).apply {
+                setIcon(defaultIcon)
+                setIconStyle(iconStyle)
                 addTapListener { _, _ ->
                     onShopClick(shop)
                     true
                 }
             }
+            PlacemarkEntry(
+                placemark = placemark,
+                isSelected = isSelected,
+                latitude = shop.latitude,
+                longitude = shop.longitude,
+            )
         }
-        placemark.geometry = point
-        placemark.zIndex = if (shop.id == selectedShopId) 2f else 0f
-        placemark.setIconStyle(
-            IconStyle().setScale(if (shop.id == selectedShopId) 1.3f else 1f),
-        )
+
+        if (entry.latitude != shop.latitude || entry.longitude != shop.longitude) {
+            entry.placemark.geometry = point
+            entry.latitude = shop.latitude
+            entry.longitude = shop.longitude
+        }
+
+        val targetZIndex = if (isSelected) 2f else 1f
+        if (entry.placemark.zIndex != targetZIndex) {
+            entry.placemark.zIndex = targetZIndex
+        }
+
+        if (entry.isSelected != isSelected) {
+            entry.placemark.setIcon(if (isSelected) selectedIcon else defaultIcon)
+            entry.isSelected = isSelected
+        }
     }
 }
 
@@ -178,5 +273,3 @@ private fun VisibleRegion.toMapBounds(): MapBounds {
         maxLon = lons.max(),
     )
 }
-
-private fun String.tagId(): Int = hashCode()

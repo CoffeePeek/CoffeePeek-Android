@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.ui.screen.auth
 
+import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,15 +15,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -39,6 +36,8 @@ import coffeepeek.composeapp.generated.resources.login
 import coffeepeek.composeapp.generated.resources.no_account
 import coffeepeek.composeapp.generated.resources.password
 import coffeepeek.composeapp.generated.resources.registr
+import com.coffeepeek.admin.auth.GoogleSignInButton
+import com.coffeepeek.admin.auth.isGoogleSignInConfigured
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
@@ -120,7 +119,7 @@ object AuthScreen {
                         value = email,
                         onValueChange = vm::onEmailChange,
                         placeholder = "name@example.com",
-                        leadingIcon = Icons.Outlined.Email,
+                        leadingIcon = CpIcons.Email,
                     )
 
                     Spacer(modifier = Modifier.height(CpDimens.spacing3))
@@ -130,7 +129,7 @@ object AuthScreen {
                         value = password,
                         onValueChange = vm::onPasswordChange,
                         placeholder = "••••••••",
-                        leadingIcon = Icons.Outlined.Lock,
+                        leadingIcon = CpIcons.Lock,
                         isPassword = true,
                     )
 
@@ -159,10 +158,16 @@ object AuthScreen {
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(CpDimens.spacing5))
-                    OrDivider()
-                    Spacer(modifier = Modifier.height(CpDimens.spacing5))
-                    GoogleButton()
+                    if (isGoogleSignInConfigured()) {
+                        Spacer(modifier = Modifier.height(CpDimens.spacing5))
+                        OrDivider()
+                        Spacer(modifier = Modifier.height(CpDimens.spacing5))
+                        GoogleSignInButton(
+                            onResult = { result ->
+                                result.onSuccess(vm::onGoogleLogin)
+                            },
+                        )
+                    }
                 }
             }
 
@@ -189,29 +194,6 @@ private fun OrDivider() {
         HorizontalDivider(
             modifier = Modifier.weight(1f),
             color = MaterialTheme.colorScheme.outlineVariant,
-        )
-    }
-}
-
-@Composable
-private fun GoogleButton() {
-    OutlinedButton(
-        onClick = {},
-        modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
-        shape = RoundedCornerShape(CpDimens.buttonRadius),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-            contentColor = MaterialTheme.colorScheme.onSurface,
-        ),
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Email,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp).padding(end = 0.dp),
-        )
-        Text(
-            text = "  Google",
-            style = MaterialTheme.typography.labelLarge,
         )
     }
 }

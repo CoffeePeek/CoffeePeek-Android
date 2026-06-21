@@ -2,9 +2,10 @@ package com.coffeepeek.data.repository
 
 import com.coffeepeek.api.model.request.CreateShopContactReq
 import com.coffeepeek.api.model.request.CreateShopReq
-import com.coffeepeek.api.model.response.shop.CoffeeShopDetailsDto
-import com.coffeepeek.api.model.response.shop.ShortShopDto
+import com.coffeepeek.api.model.request.ScheduleIntervalReq
+import com.coffeepeek.api.model.request.ScheduleReq
 import com.coffeepeek.api.service.ShopApiService
+import com.coffeepeek.data.mapper.ShopMapper.toDomain
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CoffeeShop
@@ -15,18 +16,26 @@ import com.coffeepeek.domain.model.MapShop
 import com.coffeepeek.domain.model.PagedResult
 import com.coffeepeek.domain.model.ShopCatalogs
 import com.coffeepeek.domain.model.ShopFilters
+import com.coffeepeek.domain.repository.PhotoRepository
 import com.coffeepeek.domain.repository.ShopRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
 class ShopRepositoryImpl(
     private val shopApiService: ShopApiService,
+    private val photoRepository: PhotoRepository,
 ) : ShopRepository {
 
     override suspend fun searchShops(filters: ShopFilters): Result<PagedResult<CoffeeShop>> =
         shopApiService.searchShops(
             query = filters.query,
             cityId = filters.cityId,
+            roasterIds = filters.roasterIds.takeIf { it.isNotEmpty() },
+            equipmentIds = filters.equipmentIds.takeIf { it.isNotEmpty() },
+            beanIds = filters.beanIds.takeIf { it.isNotEmpty() },
+            brewMethodIds = filters.brewMethodIds.takeIf { it.isNotEmpty() },
+            priceRange = filters.priceRange,
+            minRating = filters.minRating,
             page = filters.page,
             pageSize = filters.pageSize,
         ).map { dto ->
@@ -60,11 +69,11 @@ class ShopRepositoryImpl(
 
     override suspend fun getCatalogs(): Result<ShopCatalogs> = runCatching {
         coroutineScope {
-            val cities      = async { shopApiService.getCities().getOrDefault(emptyList()) }
-            val beans       = async { shopApiService.getBeans().getOrDefault(emptyList()) }
-            val equipment   = async { shopApiService.getEquipment().getOrDefault(emptyList()) }
-            val roasters    = async { shopApiService.getRoasters().getOrDefault(emptyList()) }
-            val brewMethods = async { shopApiService.getBrewMethods().getOrDefault(emptyList()) }
+            val cities      = async { shopApiService.getCities().getOrElse { emptyList() } }
+            val beans       = async { shopApiService.getBeans().getOrElse { emptyList() } }
+            val equipment   = async { shopApiService.getEquipment().getOrElse { emptyList() } }
+            val roasters    = async { shopApiService.getRoasters().getOrElse { emptyList() } }
+            val brewMethods = async { shopApiService.getBrewMethods().getOrElse { emptyList() } }
             ShopCatalogs(
                 cities      = cities.await().map { City(it.id, it.name) },
                 beans       = beans.await().map { CatalogItem(it.id, it.name) },
@@ -75,7 +84,9 @@ class ShopRepositoryImpl(
         }
     }
 
-    override suspend fun createShop(input: CreateShopInput): Result<Unit> =
+    override suspend fun createShop(input: CreateShopInput): Result<Unit> = runCatching {
+        val uploadedPhotos = photoRepository.uploadShopPhotos(input.photos).getOrThrow()
+
         shopApiService.createShop(
             CreateShopReq(
                 name        = input.name,
@@ -91,75 +102,24 @@ class ShopRepositoryImpl(
                         instagramLink = input.instagram?.takeIf { it.isNotBlank() },
                     )
                 } else null,
+                schedules = input.schedules.takeIf { it.isNotEmpty() }?.map { schedule ->
+                    ScheduleReq(
+                        dayOfWeek = schedule.dayOfWeek,
+                        isClosed = schedule.isClosed,
+                        intervals = schedule.intervals.takeIf { it.isNotEmpty() }?.map { interval ->
+                            ScheduleIntervalReq(
+                                openTime = interval.openTime,
+                                closeTime = interval.closeTime,
+                            )
+                        },
+                    )
+                },
+                shopPhotos = uploadedPhotos.toUploadedPhotoReqs().takeIf { it.isNotEmpty() },
                 equipmentIds  = input.equipmentIds.takeIf { it.isNotEmpty() },
                 coffeeBeanIds = input.coffeeBeanIds.takeIf { it.isNotEmpty() },
                 roasterIds    = input.roasterIds.takeIf { it.isNotEmpty() },
                 brewMethodIds = input.brewMethodIds.takeIf { it.isNotEmpty() },
             )
-        )
-
-    private fun ShortShopDto.toDomain() = CoffeeShop(
-        id = id,
-        title = name,
-        rating = rating.takeIf { it > 0 },
-        cityName = null,
-        priceRange = priceRangeLabel(priceRange),
-        photoUrl = photos.firstOrNull()?.fullUrl,
-        isFavorite = isFavorite,
-        address = location?.address,
-        isOpen = isOpen,
-        reviewCount = reviewCount,
-        tags = (brewMethods + roasters + beans).take(3).map { it.name },
-    )
-
-    private fun CoffeeShopDetailsDto.toDomain() = CoffeeShopDetails(
-        shop = CoffeeShop(
-            id = id,
-            title = name,
-            rating = rating.takeIf { it > 0 },
-            cityName = null,
-            priceRange = priceRangeLabel(priceRange),
-            photoUrl = photos.firstOrNull()?.fullUrl,
-            isFavorite = isFavorite,
-            address = location?.address,
-            isOpen = isOpen,
-            reviewCount = reviewCount,
-            tags = (brewMethods + roasters + coffeeBeans).take(3).map { it.name },
-        ),
-        description = description,
-        address = location?.address,
-        isVisited = isVisited,
-        canCreateReview = canCreateReview ?: false,
-        photos = photos.mapNotNull { it.fullUrl },
-        reviews = reviews.map { review ->
-            com.coffeepeek.domain.model.Review(
-                id = review.id,
-                username = review.username,
-                header = review.header,
-                comment = review.comment,
-                rating = (review.rating.place + review.rating.service + review.rating.coffee) / 3.0,
-                createdAt = review.createdAtUtc,
-            )
-        },
-        contact = shopContact?.let { c ->
-            com.coffeepeek.domain.model.ShopContact(
-                instagram = c.instagramLink,
-                email = c.email,
-                website = c.siteLink,
-                phone = c.phoneNumber,
-            )
-        },
-        brewMethods = brewMethods.map { it.name },
-        coffeeBeans = coffeeBeans.map { it.name },
-        roasters = roasters.map { it.name },
-        equipment = equipments.map { it.name },
-    )
-
-    private fun priceRangeLabel(range: Int) = when (range) {
-        1 -> "$"
-        2 -> "$$"
-        3 -> "$$$"
-        4 -> "$$$$"
-        else -> null
+        ).getOrThrow()
     }
 }

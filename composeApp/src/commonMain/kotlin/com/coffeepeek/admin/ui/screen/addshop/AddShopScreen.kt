@@ -1,10 +1,13 @@
 package com.coffeepeek.admin.ui.screen.addshop
 
+import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,14 +25,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material3.Switch
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -63,6 +64,14 @@ import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
+import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.layout.ContentScale
+import com.coffeepeek.admin.utils.KamelExt
+import com.coffeepeek.admin.utils.MAX_SHOP_PHOTOS
+import com.coffeepeek.admin.utils.PhotoPickerController
+import com.coffeepeek.admin.utils.rememberPhotoPicker
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
 import org.koin.compose.viewmodel.koinViewModel
@@ -118,6 +127,8 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
                         Text(
                             text = when (state.currentStep) {
                                 AddShopStep.BASIC    -> "Основное"
+                                AddShopStep.PHOTOS   -> "Фото"
+                                AddShopStep.SCHEDULE -> "Расписание"
                                 AddShopStep.CONTACTS -> "Контакты"
                                 AddShopStep.FEATURES -> "Особенности"
                             },
@@ -129,7 +140,7 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
                             if (state.currentStep == AddShopStep.BASIC) Navigator.popBack()
                             else vm.prevStep()
                         }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                            Icon(CpIcons.Back, contentDescription = "Назад")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -140,8 +151,10 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
                 )
                 // Прогресс-бар
                 val progress = when (state.currentStep) {
-                    AddShopStep.BASIC    -> 0.33f
-                    AddShopStep.CONTACTS -> 0.66f
+                    AddShopStep.BASIC    -> 0.2f
+                    AddShopStep.PHOTOS   -> 0.4f
+                    AddShopStep.SCHEDULE -> 0.6f
+                    AddShopStep.CONTACTS -> 0.8f
                     AddShopStep.FEATURES -> 1.0f
                 }
                 LinearProgressIndicator(
@@ -156,10 +169,29 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
     ) { padding ->
         if (state.isLoadingCatalogs) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                CoffeePeekLoader()
             }
             return@Scaffold
         }
+
+        if (state.catalogsError != null) {
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(state.catalogsError ?: "Ошибка", color = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.height(CpDimens.spacing3))
+                    Button(onClick = { vm.loadCatalogs() }) { Text("Повторить") }
+                }
+            }
+            return@Scaffold
+        }
+
+        var isPhotoLoading by remember { mutableStateOf(false) }
+        val remainingPhotos = (MAX_SHOP_PHOTOS - state.photos.size).coerceAtLeast(1)
+        val photoPicker = rememberPhotoPicker(
+            maxSelection = remainingPhotos,
+            isLoading = { isPhotoLoading = it },
+            onPhotosPicked = vm::addPhotos,
+        )
 
         AnimatedContent(
             targetState = state.currentStep,
@@ -179,6 +211,13 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
             ) {
                 when (step) {
                     AddShopStep.BASIC    -> StepBasic(state, vm)
+                    AddShopStep.PHOTOS   -> StepPhotos(
+                        state = state,
+                        vm = vm,
+                        photoPicker = photoPicker,
+                        isPhotoLoading = isPhotoLoading,
+                    )
+                    AddShopStep.SCHEDULE -> StepSchedule(state, vm)
                     AddShopStep.CONTACTS -> StepContacts(state, vm)
                     AddShopStep.FEATURES -> StepFeatures(state, vm)
                 }
@@ -198,9 +237,8 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
                 if (state.isSubmitting) {
                     Spacer(Modifier.height(CpDimens.spacing3))
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(CpDimens.loaderButton),
-                            color = MaterialTheme.colorScheme.primary,
+                        CoffeePeekLoader(
+                            size = CpDimens.loaderButton,
                             strokeWidth = 2.dp,
                         )
                     }
@@ -216,7 +254,10 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
 
 @Composable
 private fun StepBasic(state: AddShopUiState, vm: AddShopViewModel) {
-    FormField(label = "Название*") {
+    StepLegend(requiredHint = "Поля со * обязательны для заполнения")
+    Spacer(Modifier.height(CpDimens.spacing3))
+
+    FormField(label = "Название", required = true) {
         AppOutlinedField(
             value = state.name,
             onValueChange = vm::onNameChange,
@@ -228,18 +269,23 @@ private fun StepBasic(state: AddShopUiState, vm: AddShopViewModel) {
 
     Spacer(Modifier.height(CpDimens.spacing4))
 
-    FormField(label = "Город*") {
-        CityDropdown(
-            cities = state.cities,
-            selected = state.selectedCity,
-            onSelect = vm::onCitySelect,
-            error = if (state.selectedCity == null && state.name.isNotEmpty()) state.cityError else null,
-        )
+    FormField(label = "Город", required = true) {
+        when {
+            state.cities.size == 1 -> {
+                SingleValueField(value = state.cities.first().name)
+            }
+            else -> CityDropdown(
+                cities = state.cities,
+                selected = state.selectedCity,
+                onSelect = vm::onCitySelect,
+                error = if (state.selectedCity == null && state.name.isNotEmpty()) state.cityError else null,
+            )
+        }
     }
 
     Spacer(Modifier.height(CpDimens.spacing4))
 
-    FormField(label = "Адрес*") {
+    FormField(label = "Адрес", required = true) {
         AppOutlinedField(
             value = state.address,
             onValueChange = vm::onAddressChange,
@@ -250,7 +296,7 @@ private fun StepBasic(state: AddShopUiState, vm: AddShopViewModel) {
 
     Spacer(Modifier.height(CpDimens.spacing4))
 
-    FormField(label = "Описание") {
+    FormField(label = "Описание", optional = true) {
         AppOutlinedField(
             value = state.description,
             onValueChange = vm::onDescriptionChange,
@@ -262,7 +308,7 @@ private fun StepBasic(state: AddShopUiState, vm: AddShopViewModel) {
 
     Spacer(Modifier.height(CpDimens.spacing4))
 
-    FormField(label = "Ценовой диапазон") {
+    FormField(label = "Ценовой диапазон", optional = true) {
         Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
             listOf(1 to "$", 2 to "$$", 3 to "$$$", 4 to "$$$$").forEach { (value, label) ->
                 FilterChip(
@@ -288,10 +334,337 @@ private fun StepBasic(state: AddShopUiState, vm: AddShopViewModel) {
     }
 }
 
-// ── Шаг 2: Контакты ───────────────────────────────────────────────────────────
+// ── Шаг 2: Фото ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun StepPhotos(
+    state: AddShopUiState,
+    vm: AddShopViewModel,
+    photoPicker: PhotoPickerController,
+    isPhotoLoading: Boolean,
+) {
+    StepLegend(optional = true)
+    Text(
+        text = "Добавьте фотографии кофейни (до $MAX_SHOP_PHOTOS). Можно выбрать несколько сразу.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(bottom = CpDimens.spacing3),
+    )
+    Text(
+        text = "Добавлено: ${state.photos.size}/$MAX_SHOP_PHOTOS",
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(bottom = CpDimens.spacing3),
+    )
+
+    if (state.photos.isNotEmpty()) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            modifier = Modifier.padding(bottom = CpDimens.spacing3),
+        ) {
+            state.photos.forEachIndexed { index, photo ->
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(RoundedCornerShape(CpDimens.radiusMd)),
+                ) {
+                    KamelExt.FlowerImage(
+                        data = photo.bytes,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                    IconButton(
+                        onClick = { vm.removePhoto(index) },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .size(28.dp)
+                            .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(50)),
+                    ) {
+                        Icon(
+                            CpIcons.Close,
+                            contentDescription = "Удалить",
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (state.photos.size < MAX_SHOP_PHOTOS) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        ) {
+            OutlinedButton(
+                onClick = photoPicker.pickFromGallery,
+                enabled = !isPhotoLoading,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(CpIcons.Gallery, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(CpDimens.spacing1))
+                Text("Галерея", style = MaterialTheme.typography.labelMedium)
+            }
+            OutlinedButton(
+                onClick = photoPicker.takePhoto,
+                enabled = !isPhotoLoading,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(CpIcons.Camera, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(CpDimens.spacing1))
+                Text("Камера", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+        if (isPhotoLoading) {
+            Spacer(Modifier.height(CpDimens.spacing2))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                CoffeePeekLoader(
+                    size = CpDimens.loaderButton,
+                    strokeWidth = 2.dp,
+                )
+                Spacer(Modifier.width(CpDimens.spacing2))
+                Text("Обработка фото…", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+// ── Шаг 3: Расписание ─────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun StepSchedule(state: AddShopUiState, vm: AddShopViewModel) {
+    StepLegend(optional = true)
+    Text(
+        text = "По умолчанию кофейня открыта каждый день. Укажите общее время и отметьте только закрытые дни.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(bottom = CpDimens.spacing4),
+    )
+
+    if (!state.usePerDaySchedule) {
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(bottom = CpDimens.spacing3),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        ) {
+            Column(Modifier.padding(CpDimens.spacing3)) {
+                Text("Время работы", style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(CpDimens.spacing2))
+                TimeAdjuster(
+                    label = "Открытие",
+                    value = state.unifiedOpenTime,
+                    onDecrease = { vm.adjustUnifiedOpen(-30) },
+                    onIncrease = { vm.adjustUnifiedOpen(30) },
+                )
+                Spacer(Modifier.height(CpDimens.spacing2))
+                TimeAdjuster(
+                    label = "Закрытие",
+                    value = state.unifiedCloseTime,
+                    onDecrease = { vm.adjustUnifiedClose(-30) },
+                    onIncrease = { vm.adjustUnifiedClose(30) },
+                )
+                Spacer(Modifier.height(CpDimens.spacing3))
+                Text(
+                    "Быстрый выбор",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(CpDimens.spacing1))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
+                    listOf("08:00" to "20:00", "09:00" to "21:00", "10:00" to "22:00").forEach { (open, close) ->
+                        val selected = state.unifiedOpenTime == open && state.unifiedCloseTime == close
+                        FilterChip(
+                            selected = selected,
+                            onClick = { vm.applySchedulePreset(open, close) },
+                            label = { Text("$open – $close", style = MaterialTheme.typography.labelSmall) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(bottom = CpDimens.spacing3),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        ) {
+            Column(Modifier.padding(CpDimens.spacing3)) {
+                Text("Закрытые дни", style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Нажмите на день, когда кофейня не работает",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(CpDimens.spacing2))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
+                    state.schedules.forEach { day ->
+                        val isClosed = day.dayOfWeek in state.closedDays
+                        FilterChip(
+                            selected = isClosed,
+                            onClick = { vm.toggleClosedDay(day.dayOfWeek) },
+                            label = { Text(day.shortLabel, style = MaterialTheme.typography.labelMedium) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.errorContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onErrorContainer,
+                            ),
+                        )
+                    }
+                }
+                val openCount = 7 - state.closedDays.size
+                Spacer(Modifier.height(CpDimens.spacing2))
+                Text(
+                    "Открыто $openCount из 7 дней",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Разное время по дням", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Если в будни и выходные разные часы",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = state.usePerDaySchedule,
+            onCheckedChange = vm::setUsePerDaySchedule,
+        )
+    }
+
+    AnimatedVisibility(visible = state.usePerDaySchedule) {
+        Column(modifier = Modifier.padding(top = CpDimens.spacing3)) {
+            state.schedules.forEach { day ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = CpDimens.spacing2),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                ) {
+                    Column(Modifier.padding(CpDimens.spacing3)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(day.label, style = MaterialTheme.typography.titleSmall)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    if (day.isClosed) "Закрыто" else "Открыто",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Spacer(Modifier.width(CpDimens.spacing1))
+                                Switch(
+                                    checked = !day.isClosed,
+                                    onCheckedChange = { open ->
+                                        vm.updateSchedule(day.dayOfWeek) { it.copy(isClosed = !open) }
+                                    },
+                                )
+                            }
+                        }
+                        if (!day.isClosed) {
+                            Spacer(Modifier.height(CpDimens.spacing2))
+                            TimeAdjuster(
+                                label = "Открытие",
+                                value = day.openTime,
+                                onDecrease = { vm.adjustDayOpenTime(day.dayOfWeek, -30) },
+                                onIncrease = { vm.adjustDayOpenTime(day.dayOfWeek, 30) },
+                            )
+                            Spacer(Modifier.height(CpDimens.spacing2))
+                            TimeAdjuster(
+                                label = "Закрытие",
+                                value = day.closeTime,
+                                onDecrease = { vm.adjustDayCloseTime(day.dayOfWeek, -30) },
+                                onIncrease = { vm.adjustDayCloseTime(day.dayOfWeek, 30) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimeAdjuster(
+    label: String,
+    value: String,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clip(RoundedCornerShape(CpDimens.radiusMd))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            IconButton(onClick = onDecrease, modifier = Modifier.size(40.dp)) {
+                Icon(CpIcons.ChevronLeft, "Раньше", modifier = Modifier.size(20.dp))
+            }
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = CpDimens.spacing2),
+            )
+            IconButton(onClick = onIncrease, modifier = Modifier.size(40.dp)) {
+                Icon(CpIcons.ChevronRight, "Позже", modifier = Modifier.size(20.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun StepLegend(
+    requiredHint: String? = null,
+    optional: Boolean = false,
+) {
+    when {
+        requiredHint != null -> Text(
+            text = requiredHint,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        optional -> Text(
+            text = "Необязательно — можно пропустить",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = CpDimens.spacing1),
+        )
+    }
+}
+
+// ── Шаг 4: Контакты ───────────────────────────────────────────────────────────
 
 @Composable
 private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
+    StepLegend(optional = true)
     Text(
         text = "Заполните те поля, которые актуальны для вашего заведения.",
         style = MaterialTheme.typography.bodyMedium,
@@ -299,7 +672,7 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
         modifier = Modifier.padding(bottom = CpDimens.spacing4),
     )
 
-    FormField(label = "Телефон") {
+    FormField(label = "Телефон", optional = true) {
         AppOutlinedField(
             value = state.phone,
             onValueChange = vm::onPhoneChange,
@@ -308,7 +681,7 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
         )
     }
     Spacer(Modifier.height(CpDimens.spacing3))
-    FormField(label = "Email") {
+    FormField(label = "Email", optional = true) {
         AppOutlinedField(
             value = state.email,
             onValueChange = vm::onEmailChange,
@@ -317,7 +690,7 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
         )
     }
     Spacer(Modifier.height(CpDimens.spacing3))
-    FormField(label = "Сайт") {
+    FormField(label = "Сайт", optional = true) {
         AppOutlinedField(
             value = state.website,
             onValueChange = vm::onWebsiteChange,
@@ -326,7 +699,7 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
         )
     }
     Spacer(Modifier.height(CpDimens.spacing3))
-    FormField(label = "Instagram") {
+    FormField(label = "Instagram", optional = true) {
         AppOutlinedField(
             value = state.instagram,
             onValueChange = vm::onInstagramChange,
@@ -340,6 +713,7 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StepFeatures(state: AddShopUiState, vm: AddShopViewModel) {
+    StepLegend(optional = true)
     Text(
         text = "Выберите характеристики, которые описывают ваше заведение.",
         style = MaterialTheme.typography.bodyMedium,
@@ -386,7 +760,7 @@ private fun CatalogGroup(
                 onClick = { onToggle(item.id) },
                 label = { Text(item.name, style = MaterialTheme.typography.labelMedium) },
                 leadingIcon = if (isSelected) {
-                    { Icon(Icons.Outlined.Check, null, modifier = Modifier.size(14.dp)) }
+                    { Icon(CpIcons.Check, null, modifier = Modifier.size(14.dp)) }
                 } else null,
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primary,
@@ -410,13 +784,30 @@ private fun CatalogGroup(
 // ── Переиспользуемые компоненты ───────────────────────────────────────────────
 
 @Composable
-private fun FormField(label: String, content: @Composable () -> Unit) {
-    Text(
-        text = label,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+private fun FormField(
+    label: String,
+    required: Boolean = false,
+    optional: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    Row(
         modifier = Modifier.padding(bottom = 6.dp, start = 4.dp),
-    )
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+    ) {
+        Text(
+            text = if (required) "$label *" else label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (optional) {
+            Text(
+                text = "необязательно",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            )
+        }
+    }
     content()
 }
 
@@ -425,6 +816,7 @@ private fun AppOutlinedField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
+    modifier: Modifier = Modifier,
     errorText: String? = null,
     counter: String? = null,
     minLines: Int = 1,
@@ -435,7 +827,7 @@ private fun AppOutlinedField(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = modifier.fillMaxWidth(),
             shape = RoundedCornerShape(CpDimens.radiusMd),
             placeholder = {
                 Text(
@@ -482,6 +874,28 @@ private fun AppOutlinedField(
 }
 
 @Composable
+private fun SingleValueField(value: String) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = {},
+        readOnly = true,
+        modifier = Modifier.fillMaxWidth(),
+        textStyle = MaterialTheme.typography.bodyLarge,
+        shape = RoundedCornerShape(CpDimens.radiusMd),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.outline,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            disabledBorderColor = MaterialTheme.colorScheme.outline,
+            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        ),
+        enabled = false,
+    )
+}
+
+@Composable
 private fun CityDropdown(
     cities: List<City>,
     selected: City?,
@@ -505,7 +919,7 @@ private fun CityDropdown(
             textStyle = MaterialTheme.typography.bodyLarge,
             trailingIcon = {
                 Icon(
-                    Icons.Outlined.ExpandMore,
+                    CpIcons.ChevronDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -551,7 +965,7 @@ private fun CityDropdown(
                         expanded = false
                     },
                     leadingIcon = if (city.id == selected?.id) {
-                        { Icon(Icons.Outlined.Check, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) }
+                        { Icon(CpIcons.Check, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) }
                     } else null,
                 )
             }

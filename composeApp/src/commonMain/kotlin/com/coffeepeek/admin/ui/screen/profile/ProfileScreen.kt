@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.ui.screen.profile
 
+import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,27 +21,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.outlined.Logout
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Favorite
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.LightMode
-import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.RateReview
-import androidx.compose.material.icons.outlined.SettingsBrightness
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -72,6 +57,7 @@ import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -107,7 +93,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
                     .statusBarsPadding(),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                CoffeePeekLoader()
             }
             return@Scaffold
         }
@@ -129,7 +115,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
             // ── Кофейни ───────────────────────────────────────────────────────
             SettingsSection(title = "Кофейни") {
                 SettingsRow(
-                    icon = Icons.Outlined.Add,
+                    icon = CpIcons.Add,
                     label = "Добавить кофейню",
                     iconTint = MaterialTheme.colorScheme.primary,
                     iconBg = MaterialTheme.colorScheme.primaryContainer,
@@ -142,24 +128,21 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
             // ── Моя активность ─────────────────────────────────────────────────
             SettingsSection(title = "Моя активность") {
                 SettingsRow(
-                    icon = Icons.Outlined.Favorite,
+                    icon = CpIcons.Favorite,
                     label = "Избранные кофейни",
-                    showArrow = false,
-                    onClick = {},
+                    onClick = { Navigator.navigate(Navigator.Screen.Favorites) },
                 )
                 SettingsDivider()
                 SettingsRow(
-                    icon = Icons.Outlined.RateReview,
+                    icon = CpIcons.Review,
                     label = "Мои отзывы",
-                    showArrow = false,
-                    onClick = {},
+                    onClick = { Navigator.navigate(Navigator.Screen.MyReviews) },
                 )
                 SettingsDivider()
                 SettingsRow(
-                    icon = Icons.Outlined.LocationOn,
+                    icon = CpIcons.Location,
                     label = "Посещённые места",
-                    showArrow = false,
-                    onClick = {},
+                    onClick = { Navigator.navigate(Navigator.Screen.VisitedPlaces) },
                 )
             }
 
@@ -170,7 +153,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
                 ThemeRow(current = themeMode, onSelect = vm::setTheme)
                 SettingsDivider()
                 SettingsRow(
-                    icon = Icons.Outlined.Info,
+                    icon = CpIcons.Info,
                     label = "Версия приложения",
                     trailing = {
                         Text(
@@ -201,14 +184,14 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
                 enabled = !state.isLoggingOut,
             ) {
                 if (state.isLoggingOut) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(CpDimens.loaderButton),
+                    CoffeePeekLoader(
                         color = CpColor.Error,
+                        size = CpDimens.loaderButton,
                         strokeWidth = 2.dp,
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.Logout,
+                        imageVector = CpIcons.Logout,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                     )
@@ -287,7 +270,7 @@ private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Edit,
+                        imageVector = CpIcons.Edit,
                         contentDescription = "Редактировать профиль",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(14.dp),
@@ -354,9 +337,9 @@ private fun ThemeMode.label() = when (this) {
 }
 
 private fun ThemeMode.icon() = when (this) {
-    ThemeMode.SYSTEM -> Icons.Outlined.SettingsBrightness
-    ThemeMode.LIGHT  -> Icons.Outlined.LightMode
-    ThemeMode.DARK   -> Icons.Outlined.DarkMode
+    ThemeMode.SYSTEM -> CpIcons.ThemeSystem
+    ThemeMode.LIGHT  -> CpIcons.ThemeLight
+    ThemeMode.DARK   -> CpIcons.ThemeDark
 }
 
 @Composable
@@ -382,7 +365,7 @@ private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Outlined.SettingsBrightness,
+                imageVector = CpIcons.ThemeSystem,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
@@ -419,7 +402,7 @@ private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Icon(
-                    imageVector = Icons.Outlined.ExpandMore,
+                    imageVector = CpIcons.ChevronDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),
@@ -468,7 +451,7 @@ private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
                         trailingIcon = if (isSelected) {
                             {
                                 Icon(
-                                    imageVector = Icons.Outlined.Check,
+                                    imageVector = CpIcons.Check,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(18.dp),
@@ -549,7 +532,7 @@ private fun SettingsRow(
             trailing()
         } else if (showArrow) {
             Icon(
-                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                imageVector = CpIcons.ChevronRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),

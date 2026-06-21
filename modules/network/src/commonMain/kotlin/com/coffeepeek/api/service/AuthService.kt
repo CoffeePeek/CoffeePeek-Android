@@ -1,9 +1,11 @@
 package com.coffeepeek.api.service
 
 import com.coffeepeek.api.model.ApiResponse
+import com.coffeepeek.api.model.request.GoogleLoginReq
 import com.coffeepeek.api.model.request.LoginReq
 import com.coffeepeek.api.model.request.RegistrationReq
 import com.coffeepeek.api.model.response.AuthResp
+import com.coffeepeek.api.model.response.GoogleLoginResp
 import com.coffeepeek.api.utils.ApiException
 import com.coffeepeek.api.utils.deleteResult
 import com.coffeepeek.api.utils.extractRefreshToken
@@ -12,8 +14,8 @@ import com.coffeepeek.api.utils.putResult
 import com.coffeepeek.api.utils.setJsonBody
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.cookie
 import io.ktor.client.request.get
-import io.ktor.client.request.header
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 
@@ -34,7 +36,28 @@ class AuthService(
             }
 
             apiResponse.data.copy(
-                refreshToken = response.extractRefreshToken().orEmpty(),
+                refreshToken = response.extractRefreshToken()
+                    ?.takeIf { it.isNotBlank() }
+                    ?: apiResponse.data.refreshToken,
+            )
+        }
+
+    suspend fun googleLogin(idToken: String): Result<AuthResp> =
+        runCatching {
+            val response = refreshClient.postResult("/api/Tokens/google/login") {
+                setJsonBody(GoogleLoginReq(idToken))
+            }.getOrThrow()
+
+            val apiResponse = response.body<ApiResponse<GoogleLoginResp>>()
+            if (!apiResponse.isSuccess || apiResponse.data == null) {
+                throw ApiException(apiResponse.message)
+            }
+
+            AuthResp(
+                accessToken = apiResponse.data.accessToken,
+                refreshToken = response.extractRefreshToken()
+                    ?.takeIf { it.isNotBlank() }
+                    .orEmpty(),
             )
         }
 
@@ -64,26 +87,37 @@ class AuthService(
 
     suspend fun refresh(refreshToken: String?) =
         runCatching {
+            val token = refreshToken?.takeIf { it.isNotBlank() }
+                ?: throw ApiException("Refresh token отсутствует")
+
             val response = refreshClient.putResult("/api/Tokens") {
-                refreshToken?.takeIf { it.isNotBlank() }?.let { header("Cookie", "refreshToken=$it") }
+                cookie("refreshToken", token)
             }.getOrThrow()
+
+            if (!response.status.isSuccess()) {
+                throw ApiException("Refresh failed (${response.status.value})")
+            }
 
             val apiResponse = response.body<ApiResponse<AuthResp>>()
             if (!apiResponse.isSuccess || apiResponse.data == null) {
                 throw ApiException(apiResponse.message)
             }
 
-            apiResponse.data.copy(
-                refreshToken = apiResponse.data.refreshToken.ifBlank {
-                    response.extractRefreshToken().orEmpty()
-                },
-            )
+            val bodyToken = apiResponse.data.refreshToken
+            val cookieToken = response.extractRefreshToken()
+            val resolvedRefresh = when {
+                !bodyToken.isNullOrBlank() -> bodyToken
+                !cookieToken.isNullOrBlank() -> cookieToken
+                else -> token
+            }
+
+            apiResponse.data.copy(refreshToken = resolvedRefresh)
         }
 
     suspend fun logout(refreshToken: String?) =
         runCatching {
             val response = client.deleteResult("/api/Tokens") {
-                refreshToken?.takeIf { it.isNotBlank() }?.let { header("Cookie", "refreshToken=$it") }
+                refreshToken?.takeIf { it.isNotBlank() }?.let { cookie("refreshToken", it) }
             }.getOrThrow()
             if (!response.status.isSuccess()) {
                 throw ApiException("Logout failed")

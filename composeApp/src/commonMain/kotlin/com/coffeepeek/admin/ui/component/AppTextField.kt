@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.ui.component
 
+import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -7,10 +8,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -88,8 +85,8 @@ fun AppTextField(
                     isPassword -> {
                         IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
                             Icon(
-                                imageVector = if (isPasswordVisible) Icons.Outlined.Visibility
-                                              else Icons.Outlined.VisibilityOff,
+                                imageVector = if (isPasswordVisible) CpIcons.Visibility
+                                              else CpIcons.VisibilityOff,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -97,7 +94,7 @@ fun AppTextField(
                     }
                     isError -> {
                         Icon(
-                            imageVector = Icons.Default.Error,
+                            imageVector = CpIcons.Error,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.error,
                         )

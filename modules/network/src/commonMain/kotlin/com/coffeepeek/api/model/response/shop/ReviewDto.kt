@@ -12,5 +12,6 @@ data class ReviewDto(
     @SerialName("header") val header: String = "",
     @SerialName("comment") val comment: String = "",
     @SerialName("rating") val rating: RatingDto = RatingDto(),
+    @SerialName("photos") val photos: List<UploadedPhotoDto> = emptyList(),
     @SerialName("createdAtUtc") val createdAtUtc: String = "",
 )

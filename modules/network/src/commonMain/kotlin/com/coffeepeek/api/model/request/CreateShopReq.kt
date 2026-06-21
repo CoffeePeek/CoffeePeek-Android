@@ -11,6 +11,8 @@ data class CreateShopReq(
     @SerialName("description")   val description: String?      = null,
     @SerialName("priceRange")    val priceRange: Int?          = null,
     @SerialName("shopContact")   val shopContact: CreateShopContactReq? = null,
+    @SerialName("schedules")     val schedules: List<ScheduleReq>? = null,
+    @SerialName("shopPhotos")    val shopPhotos: List<UploadedPhotoReq>? = null,
     @SerialName("equipmentIds")  val equipmentIds: List<String>? = null,
     @SerialName("coffeeBeanIds") val coffeeBeanIds: List<String>? = null,
     @SerialName("roasterIds")    val roasterIds: List<String>? = null,

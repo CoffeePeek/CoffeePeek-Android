@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.ui.screen.review
 
+import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,11 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.StarOutline
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
+import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -49,7 +46,7 @@ fun CreateReviewScreen(shopId: String) {
                 title = { Text("Новый отзыв") },
                 navigationIcon = {
                     IconButton(onClick = { Navigator.popBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(CpIcons.Back, contentDescription = "Назад")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -91,7 +88,7 @@ fun CreateReviewScreen(shopId: String) {
             Spacer(Modifier.height(CpDimens.spacing2))
             if (state.isSubmitting) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    CircularProgressIndicator()
+                    CoffeePeekLoader()
                 }
             } else {
                 AppButton(text = "Отправить на модерацию", onClick = vm::submit)
@@ -108,7 +105,7 @@ private fun RatingRow(label: String, value: Int, onChange: (Int) -> Unit) {
             (1..5).forEach { star ->
                 IconButton(onClick = { onChange(star) }) {
                     Icon(
-                        imageVector = if (star <= value) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                        imageVector = if (star <= value) CpIcons.StarFilled else CpIcons.StarOutline,
                         contentDescription = null,
                         tint = if (star <= value) MaterialTheme.colorScheme.primary else Color.Gray,
                     )

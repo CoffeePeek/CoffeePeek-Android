@@ -10,6 +10,10 @@ import com.coffeepeek.admin.ui.screen.addshop.AddShopViewModel
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileViewModel
 import com.coffeepeek.admin.ui.screen.map.MapViewModel
 import com.coffeepeek.admin.ui.screen.profile.ProfileViewModel
+import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesViewModel
+import com.coffeepeek.admin.ui.screen.favorites.FavoritesViewModel
+import com.coffeepeek.admin.ui.screen.review.CreateReviewViewModel
+import com.coffeepeek.admin.ui.screen.reviews.MyReviewsViewModel
 import com.coffeepeek.admin.ui.screen.shop.ShopDetailViewModel
 import com.coffeepeek.data.di.dataModule
 import org.koin.core.context.startKoin
@@ -35,8 +39,12 @@ private fun appModule() = module {
     factory { NavigatorViewModel(get()) }
     factory { FeedViewModel(get()) }
     factory { MapViewModel(get()) }
-    factory { (shopId: String) -> ShopDetailViewModel(shopId, get()) }
+    factory { (shopId: String) -> ShopDetailViewModel(shopId, get(), get(), get()) }
     factory { ProfileViewModel(get(), get(), get()) }
     factory { AddShopViewModel(get()) }
     factory { EditProfileViewModel(get()) }
+    factory { FavoritesViewModel(get()) }
+    factory { MyReviewsViewModel(get(), get()) }
+    factory { VisitedPlacesViewModel(get()) }
+    factory { (shopId: String) -> CreateReviewViewModel(shopId, get()) }
 }

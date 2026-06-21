@@ -135,10 +135,3 @@ suspend fun HttpClient.deleteResult(
 ): Result<HttpResponse> {
     return runCatching { delete(urlString, block) }
 }
-
-fun HttpResponse.extractRefreshToken(): String? =
-    headers["Set-Cookie"]
-        ?.split(";")
-        ?.firstOrNull { it.trim().startsWith("refreshToken=") }
-        ?.substringAfter("refreshToken=")
-        ?.trim()

@@ -1,13 +1,10 @@
 package com.coffeepeek.admin.ui.screen.main
 
+import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.LocalCafe
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -17,6 +14,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -29,6 +27,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.Navigator.isHandledByRootNav
 import com.coffeepeek.admin.ui.screen.feed.FeedScreen
 import com.coffeepeek.admin.ui.screen.map.MapScreen
 import com.coffeepeek.admin.ui.screen.profile.ProfileScreen
@@ -43,6 +42,7 @@ data class BottomNavItem(
 @Composable
 fun MainScreen() {
     val bottomNavController = rememberNavController()
+    val pendingTabSelection by Navigator.pendingTabSelection.collectAsState()
 
     LaunchedEffect(Unit) {
         Navigator.navigationEvents.collect { event ->
@@ -57,13 +57,7 @@ fun MainScreen() {
                     }
                 }
                 is Navigator.NavEvent.NavigateTo -> {
-                    val handledByRoot = event.screen is Navigator.Screen.Auth ||
-                        event.screen is Navigator.Screen.Main ||
-                        event.screen is Navigator.Screen.Register ||
-                        event.screen is Navigator.Screen.ShopDetail ||
-                        event.screen is Navigator.Screen.AddShop ||
-                        event.screen is Navigator.Screen.EditProfile
-                    if (!handledByRoot) {
+                    if (!event.screen.isHandledByRootNav()) {
                         bottomNavController.navigate(event.screen)
                     }
                 }
@@ -72,22 +66,35 @@ fun MainScreen() {
         }
     }
 
+    LaunchedEffect(pendingTabSelection) {
+        pendingTabSelection?.let { tab ->
+            bottomNavController.navigate(tab) {
+                popUpTo(bottomNavController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+            Navigator.consumeTabSelection()
+        }
+    }
+
     val items = listOf(
         BottomNavItem(
             title = "Лента",
-            icon = Icons.Outlined.LocalCafe,
+            icon = CpIcons.Coffee,
             graph = Navigator.Screen.FeedGraph,
             startScreen = Navigator.Screen.FeedTab,
         ),
         BottomNavItem(
             title = "Карта",
-            icon = Icons.Default.Map,
+            icon = CpIcons.Map,
             graph = Navigator.Screen.MapGraph,
             startScreen = Navigator.Screen.MapTab,
         ),
         BottomNavItem(
             title = "Профиль",
-            icon = Icons.Default.Person,
+            icon = CpIcons.Profile,
             graph = Navigator.Screen.ProfileGraph,
             startScreen = Navigator.Screen.ProfileTab,
         ),

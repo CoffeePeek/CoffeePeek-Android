@@ -17,6 +17,7 @@ data class CoffeeShopDetailsDto(
     @SerialName("isFavorite") val isFavorite: Boolean = false,
     @SerialName("isVisited") val isVisited: Boolean = false,
     @SerialName("canCreateReview") val canCreateReview: Boolean? = null,
+    @SerialName("existingReviewId") val existingReviewId: String? = null,
     @SerialName("isOpen") val isOpen: Boolean = false,
     @SerialName("isNew") val isNew: Boolean = false,
     @SerialName("priceRange") val priceRange: Int = 1,
@@ -26,6 +27,7 @@ data class CoffeeShopDetailsDto(
     @SerialName("equipments") val equipments: List<CatalogItemDto> = emptyList(),
     @SerialName("brewMethods") val brewMethods: List<CatalogItemDto> = emptyList(),
     @SerialName("shopContact") val shopContact: ShopContactDto? = null,
+    @SerialName("schedules") val schedules: List<ScheduleDto>? = null,
 )
 
 @Serializable

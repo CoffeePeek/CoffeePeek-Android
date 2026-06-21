@@ -1,11 +1,10 @@
 package com.coffeepeek.admin.auth
 
+import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -42,7 +41,7 @@ actual fun GoogleSignInButton(
         ),
     ) {
         Icon(
-            imageVector = Icons.Outlined.Email,
+            imageVector = CpIcons.Email,
             contentDescription = null,
             modifier = Modifier.size(18.dp),
         )

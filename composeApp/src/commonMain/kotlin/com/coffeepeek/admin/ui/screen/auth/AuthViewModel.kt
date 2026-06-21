@@ -34,4 +34,13 @@ class AuthViewModel(
             authRepository.login(_email.value, _password.value).getOrThrow()
         }
     }
+
+    fun onGoogleLogin(idToken: String) {
+        launchRequest(
+            errorMessage = Res.string.no_login,
+            onSuccess = { Navigator.navigate(Navigator.Screen.Main) },
+        ) {
+            authRepository.googleLogin(idToken).getOrThrow()
+        }
+    }
 }

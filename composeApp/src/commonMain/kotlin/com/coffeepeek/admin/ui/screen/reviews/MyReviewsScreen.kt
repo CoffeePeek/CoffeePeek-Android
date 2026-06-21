@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.ui.screen.reviews
 
+import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,12 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.domain.model.Review
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -47,7 +45,7 @@ fun MyReviewsScreen(vm: MyReviewsViewModel = koinViewModel()) {
                 title = { Text("Мои отзывы") },
                 navigationIcon = {
                     IconButton(onClick = { Navigator.popBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(CpIcons.Back, contentDescription = "Назад")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -59,7 +57,7 @@ fun MyReviewsScreen(vm: MyReviewsViewModel = koinViewModel()) {
     ) { padding ->
         when {
             state.isLoading -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CoffeePeekLoader()
             }
             state.error != null -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Text(state.error ?: "Ошибка", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -100,7 +98,7 @@ private fun ReviewListCard(review: Review) {
                     modifier = Modifier.weight(1f),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Star, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 2.dp).then(Modifier))
+                    Icon(CpIcons.StarFilled, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 2.dp).then(Modifier))
                     Text("%.1f".format(review.rating.average), style = MaterialTheme.typography.labelMedium)
                 }
             }

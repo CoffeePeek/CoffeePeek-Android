@@ -12,4 +12,8 @@ expect fun CoffeeMap(
     onBoundsChanged: (MapBounds) -> Unit,
     onShopClick: (MapShop) -> Unit,
     modifier: Modifier = Modifier,
+    cameraTarget: Pair<Double, Double>? = null,
+    cameraZoom: Float? = null,
+    onCameraTargetApplied: () -> Unit = {},
+    isDarkTheme: Boolean = false,
 )

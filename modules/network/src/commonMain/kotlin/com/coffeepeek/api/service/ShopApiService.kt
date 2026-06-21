@@ -32,12 +32,24 @@ class ShopApiService(private val client: HttpClient) {
     suspend fun searchShops(
         query: String? = null,
         cityId: String? = null,
+        roasterIds: List<String>? = null,
+        equipmentIds: List<String>? = null,
+        beanIds: List<String>? = null,
+        brewMethodIds: List<String>? = null,
+        priceRange: Int? = null,
+        minRating: Double? = null,
         page: Int = 1,
         pageSize: Int = 20,
     ): Result<GetShopsResponseDto> = runCatching {
         val response = client.get("/api/CoffeeShops") {
             query?.let { parameter("q", it) }
             cityId?.let { parameter("cityId", it) }
+            roasterIds?.forEach { parameter("roasters", it) }
+            equipmentIds?.forEach { parameter("equipments", it) }
+            beanIds?.forEach { parameter("beans", it) }
+            brewMethodIds?.forEach { parameter("brewMethods", it) }
+            priceRange?.let { parameter("priceRange", it) }
+            minRating?.let { parameter("minRating", it) }
             parameter("page", page)
             parameter("pageSize", pageSize)
         }

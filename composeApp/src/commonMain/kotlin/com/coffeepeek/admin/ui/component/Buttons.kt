@@ -7,12 +7,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
-import coffeepeek.composeapp.generated.resources.Res
-import coffeepeek.composeapp.generated.resources.ic_arrow_back_24px
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.coffeepeek.admin.theme.Colors
 import com.coffeepeek.admin.theme.Theme
-import com.coffeepeek.admin.utils.DrawableExt.toPainterResource
+import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.material3.Icon as MaterialIcon
 import androidx.compose.material3.IconButton as MaterialIconButton
 
@@ -37,7 +35,7 @@ object Buttons {
 
     @Composable
     fun IconButton(
-        painter: Painter,
+        imageVector: ImageVector,
         onClick: () -> Unit,
         backgroundColor: Color = Color.Transparent,
         enabled: Boolean = true,
@@ -51,7 +49,7 @@ object Buttons {
             modifier = modifier,
         ) {
             MaterialIcon(
-                painter = painter,
+                imageVector = imageVector,
                 contentDescription = null
             )
         }
@@ -62,7 +60,7 @@ object Buttons {
         onClick: () -> Unit
     ){
         IconButton(
-            painter = Res.drawable.ic_arrow_back_24px.toPainterResource(),
+            imageVector = CpIcons.Back,
             onClick = onClick
         )
     }

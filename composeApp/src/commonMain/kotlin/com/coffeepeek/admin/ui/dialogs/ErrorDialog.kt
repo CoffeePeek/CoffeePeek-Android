@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.ui.dialogs
 
+import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -63,7 +62,7 @@ object ErrorDialog {
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.Warning,
+                                imageVector = CpIcons.Error,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(32.dp)
