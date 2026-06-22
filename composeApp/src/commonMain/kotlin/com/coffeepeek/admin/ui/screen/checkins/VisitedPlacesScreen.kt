@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,8 +24,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +43,17 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = koinViewModel()) {
     val state by vm.state.collectAsState()
+    val listState = rememberLazyListState()
+
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisible >= state.checkIns.size - 3 && state.hasMore && !state.isLoadingMore
+        }
+    }
+    LaunchedEffect(shouldLoadMore) {
+        if (shouldLoadMore) vm.loadMore()
+    }
 
     Scaffold(
         topBar = {
@@ -59,14 +75,20 @@ fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = koinViewModel()) {
             state.isLoading -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CoffeePeekLoader()
             }
-            state.error != null -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text(state.error ?: "Ошибка", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            state.error != null && state.checkIns.isEmpty() -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(state.error ?: "Ошибка", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Button(onClick = vm::refresh, modifier = Modifier.padding(top = CpDimens.spacing3)) {
+                        Text("Попробовать снова")
+                    }
+                }
             }
             state.checkIns.isEmpty() -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Text("Пока нет чек-инов", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
+                state = listState,
                 contentPadding = PaddingValues(CpDimens.spacing4),
                 verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
             ) {
@@ -75,6 +97,13 @@ fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = koinViewModel()) {
                         checkIn = checkIn,
                         onClick = { Navigator.navigate(Navigator.Screen.ShopDetail(checkIn.shopId)) },
                     )
+                }
+                if (state.isLoadingMore) {
+                    item {
+                        Box(Modifier.fillMaxWidth().padding(CpDimens.spacing3), contentAlignment = Alignment.Center) {
+                            CoffeePeekLoader(size = CpDimens.loaderButton, strokeWidth = 2.dp)
+                        }
+                    }
                 }
             }
         }

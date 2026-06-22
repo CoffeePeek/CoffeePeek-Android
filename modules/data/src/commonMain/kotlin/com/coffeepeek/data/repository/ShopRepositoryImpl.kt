@@ -26,6 +26,8 @@ class ShopRepositoryImpl(
     private val photoRepository: PhotoRepository,
 ) : ShopRepository {
 
+    private var cachedCatalogs: ShopCatalogs? = null
+
     override suspend fun searchShops(filters: ShopFilters): Result<PagedResult<CoffeeShop>> =
         shopApiService.searchShops(
             query = filters.query,
@@ -50,12 +52,20 @@ class ShopRepositoryImpl(
     override suspend fun getShopDetails(id: String): Result<CoffeeShopDetails> =
         shopApiService.getShopDetails(id).map { it.toDomain() }
 
-    override suspend fun getShopsInBounds(bounds: MapBounds): Result<List<MapShop>> =
+    override suspend fun getShopsInBounds(bounds: MapBounds, filters: ShopFilters): Result<List<MapShop>> =
         shopApiService.getShopsInBounds(
             minLat = bounds.minLat,
             minLon = bounds.minLon,
             maxLat = bounds.maxLat,
             maxLon = bounds.maxLon,
+            query = filters.query,
+            cityId = filters.cityId,
+            roasterIds = filters.roasterIds.takeIf { it.isNotEmpty() },
+            equipmentIds = filters.equipmentIds.takeIf { it.isNotEmpty() },
+            beanIds = filters.beanIds.takeIf { it.isNotEmpty() },
+            brewMethodIds = filters.brewMethodIds.takeIf { it.isNotEmpty() },
+            priceRange = filters.priceRange,
+            minRating = filters.minRating,
         ).map { shops ->
             shops.map { dto ->
                 MapShop(
@@ -67,7 +77,7 @@ class ShopRepositoryImpl(
             }
         }
 
-    override suspend fun getCatalogs(): Result<ShopCatalogs> = runCatching {
+    override suspend fun getCatalogs(): Result<ShopCatalogs> = cachedCatalogs?.let { Result.success(it) } ?: runCatching {
         coroutineScope {
             val cities      = async { shopApiService.getCities().getOrElse { emptyList() } }
             val beans       = async { shopApiService.getBeans().getOrElse { emptyList() } }
@@ -80,7 +90,7 @@ class ShopRepositoryImpl(
                 equipment   = equipment.await().map { CatalogItem(it.id, it.name) },
                 roasters    = roasters.await().map { CatalogItem(it.id, it.name) },
                 brewMethods = brewMethods.await().map { CatalogItem(it.id, it.name) },
-            )
+            ).also { cachedCatalogs = it }
         }
     }
 

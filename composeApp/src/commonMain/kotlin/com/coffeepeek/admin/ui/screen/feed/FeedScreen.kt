@@ -3,6 +3,7 @@ package com.coffeepeek.admin.ui.screen.feed
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -178,6 +181,24 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                 }
             }
         },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = { Navigator.navigate(Navigator.Screen.Map) },
+                icon = {
+                    Icon(
+                        imageVector = CpIcons.Map,
+                        contentDescription = null,
+                    )
+                },
+                text = {
+                    Text("Карта", style = MaterialTheme.typography.labelLarge)
+                },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = RoundedCornerShape(CpDimens.radius2xl),
+            )
+        },
+        floatingActionButtonPosition = FabPosition.Center,
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         PullToRefreshBox(
@@ -233,9 +254,11 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
                     ) {
                         items(state.shops, key = { it.id }) { shop ->
-                            ShopCard(shop = shop, onClick = {
-                                Navigator.navigate(Navigator.Screen.ShopDetail(shop.id))
-                            })
+                            ShopCard(
+                                shop = shop,
+                                onClick = { Navigator.navigate(Navigator.Screen.ShopDetail(shop.id)) },
+                                onToggleFavorite = { vm.toggleFavorite(shop) },
+                            )
                         }
                         if (state.isLoadingMore) {
                             item {
@@ -258,7 +281,11 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
 }
 
 @Composable
-private fun ShopCard(shop: CoffeeShop, onClick: () -> Unit) {
+private fun ShopCard(
+    shop: CoffeeShop,
+    onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(CpDimens.cardRadius),
@@ -271,7 +298,7 @@ private fun ShopCard(shop: CoffeeShop, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp)
+                    .aspectRatio(1.45f)
                     .clip(RoundedCornerShape(topStart = CpDimens.cardRadius, topEnd = CpDimens.cardRadius))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
             ) {
@@ -294,14 +321,18 @@ private fun ShopCard(shop: CoffeeShop, onClick: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
                 ) {
                     if (shop.isOpen) StatusBadge("Открыто", CpColor.Success)
-                    if (shop.isFavorite) FavoriteIconBadge()
                 }
+                FavoriteIconBadge(
+                    isFavorite = shop.isFavorite,
+                    onClick = onToggleFavorite,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(CpDimens.spacing2),
+                )
                 val priceRange = shop.priceRange
                 if (!priceRange.isNullOrBlank()) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(CpDimens.spacing2)
+                            .padding(top = 46.dp, end = CpDimens.spacing2)
                             .clip(RoundedCornerShape(CpDimens.radiusSm))
                             .background(Color.Black.copy(alpha = 0.55f))
                             .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
@@ -401,19 +432,24 @@ private fun ShopCard(shop: CoffeeShop, onClick: () -> Unit) {
 }
 
 @Composable
-private fun FavoriteIconBadge() {
+private fun FavoriteIconBadge(
+    isFavorite: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Box(
-        modifier = Modifier
-            .size(28.dp)
+        modifier = modifier
+            .size(36.dp)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.92f)),
+            .background(Color.White.copy(alpha = 0.92f))
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = CpIcons.FavoriteFilled,
-            contentDescription = "В избранном",
-            tint = CpColor.Error,
-            modifier = Modifier.size(15.dp),
+            imageVector = if (isFavorite) CpIcons.FavoriteFilled else CpIcons.Favorite,
+            contentDescription = if (isFavorite) "Убрать из избранного" else "Добавить в избранное",
+            tint = if (isFavorite) CpColor.Error else Color.Black,
+            modifier = Modifier.size(21.dp),
         )
     }
 }

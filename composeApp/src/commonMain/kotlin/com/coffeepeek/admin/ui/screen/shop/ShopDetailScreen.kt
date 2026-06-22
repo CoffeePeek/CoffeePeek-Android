@@ -68,6 +68,7 @@ import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
+import com.coffeepeek.admin.ui.component.FullScreenImageDialog
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.utils.OpenInBrowser
 import com.coffeepeek.domain.model.CoffeeShopDetails
@@ -86,12 +87,25 @@ fun ShopDetailScreen(shopId: String) {
     val vm: ShopDetailViewModel = koinViewModel(parameters = { parametersOf(shopId) })
     val state by vm.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var previewImageUrl by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(state.actionMessage) {
         state.actionMessage?.let { message ->
             snackbarHostState.showSnackbar(message)
             vm.clearActionMessage()
         }
+    }
+
+    previewImageUrl?.let { url ->
+        FullScreenImageDialog(imageUrl = url, onDismiss = { previewImageUrl = null })
+    }
+
+    if (state.showCheckInSheet) {
+        CheckInBottomSheet(
+            isLoading = state.isCheckInLoading,
+            onDismiss = vm::dismissCheckInSheet,
+            onSubmit = vm::checkIn,
+        )
     }
 
     Scaffold(
@@ -156,9 +170,10 @@ fun ShopDetailScreen(shopId: String) {
                     isFavoriteLoading = state.isFavoriteLoading,
                     isCheckInLoading = state.isCheckInLoading,
                     onToggleFavorite = vm::toggleFavorite,
-                    onCheckIn = { vm.checkIn(null) },
+                    onCheckIn = vm::openCheckInSheet,
                     onCreateReview = vm::openCreateReview,
                     onOpenOnMap = vm::openOnMap,
+                    onReviewPhotoClick = { previewImageUrl = it },
                 )
             }
         }
@@ -176,6 +191,7 @@ private fun ShopDetailContent(
     onCheckIn: () -> Unit = {},
     onCreateReview: () -> Unit = {},
     onOpenOnMap: () -> Unit = {},
+    onReviewPhotoClick: (String) -> Unit = {},
 ) {
     val shop = details.shop
     val photos = details.photos.filter { it.isNotBlank() }.ifEmpty {
@@ -191,6 +207,7 @@ private fun ShopDetailContent(
                 isFavorite = shop.isFavorite,
                 isFavoriteLoading = isFavoriteLoading,
                 isCheckInLoading = isCheckInLoading,
+                isVisited = details.isVisited,
                 onToggleFavorite = onToggleFavorite,
                 onCheckIn = onCheckIn,
             )
@@ -323,6 +340,7 @@ private fun ShopDetailContent(
                 canCreateReview = details.canCreateReview == true && details.existingReviewId == null,
                 hasExistingReview = details.existingReviewId != null,
                 onCreateReview = onCreateReview,
+                onReviewPhotoClick = onReviewPhotoClick,
             )
         }
 
@@ -338,6 +356,7 @@ private fun ShopHeroImage(
     isFavorite: Boolean,
     isFavoriteLoading: Boolean,
     isCheckInLoading: Boolean,
+    isVisited: Boolean,
     onToggleFavorite: () -> Unit,
     onCheckIn: () -> Unit,
 ) {
@@ -380,6 +399,7 @@ private fun ShopHeroImage(
             isFavorite = isFavorite,
             isFavoriteLoading = isFavoriteLoading,
             isCheckInLoading = isCheckInLoading,
+            isVisited = isVisited,
             onToggleFavorite = onToggleFavorite,
             onCheckIn = onCheckIn,
             modifier = Modifier.align(Alignment.TopEnd),
@@ -396,6 +416,7 @@ private fun ShopHeroActions(
     isFavorite: Boolean,
     isFavoriteLoading: Boolean,
     isCheckInLoading: Boolean,
+    isVisited: Boolean,
     onToggleFavorite: () -> Unit,
     onCheckIn: () -> Unit,
     modifier: Modifier = Modifier,
@@ -418,9 +439,9 @@ private fun ShopHeroActions(
         }
         HeroIconButton(
             onClick = onCheckIn,
-            enabled = !isCheckInLoading,
+            enabled = !isCheckInLoading && !isVisited,
             isLoading = isCheckInLoading,
-            contentDescription = "Чек-ин",
+            contentDescription = if (isVisited) "Уже отмечено" else "Чек-ин",
         ) {
             Icon(
                 imageVector = CpIcons.AddLocationAlt,
@@ -516,6 +537,7 @@ private fun ReviewsSection(
     canCreateReview: Boolean,
     hasExistingReview: Boolean,
     onCreateReview: () -> Unit,
+    onReviewPhotoClick: (String) -> Unit,
 ) {
     SectionCard(title = if (reviewCount > 0) "Отзывы ($reviewCount)" else "Отзывы") {
         when {
@@ -559,7 +581,7 @@ private fun ReviewsSection(
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3)) {
                 reviews.forEach { review ->
-                    ReviewCard(review)
+                    ReviewCard(review, onReviewPhotoClick)
                 }
             }
         }
@@ -813,7 +835,7 @@ private fun ContactRow(
 }
 
 @Composable
-private fun ReviewCard(review: Review) {
+private fun ReviewCard(review: Review, onPhotoClick: (String) -> Unit) {
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -881,7 +903,8 @@ private fun ReviewCard(review: Review) {
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(72.dp)
-                            .clip(RoundedCornerShape(CpDimens.radiusSm)),
+                            .clip(RoundedCornerShape(CpDimens.radiusSm))
+                            .clickable { onPhotoClick(url) },
                     )
                 }
             }

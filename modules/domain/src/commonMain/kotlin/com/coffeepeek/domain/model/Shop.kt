@@ -52,6 +52,7 @@ data class ScheduleInterval(
 
 data class Review(
     val id: String,
+    val shopId: String = "",
     val username: String,
     val header: String,
     val comment: String,

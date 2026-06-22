@@ -2,7 +2,10 @@ package com.coffeepeek.api.service
 
 import com.coffeepeek.api.model.ApiResponse
 import com.coffeepeek.api.model.request.UpdateAboutReq
+import com.coffeepeek.api.model.request.UpdateAvatarReq
 import com.coffeepeek.api.model.request.UpdateUsernameReq
+import com.coffeepeek.api.model.request.UploadedPhotoReq
+import com.coffeepeek.api.utils.setJsonBody
 import com.coffeepeek.api.model.response.UserProfileDto
 import com.coffeepeek.api.utils.ApiException
 import io.ktor.client.HttpClient
@@ -42,6 +45,16 @@ class UserApiService(private val client: HttpClient) {
         if (!response.status.isSuccess()) {
             val err = runCatching { response.body<ApiResponse<Unit>>() }.getOrNull()
             throw ApiException(err?.message ?: "Ошибка обновления описания (${response.status.value})")
+        }
+    }
+
+    suspend fun updateAvatar(uploadedPhoto: UploadedPhotoReq): Result<Unit> = runCatching {
+        val response = client.patch("/api/Users/me/avatar") {
+            setJsonBody(UpdateAvatarReq(uploadedPhoto))
+        }
+        if (!response.status.isSuccess()) {
+            val err = runCatching { response.body<ApiResponse<Unit>>() }.getOrNull()
+            throw ApiException(err?.message ?: "Ошибка обновления аватара (${response.status.value})")
         }
     }
 }

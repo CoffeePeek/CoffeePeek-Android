@@ -1,7 +1,10 @@
 package com.coffeepeek.admin.map
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
@@ -39,6 +42,7 @@ private data class PlacemarkEntry(
     var isSelected: Boolean,
     var latitude: Double,
     var longitude: Double,
+    var shop: MapShop,
 )
 
 @Composable
@@ -52,6 +56,8 @@ actual fun CoffeeMap(
     cameraZoom: Float?,
     onCameraTargetApplied: () -> Unit,
     isDarkTheme: Boolean,
+    myLocationRequestKey: Int,
+    onMyLocationFound: (Double, Double) -> Unit,
 ) {
     val context = LocalContext.current
     val appContext = context.applicationContext
@@ -59,6 +65,7 @@ actual fun CoffeeMap(
     val onBoundsChangedState = rememberUpdatedState(onBoundsChanged)
     val onShopClickState = rememberUpdatedState(onShopClick)
     val onCameraTargetAppliedState = rememberUpdatedState(onCameraTargetApplied)
+    val onMyLocationFoundState = rememberUpdatedState(onMyLocationFound)
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -162,6 +169,37 @@ actual fun CoffeeMap(
         mapView.mapWindow.map.isNightModeEnabled = isDarkTheme
     }
 
+    LaunchedEffect(myLocationRequestKey, mapView) {
+        if (myLocationRequestKey == 0) return@LaunchedEffect
+        val fineGranted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!fineGranted && !coarseGranted) {
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                ),
+            )
+            return@LaunchedEffect
+        }
+
+        context.lastKnownLocation()?.let { location ->
+            val map = mapView.mapWindow.map
+            map.move(
+                CameraPosition(Point(location.latitude, location.longitude), 15f, 0f, 0f),
+                Animation(Animation.Type.SMOOTH, 0.45f),
+                null,
+            )
+            onMyLocationFoundState.value(location.latitude, location.longitude)
+        }
+    }
+
     LaunchedEffect(shops, selectedShopId, mapView) {
         val map = mapView.mapWindow.map
         syncPlacemarks(
@@ -180,22 +218,49 @@ actual fun CoffeeMap(
         modifier = modifier,
         factory = {
             mapView.apply {
-                val initialTarget = cameraTarget
-                    ?.let { Point(it.first, it.second) }
+                val location = context.lastKnownLocation()
+                val initialTarget = cameraTarget?.let { Point(it.first, it.second) }
+                    ?: location?.let { Point(it.latitude, it.longitude) }
                     ?: Point(DEFAULT_LAT, DEFAULT_LON)
+                val initialZoom = cameraZoom ?: when {
+                    cameraTarget != null -> 16f
+                    location != null -> 15f
+                    else -> DEFAULT_ZOOM
+                }
                 mapWindow.map.move(
                     CameraPosition(
                         initialTarget,
-                        cameraZoom ?: if (cameraTarget != null) 16f else DEFAULT_ZOOM,
+                        initialZoom,
                         0f,
                         0f,
                     ),
                     Animation(Animation.Type.SMOOTH, 0f),
                     null,
                 )
+                location?.let {
+                    onMyLocationFoundState.value(it.latitude, it.longitude)
+                }
             }
         },
     )
+}
+
+private fun Context.lastKnownLocation(): Location? {
+    val locationManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
+    val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+    return providers
+        .mapNotNull { provider ->
+            runCatching {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    locationManager.getLastKnownLocation(provider)
+                } else {
+                    null
+                }
+            }.getOrNull()
+        }
+        .maxByOrNull { it.time }
 }
 
 private fun syncPlacemarks(
@@ -219,21 +284,26 @@ private fun syncPlacemarks(
         val point = Point(shop.latitude, shop.longitude)
         val isSelected = shop.id == selectedShopId
         val entry = placemarks.getOrPut(shop.id) {
+            lateinit var newEntry: PlacemarkEntry
             val placemark = map.mapObjects.addPlacemark(point).apply {
-                setIcon(defaultIcon)
+                setIcon(if (isSelected) selectedIcon else defaultIcon)
                 setIconStyle(iconStyle)
+                zIndex = if (isSelected) 2f else 1f
                 addTapListener { _, _ ->
-                    onShopClick(shop)
+                    onShopClick(newEntry.shop)
                     true
                 }
             }
-            PlacemarkEntry(
+            newEntry = PlacemarkEntry(
                 placemark = placemark,
                 isSelected = isSelected,
                 latitude = shop.latitude,
                 longitude = shop.longitude,
+                shop = shop,
             )
+            newEntry
         }
+        entry.shop = shop
 
         if (entry.latitude != shop.latitude || entry.longitude != shop.longitude) {
             entry.placemark.geometry = point

@@ -11,3 +11,9 @@ internal actual fun createClient(block: HttpClientConfig<*>.() -> Unit): HttpCli
         block()
     }
 }
+
+internal actual fun createUploadClient(block: HttpClientConfig<*>.() -> Unit): HttpClient {
+    return HttpClient(CIO) {
+        block()
+    }
+}

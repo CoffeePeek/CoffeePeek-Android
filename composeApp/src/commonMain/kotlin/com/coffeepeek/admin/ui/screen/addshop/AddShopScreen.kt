@@ -290,7 +290,7 @@ private fun StepBasic(state: AddShopUiState, vm: AddShopViewModel) {
             value = state.address,
             onValueChange = vm::onAddressChange,
             placeholder = "Минск, пр. Независимости, 15",
-            errorText = if (state.address.isNotEmpty() && state.address.isBlank()) state.addressError else null,
+            errorText = if (state.address.isNotEmpty()) state.addressError else null,
         )
     }
 
@@ -678,6 +678,7 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
             onValueChange = vm::onPhoneChange,
             placeholder = "+375 29 000 00 00",
             keyboardType = KeyboardType.Phone,
+            errorText = if (state.phone.isNotEmpty()) state.phoneError else null,
         )
     }
     Spacer(Modifier.height(CpDimens.spacing3))
@@ -687,6 +688,7 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
             onValueChange = vm::onEmailChange,
             placeholder = "info@coffee.by",
             keyboardType = KeyboardType.Email,
+            errorText = if (state.email.isNotEmpty()) state.emailError else null,
         )
     }
     Spacer(Modifier.height(CpDimens.spacing3))
@@ -696,6 +698,7 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
             onValueChange = vm::onWebsiteChange,
             placeholder = "https://coffee.by",
             keyboardType = KeyboardType.Uri,
+            errorText = if (state.website.isNotEmpty()) state.websiteError else null,
         )
     }
     Spacer(Modifier.height(CpDimens.spacing3))
@@ -704,6 +707,7 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
             value = state.instagram,
             onValueChange = vm::onInstagramChange,
             placeholder = "@coffee_minsk",
+            errorText = if (state.instagram.isNotEmpty()) state.instagramError else null,
         )
     }
 }

@@ -3,7 +3,10 @@ package com.coffeepeek.admin.ui.screen.review
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.utils.MAX_REVIEW_PHOTOS
+import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.domain.model.CreateReviewInput
+import com.coffeepeek.domain.model.PendingPhotoUpload
 import com.coffeepeek.domain.repository.ReviewRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,6 +19,7 @@ data class CreateReviewUiState(
     val placeRating: Int = 5,
     val serviceRating: Int = 5,
     val coffeeRating: Int = 5,
+    val photos: List<PickedImage> = emptyList(),
     val isSubmitting: Boolean = false,
     val error: String? = null,
 )
@@ -34,6 +38,21 @@ class CreateReviewViewModel(
     fun onServiceRating(v: Int) { _state.update { it.copy(serviceRating = v.coerceIn(1, 5)) } }
     fun onCoffeeRating(v: Int) { _state.update { it.copy(coffeeRating = v.coerceIn(1, 5)) } }
 
+    fun addPhotos(images: List<PickedImage>) {
+        if (images.isEmpty()) return
+        _state.update { state ->
+            val remaining = MAX_REVIEW_PHOTOS - state.photos.size
+            if (remaining <= 0) return@update state
+            state.copy(photos = state.photos + images.take(remaining))
+        }
+    }
+
+    fun removePhoto(index: Int) {
+        _state.update { state ->
+            state.copy(photos = state.photos.filterIndexed { i, _ -> i != index })
+        }
+    }
+
     fun submit() {
         val s = _state.value
         if (s.header.isBlank() || s.comment.isBlank()) {
@@ -50,6 +69,7 @@ class CreateReviewViewModel(
                     placeRating = s.placeRating,
                     serviceRating = s.serviceRating,
                     coffeeRating = s.coffeeRating,
+                    photos = s.photos.map { it.toPendingUpload() },
                 )
             ).onSuccess {
                 _state.update { it.copy(isSubmitting = false) }
@@ -60,3 +80,9 @@ class CreateReviewViewModel(
         }
     }
 }
+
+private fun PickedImage.toPendingUpload() = PendingPhotoUpload(
+    fileName = fileName,
+    contentType = contentType,
+    bytes = bytes,
+)

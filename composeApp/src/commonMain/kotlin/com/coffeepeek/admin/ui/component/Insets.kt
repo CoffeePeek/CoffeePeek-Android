@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.LayoutDirection
-import com.coffeepeek.admin.theme.Colors
+import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.utils.SizeObserver.toDP
 
 object Insets {
@@ -22,7 +22,7 @@ object Insets {
 
     @Composable
     fun BottomInset(
-        color: Color = Colors.greenDark
+        color: Color = CpColor.Primary
     ) {
         Box(
             modifier = Modifier
@@ -33,7 +33,7 @@ object Insets {
 
     @Composable
     fun TopInset(
-        color: Color = Colors.greenDark
+        color: Color = CpColor.Primary
     ) {
         Box(
             modifier = Modifier
@@ -44,7 +44,7 @@ object Insets {
 
     @Composable
     fun LeftInset(
-        color: Color = Colors.greenDark
+        color: Color = CpColor.Primary
     ) {
         val left = WindowInsets.safeContent.getLeft(LocalDensity.current, LayoutDirection.Ltr)
         Box(
@@ -56,7 +56,7 @@ object Insets {
 
     @Composable
     fun RightInset(
-        color: Color = Colors.greenDark
+        color: Color = CpColor.Primary
     ) {
         val right = WindowInsets.safeContent.getRight(LocalDensity.current, LayoutDirection.Ltr)
         Box(

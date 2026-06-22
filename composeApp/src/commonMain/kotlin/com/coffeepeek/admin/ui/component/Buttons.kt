@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.coffeepeek.admin.theme.Colors
+import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.Theme
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.material3.Icon as MaterialIcon
@@ -28,7 +28,7 @@ object Buttons {
             modifier = modifier,
             shape = Theme.shape,
             colors = ButtonDefaults.buttonColors().copy(
-                containerColor = Colors.greenDark
+                containerColor = CpColor.Primary
             )
         ) { Text(text) }
     }

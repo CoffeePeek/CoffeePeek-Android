@@ -3,6 +3,7 @@ package com.coffeepeek.data.di
 import com.coffeepeek.api.CoffeePeekClient
 import com.coffeepeek.api.CoffeePeekRepo
 import com.coffeepeek.api.service.AuthService
+import com.coffeepeek.data.session.SessionTokenProvider
 import com.coffeepeek.data.repository.AuthRepositoryImpl
 import com.coffeepeek.data.repository.CheckInRepositoryImpl
 import com.coffeepeek.data.repository.FavoriteRepositoryImpl
@@ -23,7 +24,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import org.example.project.DatabaseCore
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -37,22 +37,17 @@ fun dataModule(
 ): Module = module {
     single { CoroutineScope(Dispatchers.IO + SupervisorJob()) }
 
+    single<SessionRepository> { SessionRepositoryImpl(database) }
+    single { SessionTokenProvider(get(), get()) }
+
     single {
         val scope = get<CoroutineScope>()
+        val tokenProvider = get<SessionTokenProvider>()
         CoffeePeekClient(
             url = baseUrl,
             cacheFolder = cacheFolder,
             debug = debug,
-            getToken = {
-                runBlocking {
-                    get<SessionRepository>().getSession()?.let { session ->
-                        com.coffeepeek.api.model.response.AuthResp(
-                            accessToken = session.accessToken,
-                            refreshToken = session.refreshToken.orEmpty(),
-                        )
-                    }
-                }
-            },
+            getToken = { tokenProvider.current() },
             saveToken = { authResp ->
                 scope.launch {
                     val sessionRepository = get<SessionRepository>()
@@ -79,11 +74,10 @@ fun dataModule(
     single { get<CoffeePeekRepo>().favoriteApiService }
     single { get<CoffeePeekRepo>().reviewApiService }
     single { get<CoffeePeekRepo>().checkInApiService }
-    single<SessionRepository> { SessionRepositoryImpl(database, get()) }
     single<PhotoRepository> { PhotoRepositoryImpl(get()) }
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
     single<ShopRepository> { ShopRepositoryImpl(get(), get()) }
-    single<UserRepository> { UserRepositoryImpl(get()) }
+    single<UserRepository> { UserRepositoryImpl(get(), get()) }
     single<FavoriteRepository> { FavoriteRepositoryImpl(get()) }
     single<ReviewRepository> { ReviewRepositoryImpl(get(), get()) }
     single<CheckInRepository> { CheckInRepositoryImpl(get()) }

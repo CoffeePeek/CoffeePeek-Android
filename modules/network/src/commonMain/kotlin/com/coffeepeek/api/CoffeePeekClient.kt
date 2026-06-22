@@ -7,6 +7,7 @@ import com.coffeepeek.api.utils.JsonExt
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.HttpSend
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
@@ -19,6 +20,8 @@ import io.ktor.serialization.kotlinx.json.json
 import java.io.File
 
 internal expect fun createClient(block: HttpClientConfig<*>.() -> Unit = {}): HttpClient
+
+internal expect fun createUploadClient(block: HttpClientConfig<*>.() -> Unit = {}): HttpClient
 
 class CoffeePeekClient(
     url: String,
@@ -43,7 +46,13 @@ class CoffeePeekClient(
         defaultRequest { url(url) }
     }.also { intercept(it) }
 
-    val uploadClient: HttpClient = createClient()
+    val uploadClient: HttpClient = createUploadClient {
+        install(HttpTimeout) {
+            requestTimeoutMillis = 120_000
+            connectTimeoutMillis = 30_000
+            socketTimeoutMillis = 120_000
+        }
+    }.also { intercept(it) }
 
     private val tokenRefreshService = AuthService(plainClient, plainClient)
 
@@ -83,10 +92,10 @@ class CoffeePeekClient(
 
     private fun intercept(httpClient: HttpClient) {
         if (debug) {
-            httpClient.plugin(HttpSend).intercept {
-                val message = it.asCurlString()
+            httpClient.plugin(HttpSend).intercept { request ->
+                val message = request.asCurlString()
                 println(message)
-                execute(it).also { responseCall ->
+                execute(request).also { responseCall ->
                     println("CURL ${responseCall.response.status.value}")
                 }
             }

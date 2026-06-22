@@ -12,7 +12,7 @@ import com.coffeepeek.domain.model.ShopFilters
 interface ShopRepository {
     suspend fun searchShops(filters: ShopFilters): Result<PagedResult<CoffeeShop>>
     suspend fun getShopDetails(id: String): Result<CoffeeShopDetails>
-    suspend fun getShopsInBounds(bounds: MapBounds): Result<List<MapShop>>
+    suspend fun getShopsInBounds(bounds: MapBounds, filters: ShopFilters = ShopFilters()): Result<List<MapShop>>
     suspend fun getCatalogs(): Result<ShopCatalogs>
     suspend fun createShop(input: CreateShopInput): Result<Unit>
 }

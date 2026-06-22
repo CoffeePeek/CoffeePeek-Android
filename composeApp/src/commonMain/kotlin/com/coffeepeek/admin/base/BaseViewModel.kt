@@ -73,7 +73,6 @@ abstract class BaseViewModel : ViewModel(), Closeable {
     }
 
     override fun close() {
-        println("TAG CLOSE $this")
         workScope.cancel()
     }
 

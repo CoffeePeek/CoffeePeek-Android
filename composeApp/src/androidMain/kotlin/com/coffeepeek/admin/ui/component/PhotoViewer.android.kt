@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.ic_hide_image_24px
-import com.coffeepeek.admin.theme.Colors
+import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.utils.KamelExt
 
@@ -54,7 +54,7 @@ actual object PhotoViewer {
                             modifier = cardModifier
                         )
                         if (isEdit) Buttons.IconButton(
-                            backgroundColor = Colors.errorColor,
+                            backgroundColor = CpColor.Error,
                             imageVector = CpIcons.Delete,
                             onClick =  { onDelete(item) }
                         )

@@ -24,7 +24,9 @@ import com.coffeepeek.admin.ui.dialogs.ErrorDialog
 import com.coffeepeek.admin.ui.dialogs.LoadingDialog
 import com.coffeepeek.admin.ui.screen.auth.AuthScreen
 import com.coffeepeek.admin.ui.screen.main.MainScreen
+import com.coffeepeek.admin.ui.screen.map.MapScreen
 import com.coffeepeek.admin.ui.screen.review.CreateReviewScreen
+import com.coffeepeek.admin.ui.screen.review.EditReviewScreen
 import com.coffeepeek.admin.ui.screen.shop.ShopDetailScreen
 import com.coffeepeek.admin.utils.ErrorHandler
 import com.coffeepeek.admin.utils.LoadingHandler
@@ -60,15 +62,16 @@ object Navigator {
         @Serializable data object Auth : Screen
         @Serializable data object Register : Screen
         @Serializable data object Main : Screen
+        @Serializable data object Map : Screen
 
         // Graphs
         @Serializable data object FeedGraph : Screen
-        @Serializable data object MapGraph : Screen
+        @Serializable data object CommunityGraph : Screen
         @Serializable data object ProfileGraph : Screen
 
         // Tabs
         @Serializable data object FeedTab : Screen
-        @Serializable data object MapTab : Screen
+        @Serializable data object CommunityTab : Screen
         @Serializable data object ProfileTab : Screen
 
         // Inner screens (add here + in the graph in MainScreen)
@@ -80,6 +83,7 @@ object Navigator {
         @Serializable data object MyReviews : Screen
         @Serializable data object VisitedPlaces : Screen
         @Serializable data class CreateReview(val shopId: String) : Screen
+        @Serializable data class ReviewEdit(val reviewId: String) : Screen
     }
 
     data class MapShopFocus(
@@ -106,8 +110,7 @@ object Navigator {
     fun openShopOnMap(shopId: String, latitude: Double, longitude: Double, title: String) {
         navigatorScope.launch {
             _pendingMapFocus.value = MapShopFocus(shopId, latitude, longitude, title)
-            _pendingTabSelection.value = Screen.MapTab
-            _navigationEvents.emit(NavEvent.PopBack)
+            _navigationEvents.emit(NavEvent.NavigateTo(Screen.Map))
         }
     }
 
@@ -115,10 +118,12 @@ object Navigator {
         is Screen.Auth,
         is Screen.Register,
         is Screen.Main,
+        is Screen.Map,
         is Screen.ShopDetail,
         is Screen.AddShop,
         is Screen.EditProfile,
         is Screen.CreateReview,
+        is Screen.ReviewEdit,
         is Screen.Favorites,
         is Screen.MyReviews,
         is Screen.VisitedPlaces -> true
@@ -192,6 +197,7 @@ object Navigator {
                 composable<Screen.Auth> { AuthScreen() }
                 composable<Screen.Register> { RegisterScreen() }
                 composable<Screen.Main> { MainScreen() }
+                composable<Screen.Map> { MapScreen() }
                 composable<Screen.ShopDetail> { backStack ->
                     val route = backStack.toRoute<Screen.ShopDetail>()
                     ShopDetailScreen(shopId = route.shopId)
@@ -201,6 +207,10 @@ object Navigator {
                 composable<Screen.CreateReview> { backStack ->
                     val route = backStack.toRoute<Screen.CreateReview>()
                     CreateReviewScreen(shopId = route.shopId)
+                }
+                composable<Screen.ReviewEdit> { backStack ->
+                    val route = backStack.toRoute<Screen.ReviewEdit>()
+                    EditReviewScreen(reviewId = route.reviewId)
                 }
                 composable<Screen.Favorites> { FavoritesScreen() }
                 composable<Screen.MyReviews> { MyReviewsScreen() }

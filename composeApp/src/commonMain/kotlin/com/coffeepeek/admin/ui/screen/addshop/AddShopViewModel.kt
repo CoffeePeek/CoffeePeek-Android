@@ -12,6 +12,10 @@ import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.domain.model.ScheduleInterval
 import com.coffeepeek.domain.model.ShopCatalogs
 import com.coffeepeek.domain.model.ShopSchedule
+import com.coffeepeek.admin.utils.validateOptionalEmail
+import com.coffeepeek.admin.utils.validateOptionalInstagram
+import com.coffeepeek.admin.utils.validateOptionalPhone
+import com.coffeepeek.admin.utils.validateOptionalUrl
 import com.coffeepeek.domain.repository.ShopRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -88,7 +92,13 @@ data class AddShopUiState(
     }
     val addressError: String? get() = if (address.isBlank()) "Введите адрес" else null
     val cityError: String? get() = if (selectedCity == null) "Выберите город" else null
+    val phoneError: String? get() = validateOptionalPhone(phone)
+    val emailError: String? get() = validateOptionalEmail(email)
+    val websiteError: String? get() = validateOptionalUrl(website)
+    val instagramError: String? get() = validateOptionalInstagram(instagram)
     val step1Valid get() = nameError == null && addressError == null && cityError == null
+    val contactsStepValid get() = phoneError == null && emailError == null &&
+        websiteError == null && instagramError == null
 }
 
 private val weekDays = listOf(
@@ -284,7 +294,9 @@ class AddShopViewModel(
             AddShopStep.BASIC -> if (s.step1Valid) _state.update { it.copy(currentStep = AddShopStep.PHOTOS) }
             AddShopStep.PHOTOS -> _state.update { it.copy(currentStep = AddShopStep.SCHEDULE) }
             AddShopStep.SCHEDULE -> _state.update { it.copy(currentStep = AddShopStep.CONTACTS) }
-            AddShopStep.CONTACTS -> _state.update { it.copy(currentStep = AddShopStep.FEATURES) }
+            AddShopStep.CONTACTS -> if (s.contactsStepValid) {
+                _state.update { it.copy(currentStep = AddShopStep.FEATURES) }
+            }
             AddShopStep.FEATURES -> submit()
         }
     }

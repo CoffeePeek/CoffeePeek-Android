@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.ui.screen.auth
 
 import com.coffeepeek.admin.ui.icons.CpIcons
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +36,7 @@ import coffeepeek.composeapp.generated.resources.entry
 import coffeepeek.composeapp.generated.resources.login
 import coffeepeek.composeapp.generated.resources.no_account
 import coffeepeek.composeapp.generated.resources.password
+import coffeepeek.composeapp.generated.resources.compose_multiplatform
 import coffeepeek.composeapp.generated.resources.registr
 import com.coffeepeek.admin.auth.GoogleSignInButton
 import com.coffeepeek.admin.auth.isGoogleSignInConfigured
@@ -42,6 +44,7 @@ import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.AppTextField
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -53,6 +56,8 @@ object AuthScreen {
     ) {
         val email by vm.email.collectAsState()
         val password by vm.password.collectAsState()
+        val emailError by vm.emailError.collectAsState()
+        val passwordError by vm.passwordError.collectAsState()
 
         Column(
             modifier = Modifier
@@ -65,20 +70,13 @@ object AuthScreen {
             Spacer(modifier = Modifier.height(CpDimens.spacing10))
 
             // ── Логотип ──────────────────────────────────────────────────────
-            Row(
+            Image(
+                painter = painterResource(Res.drawable.compose_multiplatform),
+                contentDescription = null,
                 modifier = Modifier
                     .size(CpDimens.headerLogoSize)
-                    .clip(RoundedCornerShape(CpDimens.radiusMd))
-                    .background(MaterialTheme.colorScheme.primary),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "CP",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            }
+                    .clip(RoundedCornerShape(CpDimens.radiusMd)),
+            )
 
             Spacer(modifier = Modifier.height(CpDimens.spacing4))
 
@@ -120,6 +118,7 @@ object AuthScreen {
                         onValueChange = vm::onEmailChange,
                         placeholder = "name@example.com",
                         leadingIcon = CpIcons.Email,
+                        errorText = emailError,
                     )
 
                     Spacer(modifier = Modifier.height(CpDimens.spacing3))
@@ -131,6 +130,7 @@ object AuthScreen {
                         placeholder = "••••••••",
                         leadingIcon = CpIcons.Lock,
                         isPassword = true,
+                        errorText = passwordError,
                     )
 
                     Spacer(modifier = Modifier.height(CpDimens.spacing6))

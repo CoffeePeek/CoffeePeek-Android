@@ -19,6 +19,7 @@ data class ShopDetailUiState(
     val isLoading: Boolean = false,
     val isFavoriteLoading: Boolean = false,
     val isCheckInLoading: Boolean = false,
+    val showCheckInSheet: Boolean = false,
     val actionMessage: String? = null,
     val error: String? = null,
 )
@@ -89,7 +90,30 @@ class ShopDetailViewModel(
         }
     }
 
-    fun checkIn(note: String?) {
+    fun openCheckInSheet() {
+        val details = _uiState.value.details
+        if (details?.isVisited == true) {
+            _uiState.update { it.copy(actionMessage = "Вы уже отмечали это место") }
+            return
+        }
+        _uiState.update { it.copy(showCheckInSheet = true) }
+    }
+
+    fun dismissCheckInSheet() {
+        _uiState.update { it.copy(showCheckInSheet = false) }
+    }
+
+    fun checkIn(
+        isPublic: Boolean,
+        note: String?,
+        placeRating: Int,
+        serviceRating: Int,
+        coffeeRating: Int,
+    ) {
+        if (isPublic && note.isNullOrBlank()) {
+            _uiState.update { it.copy(actionMessage = "Для публичного чек-ина нужен комментарий") }
+            return
+        }
         workScope.launch {
             _uiState.update { it.copy(isCheckInLoading = true) }
             checkInRepository.createCheckIn(
@@ -97,7 +121,10 @@ class ShopDetailViewModel(
                     shopId = shopId,
                     note = note,
                     visitedAtIso = currentUtcIsoDateTime(),
-                    isPublic = false,
+                    isPublic = isPublic,
+                    placeRating = placeRating,
+                    serviceRating = serviceRating,
+                    coffeeRating = coffeeRating,
                 )
             ).onSuccess {
                 _uiState.update { state ->
@@ -105,11 +132,17 @@ class ShopDetailViewModel(
                     state.copy(
                         details = current?.copy(isVisited = true),
                         isCheckInLoading = false,
+                        showCheckInSheet = false,
                     )
                 }
                 refreshDetails(showLoading = false)
             }.onFailure { e ->
-                _uiState.update { it.copy(actionMessage = e.message, isCheckInLoading = false) }
+                _uiState.update {
+                    it.copy(
+                        actionMessage = e.message,
+                        isCheckInLoading = false,
+                    )
+                }
             }
         }
     }

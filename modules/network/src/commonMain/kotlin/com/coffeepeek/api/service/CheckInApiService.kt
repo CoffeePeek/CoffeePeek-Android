@@ -19,12 +19,22 @@ class CheckInApiService(private val client: HttpClient) {
         val response = client.post("/api/CheckIns") {
             setJsonBody(req)
         }
-        if (!response.status.isSuccess()) {
-            throw ApiException("Не удалось сохранить чек-ин (${response.status.value})")
-        }
-        val apiResponse = response.body<ApiResponse<CreateCheckInResponseDto>>()
-        if (!apiResponse.isSuccess) {
-            throw ApiException(apiResponse.message.ifBlank { "Не удалось сохранить чек-ин" })
+        val apiResponse = runCatching {
+            response.body<ApiResponse<CreateCheckInResponseDto>>()
+        }.getOrNull()
+
+        when {
+            apiResponse != null && !apiResponse.isSuccess -> {
+                throw ApiException(
+                    apiResponse.message.ifBlank { "Не удалось сохранить чек-ин" },
+                )
+            }
+            !response.status.isSuccess() -> {
+                throw ApiException(
+                    apiResponse?.message?.takeIf { it.isNotBlank() }
+                        ?: "Не удалось сохранить чек-ин (${response.status.value})",
+                )
+            }
         }
     }
 

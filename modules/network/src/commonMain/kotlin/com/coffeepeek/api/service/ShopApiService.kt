@@ -120,12 +120,28 @@ class ShopApiService(private val client: HttpClient) {
         minLon: Double,
         maxLat: Double,
         maxLon: Double,
+        query: String? = null,
+        cityId: String? = null,
+        roasterIds: List<String>? = null,
+        equipmentIds: List<String>? = null,
+        beanIds: List<String>? = null,
+        brewMethodIds: List<String>? = null,
+        priceRange: Int? = null,
+        minRating: Double? = null,
     ): Result<List<MapShopDto>> = runCatching {
         val response = client.get("/api/Map") {
             parameter("minLat", minLat)
             parameter("minLon", minLon)
             parameter("maxLat", maxLat)
             parameter("maxLon", maxLon)
+            query?.let { parameter("q", it) }
+            cityId?.let { parameter("cityId", it) }
+            roasterIds?.forEach { parameter("roasters", it) }
+            equipmentIds?.forEach { parameter("equipments", it) }
+            beanIds?.forEach { parameter("beans", it) }
+            brewMethodIds?.forEach { parameter("brewMethods", it) }
+            priceRange?.let { parameter("priceRange", it) }
+            minRating?.let { parameter("minRating", it) }
         }
         val apiResponse = response.body<ApiResponse<GetShopsInBoundsResponseDto>>()
         if (!apiResponse.isSuccess || apiResponse.data == null) throw ApiException(apiResponse.message)

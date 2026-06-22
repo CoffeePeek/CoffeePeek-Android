@@ -3,6 +3,8 @@ package com.coffeepeek.admin.ui.screen.editprofile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.utils.PickedImage
+import com.coffeepeek.domain.model.PendingPhotoUpload
 import com.coffeepeek.domain.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,6 +15,10 @@ import kotlinx.coroutines.launch
 data class EditProfileUiState(
     val username: String = "",
     val about: String = "",
+    val avatarUrl: String? = null,
+    val pendingAvatar: PickedImage? = null,
+    val originalUsername: String = "",
+    val originalAbout: String = "",
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val error: String? = null,
@@ -25,7 +31,11 @@ data class EditProfileUiState(
         else -> null
     }
     val aboutError: String? get() = if (about.length > 600) "Максимум 600 символов" else null
-    val canSave get() = usernameError == null && aboutError == null && !isSaving
+    val hasChanges: Boolean get() =
+        username.trim() != originalUsername ||
+            about.trim() != originalAbout ||
+            pendingAvatar != null
+    val canSave get() = usernameError == null && aboutError == null && hasChanges && !isSaving
 }
 
 class EditProfileViewModel(
@@ -43,9 +53,12 @@ class EditProfileViewModel(
             userRepository.getMe()
                 .onSuccess { profile ->
                     _state.update { it.copy(
-                        username  = profile.userName,
-                        about     = profile.about.orEmpty(),
-                        isLoading = false,
+                        username         = profile.userName,
+                        about            = profile.about.orEmpty(),
+                        avatarUrl        = profile.avatarUrl,
+                        originalUsername = profile.userName,
+                        originalAbout    = profile.about.orEmpty(),
+                        isLoading        = false,
                     ) }
                 }
                 .onFailure { err ->
@@ -59,7 +72,14 @@ class EditProfileViewModel(
 
     fun onUsernameChange(v: String) { _state.update { it.copy(username = v.take(64)) } }
     fun onAboutChange(v: String)    { _state.update { it.copy(about = v.take(600)) } }
-    fun clearError()                { _state.update { it.copy(error = null) } }
+    fun onAvatarPicked(image: PickedImage) {
+        if (image.bytes.size > 5 * 1024 * 1024) {
+            _state.update { it.copy(error = "Размер файла не должен превышать 5 МБ") }
+            return
+        }
+        _state.update { it.copy(pendingAvatar = image, error = null) }
+    }
+    fun clearError() { _state.update { it.copy(error = null) } }
 
     fun save() {
         val s = _state.value
@@ -68,26 +88,46 @@ class EditProfileViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isSaving = true, error = null) }
 
-            var usernameOk = true
-            var aboutOk = true
+            var success = true
 
-            userRepository.updateUsername(s.username.trim())
-                .onFailure { err ->
-                    usernameOk = false
-                    _state.update { it.copy(error = err.message ?: "Ошибка обновления имени") }
-                }
+            if (s.pendingAvatar != null) {
+                val photo = PendingPhotoUpload(
+                    fileName = s.pendingAvatar.fileName,
+                    contentType = s.pendingAvatar.contentType,
+                    bytes = s.pendingAvatar.bytes,
+                )
+                userRepository.updateAvatar(photo)
+                    .onFailure { err ->
+                        success = false
+                        _state.update {
+                            it.copy(
+                                error = err.message
+                                    ?: err.cause?.message
+                                    ?: "Ошибка обновления аватара",
+                            )
+                        }
+                    }
+            }
 
-            if (usernameOk) {
+            if (success && s.username.trim() != s.originalUsername) {
+                userRepository.updateUsername(s.username.trim())
+                    .onFailure { err ->
+                        success = false
+                        _state.update { it.copy(error = err.message ?: "Ошибка обновления имени") }
+                    }
+            }
+
+            if (success && s.about.trim() != s.originalAbout) {
                 userRepository.updateAbout(s.about.trim())
                     .onFailure { err ->
-                        aboutOk = false
+                        success = false
                         _state.update { it.copy(error = err.message ?: "Ошибка обновления описания") }
                     }
             }
 
-            _state.update { it.copy(isSaving = false, saveSuccess = usernameOk && aboutOk) }
+            _state.update { it.copy(isSaving = false, saveSuccess = success) }
 
-            if (usernameOk && aboutOk) {
+            if (success) {
                 Navigator.popBack()
             }
         }

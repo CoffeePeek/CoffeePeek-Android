@@ -11,6 +11,14 @@ class PhotoRepositoryImpl(
     private val photoApiService: PhotoApiService,
 ) : PhotoRepository {
 
+    override suspend fun uploadAvatar(photo: PendingPhotoUpload): Result<UploadedPhotoMeta> =
+        uploadSinglePhoto(
+            requestUploadUrl = { request ->
+                photoApiService.requestAvatarUploadUrl(request).getOrThrow()
+            },
+            photo = photo,
+        )
+
     override suspend fun uploadShopPhotos(photos: List<PendingPhotoUpload>): Result<List<UploadedPhotoMeta>> =
         runCatching {
             if (photos.isEmpty()) return@runCatching emptyList()
@@ -45,6 +53,29 @@ class PhotoRepositoryImpl(
                 )
             }
         }
+
+    private suspend fun uploadSinglePhoto(
+        requestUploadUrl: suspend (PhotoRequestDto) -> com.coffeepeek.api.model.response.GenerateUploadUrlDto,
+        photo: PendingPhotoUpload,
+    ): Result<UploadedPhotoMeta> = runCatching {
+        val request = PhotoRequestDto(
+            sizeBytes = photo.bytes.size,
+            fileName = photo.fileName,
+            contentType = photo.contentType,
+        )
+        val urlDto = requestUploadUrl(request)
+        photoApiService.uploadToPresignedUrl(
+            uploadUrl = urlDto.uploadUrl,
+            bytes = photo.bytes,
+            contentType = photo.contentType,
+        ).getOrThrow()
+        UploadedPhotoMeta(
+            fileName = photo.fileName,
+            contentType = photo.contentType,
+            storageKey = urlDto.storageKey,
+            size = photo.bytes.size.toLong(),
+        )
+    }
 }
 
 internal fun List<UploadedPhotoMeta>.toUploadedPhotoReqs(): List<UploadedPhotoReq> = map {

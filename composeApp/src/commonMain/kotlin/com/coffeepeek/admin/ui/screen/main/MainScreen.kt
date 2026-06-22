@@ -28,8 +28,8 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.Navigator.isHandledByRootNav
+import com.coffeepeek.admin.ui.screen.community.CommunityScreen
 import com.coffeepeek.admin.ui.screen.feed.FeedScreen
-import com.coffeepeek.admin.ui.screen.map.MapScreen
 import com.coffeepeek.admin.ui.screen.profile.ProfileScreen
 
 data class BottomNavItem(
@@ -87,10 +87,10 @@ fun MainScreen() {
             startScreen = Navigator.Screen.FeedTab,
         ),
         BottomNavItem(
-            title = "Карта",
-            icon = CpIcons.Map,
-            graph = Navigator.Screen.MapGraph,
-            startScreen = Navigator.Screen.MapTab,
+            title = "Community",
+            icon = CpIcons.Community,
+            graph = Navigator.Screen.CommunityGraph,
+            startScreen = Navigator.Screen.CommunityTab,
         ),
         BottomNavItem(
             title = "Профиль",
@@ -166,8 +166,8 @@ fun MainScreen() {
                 composable<Navigator.Screen.FeedTab> { FeedScreen() }
             }
 
-            navigation<Navigator.Screen.MapGraph>(startDestination = Navigator.Screen.MapTab) {
-                composable<Navigator.Screen.MapTab> { MapScreen() }
+            navigation<Navigator.Screen.CommunityGraph>(startDestination = Navigator.Screen.CommunityTab) {
+                composable<Navigator.Screen.CommunityTab> { CommunityScreen() }
             }
 
             navigation<Navigator.Screen.ProfileGraph>(startDestination = Navigator.Screen.ProfileTab) {

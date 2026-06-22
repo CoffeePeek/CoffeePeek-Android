@@ -16,4 +16,6 @@ expect fun CoffeeMap(
     cameraZoom: Float? = null,
     onCameraTargetApplied: () -> Unit = {},
     isDarkTheme: Boolean = false,
+    myLocationRequestKey: Int = 0,
+    onMyLocationFound: (Double, Double) -> Unit = { _, _ -> },
 )

@@ -6,6 +6,7 @@ import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.ShopFilters
+import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.ShopRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,6 +61,7 @@ data class FeedUiState(
 @OptIn(FlowPreview::class)
 class FeedViewModel(
     private val shopRepository: ShopRepository,
+    private val favoriteRepository: FavoriteRepository,
 ) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
@@ -173,6 +175,39 @@ class FeedViewModel(
     }
 
     fun refresh() = loadShops(reset = true)
+
+    fun toggleFavorite(shop: CoffeeShop) {
+        workScope.launch {
+            val nextFavorite = !shop.isFavorite
+            _uiState.update { state ->
+                state.copy(
+                    shops = state.shops.map { item ->
+                        if (item.id == shop.id) item.copy(isFavorite = nextFavorite) else item
+                    },
+                )
+            }
+
+            val result = if (nextFavorite) {
+                favoriteRepository.addFavorite(shop.id)
+            } else {
+                favoriteRepository.removeFavorite(shop.id)
+            }
+
+            result
+                .onSuccess {
+                    FavoriteSync.notifyChanged(shop.id, nextFavorite)
+                }
+                .onFailure {
+                    _uiState.update { state ->
+                        state.copy(
+                            shops = state.shops.map { item ->
+                                if (item.id == shop.id) item.copy(isFavorite = shop.isFavorite) else item
+                            },
+                        )
+                    }
+                }
+        }
+    }
 
     private fun loadShops(reset: Boolean) {
         val state = _uiState.value

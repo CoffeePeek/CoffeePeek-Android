@@ -48,16 +48,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import com.coffeepeek.admin.config.AppConfig
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.utils.KamelExt
+import coffeepeek.composeapp.generated.resources.Res
+import coffeepeek.composeapp.generated.resources.profile_version
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -94,6 +100,34 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
                 contentAlignment = Alignment.Center,
             ) {
                 CoffeePeekLoader()
+            }
+            return@Scaffold
+        }
+
+        if (state.error != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(CpDimens.spacing4),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = state.error ?: "Ошибка загрузки профиля",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(CpDimens.spacing3))
+                    Button(
+                        onClick = vm::loadProfile,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                        ),
+                    ) {
+                        Text("Попробовать снова")
+                    }
+                }
             }
             return@Scaffold
         }
@@ -154,10 +188,10 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
                 SettingsDivider()
                 SettingsRow(
                     icon = CpIcons.Info,
-                    label = "Версия приложения",
+                    label = stringResource(Res.string.profile_version),
                     trailing = {
                         Text(
-                            text = "1.0.0",
+                            text = AppConfig.versionName,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -239,12 +273,20 @@ private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
                     .background(Brush.linearGradient(listOf(CpColor.Primary, CpColor.GoldWarm))),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = state.initials.ifEmpty { "?" },
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = CpColor.DarkTextOnPrimary,
-                    fontWeight = FontWeight.Bold,
-                )
+                if (!state.avatarUrl.isNullOrBlank()) {
+                    KamelExt.FlowerImage(
+                        data = state.avatarUrl,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
+                    Text(
+                        text = state.initials.ifEmpty { "?" },
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = CpColor.DarkTextOnPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
 
             Spacer(Modifier.height(CpDimens.spacing3))

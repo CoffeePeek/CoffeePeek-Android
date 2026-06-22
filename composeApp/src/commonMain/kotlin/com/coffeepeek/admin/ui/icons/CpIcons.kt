@@ -54,6 +54,7 @@ object CpIcons {
     val ChevronRight: ImageVector get() = PhosphorIcons.Regular.CaretRight
     val ChevronUp: ImageVector get() = PhosphorIcons.Regular.CaretUp
     val Close: ImageVector get() = PhosphorIcons.Regular.X
+    val Community: ImageVector get() = PhosphorIcons.Regular.ChatCenteredText
     val Coffee: ImageVector get() = PhosphorIcons.Regular.Coffee
     val Delete: ImageVector get() = PhosphorIcons.Regular.Trash
     val Email: ImageVector get() = PhosphorIcons.Regular.Envelope
@@ -69,6 +70,7 @@ object CpIcons {
     val Lock: ImageVector get() = PhosphorIcons.Regular.Lock
     val Logout: ImageVector get() = PhosphorIcons.Regular.SignOut
     val Map: ImageVector get() = PhosphorIcons.Regular.MapTrifold
+    val MyLocation: ImageVector get() = Location
     val Photo: ImageVector get() = PhosphorIcons.Regular.ImageSquare
     val Profile: ImageVector get() = PhosphorIcons.Regular.User
     val Review: ImageVector get() = PhosphorIcons.Regular.ChatCenteredText

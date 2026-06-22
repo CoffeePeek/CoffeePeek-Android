@@ -81,6 +81,7 @@ internal object ShopMapper {
 
     fun ReviewDto.toDomain() = Review(
         id = id,
+        shopId = coffeeShopId,
         username = username,
         header = header,
         comment = comment,

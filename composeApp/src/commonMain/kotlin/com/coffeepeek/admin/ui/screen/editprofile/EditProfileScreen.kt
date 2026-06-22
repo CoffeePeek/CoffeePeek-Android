@@ -1,6 +1,10 @@
 package com.coffeepeek.admin.ui.screen.editprofile
 
 import com.coffeepeek.admin.ui.icons.CpIcons
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,8 +13,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -31,20 +37,36 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.utils.KamelExt
+import com.coffeepeek.admin.utils.rememberPhotoPicker
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(vm: EditProfileViewModel = koinViewModel()) {
     val state by vm.state.collectAsState()
+    var isPhotoLoading by remember { mutableStateOf(false) }
+    val photoPicker = rememberPhotoPicker(
+        maxSelection = 1,
+        isLoading = { isPhotoLoading = it },
+        onPhotosPicked = { images -> images.firstOrNull()?.let(vm::onAvatarPicked) },
+    )
 
     // Диалог ошибки
     state.error?.let { err ->
@@ -123,6 +145,18 @@ fun EditProfileScreen(vm: EditProfileViewModel = koinViewModel()) {
                 .verticalScroll(rememberScrollState())
                 .padding(CpDimens.spacing4),
         ) {
+            // ── Аватар ───────────────────────────────────────────────────────
+            AvatarPickerSection(
+                avatarUrl = state.avatarUrl,
+                pendingAvatar = state.pendingAvatar,
+                initials = state.username.take(2).uppercase().ifEmpty { "?" },
+                isLoading = isPhotoLoading || state.isSaving,
+                onPickFromGallery = photoPicker.pickFromGallery,
+                onTakePhoto = photoPicker.takePhoto,
+            )
+
+            Spacer(Modifier.height(CpDimens.spacing5))
+
             // ── Имя пользователя ─────────────────────────────────────────────
             FieldLabel("Имя пользователя")
             OutlinedTextField(
@@ -214,6 +248,101 @@ fun EditProfileScreen(vm: EditProfileViewModel = koinViewModel()) {
 }
 
 // ── Вспомогательные компоненты ────────────────────────────────────────────────
+
+@Composable
+private fun AvatarPickerSection(
+    avatarUrl: String?,
+    pendingAvatar: com.coffeepeek.admin.utils.PickedImage?,
+    initials: String,
+    isLoading: Boolean,
+    onPickFromGallery: () -> Unit,
+    onTakePhoto: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(96.dp)
+                .clip(CircleShape)
+                .background(Brush.linearGradient(listOf(CpColor.Primary, CpColor.GoldWarm)))
+                .clickable(enabled = !isLoading, onClick = onPickFromGallery),
+            contentAlignment = Alignment.Center,
+        ) {
+            when {
+                pendingAvatar != null -> {
+                    KamelExt.FlowerImage(
+                        data = pendingAvatar.bytes,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+                !avatarUrl.isNullOrBlank() -> {
+                    KamelExt.FlowerImage(
+                        data = avatarUrl,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+                else -> {
+                    Text(
+                        text = initials,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = CpColor.DarkTextOnPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CoffeePeekLoader(size = CpDimens.loaderButton, strokeWidth = 2.dp)
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(4.dp)
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = CpIcons.Camera,
+                        contentDescription = "Изменить аватар",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(CpDimens.spacing2))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
+            TextButton(onClick = onPickFromGallery, enabled = !isLoading) {
+                Text("Галерея", style = MaterialTheme.typography.labelLarge)
+            }
+            TextButton(onClick = onTakePhoto, enabled = !isLoading) {
+                Text("Камера", style = MaterialTheme.typography.labelLarge)
+            }
+        }
+
+        Text(
+            text = "JPG, PNG или WebP, до 5 МБ",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
 
 @Composable
 private fun FieldLabel(text: String) {
