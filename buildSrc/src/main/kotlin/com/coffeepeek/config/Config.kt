@@ -4,10 +4,8 @@ import org.gradle.api.JavaVersion
 
 object Config {
 
-    val APP_VERSION get() = "1.0.$COMMIT_COUNT"
-    val COMMIT_COUNT = GitFunctions.getCommitCount()
     const val JVM_VERSION = "17"
-    val JAVA_VERSION = JavaVersion.VERSION_17
+    val JAVA_VERSION: JavaVersion = JavaVersion.VERSION_17
 
     const val APPLICATION_ID = "com.coffeepeek"
     const val MAIN_CLASS = "com.coffeepeek.admin.MainKt"

@@ -2,6 +2,7 @@ package com.coffeepeek.api.utils
 
 import io.ktor.client.request.*
 import io.ktor.content.*
+import io.ktor.http.content.OutgoingContent
 
 object CurlInterceptor {
 
@@ -9,14 +10,15 @@ object CurlInterceptor {
         val method = method.value
         val url = url.buildString()
         val headers = headers.entries().joinToString(" ") {
-            "-H '${it.key}: ${it.value.joinToString(", ")}'"
+            "-H '${it.key}: ${it.key.redactHeaderValue(it.value.joinToString(", "))}'"
         }
         val body = body.let { body ->
             when (body) {
                 is TextContent -> {
                     "-H 'Content-Type: ${body.contentType}; charset=${this.headers["Accept-Charset"]}'  -d '${body.text}'"
                 }
-
+                is OutgoingContent.ByteArrayContent -> " --data-binary '<binary>'"
+                is ByteArray -> " --data-binary '<${body.size} bytes>'"
                 else -> ""
             }
         }
@@ -24,5 +26,18 @@ object CurlInterceptor {
         return "cURL -X $method '$url' $headers $body"
     }
 
+    private fun String.redactHeaderValue(value: String): String {
+        val header = lowercase()
+        return if (
+            header == "authorization" ||
+            header == "cookie" ||
+            header == "set-cookie" ||
+            header.contains("token")
+        ) {
+            "<redacted>"
+        } else {
+            value
+        }
+    }
 
 }

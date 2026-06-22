@@ -21,18 +21,25 @@ interface SettingRepository {
 
 }
 
-suspend inline fun <reified T> SettingRepository.saveSerializable(key: String, data: T) {
-    val data = JsonExt.json.encodeToString(data)
-    save(Setting(key, data))
+suspend inline fun <reified T> SettingRepository.saveSerializable(key: String, data: T?) {
+    if (data == null) {
+        delete(key)
+        return
+    }
+    val encoded = JsonExt.json.encodeToString(data)
+    save(Setting(key, encoded))
 }
 
 suspend inline fun <reified T> SettingRepository.readSerializable(key: String): T? {
     val data = read(key) ?: return null
-    return JsonExt.json.decodeFromString<T>(data.value)
+    if (data.value.isBlank() || data.value == "null") return null
+    return runCatching { JsonExt.json.decodeFromString<T>(data.value) }.getOrNull()
 }
 
 inline fun <reified T> SettingRepository.readSerializableFlow(key: String): Flow<T?> {
-    return readFlow(key)
-        .map { it?.value }
-        .map { it?.let { string -> JsonExt.json.decodeFromString<T>(string) } }
+    return readFlow(key).map { setting ->
+        val value = setting?.value ?: return@map null
+        if (value.isBlank() || value == "null") return@map null
+        runCatching { JsonExt.json.decodeFromString<T>(value) }.getOrNull()
+    }
 }

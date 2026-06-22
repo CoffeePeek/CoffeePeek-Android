@@ -19,11 +19,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coffeepeek.composeapp.generated.resources.Res
-import coffeepeek.composeapp.generated.resources.ic_add_24px
-import coffeepeek.composeapp.generated.resources.ic_delete_24px
 import coffeepeek.composeapp.generated.resources.ic_hide_image_24px
-import com.coffeepeek.admin.theme.Colors
-import com.coffeepeek.admin.utils.DrawableExt.toPainterResource
+import com.coffeepeek.admin.theme.CpColor
+import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.utils.KamelExt
 import kotlinx.coroutines.launch
 
@@ -70,14 +68,14 @@ actual object PhotoViewer {
                                 modifier = cardModifier
                             )
                             if (isEdit) Buttons.IconButton(
-                                backgroundColor = Colors.errorColor,
-                                painter = Res.drawable.ic_delete_24px.toPainterResource(),
+                                backgroundColor = CpColor.Error,
+                                imageVector = CpIcons.Delete,
                                 onClick =  { onDelete(item) }
                             )
                         }
                     } else if (isEdit) Box(modifier = cardModifier.clickable(onClick = onAdd)) {
                         Icon(
-                            painter = Res.drawable.ic_add_24px.toPainterResource(),
+                            imageVector = CpIcons.Add,
                             contentDescription = null,
                             modifier = Modifier.size(200.dp).align(Alignment.Center).clickable(onClick = onAdd)
                         )

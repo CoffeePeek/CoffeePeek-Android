@@ -1,0 +1,12 @@
+---
+description: Use Phosphor icons consistently in Compose UI
+globs: **/*.kt
+alwaysApply: false
+---
+
+# Phosphor Icons
+
+- Use `com.coffeepeek.admin.ui.icons.CpIcons` for all Compose UI icons.
+- Do not import `androidx.compose.material.icons.*` or use `Icons.*`.
+- If a new icon is needed, add a semantic property to `CpIcons` backed by `PhosphorIcons.Regular` or `PhosphorIcons.Fill`.
+- Keep UI files independent from the raw Phosphor package so icon style changes stay centralized.

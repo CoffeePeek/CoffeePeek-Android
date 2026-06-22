@@ -1,39 +1,126 @@
 package com.coffeepeek.api.service
 
+import com.coffeepeek.api.model.ApiResponse
+import com.coffeepeek.api.model.request.GoogleLoginReq
+import com.coffeepeek.api.model.request.LoginReq
+import com.coffeepeek.api.model.request.RegistrationReq
 import com.coffeepeek.api.model.response.AuthResp
-import com.coffeepeek.api.model.response.CodeResp
-import com.coffeepeek.api.utils.getNullableResult
-import com.coffeepeek.api.utils.getResult
+import com.coffeepeek.api.model.response.GoogleLoginResp
+import com.coffeepeek.api.utils.ApiException
+import com.coffeepeek.api.utils.deleteResult
+import com.coffeepeek.api.utils.extractRefreshToken
 import com.coffeepeek.api.utils.postResult
+import com.coffeepeek.api.utils.putResult
 import com.coffeepeek.api.utils.setJsonBody
 import io.ktor.client.HttpClient
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
+import io.ktor.client.call.body
+import io.ktor.client.request.cookie
+import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
+import io.ktor.http.isSuccess
 
 class AuthService(
-    private val client: HttpClient
+    private val client: HttpClient,
+    private val refreshClient: HttpClient,
 ) {
 
-    suspend fun createUser() = client.postResult("auth/create").getResult<AuthResp>()
+    suspend fun login(email: String, password: String): Result<AuthResp> =
+        runCatching {
+            val response = refreshClient.postResult("/api/Tokens") {
+                setJsonBody(LoginReq(email, password))
+            }.getOrThrow()
 
-    suspend fun authRefresh(
-        refreshToken: String
-    ) = client.getResult("api/Auth/refresh?refreshToken=$refreshToken").getResult<AuthResp>()
+            val apiResponse = response.body<ApiResponse<AuthResp>>()
+            if (!apiResponse.isSuccess || apiResponse.data == null) {
+                throw ApiException(apiResponse.message)
+            }
 
-    suspend fun authSecret() = client.postResult("auth/secret").getResult<CodeResp>()
+            apiResponse.data.copy(
+                refreshToken = response.extractRefreshToken()
+                    ?.takeIf { it.isNotBlank() }
+                    ?: apiResponse.data.refreshToken,
+            )
+        }
 
-    suspend fun authLogin(
-        secret: String
-    ) = client.postResult("auth/login"){
-        setJsonBody(buildJsonObject {
-            put("secret", secret)
-        })
-    }.getNullableResult<AuthResp>()
+    suspend fun googleLogin(idToken: String): Result<AuthResp> =
+        runCatching {
+            val response = refreshClient.postResult("/api/Tokens/google/login") {
+                setJsonBody(GoogleLoginReq(idToken))
+            }.getOrThrow()
 
-    suspend fun protected() = client.getResult("auth/protected").map { it.status == HttpStatusCode.OK }
+            val apiResponse = response.body<ApiResponse<GoogleLoginResp>>()
+            if (!apiResponse.isSuccess || apiResponse.data == null) {
+                throw ApiException(apiResponse.message)
+            }
 
+            AuthResp(
+                accessToken = apiResponse.data.accessToken,
+                refreshToken = response.extractRefreshToken()
+                    ?.takeIf { it.isNotBlank() }
+                    .orEmpty(),
+            )
+        }
+
+    suspend fun register(userName: String, email: String, password: String): Result<Unit> =
+        runCatching {
+            val response = refreshClient.postResult("/api/Users") {
+                setJsonBody(RegistrationReq(email, password, userName))
+            }.getOrThrow()
+
+            val apiResponse = response.body<ApiResponse<Unit>>()
+            if (!apiResponse.isSuccess) {
+                throw ApiException(apiResponse.message)
+            }
+        }
+
+    suspend fun isEmailTaken(email: String): Result<Boolean> =
+        runCatching {
+            val response = refreshClient.get("/api/Users/exists?email=$email")
+            when (response.status) {
+                HttpStatusCode.NotFound -> false
+                else -> {
+                    val apiResponse = response.body<ApiResponse<Boolean>>()
+                    apiResponse.isSuccess && apiResponse.data == true
+                }
+            }
+        }
+
+    suspend fun refresh(refreshToken: String?) =
+        runCatching {
+            val token = refreshToken?.takeIf { it.isNotBlank() }
+                ?: throw ApiException("Refresh token отсутствует")
+
+            val response = refreshClient.putResult("/api/Tokens") {
+                cookie("refreshToken", token)
+            }.getOrThrow()
+
+            if (!response.status.isSuccess()) {
+                throw ApiException("Refresh failed (${response.status.value})")
+            }
+
+            val apiResponse = response.body<ApiResponse<AuthResp>>()
+            if (!apiResponse.isSuccess || apiResponse.data == null) {
+                throw ApiException(apiResponse.message)
+            }
+
+            val bodyToken = apiResponse.data.refreshToken
+            val cookieToken = response.extractRefreshToken()
+            val resolvedRefresh = when {
+                !bodyToken.isNullOrBlank() -> bodyToken
+                !cookieToken.isNullOrBlank() -> cookieToken
+                else -> token
+            }
+
+            apiResponse.data.copy(refreshToken = resolvedRefresh)
+        }
+
+    suspend fun logout(refreshToken: String?) =
+        runCatching {
+            val response = client.deleteResult("/api/Tokens") {
+                refreshToken?.takeIf { it.isNotBlank() }?.let { cookie("refreshToken", it) }
+            }.getOrThrow()
+            if (!response.status.isSuccess()) {
+                throw ApiException("Logout failed")
+            }
+        }
 }

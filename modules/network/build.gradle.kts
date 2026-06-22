@@ -18,7 +18,7 @@ kotlin {
 
     sourceSets {
         androidMain.dependencies {
-            implementation(libs.ktor.client.cio)
+            implementation(libs.ktor.client.okhttp)
         }
         commonMain.dependencies {
             implementation(libs.ktor.client.core)

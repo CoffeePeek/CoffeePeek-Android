@@ -1,41 +1,78 @@
 package com.coffeepeek.admin.utils
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
-import java.awt.Desktop
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
-import java.io.FilenameFilter
-import java.nio.channels.FileChannel
-import java.util.Locale
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
 
-actual object ImagePicker {
+@Composable
+actual fun rememberPhotoPicker(
+    maxSelection: Int,
+    isLoading: (Boolean) -> Unit,
+    onPhotosPicked: (List<PickedImage>) -> Unit,
+): PhotoPickerController {
+    val maxSelectionState = rememberUpdatedState(maxSelection.coerceIn(1, MAX_SHOP_PHOTOS))
+    val onPhotosPickedState = rememberUpdatedState(onPhotosPicked)
+    val isLoadingState = rememberUpdatedState(isLoading)
 
-    @Composable
-    actual fun registerInvoker(
-        isLoading: (Boolean) -> Unit,
-        resultBox: (ByteArray) -> Unit
-    ): () -> Unit {
-        val scope = rememberCoroutineScope()
-        return {
-            val dialog = FileDialog(Frame(), "Выберите изображение", FileDialog.LOAD).apply {
-                this.accessibleContext
-                directory = "."
-                file = "*.png;*.jpg;*.jpeg;*.webp;*.gif;*.bmp"
-            }
-            dialog.isVisible = true
-            val file = dialog.file
-            val dir = dialog.directory
-            if (file != null){
-                isLoading(true)
-                resultBox(File(dir, file).readBytes())
-                isLoading(false)
-            }
-            dialog.dispose()
-        }
+    return remember {
+        PhotoPickerController(
+            pickFromGallery = {
+                val chooser = JFileChooser().apply {
+                    isMultiSelectionEnabled = true
+                    fileSelectionMode = JFileChooser.FILES_ONLY
+                    fileFilter = FileNameExtensionFilter("Images", "png", "jpg", "jpeg", "webp", "gif", "bmp")
+                }
+                if (chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) return@PhotoPickerController
+                val files = chooser.selectedFiles
+                    .take(maxSelectionState.value)
+                    .filter { it.isFile }
+                if (files.isEmpty()) return@PhotoPickerController
+                isLoadingState.value(true)
+                val images = files.map { file ->
+                    PickedImage(
+                        bytes = file.readBytes(),
+                        fileName = file.name,
+                        contentType = guessContentType(file.name),
+                    )
+                }
+                onPhotosPickedState.value(images)
+                isLoadingState.value(false)
+            },
+            takePhoto = {
+                val dialog = FileDialog(Frame(), "Выберите изображение", FileDialog.LOAD).apply {
+                    directory = "."
+                    file = "*.png;*.jpg;*.jpeg;*.webp"
+                }
+                dialog.isVisible = true
+                val fileName = dialog.file
+                val dir = dialog.directory
+                dialog.dispose()
+                if (fileName == null || dir == null) return@PhotoPickerController
+                val file = File(dir, fileName)
+                isLoadingState.value(true)
+                onPhotosPickedState.value(
+                    listOf(
+                        PickedImage(
+                            bytes = file.readBytes(),
+                            fileName = file.name,
+                            contentType = guessContentType(file.name),
+                        )
+                    )
+                )
+                isLoadingState.value(false)
+            },
+        )
     }
+}
 
+private fun guessContentType(fileName: String): String = when {
+    fileName.endsWith(".png", ignoreCase = true) -> "image/png"
+    fileName.endsWith(".webp", ignoreCase = true) -> "image/webp"
+    fileName.endsWith(".gif", ignoreCase = true) -> "image/gif"
+    else -> "image/jpeg"
 }

@@ -1,0 +1,44 @@
+<resources>
+    <string name="app_name">CoffeePeek</string>
+    <string name="eco_system">Экосистема спешелти-кофе</string>
+    <string name="entry">Вход</string>
+    <string name="password">Пароль</string>
+    <string name="no_account">Нет аккаунта? </string>
+    <string name="login">Войти</string>
+    <string name="registr">Зарегистрироваться</string>
+    <string name="registration">Регистрация</string>
+    <string name="email_no_exist">Этот Email уже занят</string>
+    <string name="no_login">Неправильный логин или пароль</string>
+    <string name="maybe_later">Попробуйте позже!</string>
+    <string name="error_enter_name">Введите имя!</string>
+    <string name="error_enter_email">Введите email!</string>
+    <string name="error_enter_password">Введите пароль!</string>
+    <string name="error_enter_password_length">Минимум 6 символов в пароле!</string>
+    <string name="error_term_of_user">Для завершения регистрации необходимо принять условия соглашения и политику конфиденциальности!</string>
+    <string name="error_email_name">Введите email!</string>
+    <string name="error_valid_email">Некорректный формат email!</string>
+    <string name="join_community">Присоединяйтесь к сообществу</string>
+    <string name="name">Имя</string>
+    <string name="name_hint">Ваше имя</string>
+    <string name="have_account">Уже есть аккаунт? </string>
+    <string name="enter">Войти</string>
+    <string name="error_registr">Ошибка при попытке создания учетной записи, попробуйте позже!</string>
+
+    <string name="profile_version">Версия приложения</string>
+    <string name="retry">Попробовать снова</string>
+    <string name="community_title">Community</string>
+    <string name="community_coming_soon_title">Скоро здесь будет комьюнити</string>
+    <string name="community_coming_soon_body">Подборки кофеен, обсуждения напитков и локальные рекомендации появятся в следующих обновлениях.</string>
+    <string name="map_desktop_unavailable">Карта доступна в Android-версии</string>
+    <string name="map_desktop_hint">Установите мобильное приложение CoffeePeek, чтобы искать кофейни на карте.</string>
+    <string name="checkin_title">Отметить посещение</string>
+    <string name="checkin_note_hint_private">Заметка (необязательно)</string>
+    <string name="checkin_note_hint_public">Комментарий к отзыву</string>
+    <string name="checkin_public_title">Публичный чек-ин</string>
+    <string name="checkin_public_hint">Появится в ленте как отзыв — нужен комментарий</string>
+    <string name="checkin_error_note_required">Для публичного чек-ина добавьте комментарий</string>
+    <string name="checkin_submit">Сохранить чек-ин</string>
+    <string name="error_invalid_phone">Некорректный формат телефона</string>
+    <string name="error_invalid_url">Укажите ссылку с http:// или https://</string>
+    <string name="error_invalid_instagram">Некорректный Instagram</string>
+</resources>
