@@ -1,45 +1,122 @@
-This is a Kotlin Multiplatform project targeting Android, Desktop (JVM).
+# CoffeePeek
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
+Клиентское приложение экосистемы specialty-кофе: лента кофеен, карта, профиль, чек-ины и отзывы.
 
-### Build and Run Android Application
+**Стек:** Kotlin Multiplatform · Compose Multiplatform · Android + Desktop (JVM)
 
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:assembleDebug
-  ```
+| Платформа | Статус |
+|-----------|--------|
+| Android | основная, полный функционал |
+| Desktop (JVM) | лента, профиль, формы; карта и Google OAuth — заглушки |
 
-### Build and Run Desktop (JVM) Application
+---
 
-To build and run the development version of the desktop app, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:run
-  ```
-- on Windows
-  ```shell
-  gradle :composeApp:run
-  ```
-  
-Hot reload
-```shell
-    gradle composeApp:hotRunJvm --auto
+## Возможности
+
+- Регистрация и вход (email/пароль, Google Sign-In на Android)
+- Лента кофеен с пагинацией
+- Карта с Yandex MapKit (Android)
+- Карточка кофейни: фото, контакты, расписание, отзывы
+- Избранное, чек-ины (публичные и приватные), создание и редактирование отзывов
+- Профиль: аватар, статистика, тема оформления
+- Добавление кофейни (многошаговая форма с модерацией)
+- Community — в разработке (empty state)
+
+---
+
+## Быстрый старт
+
+### Требования
+
+- **JDK 17** (обязательно; JDK 24/26 ломают сборку Gradle)
+- Android Studio с SDK **36**
+- Git
+
+### Настройка
+
+```bash
+git clone <repository-url>
+cd CoffeePeek-Android
+cp local.properties.example local.properties
+```
+
+Заполните `local.properties` (подробнее в [local.properties.example](./local.properties.example)):
+
+| Ключ | Назначение |
+|------|------------|
+| `sdk.dir` | Путь к Android SDK |
+| `API_BASE_URL` | URL backend API |
+| `MAPKIT_API_KEY` | Yandex MapKit (карта на Android) |
+| `GOOGLE_WEB_CLIENT_ID` | Google Sign-In (опционально) |
+
+Полная инструкция для контрибьюторов: **[CONTRIBUTING.md](./CONTRIBUTING.md)**
+
+### Сборка и запуск
+
+**Android**
+
+```bash
+./gradlew :composeApp:assembleDebug
+```
+
+**Desktop**
+
+```bash
+./gradlew :composeApp:run
+```
+
+Hot reload (desktop):
+
+```bash
+./gradlew :composeApp:hotRunJvm --auto
 ```
 
 ---
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+## Структура проекта
+
+```
+CoffeePeek-Android/
+├── composeApp/              UI, ViewModel, навигация, тема, Koin
+│   └── src/
+│       ├── commonMain/      общий код Compose
+│       ├── androidMain/     MapKit, Google Auth, Android-специфика
+│       └── jvmMain/         Desktop-специфика
+├── modules/
+│   ├── domain/              модели и интерфейсы репозиториев
+│   ├── network/             Ktor, DTO, API-сервисы
+│   ├── data/                реализации репозиториев
+│   └── room/                SQLite (сессия, настройки)
+├── buildSrc/                версии SDK, applicationId
+├── CONTRIBUTING.md          гайд для разработчиков
+├── LOG_ISSUES.md            известные баги из logcat-анализа
+└── local.properties.example шаблон секретов
+```
+
+**Архитектура:** `Screen → ViewModel → domain.Repository → data → network → API`
+
+**DI:** Koin (`composeApp/.../di/KoinApp.kt`, `modules/data/.../DataModule.kt`)
+
+**Навигация:** `composeApp/.../ui/Navigator.kt`
+
+---
+
+## Конфигурация
+
+- **API URL:** `local.properties` → `BuildConfig.API_BASE_URL` (Android) / `JvmAppConfig` (desktop)
+- **Версия приложения:** `1.0.<git-commit-count>` из `composeApp/build.gradle.kts`
+- **Application ID:** `com.coffeepeek`
+
+---
+
+## Известные проблемы
+
+Список открытых багов и приоритетов: [LOG_ISSUES.md](./LOG_ISSUES.md)
+
+---
+
+## Полезные ссылки
+
+- [CONTRIBUTING.md](./CONTRIBUTING.md) — онбординг, стиль кода, PR
+- [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)
+- [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/)
