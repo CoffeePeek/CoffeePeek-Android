@@ -1,0 +1,18 @@
+# Скопируйте в local.properties и заполните значения.
+# cp local.properties.example local.properties
+#
+# local.properties не коммитится в git (.gitignore).
+
+# Путь к Android SDK. Обычно Android Studio создаёт эту строку автоматически.
+sdk.dir=/path/to/Android/Sdk
+
+# Базовый URL backend API (dev по умолчанию, если не задан).
+API_BASE_URL=https://gateway-dev-1b7e.up.railway.app/
+
+# Yandex MapKit — обязателен для карты на Android.
+# Альтернативное имя ключа: YANDEX_MAP_API_KEY
+MAPKIT_API_KEY=
+
+# Google Sign-In (Web Client ID из Google Cloud Console).
+# Если пусто — кнопка «Войти через Google» скрыта.
+GOOGLE_WEB_CLIENT_ID=
