@@ -1,7 +1,6 @@
 package com.coffeepeek.admin.ui.screen.addshop
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
@@ -132,7 +131,7 @@ internal fun shiftTime(time: String, minutesDelta: Int): String {
 
 class AddShopViewModel(
     private val shopRepository: ShopRepository,
-) : ViewModel() {
+) : BaseViewModel() {
 
     private val _state = MutableStateFlow(AddShopUiState())
     val state: StateFlow<AddShopUiState> = _state.asStateFlow()
@@ -140,7 +139,7 @@ class AddShopViewModel(
     init { loadCatalogs() }
 
     fun loadCatalogs() {
-        viewModelScope.launch {
+        workScope.launch {
             _state.update { it.copy(isLoadingCatalogs = true, catalogsError = null) }
             shopRepository.getCatalogs()
                 .onSuccess { catalogs -> applyCatalogs(catalogs) }
@@ -318,7 +317,7 @@ class AddShopViewModel(
     private fun submit() {
         val s = _state.value
         val city = s.selectedCity ?: return
-        viewModelScope.launch {
+        workScope.launch {
             _state.update { it.copy(isSubmitting = true, submitError = null) }
             shopRepository.createShop(
                 CreateShopInput(

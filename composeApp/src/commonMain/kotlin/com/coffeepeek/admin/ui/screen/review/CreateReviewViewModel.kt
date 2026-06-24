@@ -1,7 +1,6 @@
 package com.coffeepeek.admin.ui.screen.review
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.MAX_REVIEW_PHOTOS
 import com.coffeepeek.admin.utils.PickedImage
@@ -27,7 +26,7 @@ data class CreateReviewUiState(
 class CreateReviewViewModel(
     private val shopId: String,
     private val reviewRepository: ReviewRepository,
-) : ViewModel() {
+) : BaseViewModel() {
 
     private val _state = MutableStateFlow(CreateReviewUiState())
     val state = _state.asStateFlow()
@@ -59,7 +58,7 @@ class CreateReviewViewModel(
             _state.update { it.copy(error = "Заполните заголовок и текст отзыва") }
             return
         }
-        viewModelScope.launch {
+        workScope.launch {
             _state.update { it.copy(isSubmitting = true, error = null) }
             reviewRepository.createReview(
                 CreateReviewInput(

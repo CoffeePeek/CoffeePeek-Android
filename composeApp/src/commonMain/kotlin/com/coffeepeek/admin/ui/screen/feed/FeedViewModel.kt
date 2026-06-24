@@ -112,6 +112,11 @@ class FeedViewModel(
                         )
                     }
                 }
+                .onFailure { err ->
+                    _uiState.update {
+                        it.copy(error = err.message ?: "Ошибка загрузки каталогов")
+                    }
+                }
         }
     }
 

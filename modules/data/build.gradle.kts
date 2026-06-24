@@ -13,8 +13,6 @@ kotlin {
         }
     }
 
-    jvm()
-
     sourceSets {
         commonMain.dependencies {
             implementation(project(":modules:domain"))

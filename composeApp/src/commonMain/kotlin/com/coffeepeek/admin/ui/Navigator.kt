@@ -76,7 +76,6 @@ object Navigator {
 
         // Inner screens (add here + in the graph in MainScreen)
         @Serializable data class ShopDetail(val shopId: String) : Screen
-        @Serializable data class EditItem(val itemID: String?) : Screen
         @Serializable data object AddShop : Screen
         @Serializable data object EditProfile : Screen
         @Serializable data object Favorites : Screen

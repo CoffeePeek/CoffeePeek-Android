@@ -35,6 +35,8 @@ class AuthRepositoryImpl(
 
     override suspend fun logout(): Result<Unit> {
         val refreshToken = sessionRepository.getSession()?.refreshToken
-        return authService.logout(refreshToken).onSuccess { sessionRepository.saveSession(null) }
+        runCatching { authService.logout(refreshToken) }
+        sessionRepository.saveSession(null)
+        return Result.success(Unit)
     }
 }

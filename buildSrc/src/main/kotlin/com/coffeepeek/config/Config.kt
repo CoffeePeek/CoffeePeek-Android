@@ -8,7 +8,6 @@ object Config {
     val JAVA_VERSION: JavaVersion = JavaVersion.VERSION_17
 
     const val APPLICATION_ID = "com.coffeepeek"
-    const val MAIN_CLASS = "com.coffeepeek.admin.MainKt"
 
     const val COMPILE_SDK = 36
     const val MIN_SDK = 26

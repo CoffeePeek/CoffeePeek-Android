@@ -58,6 +58,7 @@ actual fun CoffeeMap(
     isDarkTheme: Boolean,
     myLocationRequestKey: Int,
     onMyLocationFound: (Double, Double) -> Unit,
+    onLocationPermissionDenied: () -> Unit,
 ) {
     val context = LocalContext.current
     val appContext = context.applicationContext
@@ -66,10 +67,16 @@ actual fun CoffeeMap(
     val onShopClickState = rememberUpdatedState(onShopClick)
     val onCameraTargetAppliedState = rememberUpdatedState(onCameraTargetApplied)
     val onMyLocationFoundState = rememberUpdatedState(onMyLocationFound)
+    val onLocationPermissionDeniedState = rememberUpdatedState(onLocationPermissionDenied)
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { /* MapKit handles absence gracefully after request */ }
+    ) { permissions ->
+        val granted = permissions.values.any { it }
+        if (!granted) {
+            onLocationPermissionDeniedState.value()
+        }
+    }
 
     LaunchedEffect(Unit) {
         val fineGranted = ContextCompat.checkSelfPermission(

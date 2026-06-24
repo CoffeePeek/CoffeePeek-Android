@@ -123,6 +123,7 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
             isDarkTheme = isDarkTheme,
             myLocationRequestKey = state.myLocationRequest,
             onMyLocationFound = vm::onMyLocationApplied,
+            onLocationPermissionDenied = vm::onLocationPermissionDenied,
         )
 
         MapControlButton(

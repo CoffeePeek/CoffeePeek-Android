@@ -24,7 +24,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import org.example.project.DatabaseCore
+import com.coffeepeek.room.DatabaseCore
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import java.io.File

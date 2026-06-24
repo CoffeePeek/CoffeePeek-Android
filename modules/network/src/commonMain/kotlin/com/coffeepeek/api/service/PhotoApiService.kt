@@ -4,6 +4,7 @@ import com.coffeepeek.api.model.ApiResponse
 import com.coffeepeek.api.model.request.PhotoRequestDto
 import com.coffeepeek.api.model.response.GenerateUploadUrlDto
 import com.coffeepeek.api.utils.ApiException
+import com.coffeepeek.api.utils.UploadUrlValidator
 import com.coffeepeek.api.utils.postResult
 import com.coffeepeek.api.utils.setJsonBody
 import io.ktor.client.HttpClient
@@ -33,7 +34,7 @@ class PhotoApiService(
         if (!apiResponse.isSuccess || apiResponse.data == null) {
             throw ApiException(apiResponse.message)
         }
-        apiResponse.data
+        apiResponse.data.also { UploadUrlValidator.requirePublicUploadUrl(it.uploadUrl) }
     }
 
     suspend fun requestShopPhotoUploadUrls(
@@ -49,7 +50,7 @@ class PhotoApiService(
         if (!apiResponse.isSuccess || apiResponse.data == null) {
             throw ApiException(apiResponse.message)
         }
-        apiResponse.data
+        apiResponse.data.onEach { UploadUrlValidator.requirePublicUploadUrl(it.uploadUrl) }
     }
 
     suspend fun uploadToPresignedUrl(
@@ -57,6 +58,7 @@ class PhotoApiService(
         bytes: ByteArray,
         contentType: String,
     ): Result<Unit> = runCatching {
+        UploadUrlValidator.requirePublicUploadUrl(uploadUrl)
         val response = uploadClient.put(uploadUrl) {
             headers {
                 remove(HttpHeaders.Accept)

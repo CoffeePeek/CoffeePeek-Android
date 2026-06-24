@@ -1,7 +1,6 @@
 package com.coffeepeek.admin.ui.screen.map
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CoffeeShopDetails
@@ -65,7 +64,7 @@ data class MapUiState(
 
 class MapViewModel(
     private val shopRepository: ShopRepository,
-) : ViewModel() {
+) : BaseViewModel() {
 
     private val _state = MutableStateFlow(MapUiState())
     val state: StateFlow<MapUiState> = _state.asStateFlow()
@@ -180,7 +179,7 @@ class MapViewModel(
             latitude = focus.latitude,
             longitude = focus.longitude,
         )
-        viewModelScope.launch {
+        workScope.launch {
             suppressBoundsUpdates = true
             _state.update { current ->
                 current.copy(
@@ -208,8 +207,14 @@ class MapViewModel(
         }
     }
 
+    fun onLocationPermissionDenied() {
+        _state.update {
+            it.copy(error = "Нет доступа к геолокации. Разрешите в настройках приложения.")
+        }
+    }
+
     private fun loadCatalogs() {
-        viewModelScope.launch {
+        workScope.launch {
             shopRepository.getCatalogs()
                 .onSuccess { catalogs ->
                     _state.update {
@@ -222,12 +227,17 @@ class MapViewModel(
                         )
                     }
                 }
+                .onFailure { err ->
+                    _state.update {
+                        it.copy(error = err.message ?: "Ошибка загрузки каталогов")
+                    }
+                }
         }
     }
 
     private fun loadBounds(bounds: MapBounds) {
         boundsJob?.cancel()
-        boundsJob = viewModelScope.launch {
+        boundsJob = workScope.launch {
             delay(250)
             _state.update {
                 it.copy(
@@ -297,7 +307,7 @@ class MapViewModel(
         }
 
         if (moveCamera) {
-            cameraJob = viewModelScope.launch {
+            cameraJob = workScope.launch {
                 delay(900)
                 suppressBoundsUpdates = false
             }
@@ -305,7 +315,7 @@ class MapViewModel(
 
         if (cachedDetails != null) return
 
-        detailsJob = viewModelScope.launch {
+        detailsJob = workScope.launch {
             shopRepository.getShopDetails(shop.id)
                 .onSuccess { details ->
                     detailsCache[shop.id] = details

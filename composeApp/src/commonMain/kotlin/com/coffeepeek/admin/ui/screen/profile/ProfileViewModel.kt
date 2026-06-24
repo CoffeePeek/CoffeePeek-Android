@@ -1,12 +1,10 @@
 package com.coffeepeek.admin.ui.screen.profile
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.theme.ThemeManager
 import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.domain.repository.AuthRepository
-import com.coffeepeek.domain.repository.SessionRepository
 import com.coffeepeek.domain.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,10 +27,9 @@ data class ProfileUiState(
 )
 
 class ProfileViewModel(
-    private val sessionRepository: SessionRepository,
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
-) : ViewModel() {
+) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -44,7 +41,7 @@ class ProfileViewModel(
     }
 
     fun loadProfile() {
-        viewModelScope.launch {
+        workScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             userRepository.getMe()
                 .onSuccess { profile ->
@@ -74,10 +71,9 @@ class ProfileViewModel(
     }
 
     fun logout() {
-        viewModelScope.launch {
+        workScope.launch {
             _uiState.update { it.copy(isLoggingOut = true) }
             authRepository.logout()
-            sessionRepository.saveSession(null)
             Navigator.navigate(Navigator.Screen.Auth)
         }
     }

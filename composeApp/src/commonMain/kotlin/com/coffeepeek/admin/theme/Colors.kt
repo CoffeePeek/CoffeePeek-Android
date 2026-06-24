@@ -55,23 +55,3 @@ object CpColor {
     val DarkBorderHover   = Color(0xFF4A3D35)
     val DarkOverlay       = Color(0x80000000)
 }
-
-// Legacy aliases — используются в старых компонентах, постепенно заменяем на CpColor
-@Deprecated("Use CpColor.Primary", ReplaceWith("CpColor.Primary"))
-val Colors get() = LegacyColors
-
-object LegacyColors {
-    val brandColor      = CpColor.Primary
-    val lightYellowBg   = CpColor.PrimaryLight
-    val lightYellowBorder = CpColor.GoldWarm
-    val textGray        = CpColor.LightTextSecondary
-    val inputBg         = CpColor.LightBadge
-    val errorColor      = CpColor.Error
-    val background20    = Color(0x33000000)
-    val background5     = Color(0x0D000000)
-    val background2     = Color(0x05000000)
-    val cardBackground  = Color(0xE6DDECD2)
-    val greenDark       = Color(0xFF327500)
-    val green           = CpColor.Success
-    val greenLight      = Color(0xFFD9F5D3)
-}

@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.di
 
+import com.coffeepeek.admin.config.AppConfig
 import com.coffeepeek.admin.locator.Constants
 import com.coffeepeek.admin.locator.Locator
 import com.coffeepeek.admin.theme.ThemeManager
@@ -24,6 +25,9 @@ import org.koin.core.context.startKoin
 import org.koin.dsl.module
 
 fun initKoin() {
+    check(AppConfig.baseUrl.isNotBlank()) {
+        "API_BASE_URL is not configured. Copy local.properties.example to local.properties."
+    }
     val database = Locator.database
     ThemeManager.initialize(database.settingRepository)
 
@@ -33,7 +37,7 @@ fun initKoin() {
                 baseUrl = Constants.BASE_URL,
                 cacheFolder = Locator.cacheFolder,
                 database = database,
-                debug = true,
+                debug = AppConfig.isDebug,
             ),
             appModule(),
         )
@@ -48,7 +52,7 @@ private fun appModule() = module {
     factory { FeedViewModel(get(), get()) }
     factory { MapViewModel(get()) }
     factory { (shopId: String) -> ShopDetailViewModel(shopId, get(), get(), get()) }
-    factory { ProfileViewModel(get(), get(), get()) }
+    factory { ProfileViewModel(get(), get()) }
     factory { AddShopViewModel(get()) }
     factory { EditProfileViewModel(get()) }
     factory { FavoritesViewModel(get()) }

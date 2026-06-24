@@ -1,7 +1,6 @@
 package com.coffeepeek.admin.ui.screen.editprofile
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.domain.model.PendingPhotoUpload
@@ -40,7 +39,7 @@ data class EditProfileUiState(
 
 class EditProfileViewModel(
     private val userRepository: UserRepository,
-) : ViewModel() {
+) : BaseViewModel() {
 
     private val _state = MutableStateFlow(EditProfileUiState())
     val state: StateFlow<EditProfileUiState> = _state.asStateFlow()
@@ -48,7 +47,7 @@ class EditProfileViewModel(
     init { loadProfile() }
 
     private fun loadProfile() {
-        viewModelScope.launch {
+        workScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             userRepository.getMe()
                 .onSuccess { profile ->
@@ -85,7 +84,7 @@ class EditProfileViewModel(
         val s = _state.value
         if (!s.canSave) return
 
-        viewModelScope.launch {
+        workScope.launch {
             _state.update { it.copy(isSaving = true, error = null) }
 
             var success = true

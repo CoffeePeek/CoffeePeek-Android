@@ -1,7 +1,6 @@
 package com.coffeepeek.admin.ui.screen.review
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.MAX_REVIEW_PHOTOS
 import com.coffeepeek.admin.utils.PickedImage
@@ -31,7 +30,7 @@ class EditReviewViewModel(
     private val reviewId: String,
     private val reviewRepository: ReviewRepository,
     private val sessionRepository: SessionRepository,
-) : ViewModel() {
+) : BaseViewModel() {
 
     private val _state = MutableStateFlow(EditReviewUiState())
     val state = _state.asStateFlow()
@@ -41,7 +40,7 @@ class EditReviewViewModel(
     }
 
     fun loadReview() {
-        viewModelScope.launch {
+        workScope.launch {
             val userId = sessionRepository.getSession()?.userId
             if (userId.isNullOrBlank()) {
                 _state.update { it.copy(isLoading = false, error = "Пользователь не авторизован") }
@@ -100,7 +99,7 @@ class EditReviewViewModel(
             _state.update { it.copy(error = "Заполните заголовок и текст отзыва") }
             return
         }
-        viewModelScope.launch {
+        workScope.launch {
             _state.update { it.copy(isSubmitting = true, error = null) }
             reviewRepository.updateReview(
                 reviewId = reviewId,

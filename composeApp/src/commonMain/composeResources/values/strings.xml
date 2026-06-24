@@ -29,8 +29,6 @@
     <string name="community_title">Community</string>
     <string name="community_coming_soon_title">Скоро здесь будет комьюнити</string>
     <string name="community_coming_soon_body">Подборки кофеен, обсуждения напитков и локальные рекомендации появятся в следующих обновлениях.</string>
-    <string name="map_desktop_unavailable">Карта доступна в Android-версии</string>
-    <string name="map_desktop_hint">Установите мобильное приложение CoffeePeek, чтобы искать кофейни на карте.</string>
     <string name="checkin_title">Отметить посещение</string>
     <string name="checkin_note_hint_private">Заметка (необязательно)</string>
     <string name="checkin_note_hint_public">Комментарий к отзыву</string>
