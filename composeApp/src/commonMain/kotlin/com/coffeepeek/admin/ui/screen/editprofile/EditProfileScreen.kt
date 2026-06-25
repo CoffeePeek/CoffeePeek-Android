@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,7 +52,7 @@ import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
-import com.coffeepeek.admin.utils.KamelExt
+import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.rememberPhotoPicker
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -98,30 +97,6 @@ fun EditProfileScreen(vm: EditProfileViewModel = koinViewModel()) {
                         Icon(CpIcons.Back, contentDescription = "Назад")
                     }
                 },
-                actions = {
-                    if (state.isSaving) {
-                        CoffeePeekLoader(
-                            modifier = Modifier.padding(end = 4.dp),
-                            size = CpDimens.loaderButton,
-                            strokeWidth = 2.dp,
-                        )
-                        Spacer(Modifier.width(CpDimens.spacing3))
-                    } else {
-                        TextButton(
-                            onClick = vm::save,
-                            enabled = state.canSave,
-                        ) {
-                            Text(
-                                "Сохранить",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (state.canSave)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
@@ -150,7 +125,7 @@ fun EditProfileScreen(vm: EditProfileViewModel = koinViewModel()) {
                 avatarUrl = state.avatarUrl,
                 pendingAvatar = state.pendingAvatar,
                 initials = state.username.take(2).uppercase().ifEmpty { "?" },
-                isLoading = isPhotoLoading || state.isSaving,
+                isLoading = isPhotoLoading,
                 onPickFromGallery = photoPicker.pickFromGallery,
                 onTakePhoto = photoPicker.takePhoto,
             )
@@ -272,14 +247,14 @@ private fun AvatarPickerSection(
         ) {
             when {
                 pendingAvatar != null -> {
-                    KamelExt.FlowerImage(
+                    CpImage(
                         data = pendingAvatar.bytes,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                     )
                 }
                 !avatarUrl.isNullOrBlank() -> {
-                    KamelExt.FlowerImage(
+                    CpImage(
                         data = avatarUrl,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,

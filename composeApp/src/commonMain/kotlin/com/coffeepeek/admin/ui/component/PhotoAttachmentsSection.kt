@@ -33,7 +33,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.icons.CpIcons
-import com.coffeepeek.admin.utils.KamelExt
+import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.admin.utils.rememberPhotoPicker
 
@@ -83,7 +83,7 @@ fun PhotoAttachmentsSection(
                             .size(96.dp)
                             .clip(RoundedCornerShape(CpDimens.radiusMd)),
                     ) {
-                        KamelExt.FlowerImage(
+                        CpImage(
                             data = photo.bytes,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,

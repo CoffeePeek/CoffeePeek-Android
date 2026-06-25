@@ -68,7 +68,7 @@ import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.layout.ContentScale
-import com.coffeepeek.admin.utils.KamelExt
+import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.MAX_SHOP_PHOTOS
 import com.coffeepeek.admin.utils.PhotoPickerController
 import com.coffeepeek.admin.utils.rememberPhotoPicker
@@ -368,7 +368,7 @@ private fun StepPhotos(
                         .size(96.dp)
                         .clip(RoundedCornerShape(CpDimens.radiusMd)),
                 ) {
-                    KamelExt.FlowerImage(
+                    CpImage(
                         data = photo.bytes,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,

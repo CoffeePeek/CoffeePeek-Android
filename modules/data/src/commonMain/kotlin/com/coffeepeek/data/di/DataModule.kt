@@ -2,7 +2,6 @@ package com.coffeepeek.data.di
 
 import com.coffeepeek.api.CoffeePeekClient
 import com.coffeepeek.api.CoffeePeekRepo
-import com.coffeepeek.api.service.AuthService
 import com.coffeepeek.data.session.SessionTokenProvider
 import com.coffeepeek.data.repository.AuthRepositoryImpl
 import com.coffeepeek.data.repository.CheckInRepositoryImpl
@@ -12,6 +11,7 @@ import com.coffeepeek.data.repository.ReviewRepositoryImpl
 import com.coffeepeek.data.repository.SessionRepositoryImpl
 import com.coffeepeek.data.repository.ShopRepositoryImpl
 import com.coffeepeek.data.repository.UserRepositoryImpl
+import com.coffeepeek.data.util.JwtUtils
 import com.coffeepeek.domain.repository.AuthRepository
 import com.coffeepeek.domain.repository.CheckInRepository
 import com.coffeepeek.domain.repository.FavoriteRepository
@@ -57,7 +57,7 @@ fun dataModule(
                             accessToken = it.accessToken,
                             refreshToken = it.refreshToken.takeIf { token -> token.isNotBlank() }
                                 ?: current?.refreshToken,
-                            userId = current?.userId,
+                            userId = JwtUtils.extractUserId(it.accessToken) ?: current?.userId,
                         )
                     }
                     sessionRepository.saveSession(session)
@@ -77,7 +77,7 @@ fun dataModule(
     single<PhotoRepository> { PhotoRepositoryImpl(get()) }
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
     single<ShopRepository> { ShopRepositoryImpl(get(), get()) }
-    single<UserRepository> { UserRepositoryImpl(get(), get()) }
+    single<UserRepository> { UserRepositoryImpl(get(), get(), get(), get()) }
     single<FavoriteRepository> { FavoriteRepositoryImpl(get()) }
     single<ReviewRepository> { ReviewRepositoryImpl(get(), get()) }
     single<CheckInRepository> { CheckInRepositoryImpl(get()) }
