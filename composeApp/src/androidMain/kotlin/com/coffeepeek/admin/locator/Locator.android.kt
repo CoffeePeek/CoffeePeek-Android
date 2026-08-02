@@ -1,12 +1,12 @@
 package com.coffeepeek.admin.locator
 
-import com.coffeepeek.admin.FPApplication
-import org.example.project.DatabaseCore
-import org.example.project.MyRoomRepositoryImpl
+import com.coffeepeek.admin.CoffeePeekApplication
+import com.coffeepeek.room.DatabaseCore
+import com.coffeepeek.room.MyRoomRepositoryImpl
 import java.io.File
 
 actual object Locator {
-    val appContext get() = FPApplication.context
+    val appContext get() = CoffeePeekApplication.context
 
     actual val cacheFolder: File by lazy { File(appContext.cacheDir, "cache").apply { mkdirs() } }
 

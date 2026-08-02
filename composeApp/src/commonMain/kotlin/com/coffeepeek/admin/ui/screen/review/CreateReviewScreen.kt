@@ -65,8 +65,8 @@ fun CreateReviewScreen(shopId: String) {
                 .padding(CpDimens.spacing4),
             verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
         ) {
-            ReviewHeaderField(state.header, vm::onHeaderChange)
-            ReviewCommentField(state.comment, vm::onCommentChange)
+            ReviewHeaderField(state.header, vm::onHeaderChange, error = state.headerError)
+            ReviewCommentField(state.comment, vm::onCommentChange, error = state.commentError)
             ReviewRatingRow("Атмосфера", state.placeRating, vm::onPlaceRating)
             ReviewRatingRow("Сервис", state.serviceRating, vm::onServiceRating)
             ReviewRatingRow("Кофе", state.coffeeRating, vm::onCoffeeRating)
@@ -143,8 +143,8 @@ fun EditReviewScreen(reviewId: String) {
                     .padding(CpDimens.spacing4),
                 verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
             ) {
-                ReviewHeaderField(state.header, vm::onHeaderChange)
-                ReviewCommentField(state.comment, vm::onCommentChange)
+                ReviewHeaderField(state.header, vm::onHeaderChange, error = state.headerError)
+                ReviewCommentField(state.comment, vm::onCommentChange, error = state.commentError)
                 ReviewRatingRow("Атмосфера", state.placeRating, vm::onPlaceRating)
                 ReviewRatingRow("Сервис", state.serviceRating, vm::onServiceRating)
                 ReviewRatingRow("Кофе", state.coffeeRating, vm::onCoffeeRating)

@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,7 +34,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.icons.CpIcons
-import com.coffeepeek.admin.utils.KamelExt
+import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.admin.utils.rememberPhotoPicker
 
@@ -73,17 +74,24 @@ fun PhotoAttachmentsSection(
         Spacer(Modifier.height(CpDimens.spacing2))
 
         if (photos.isNotEmpty()) {
+            val photoShape = RoundedCornerShape(CpDimens.radiusMd)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
                 modifier = Modifier.padding(bottom = CpDimens.spacing2),
             ) {
                 photos.forEachIndexed { index, photo ->
                     Box(
                         modifier = Modifier
                             .size(96.dp)
-                            .clip(RoundedCornerShape(CpDimens.radiusMd)),
+                            .clip(photoShape)
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outline,
+                                shape = photoShape,
+                            ),
                     ) {
-                        KamelExt.FlowerImage(
+                        CpImage(
                             data = photo.bytes,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,

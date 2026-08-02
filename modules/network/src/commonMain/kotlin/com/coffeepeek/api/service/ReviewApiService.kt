@@ -28,15 +28,14 @@ class ReviewApiService(private val client: HttpClient) {
         apiResponse.data
     }
 
-    suspend fun createReview(req: SendReviewReq): Result<CreateEntityResponseDto> = runCatching {
+    suspend fun createReview(req: SendReviewReq): Result<Unit> = runCatching {
         val response = client.postResult("/api/ModerationReviews") {
             setJsonBody(req)
         }.getOrThrow()
-        val apiResponse = response.body<ApiResponse<CreateEntityResponseDto>>()
-        if (!apiResponse.isSuccess || apiResponse.data == null) {
+        val apiResponse = response.body<ApiResponse<CreateEntityResponseDto?>>()
+        if (!apiResponse.isSuccess) {
             throw ApiException(apiResponse.message)
         }
-        apiResponse.data
     }
 
     suspend fun updateReview(reviewId: String, req: UpdateReviewReq): Result<Unit> = runCatching {

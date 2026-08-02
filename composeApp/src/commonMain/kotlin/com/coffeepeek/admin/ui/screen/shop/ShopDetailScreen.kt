@@ -169,9 +169,11 @@ fun ShopDetailScreen(shopId: String) {
                     modifier = Modifier.padding(padding),
                     isFavoriteLoading = state.isFavoriteLoading,
                     isCheckInLoading = state.isCheckInLoading,
+                    showCreateReview = state.isLoggedIn && state.details!!.existingReviewId.isNullOrBlank(),
                     onToggleFavorite = vm::toggleFavorite,
                     onCheckIn = vm::openCheckInSheet,
                     onCreateReview = vm::openCreateReview,
+                    onEditReview = vm::openEditReview,
                     onOpenOnMap = vm::openOnMap,
                     onReviewPhotoClick = { previewImageUrl = it },
                 )
@@ -187,9 +189,11 @@ private fun ShopDetailContent(
     modifier: Modifier = Modifier,
     isFavoriteLoading: Boolean = false,
     isCheckInLoading: Boolean = false,
+    showCreateReview: Boolean = false,
     onToggleFavorite: () -> Unit = {},
     onCheckIn: () -> Unit = {},
     onCreateReview: () -> Unit = {},
+    onEditReview: (String) -> Unit = {},
     onOpenOnMap: () -> Unit = {},
     onReviewPhotoClick: (String) -> Unit = {},
 ) {
@@ -203,7 +207,6 @@ private fun ShopDetailContent(
             ShopHeroImage(
                 photos = photos,
                 title = shop.title,
-                details = details,
                 isFavorite = shop.isFavorite,
                 isFavoriteLoading = isFavoriteLoading,
                 isCheckInLoading = isCheckInLoading,
@@ -337,9 +340,10 @@ private fun ShopDetailContent(
             ReviewsSection(
                 reviews = details.reviews,
                 reviewCount = shop.reviewCount,
-                canCreateReview = details.canCreateReview == true && details.existingReviewId == null,
-                hasExistingReview = details.existingReviewId != null,
+                showCreateReview = showCreateReview,
+                existingReviewId = details.existingReviewId,
                 onCreateReview = onCreateReview,
+                onEditReview = onEditReview,
                 onReviewPhotoClick = onReviewPhotoClick,
             )
         }
@@ -352,7 +356,6 @@ private fun ShopDetailContent(
 private fun ShopHeroImage(
     photos: List<String>,
     title: String,
-    details: CoffeeShopDetails,
     isFavorite: Boolean,
     isFavoriteLoading: Boolean,
     isCheckInLoading: Boolean,
@@ -404,10 +407,6 @@ private fun ShopHeroImage(
             onCheckIn = onCheckIn,
             modifier = Modifier.align(Alignment.TopEnd),
         )
-
-        Box(modifier = Modifier.align(Alignment.BottomStart).padding(CpDimens.spacing3)) {
-            StatusBadges(details = details)
-        }
     }
 }
 
@@ -534,14 +533,15 @@ private fun CollapsibleScheduleSection(schedules: List<ShopSchedule>) {
 private fun ReviewsSection(
     reviews: List<Review>,
     reviewCount: Int,
-    canCreateReview: Boolean,
-    hasExistingReview: Boolean,
+    showCreateReview: Boolean,
+    existingReviewId: String?,
     onCreateReview: () -> Unit,
+    onEditReview: (String) -> Unit,
     onReviewPhotoClick: (String) -> Unit,
 ) {
     SectionCard(title = if (reviewCount > 0) "Отзывы ($reviewCount)" else "Отзывы") {
         when {
-            canCreateReview -> {
+            showCreateReview -> {
                 OutlinedButton(
                     onClick = onCreateReview,
                     modifier = Modifier.fillMaxWidth(),
@@ -554,11 +554,20 @@ private fun ReviewsSection(
                     Spacer(Modifier.height(CpDimens.spacing3))
                 }
             }
-            hasExistingReview -> {
+            !existingReviewId.isNullOrBlank() -> {
+                OutlinedButton(
+                    onClick = { onEditReview(existingReviewId) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(CpIcons.Review, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(CpDimens.spacing2))
+                    Text("Редактировать мой отзыв")
+                }
                 Text(
-                    text = "Вы уже оставляли отзыв об этом месте",
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = "Отзыв на модерации или уже опубликован",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = CpDimens.spacing2),
                 )
                 if (reviews.isNotEmpty()) {
                     Spacer(Modifier.height(CpDimens.spacing3))
@@ -567,7 +576,7 @@ private fun ReviewsSection(
         }
 
         if (reviews.isEmpty()) {
-            if (!canCreateReview && !hasExistingReview) {
+            if (!showCreateReview && existingReviewId.isNullOrBlank()) {
                 Text(
                     text = if (reviewCount > 0) {
                         "Отзывы пока не загружены"
@@ -635,8 +644,6 @@ private fun StatusBadges(details: CoffeeShopDetails) {
         )
         if (details.isNew) ShopBadge("Новое", MaterialTheme.colorScheme.primary)
         if (details.isVisited) ShopBadge("Посещено", MaterialTheme.colorScheme.tertiary)
-        if (details.canCreateReview == true) ShopBadge("Можно оставить отзыв", CpColor.Success)
-        if (details.existingReviewId != null) ShopBadge("Ваш отзыв", MaterialTheme.colorScheme.secondary)
     }
 }
 

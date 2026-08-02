@@ -18,4 +18,5 @@ expect fun CoffeeMap(
     isDarkTheme: Boolean = false,
     myLocationRequestKey: Int = 0,
     onMyLocationFound: (Double, Double) -> Unit = { _, _ -> },
+    onLocationPermissionDenied: () -> Unit = {},
 )

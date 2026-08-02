@@ -1,6 +1,6 @@
 package com.coffeepeek.admin.ui.screen.auth.registr
 
-import androidx.lifecycle.viewModelScope
+
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.email_no_exist
 import coffeepeek.composeapp.generated.resources.error_email_name
@@ -14,6 +14,8 @@ import coffeepeek.composeapp.generated.resources.maybe_later
 import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.ErrorHandler
+import com.coffeepeek.admin.utils.validateEmailRequired
+import com.coffeepeek.admin.utils.validatePasswordRequired
 import com.coffeepeek.domain.repository.AuthRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,8 +50,6 @@ class RegisterViewModel(
 
     private val _emailError = MutableStateFlow<String?>(null)
     val emailError = _emailError.asStateFlow()
-
-    private val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\$".toRegex()
 
     init {
         observePasswordInput()
@@ -88,21 +88,26 @@ class RegisterViewModel(
     }
 
     private fun observePasswordInput() {
-        viewModelScope.launch {
+        workScope.launch {
             _password
                 .debounce(700)
                 .distinctUntilChanged()
                 .collectLatest { input ->
-                    if (input.isNotEmpty() && input.length < 6) {
-                        _passwordError.value = "Пароль должен содержать минимум 6 символов"
+                    _passwordError.value = if (input.isNotEmpty()) {
+                        validatePasswordRequired(input)
                     } else {
-                        _passwordError.value = null
+                        null
                     }
                 }
         }
     }
 
     private suspend fun checkEmailAvailability(email: String) {
+        val formatError = validateEmailRequired(email.trim())
+        if (formatError != null) {
+            _emailError.value = formatError
+            return
+        }
         try {
             val isTaken = authRepository.isEmailTaken(email).getOrThrow()
             _emailError.value = if (isTaken) {
@@ -132,23 +137,22 @@ class RegisterViewModel(
                 error = Res.string.error_term_of_user
             }
 
-            if (currentPassword.isEmpty()) {
+            val passwordErr = validatePasswordRequired(currentPassword)
+            if (passwordErr != null) {
+                _passwordError.value = passwordErr
                 isValid = false
-                error = Res.string.error_enter_password
-            } else if (currentPassword.length < 6) {
-                _passwordError.value = getString(Res.string.error_enter_password_length)
-                isValid = false
-                error = Res.string.error_valid_email
+                error = Res.string.error_enter_password_length
             }
 
-            if (currentEmail.isEmpty()) {
-                _emailError.value = getString(Res.string.error_email_name)
+            val emailErr = validateEmailRequired(currentEmail)
+            if (emailErr != null) {
+                _emailError.value = emailErr
                 isValid = false
-                error = Res.string.error_email_name
-            } else if (!currentEmail.matches(emailRegex)) {
-                _emailError.value = getString(Res.string.error_valid_email)
-                isValid = false
-                error = Res.string.error_valid_email
+                error = if (currentEmail.isEmpty()) {
+                    Res.string.error_email_name
+                } else {
+                    Res.string.error_valid_email
+                }
             }
 
             if (currentName.isEmpty()) {

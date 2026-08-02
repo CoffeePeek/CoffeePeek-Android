@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import org.example.project.model.Setting
-import org.example.project.repository.SettingRepository
+import com.coffeepeek.room.model.Setting
+import com.coffeepeek.room.repository.SettingRepository
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 

@@ -32,11 +32,8 @@ class MyReviewsViewModel(
 
     fun load(reset: Boolean = false) {
         workScope.launch {
-            val userId = sessionRepository.getSession()?.userId
-            if (userId.isNullOrBlank()) {
-                _state.update { it.copy(error = "Пользователь не авторизован", isLoading = false) }
-                return@launch
-            }
+            val session = requireAuthSession(sessionRepository) ?: return@launch
+            val userId = session.userId ?: return@launch
 
             val page = if (reset) 1 else _state.value.currentPage + 1
             if (!reset && (!_state.value.hasMore || _state.value.isLoadingMore)) return@launch

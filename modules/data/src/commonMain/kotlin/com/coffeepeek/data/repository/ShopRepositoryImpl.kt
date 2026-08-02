@@ -16,17 +16,54 @@ import com.coffeepeek.domain.model.MapShop
 import com.coffeepeek.domain.model.PagedResult
 import com.coffeepeek.domain.model.ShopCatalogs
 import com.coffeepeek.domain.model.ShopFilters
+import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.PhotoRepository
 import com.coffeepeek.domain.repository.ShopRepository
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class ShopRepositoryImpl(
     private val shopApiService: ShopApiService,
     private val photoRepository: PhotoRepository,
+    private val favoriteRepository: FavoriteRepository,
 ) : ShopRepository {
 
     private var cachedCatalogs: ShopCatalogs? = null
+    private val catalogsMutex = Mutex()
+    private var catalogsLoad: Deferred<Result<ShopCatalogs>>? = null
+
+    override suspend fun getCatalogs(): Result<ShopCatalogs> = coroutineScope {
+        cachedCatalogs?.let { return@coroutineScope Result.success(it) }
+        val load = catalogsMutex.withLock {
+            cachedCatalogs?.let { return@coroutineScope Result.success(it) }
+            catalogsLoad ?: async { fetchCatalogsFromApi() }.also { catalogsLoad = it }
+        }
+        load.await().also { result ->
+            catalogsMutex.withLock {
+                if (catalogsLoad === load) catalogsLoad = null
+            }
+        }
+    }
+
+    private suspend fun fetchCatalogsFromApi(): Result<ShopCatalogs> = runCatching {
+        coroutineScope {
+            val cities      = async { shopApiService.getCities().getOrThrow() }
+            val beans       = async { shopApiService.getBeans().getOrThrow() }
+            val equipment   = async { shopApiService.getEquipment().getOrThrow() }
+            val roasters    = async { shopApiService.getRoasters().getOrThrow() }
+            val brewMethods = async { shopApiService.getBrewMethods().getOrThrow() }
+            ShopCatalogs(
+                cities      = cities.await().map { City(it.id, it.name) },
+                beans       = beans.await().map { CatalogItem(it.id, it.name) },
+                equipment   = equipment.await().map { CatalogItem(it.id, it.name) },
+                roasters    = roasters.await().map { CatalogItem(it.id, it.name) },
+                brewMethods = brewMethods.await().map { CatalogItem(it.id, it.name) },
+            ).also { cachedCatalogs = it }
+        }
+    }
 
     override suspend fun searchShops(filters: ShopFilters): Result<PagedResult<CoffeeShop>> =
         shopApiService.searchShops(
@@ -41,8 +78,11 @@ class ShopRepositoryImpl(
             page = filters.page,
             pageSize = filters.pageSize,
         ).map { dto ->
+            val favoriteIds = favoriteRepository.getFavoriteIds()
             PagedResult(
-                items = dto.coffeeShops.map { it.toDomain() },
+                items = dto.coffeeShops.map { shop ->
+                    shop.toDomain().copy(isFavorite = shop.id in favoriteIds)
+                },
                 totalCount = dto.totalItems,
                 totalPages = dto.totalPages,
                 currentPage = dto.currentPage,
@@ -50,7 +90,12 @@ class ShopRepositoryImpl(
         }
 
     override suspend fun getShopDetails(id: String): Result<CoffeeShopDetails> =
-        shopApiService.getShopDetails(id).map { it.toDomain() }
+        shopApiService.getShopDetails(id).map { details ->
+            val domain = details.toDomain()
+            domain.copy(
+                shop = domain.shop.copy(isFavorite = favoriteRepository.isFavorite(id)),
+            )
+        }
 
     override suspend fun getShopsInBounds(bounds: MapBounds, filters: ShopFilters): Result<List<MapShop>> =
         shopApiService.getShopsInBounds(
@@ -76,23 +121,6 @@ class ShopRepositoryImpl(
                 )
             }
         }
-
-    override suspend fun getCatalogs(): Result<ShopCatalogs> = cachedCatalogs?.let { Result.success(it) } ?: runCatching {
-        coroutineScope {
-            val cities      = async { shopApiService.getCities().getOrElse { emptyList() } }
-            val beans       = async { shopApiService.getBeans().getOrElse { emptyList() } }
-            val equipment   = async { shopApiService.getEquipment().getOrElse { emptyList() } }
-            val roasters    = async { shopApiService.getRoasters().getOrElse { emptyList() } }
-            val brewMethods = async { shopApiService.getBrewMethods().getOrElse { emptyList() } }
-            ShopCatalogs(
-                cities      = cities.await().map { City(it.id, it.name) },
-                beans       = beans.await().map { CatalogItem(it.id, it.name) },
-                equipment   = equipment.await().map { CatalogItem(it.id, it.name) },
-                roasters    = roasters.await().map { CatalogItem(it.id, it.name) },
-                brewMethods = brewMethods.await().map { CatalogItem(it.id, it.name) },
-            ).also { cachedCatalogs = it }
-        }
-    }
 
     override suspend fun createShop(input: CreateShopInput): Result<Unit> = runCatching {
         val uploadedPhotos = photoRepository.uploadShopPhotos(input.photos).getOrThrow()

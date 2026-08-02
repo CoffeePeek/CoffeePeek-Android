@@ -5,9 +5,12 @@ import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.email_no_exist
 import coffeepeek.composeapp.generated.resources.maybe_later
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.api.utils.ApiException
 import com.coffeepeek.admin.utils.ErrorHandler
 import com.coffeepeek.admin.utils.LoadingHandler
 import com.coffeepeek.admin.utils.handleError
+import com.coffeepeek.domain.model.Session
+import com.coffeepeek.domain.repository.SessionRepository
 import io.ktor.utils.io.core.Closeable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +44,16 @@ abstract class BaseViewModel : ViewModel(), Closeable {
 
     protected fun <T> Result<T>.handleError(): Result<T> = handleError()
 
+    /** Возвращает сессию или сбрасывает её и закрывает доступ к защищённым экранам. */
+    protected suspend fun requireAuthSession(sessionRepository: SessionRepository): Session? {
+        val session = sessionRepository.getSession()
+        if (!sessionRepository.isActiveSession(session)) {
+            sessionRepository.saveSession(null)
+            return null
+        }
+        return session
+    }
+
     /**
      * Универсальный метод для выполнения сетевых запросов.
      * @param errorMessage Текст ошибки. Если null — выведется дефолтная ошибка
@@ -63,9 +76,11 @@ abstract class BaseViewModel : ViewModel(), Closeable {
 
             } catch (e: Exception) {
                 LoadingHandler.clearLoading()
-                e.printStackTrace()
 
-                val messageToShow = getString(errorMessage ?: Res.string.maybe_later)
+                val messageToShow = when (e) {
+                    is ApiException -> e.message
+                    else -> e.message?.takeIf { it.isNotBlank() }
+                } ?: getString(errorMessage ?: Res.string.maybe_later)
 
                 ErrorHandler.showError(messageToShow)
             }

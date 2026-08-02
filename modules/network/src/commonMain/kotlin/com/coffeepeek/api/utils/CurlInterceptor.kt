@@ -15,7 +15,7 @@ object CurlInterceptor {
         val body = body.let { body ->
             when (body) {
                 is TextContent -> {
-                    "-H 'Content-Type: ${body.contentType}; charset=${this.headers["Accept-Charset"]}'  -d '${body.text}'"
+                    "-H 'Content-Type: ${body.contentType}; charset=${this.headers["Accept-Charset"]}'  -d '${body.text.redactSensitiveFields()}'"
                 }
                 is OutgoingContent.ByteArrayContent -> " --data-binary '<binary>'"
                 is ByteArray -> " --data-binary '<${body.size} bytes>'"
@@ -25,6 +25,10 @@ object CurlInterceptor {
 
         return "cURL -X $method '$url' $headers $body"
     }
+
+    private fun String.redactSensitiveFields(): String = replace(
+        Regex(""""(password|idToken|refreshToken|accessToken)"\s*:\s*"[^"]*"""", RegexOption.IGNORE_CASE),
+    ) { match -> """"${match.groupValues[1]}": "<redacted>"""" }
 
     private fun String.redactHeaderValue(value: String): String {
         val header = lowercase()

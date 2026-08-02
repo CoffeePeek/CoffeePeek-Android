@@ -1,21 +1,16 @@
 # CoffeePeek
 
-Клиентское приложение экосистемы specialty-кофе: лента кофеен, карта, профиль, чек-ины и отзывы.
+Android-приложение экосистемы specialty-кофе: лента кофеен, карта, профиль, чек-ины и отзывы.
 
-**Стек:** Kotlin Multiplatform · Compose Multiplatform · Android + Desktop (JVM)
-
-| Платформа | Статус |
-|-----------|--------|
-| Android | основная, полный функционал |
-| Desktop (JVM) | лента, профиль, формы; карта и Google OAuth — заглушки |
+**Стек:** Kotlin · Jetpack Compose (Compose Multiplatform) · Ktor · Koin · Room
 
 ---
 
 ## Возможности
 
-- Регистрация и вход (email/пароль, Google Sign-In на Android)
+- Регистрация и вход (email/пароль, Google Sign-In)
 - Лента кофеен с пагинацией
-- Карта с Yandex MapKit (Android)
+- Карта с Yandex MapKit
 - Карточка кофейни: фото, контакты, расписание, отзывы
 - Избранное, чек-ины (публичные и приватные), создание и редактирование отзывов
 - Профиль: аватар, статистика, тема оформления
@@ -46,30 +41,18 @@ cp local.properties.example local.properties
 |------|------------|
 | `sdk.dir` | Путь к Android SDK |
 | `API_BASE_URL` | URL backend API |
-| `MAPKIT_API_KEY` | Yandex MapKit (карта на Android) |
+| `MAPKIT_API_KEY` | Yandex MapKit |
 | `GOOGLE_WEB_CLIENT_ID` | Google Sign-In (опционально) |
 
 Полная инструкция для контрибьюторов: **[CONTRIBUTING.md](./CONTRIBUTING.md)**
 
 ### Сборка и запуск
 
-**Android**
-
 ```bash
 ./gradlew :composeApp:assembleDebug
 ```
 
-**Desktop**
-
-```bash
-./gradlew :composeApp:run
-```
-
-Hot reload (desktop):
-
-```bash
-./gradlew :composeApp:hotRunJvm --auto
-```
+Или Run `composeApp` из Android Studio на эмуляторе/устройстве.
 
 ---
 
@@ -79,9 +62,8 @@ Hot reload (desktop):
 CoffeePeek-Android/
 ├── composeApp/              UI, ViewModel, навигация, тема, Koin
 │   └── src/
-│       ├── commonMain/      общий код Compose
-│       ├── androidMain/     MapKit, Google Auth, Android-специфика
-│       └── jvmMain/         Desktop-специфика
+│       ├── commonMain/      Compose UI и общая логика
+│       └── androidMain/     MapKit, Google Auth, Android-специфика
 ├── modules/
 │   ├── domain/              модели и интерфейсы репозиториев
 │   ├── network/             Ktor, DTO, API-сервисы
@@ -103,7 +85,7 @@ CoffeePeek-Android/
 
 ## Конфигурация
 
-- **API URL:** `local.properties` → `BuildConfig.API_BASE_URL` (Android) / `JvmAppConfig` (desktop)
+- **API URL:** `local.properties` → `BuildConfig.API_BASE_URL`
 - **Версия приложения:** `1.0.<git-commit-count>` из `composeApp/build.gradle.kts`
 - **Application ID:** `com.coffeepeek`
 
@@ -118,5 +100,4 @@ CoffeePeek-Android/
 ## Полезные ссылки
 
 - [CONTRIBUTING.md](./CONTRIBUTING.md) — онбординг, стиль кода, PR
-- [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)
 - [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/)

@@ -16,7 +16,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.icons.CpIcons
-import com.coffeepeek.admin.utils.KamelExt
+import com.coffeepeek.admin.utils.CpImage
 
 @Composable
 fun FullScreenImageDialog(
@@ -34,7 +34,7 @@ fun FullScreenImageDialog(
                 .clickable(onClick = onDismiss),
             contentAlignment = Alignment.Center,
         ) {
-            KamelExt.FlowerImage(
+            CpImage(
                 data = imageUrl,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit,

@@ -4,7 +4,6 @@ import io.kamel.core.DataSource
 import io.kamel.core.Resource
 import io.kamel.core.config.ResourceConfig
 import io.kamel.core.fetcher.Fetcher
-import io.ktor.http.Url
 import io.ktor.utils.io.ByteReadChannel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow

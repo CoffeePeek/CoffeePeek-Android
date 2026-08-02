@@ -6,7 +6,7 @@
 # Путь к Android SDK. Обычно Android Studio создаёт эту строку автоматически.
 sdk.dir=/path/to/Android/Sdk
 
-# Базовый URL backend API (dev по умолчанию, если не задан).
+# Базовый URL backend API (обязателен).
 API_BASE_URL=https://gateway-dev-1b7e.up.railway.app/
 
 # Yandex MapKit — обязателен для карты на Android.

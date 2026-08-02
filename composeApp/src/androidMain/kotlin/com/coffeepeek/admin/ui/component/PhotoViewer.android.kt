@@ -17,7 +17,7 @@ import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.ic_hide_image_24px
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.ui.icons.CpIcons
-import com.coffeepeek.admin.utils.KamelExt
+import com.coffeepeek.admin.utils.CpImage
 
 actual object PhotoViewer {
 
@@ -47,7 +47,7 @@ actual object PhotoViewer {
                 if (it <= images.lastIndex) {
                     val item = images[it]
                     Box(modifier = cardModifier){
-                        KamelExt.FlowerImage(
+                        CpImage(
                             data = item,
                             contentScale = ContentScale.Crop,
                             placeholder = Res.drawable.ic_hide_image_24px,

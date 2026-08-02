@@ -2,11 +2,17 @@ package com.coffeepeek.admin.ui
 
 import com.coffeepeek.admin.ui.screen.addshop.AddShopScreen
 import com.coffeepeek.admin.ui.screen.auth.registr.RegisterScreen
+import com.coffeepeek.admin.ui.screen.brew.BeanEditScreen
+import com.coffeepeek.admin.ui.screen.brew.BeanListScreen
+import com.coffeepeek.admin.ui.screen.brew.BrewDetailScreen
+import com.coffeepeek.admin.ui.screen.brew.BrewHomeScreen
+import com.coffeepeek.admin.ui.screen.brew.BrewOriginsScreen
+import com.coffeepeek.admin.ui.screen.brew.BrewTrendsScreen
+import com.coffeepeek.admin.ui.screen.brew.NewBrewScreen
 import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesScreen
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileScreen
 import com.coffeepeek.admin.ui.screen.favorites.FavoritesScreen
 import com.coffeepeek.admin.ui.screen.reviews.MyReviewsScreen
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,7 +25,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.coffeepeek.admin.theme.Theme
 import com.coffeepeek.admin.ui.dialogs.ErrorDialog
 import com.coffeepeek.admin.ui.dialogs.LoadingDialog
 import com.coffeepeek.admin.ui.screen.auth.AuthScreen
@@ -66,17 +71,14 @@ object Navigator {
 
         // Graphs
         @Serializable data object FeedGraph : Screen
-        @Serializable data object CommunityGraph : Screen
         @Serializable data object ProfileGraph : Screen
 
         // Tabs
         @Serializable data object FeedTab : Screen
-        @Serializable data object CommunityTab : Screen
         @Serializable data object ProfileTab : Screen
 
         // Inner screens (add here + in the graph in MainScreen)
         @Serializable data class ShopDetail(val shopId: String) : Screen
-        @Serializable data class EditItem(val itemID: String?) : Screen
         @Serializable data object AddShop : Screen
         @Serializable data object EditProfile : Screen
         @Serializable data object Favorites : Screen
@@ -84,6 +86,15 @@ object Navigator {
         @Serializable data object VisitedPlaces : Screen
         @Serializable data class CreateReview(val shopId: String) : Screen
         @Serializable data class ReviewEdit(val reviewId: String) : Screen
+
+        // Brew journal (local-first)
+        @Serializable data object BrewHome : Screen
+        @Serializable data class NewBrew(val repeatSessionId: String = "") : Screen
+        @Serializable data class BrewDetail(val sessionId: String) : Screen
+        @Serializable data object BrewBeans : Screen
+        @Serializable data class BeanEdit(val beanId: String = "") : Screen
+        @Serializable data object BrewTrends : Screen
+        @Serializable data object BrewOrigins : Screen
     }
 
     data class MapShopFocus(
@@ -126,7 +137,14 @@ object Navigator {
         is Screen.ReviewEdit,
         is Screen.Favorites,
         is Screen.MyReviews,
-        is Screen.VisitedPlaces -> true
+        is Screen.VisitedPlaces,
+        is Screen.BrewHome,
+        is Screen.NewBrew,
+        is Screen.BrewDetail,
+        is Screen.BrewBeans,
+        is Screen.BeanEdit,
+        is Screen.BrewTrends,
+        is Screen.BrewOrigins -> true
         else -> false
     }
 
@@ -143,6 +161,14 @@ object Navigator {
 
     fun popBack() {
         navigatorScope.launch { _navigationEvents.emit(NavEvent.PopBack) }
+    }
+
+    /** Pop current screen, then navigate (ordered in one coroutine). */
+    fun popThenNavigate(screen: Screen) {
+        navigatorScope.launch {
+            _navigationEvents.emit(NavEvent.PopBack)
+            _navigationEvents.emit(NavEvent.NavigateTo(screen))
+        }
     }
 
     @Composable
@@ -163,6 +189,7 @@ object Navigator {
         LaunchedEffect(isLoggedIn) {
             if (!isLoggedIn) {
                 ErrorHandler.clearError()
+                LoadingHandler.clearLoading()
             }
         }
 
@@ -215,6 +242,22 @@ object Navigator {
                 composable<Screen.Favorites> { FavoritesScreen() }
                 composable<Screen.MyReviews> { MyReviewsScreen() }
                 composable<Screen.VisitedPlaces> { VisitedPlacesScreen() }
+                composable<Screen.BrewHome> { BrewHomeScreen() }
+                composable<Screen.NewBrew> { backStack ->
+                    val route = backStack.toRoute<Screen.NewBrew>()
+                    NewBrewScreen(repeatSessionId = route.repeatSessionId)
+                }
+                composable<Screen.BrewDetail> { backStack ->
+                    val route = backStack.toRoute<Screen.BrewDetail>()
+                    BrewDetailScreen(sessionId = route.sessionId)
+                }
+                composable<Screen.BrewBeans> { BeanListScreen() }
+                composable<Screen.BeanEdit> { backStack ->
+                    val route = backStack.toRoute<Screen.BeanEdit>()
+                    BeanEditScreen(beanId = route.beanId)
+                }
+                composable<Screen.BrewTrends> { BrewTrendsScreen() }
+                composable<Screen.BrewOrigins> { BrewOriginsScreen() }
             }
         }
     }

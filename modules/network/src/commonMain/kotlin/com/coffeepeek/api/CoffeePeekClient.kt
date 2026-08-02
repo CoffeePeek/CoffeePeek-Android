@@ -3,6 +3,7 @@ package com.coffeepeek.api
 import com.coffeepeek.api.model.response.AuthResp
 import com.coffeepeek.api.service.AuthService
 import com.coffeepeek.api.utils.CurlInterceptor.asCurlString
+import com.coffeepeek.api.utils.httpDebugLog
 import com.coffeepeek.api.utils.JsonExt
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
@@ -30,14 +31,9 @@ class CoffeePeekClient(
     private val getToken: () -> AuthResp?,
     private val saveToken: (AuthResp?) -> Unit,
 ) {
-    @Volatile
-    private var cachedTokens: AuthResp? = null
-
-    private fun resolveTokens(): AuthResp? =
-        cachedTokens ?: getToken()?.also { cachedTokens = it }
+    private fun resolveTokens(): AuthResp? = getToken()
 
     private fun persistTokens(tokens: AuthResp?) {
-        cachedTokens = tokens
         saveToken(tokens)
     }
 
@@ -94,9 +90,9 @@ class CoffeePeekClient(
         if (debug) {
             httpClient.plugin(HttpSend).intercept { request ->
                 val message = request.asCurlString()
-                println(message)
+                httpDebugLog(message)
                 execute(request).also { responseCall ->
-                    println("CURL ${responseCall.response.status.value}")
+                    httpDebugLog("CURL ${responseCall.response.status.value}")
                 }
             }
         }

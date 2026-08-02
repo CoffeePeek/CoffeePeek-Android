@@ -1,6 +1,6 @@
 package com.coffeepeek.admin.locator
 
-import org.example.project.DatabaseCore
+import com.coffeepeek.room.DatabaseCore
 import java.io.File
 
 expect object Locator {

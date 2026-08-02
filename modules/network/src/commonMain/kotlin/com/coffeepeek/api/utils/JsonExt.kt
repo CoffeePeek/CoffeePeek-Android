@@ -7,6 +7,7 @@ internal object JsonExt {
     val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
+        coerceInputValues = true
     }
 
 }

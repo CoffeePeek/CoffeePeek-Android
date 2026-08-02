@@ -39,6 +39,7 @@ import com.adamglin.phosphoricons.regular.Plus
 import com.adamglin.phosphoricons.regular.SignOut
 import com.adamglin.phosphoricons.regular.Star
 import com.adamglin.phosphoricons.regular.Sun
+import com.adamglin.phosphoricons.regular.ChartLine
 import com.adamglin.phosphoricons.regular.Trash
 import com.adamglin.phosphoricons.regular.User
 import com.adamglin.phosphoricons.regular.WarningCircle
@@ -54,7 +55,6 @@ object CpIcons {
     val ChevronRight: ImageVector get() = PhosphorIcons.Regular.CaretRight
     val ChevronUp: ImageVector get() = PhosphorIcons.Regular.CaretUp
     val Close: ImageVector get() = PhosphorIcons.Regular.X
-    val Community: ImageVector get() = PhosphorIcons.Regular.ChatCenteredText
     val Coffee: ImageVector get() = PhosphorIcons.Regular.Coffee
     val Delete: ImageVector get() = PhosphorIcons.Regular.Trash
     val Email: ImageVector get() = PhosphorIcons.Regular.Envelope
@@ -82,6 +82,7 @@ object CpIcons {
     val ThemeLight: ImageVector get() = PhosphorIcons.Regular.Sun
     val ThemeSystem: ImageVector get() = PhosphorIcons.Regular.Monitor
     val Time: ImageVector get() = PhosphorIcons.Regular.Clock
+    val Trends: ImageVector get() = PhosphorIcons.Regular.ChartLine
     val User: ImageVector get() = PhosphorIcons.Regular.User
     val Visibility: ImageVector get() = PhosphorIcons.Regular.Eye
     val VisibilityOff: ImageVector get() = PhosphorIcons.Regular.EyeSlash

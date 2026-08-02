@@ -10,18 +10,12 @@ plugins {
 }
 
 kotlin {
-
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(Config.JVM_VERSION))
         }
     }
-
-    jvm()
-//    iosX64()
-//    iosArm64()
-//    iosSimulatorArm64()
 
     sourceSets {
         commonMain.dependencies {
@@ -31,18 +25,14 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
         }
     }
-
 }
 
 android {
-    namespace = "org.example.project.database"
+    namespace = "com.coffeepeek.room"
     compileSdk = Config.COMPILE_SDK
 
     defaultConfig {
         minSdk = Config.MIN_SDK
-    }
-    buildTypes {
-
     }
     compileOptions {
         sourceCompatibility = Config.JAVA_VERSION
@@ -56,14 +46,6 @@ room {
 
 dependencies {
     implementation(libs.androidx.sqlite.ktx)
-    dependencies {
-        listOf(
-            "kspCommonMainMetadata",
-            "kspAndroid",
-            "kspJvm",
-//            "kspIosSimulatorArm64",
-//            "kspIosX64",
-//            "kspIosArm64",
-        ).forEach { add(it, libs.androidx.room.compiler) }
-    }
+    add("kspCommonMainMetadata", libs.androidx.room.compiler)
+    add("kspAndroid", libs.androidx.room.compiler)
 }

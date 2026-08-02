@@ -9,15 +9,19 @@ import com.coffeepeek.domain.model.ShopFilters
 import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.ShopRepository
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+
+private const val PAGE_SIZE = 20
 
 data class FeedFiltersUi(
     val cityId: String? = null,
@@ -32,6 +36,7 @@ data class FeedFiltersUi(
 data class FeedUiState(
     val shops: List<CoffeeShop> = emptyList(),
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
     val error: String? = null,
     val query: String = "",
@@ -68,15 +73,15 @@ class FeedViewModel(
     val uiState = _uiState.asStateFlow()
 
     private val queryFlow = MutableStateFlow("")
+    private var shopsLoadJob: Job? = null
 
     init {
-        loadCatalogs()
         loadShops(reset = true)
         queryFlow
             .debounce(400)
             .distinctUntilChanged()
+            .drop(1)
             .onEach { query ->
-                _uiState.update { it.copy(query = query) }
                 loadShops(reset = true)
             }
             .launchIn(workScope)
@@ -99,6 +104,7 @@ class FeedViewModel(
     }
 
     private fun loadCatalogs() {
+        if (_uiState.value.cities.isNotEmpty()) return
         workScope.launch {
             shopRepository.getCatalogs()
                 .onSuccess { catalogs ->
@@ -116,11 +122,16 @@ class FeedViewModel(
     }
 
     fun onQueryChange(query: String) {
+        _uiState.update { it.copy(query = query) }
         queryFlow.value = query
     }
 
     fun toggleFilters() {
-        _uiState.update { it.copy(showFilters = !it.showFilters) }
+        val willShow = !_uiState.value.showFilters
+        _uiState.update { it.copy(showFilters = willShow) }
+        if (willShow && _uiState.value.cities.isEmpty() && _uiState.value.beans.isEmpty()) {
+            loadCatalogs()
+        }
     }
 
     fun setCity(cityId: String?) {
@@ -169,12 +180,13 @@ class FeedViewModel(
     }
 
     fun loadMore() {
-        val state = _uiState.value
-        if (state.isLoadingMore || !state.hasMore) return
         loadShops(reset = false)
     }
 
-    fun refresh() = loadShops(reset = true)
+    fun refresh() {
+        if (_uiState.value.isRefreshing || _uiState.value.isLoading) return
+        loadShops(reset = true)
+    }
 
     fun toggleFavorite(shop: CoffeeShop) {
         workScope.launch {
@@ -188,7 +200,7 @@ class FeedViewModel(
             }
 
             val result = if (nextFavorite) {
-                favoriteRepository.addFavorite(shop.id)
+                favoriteRepository.addFavorite(shop, shop.address)
             } else {
                 favoriteRepository.removeFavorite(shop.id)
             }
@@ -210,21 +222,33 @@ class FeedViewModel(
     }
 
     private fun loadShops(reset: Boolean) {
-        val state = _uiState.value
-        if (reset && state.isLoading) return
-        val page = if (reset) 1 else state.currentPage + 1
+        val snapshot = _uiState.value
+        if (!reset) {
+            if (snapshot.isLoadingMore || !snapshot.hasMore || snapshot.isLoading || snapshot.isRefreshing) {
+                return
+            }
+        }
 
-        workScope.launch {
-            if (reset) {
-                _uiState.update { it.copy(isLoading = true, error = null) }
-            } else {
-                _uiState.update { it.copy(isLoadingMore = true) }
+        shopsLoadJob?.cancel()
+        shopsLoadJob = workScope.launch {
+            val page = if (reset) 1 else _uiState.value.currentPage + 1
+
+            _uiState.update { state ->
+                when {
+                    reset && state.shops.isEmpty() ->
+                        state.copy(isLoading = true, isRefreshing = false, isLoadingMore = false, error = null)
+                    reset ->
+                        state.copy(isRefreshing = true, isLoading = false, isLoadingMore = false, error = null)
+                    else ->
+                        state.copy(isLoadingMore = true, error = null)
+                }
             }
 
-            val filters = state.filters
+            val current = _uiState.value
+            val filters = current.filters
             shopRepository.searchShops(
                 ShopFilters(
-                    query = state.query.takeIf { it.isNotBlank() },
+                    query = current.query.takeIf { it.isNotBlank() },
                     cityId = filters.cityId,
                     roasterIds = filters.roasterIds.toList(),
                     beanIds = filters.beanIds.toList(),
@@ -233,22 +257,32 @@ class FeedViewModel(
                     priceRange = filters.priceRange,
                     minRating = filters.minRating,
                     page = page,
-                    pageSize = 20,
-                )
+                    pageSize = PAGE_SIZE,
+                ),
             ).onSuccess { result ->
-                _uiState.update { s ->
-                    s.copy(
-                        shops = if (reset) result.items else s.shops + result.items,
+                if (!isActive) return@onSuccess
+                _uiState.update { state ->
+                    state.copy(
+                        shops = if (reset) result.items else state.shops + result.items,
                         currentPage = result.currentPage,
                         totalPages = result.totalPages,
                         hasMore = result.currentPage < result.totalPages,
                         isLoading = false,
+                        isRefreshing = false,
                         isLoadingMore = false,
                         error = null,
                     )
                 }
             }.onFailure { e ->
-                _uiState.update { it.copy(isLoading = false, isLoadingMore = false, error = e.message) }
+                if (!isActive) return@onFailure
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        isLoadingMore = false,
+                        error = e.message,
+                    )
+                }
             }
         }
     }

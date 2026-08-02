@@ -36,7 +36,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,26 +59,18 @@ import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
-import com.coffeepeek.admin.utils.KamelExt
+import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
+import com.coffeepeek.admin.utils.CpImage
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.profile_version
 import org.jetbrains.compose.resources.stringResource
-import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.koinInject
 
 @Composable
-fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
+fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
     val state by vm.uiState.collectAsState()
     val themeMode by vm.themeMode.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
-
-    // Перезагружать профиль при возврате с экрана редактирования
-    LaunchedEffect(Unit) {
-        Navigator.navigationEvents.collect { event ->
-            if (event is Navigator.NavEvent.PopBack) {
-                vm.loadProfile()
-            }
-        }
-    }
 
     if (showLogoutDialog) {
         LogoutDialog(
@@ -104,7 +95,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
             return@Scaffold
         }
 
-        if (state.error != null) {
+        if (state.error != null && !state.hasContent) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -120,7 +111,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
                     )
                     Spacer(Modifier.height(CpDimens.spacing3))
                     Button(
-                        onClick = vm::loadProfile,
+                        onClick = vm::refreshProfile,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                         ),
@@ -137,6 +128,16 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
+            state.refreshError?.let { refreshError ->
+                Text(
+                    text = refreshError,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing2),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
 
             // ── Шапка ─────────────────────────────────────────────────────────
             ProfileHeader(
@@ -161,6 +162,12 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
 
             // ── Моя активность ─────────────────────────────────────────────────
             SettingsSection(title = "Моя активность") {
+                SettingsRow(
+                    icon = CpIcons.Coffee,
+                    label = "Мои заварки",
+                    onClick = { Navigator.navigate(Navigator.Screen.BrewHome) },
+                )
+                SettingsDivider()
                 SettingsRow(
                     icon = CpIcons.Favorite,
                     label = "Избранные кофейни",
@@ -215,29 +222,20 @@ fun ProfileScreen(vm: ProfileViewModel = koinViewModel()) {
                     contentColor   = CpColor.Error,
                 ),
                 shape = RoundedCornerShape(CpDimens.buttonRadius),
-                enabled = !state.isLoggingOut,
             ) {
-                if (state.isLoggingOut) {
-                    CoffeePeekLoader(
-                        color = CpColor.Error,
-                        size = CpDimens.loaderButton,
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    Icon(
-                        imageVector = CpIcons.Logout,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(CpDimens.spacing2))
-                    Text(
-                        text = "Выйти из аккаунта",
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
+                Icon(
+                    imageVector = CpIcons.Logout,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(CpDimens.spacing2))
+                Text(
+                    text = "Выйти из аккаунта",
+                    style = MaterialTheme.typography.labelLarge,
+                )
             }
 
-            Spacer(Modifier.height(CpDimens.spacing8))
+            Spacer(Modifier.height(CpDimens.spacing8 + LocalFloatingNavClearance.current))
         }
     }
 }
@@ -274,7 +272,13 @@ private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
                 contentAlignment = Alignment.Center,
             ) {
                 if (!state.avatarUrl.isNullOrBlank()) {
-                    KamelExt.FlowerImage(
+                    Text(
+                        text = state.initials.ifEmpty { "?" },
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = CpColor.DarkTextOnPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    CpImage(
                         data = state.avatarUrl,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
@@ -407,7 +411,7 @@ private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = CpIcons.ThemeSystem,
+                imageVector = current.icon(),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),

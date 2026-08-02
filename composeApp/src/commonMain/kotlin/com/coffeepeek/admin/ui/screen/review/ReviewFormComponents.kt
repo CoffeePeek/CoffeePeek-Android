@@ -28,23 +28,35 @@ import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 
 @Composable
-fun ReviewHeaderField(value: String, onChange: (String) -> Unit) {
+fun ReviewHeaderField(
+    value: String,
+    onChange: (String) -> Unit,
+    error: String? = null,
+) {
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
         modifier = Modifier.fillMaxWidth(),
         label = { Text("Заголовок") },
         singleLine = true,
+        isError = error != null,
+        supportingText = error?.let { { Text(it) } },
     )
 }
 
 @Composable
-fun ReviewCommentField(value: String, onChange: (String) -> Unit) {
+fun ReviewCommentField(
+    value: String,
+    onChange: (String) -> Unit,
+    error: String? = null,
+) {
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
         modifier = Modifier.fillMaxWidth().height(140.dp),
         label = { Text("Текст отзыва") },
+        isError = error != null,
+        supportingText = error?.let { { Text(it) } },
     )
 }
 

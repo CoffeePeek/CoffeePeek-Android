@@ -1,10 +1,12 @@
 package com.coffeepeek.admin.ui.screen.review
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.MAX_REVIEW_PHOTOS
 import com.coffeepeek.admin.utils.PickedImage
+import com.coffeepeek.admin.utils.ReviewSync
+import com.coffeepeek.admin.utils.validateReviewComment
+import com.coffeepeek.admin.utils.validateReviewHeader
 import com.coffeepeek.domain.model.CreateReviewInput
 import com.coffeepeek.domain.model.PendingPhotoUpload
 import com.coffeepeek.domain.repository.ReviewRepository
@@ -21,19 +23,26 @@ data class CreateReviewUiState(
     val coffeeRating: Int = 5,
     val photos: List<PickedImage> = emptyList(),
     val isSubmitting: Boolean = false,
+    val headerError: String? = null,
+    val commentError: String? = null,
     val error: String? = null,
 )
 
 class CreateReviewViewModel(
     private val shopId: String,
     private val reviewRepository: ReviewRepository,
-) : ViewModel() {
+) : BaseViewModel() {
 
     private val _state = MutableStateFlow(CreateReviewUiState())
     val state = _state.asStateFlow()
 
-    fun onHeaderChange(v: String) { _state.update { it.copy(header = v.take(120)) } }
-    fun onCommentChange(v: String) { _state.update { it.copy(comment = v.take(2000)) } }
+    fun onHeaderChange(v: String) {
+        _state.update { it.copy(header = v.take(120), headerError = null) }
+    }
+
+    fun onCommentChange(v: String) {
+        _state.update { it.copy(comment = v.take(2000), commentError = null) }
+    }
     fun onPlaceRating(v: Int) { _state.update { it.copy(placeRating = v.coerceIn(1, 5)) } }
     fun onServiceRating(v: Int) { _state.update { it.copy(serviceRating = v.coerceIn(1, 5)) } }
     fun onCoffeeRating(v: Int) { _state.update { it.copy(coffeeRating = v.coerceIn(1, 5)) } }
@@ -55,11 +64,19 @@ class CreateReviewViewModel(
 
     fun submit() {
         val s = _state.value
-        if (s.header.isBlank() || s.comment.isBlank()) {
-            _state.update { it.copy(error = "Заполните заголовок и текст отзыва") }
+        val headerError = validateReviewHeader(s.header)
+        val commentError = validateReviewComment(s.comment)
+        if (headerError != null || commentError != null) {
+            _state.update {
+                it.copy(
+                    headerError = headerError,
+                    commentError = commentError,
+                    error = null,
+                )
+            }
             return
         }
-        viewModelScope.launch {
+        workScope.launch {
             _state.update { it.copy(isSubmitting = true, error = null) }
             reviewRepository.createReview(
                 CreateReviewInput(
@@ -72,6 +89,7 @@ class CreateReviewViewModel(
                     photos = s.photos.map { it.toPendingUpload() },
                 )
             ).onSuccess {
+                ReviewSync.notifyChanged(shopId)
                 _state.update { it.copy(isSubmitting = false) }
                 Navigator.popBack()
             }.onFailure { e ->

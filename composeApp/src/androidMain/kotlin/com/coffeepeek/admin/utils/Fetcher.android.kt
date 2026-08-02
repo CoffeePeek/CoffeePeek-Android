@@ -7,21 +7,14 @@ import io.kamel.core.config.ResourceConfig
 import io.kamel.core.fetcher.Fetcher
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.onDownload
 import io.ktor.client.request.get
-import io.ktor.client.request.request
-import io.ktor.client.request.takeFrom
-import io.ktor.client.request.url
-import io.ktor.client.statement.bodyAsBytes
-import io.ktor.http.Url
 import io.ktor.utils.io.ByteReadChannel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlin.reflect.KClass
 
 actual class CustomUrlFetcher(
-    private val compress: IntRange = 100..500,
-    private val client: HttpClient
+    private val client: HttpClient,
 ) : Fetcher<CustomUrl> {
 
     override val inputDataKClass: KClass<CustomUrl> = CustomUrl::class
@@ -35,7 +28,11 @@ actual class CustomUrlFetcher(
         data: CustomUrl, resourceConfig: ResourceConfig
     ): Flow<Resource<ByteReadChannel>> = channelFlow {
         val data = client.get(data.url).body<ByteArray>()
-        val resized = BitmapUtil.load(data).toByteArray()
+        val resized = BitmapUtil.load(
+            byteArray = data,
+            maxHeightWidth = BitmapUtil.DISPLAY_MAX_SIDE,
+            maxByteSize = BitmapUtil.DISPLAY_BYTE_RANGE,
+        ).toByteArray()
         send(Resource.Success(ByteReadChannel(resized), source))
     }
 

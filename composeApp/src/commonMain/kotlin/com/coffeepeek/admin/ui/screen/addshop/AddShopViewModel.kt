@@ -1,7 +1,8 @@
 package com.coffeepeek.admin.ui.screen.addshop
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.coffeepeek.admin.base.BaseViewModel
+import com.coffeepeek.admin.location.GeoPoint
+import com.coffeepeek.admin.location.PlatformLocation
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
@@ -62,6 +63,8 @@ data class AddShopUiState(
     val name: String = "",
     val selectedCity: City? = null,
     val address: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val description: String = "",
     val priceRange: Int? = null,
     val photos: List<PendingPhotoUi> = emptyList(),
@@ -80,11 +83,17 @@ data class AddShopUiState(
     val selectedBrewMethodIds: Set<String> = emptySet(),
     val currentStep: AddShopStep = AddShopStep.BASIC,
     val isLoadingCatalogs: Boolean = true,
+    val isResolvingAddress: Boolean = false,
+    val showLocationPicker: Boolean = false,
+    val locationHint: String? = null,
     val isSubmitting: Boolean = false,
     val catalogsError: String? = null,
     val submitError: String? = null,
     val isSuccess: Boolean = false,
 ) {
+    val selectedGeoPoint: GeoPoint?
+        get() = if (latitude != null && longitude != null) GeoPoint(latitude, longitude) else null
+
     val nameError: String? get() = when {
         name.isBlank() -> "Введите название"
         name.length > 55 -> "Не более 55 символов"
@@ -132,7 +141,7 @@ internal fun shiftTime(time: String, minutesDelta: Int): String {
 
 class AddShopViewModel(
     private val shopRepository: ShopRepository,
-) : ViewModel() {
+) : BaseViewModel() {
 
     private val _state = MutableStateFlow(AddShopUiState())
     val state: StateFlow<AddShopUiState> = _state.asStateFlow()
@@ -140,7 +149,7 @@ class AddShopViewModel(
     init { loadCatalogs() }
 
     fun loadCatalogs() {
-        viewModelScope.launch {
+        workScope.launch {
             _state.update { it.copy(isLoadingCatalogs = true, catalogsError = null) }
             shopRepository.getCatalogs()
                 .onSuccess { catalogs -> applyCatalogs(catalogs) }
@@ -161,13 +170,17 @@ class AddShopViewModel(
             equipment    = catalogs.equipment,
             roasters     = catalogs.roasters,
             brewMethods  = catalogs.brewMethods,
-            selectedCity = it.selectedCity ?: autoCity,
+            selectedCity = it.selectedCity
+                ?: autoCity
+                ?: matchCity(it.address, catalogs.cities),
             isLoadingCatalogs = false,
         ) }
     }
 
     fun onNameChange(v: String)         { _state.update { it.copy(name = v.take(55)) } }
-    fun onAddressChange(v: String)      { _state.update { it.copy(address = v) } }
+    fun onAddressChange(v: String) {
+        _state.update { it.copy(address = v, locationHint = null) }
+    }
     fun onDescriptionChange(v: String)  { _state.update { it.copy(description = v) } }
     fun onCitySelect(city: City)        { _state.update { it.copy(selectedCity = city) } }
     fun onPriceRangeSelect(v: Int?)     { _state.update { it.copy(priceRange = v) } }
@@ -175,6 +188,91 @@ class AddShopViewModel(
     fun onEmailChange(v: String)        { _state.update { it.copy(email = v) } }
     fun onWebsiteChange(v: String)      { _state.update { it.copy(website = v) } }
     fun onInstagramChange(v: String)    { _state.update { it.copy(instagram = v) } }
+
+    fun openLocationPicker() {
+        _state.update { it.copy(showLocationPicker = true, locationHint = null) }
+    }
+
+    fun dismissLocationPicker() {
+        _state.update { it.copy(showLocationPicker = false) }
+    }
+
+    fun onLocationPicked(latitude: Double, longitude: Double, address: String) {
+        _state.update { state ->
+            state.copy(
+                address = address,
+                latitude = latitude,
+                longitude = longitude,
+                showLocationPicker = false,
+                locationHint = null,
+                selectedCity = state.selectedCity ?: matchCity(address, state.cities),
+            )
+        }
+    }
+
+    fun fillAddressFromCurrentLocation(force: Boolean = false) {
+        workScope.launch {
+            _state.update {
+                it.copy(isResolvingAddress = true, locationHint = null)
+            }
+            val point = PlatformLocation.getLastKnownLocation()
+            if (point == null) {
+                _state.update {
+                    it.copy(
+                        isResolvingAddress = false,
+                        locationHint = "Не удалось определить местоположение. Выберите точку на карте.",
+                    )
+                }
+                return@launch
+            }
+            val address = PlatformLocation.reverseGeocode(point.latitude, point.longitude)
+            if (address.isNullOrBlank()) {
+                _state.update {
+                    it.copy(
+                        latitude = point.latitude,
+                        longitude = point.longitude,
+                        isResolvingAddress = false,
+                        locationHint = "Адрес не найден. Выберите точку на карте или введите вручную.",
+                    )
+                }
+                return@launch
+            }
+            _state.update { state ->
+                // Don't overwrite if the user already typed an address (auto-fill on open).
+                if (!force && state.address.isNotBlank()) {
+                    return@update state.copy(
+                        latitude = state.latitude ?: point.latitude,
+                        longitude = state.longitude ?: point.longitude,
+                        isResolvingAddress = false,
+                    )
+                }
+                state.copy(
+                    address = address,
+                    latitude = point.latitude,
+                    longitude = point.longitude,
+                    selectedCity = state.selectedCity ?: matchCity(address, state.cities),
+                    isResolvingAddress = false,
+                    locationHint = null,
+                )
+            }
+        }
+    }
+
+    fun onLocationPermissionDenied() {
+        _state.update {
+            it.copy(
+                isResolvingAddress = false,
+                locationHint = "Разрешите доступ к геолокации или выберите адрес на карте.",
+            )
+        }
+    }
+
+    private fun matchCity(address: String, cities: List<City>): City? {
+        val normalized = address.lowercase()
+        return cities.firstOrNull { city ->
+            normalized.contains(city.name.lowercase())
+        }
+    }
 
     fun addPhoto(bytes: ByteArray, fileName: String = "photo_${kotlin.random.Random.nextInt()}.jpg") {
         addPhotos(listOf(PickedImage(bytes, fileName)))
@@ -318,7 +416,7 @@ class AddShopViewModel(
     private fun submit() {
         val s = _state.value
         val city = s.selectedCity ?: return
-        viewModelScope.launch {
+        workScope.launch {
             _state.update { it.copy(isSubmitting = true, submitError = null) }
             shopRepository.createShop(
                 CreateShopInput(

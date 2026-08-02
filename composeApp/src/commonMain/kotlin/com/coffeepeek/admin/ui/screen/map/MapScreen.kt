@@ -3,8 +3,11 @@ package com.coffeepeek.admin.ui.screen.map
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -52,9 +55,9 @@ import com.coffeepeek.admin.map.CoffeeMap
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
+import com.coffeepeek.admin.ui.component.CityCatalogChips
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.domain.model.CatalogItem
-import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.MapShop
 import io.kamel.image.KamelImage
@@ -123,6 +126,7 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
             isDarkTheme = isDarkTheme,
             myLocationRequestKey = state.myLocationRequest,
             onMyLocationFound = vm::onMyLocationApplied,
+            onLocationPermissionDenied = vm::onLocationPermissionDenied,
         )
 
         MapControlButton(
@@ -236,6 +240,7 @@ private fun MapControlButton(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MapFiltersDialog(
     state: MapUiState,
@@ -251,6 +256,10 @@ private fun MapFiltersDialog(
     val filters = state.filters
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier
+            .fillMaxWidth(0.92f)
+            .widthIn(min = 320.dp),
+        properties = DialogProperties(usePlatformDefaultWidth = false),
         containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(CpDimens.radius2xl),
         title = { Text("Фильтры", style = MaterialTheme.typography.headlineSmall) },
@@ -269,12 +278,16 @@ private fun MapFiltersDialog(
                 )
                 if (state.cities.isNotEmpty()) {
                     FilterSection("Город") {
-                        CityChips(state.cities, filters.cityId, onCity)
+                        CityCatalogChips(
+                            cities = state.cities,
+                            selectedId = filters.cityId,
+                            onSelect = onCity,
+                        )
                     }
                 }
                 FilterSection("Цена") {
                     CatalogChips(
-                        items = listOf("$" to 1, "$$" to 2, "$$$" to 3, "$$$$" to 4),
+                        items = listOf("₽" to 1, "₽₽" to 2, "₽₽₽" to 3, "₽₽₽₽" to 4),
                         selectedIds = filters.priceRange?.toString()?.let { setOf(it) } ?: emptySet(),
                         onToggle = { id ->
                             val value = id.toIntOrNull()
@@ -286,7 +299,14 @@ private fun MapFiltersDialog(
                 }
                 FilterSection("Рейтинг от") {
                     CatalogChips(
-                        items = listOf("3.0+" to 3.0, "4.0+" to 4.0, "4.5+" to 4.5),
+                        items = listOf(
+                            "2.5+" to 2.5,
+                            "3.0+" to 3.0,
+                            "3.5+" to 3.5,
+                            "4.0+" to 4.0,
+                            "4.5+" to 4.5,
+                            "5.0" to 5.0,
+                        ),
                         selectedIds = filters.minRating?.toString()?.let { setOf(it) } ?: emptySet(),
                         onToggle = { id ->
                             val value = id.toDoubleOrNull()
@@ -343,22 +363,7 @@ private fun FilterSection(title: String, content: @Composable () -> Unit) {
     }
 }
 
-@Composable
-private fun CityChips(cities: List<City>, selectedId: String?, onSelect: (String?) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-    ) {
-        cities.forEach { city ->
-            FilterChip(
-                selected = selectedId == city.id,
-                onClick = { onSelect(if (selectedId == city.id) null else city.id) },
-                label = { Text(city.name, style = MaterialTheme.typography.labelSmall) },
-            )
-        }
-    }
-}
-
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CatalogFilterChips(
     items: List<CatalogItem>,
@@ -366,9 +371,10 @@ private fun CatalogFilterChips(
     type: String,
     onToggle: (String, String) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {
         items.forEach { item ->
             FilterChip(
@@ -380,6 +386,7 @@ private fun CatalogFilterChips(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun <T> CatalogChips(
     items: List<T>,
@@ -388,9 +395,10 @@ private fun <T> CatalogChips(
     idSelector: (T) -> String,
     labelSelector: (T) -> String,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {
         items.forEach { item ->
             val id = idSelector(item)
@@ -419,9 +427,7 @@ private fun MapShopBottomSheet(
     val isOpen = details?.shop?.isOpen == true
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onOpen),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(CpDimens.cardRadius),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -429,6 +435,7 @@ private fun MapShopBottomSheet(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable(onClick = onOpen)
                 .padding(CpDimens.spacing3),
             verticalAlignment = Alignment.CenterVertically,
         ) {

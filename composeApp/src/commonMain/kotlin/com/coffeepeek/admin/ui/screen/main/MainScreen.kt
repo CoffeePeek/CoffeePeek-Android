@@ -1,23 +1,17 @@
 package com.coffeepeek.admin.ui.screen.main
 
-import com.coffeepeek.admin.ui.icons.CpIcons
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -26,11 +20,18 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.Navigator.isHandledByRootNav
-import com.coffeepeek.admin.ui.screen.community.CommunityScreen
+import com.coffeepeek.admin.ui.component.FloatingBottomNavBar
+import com.coffeepeek.admin.ui.component.FloatingNavItem
+import com.coffeepeek.admin.ui.component.ProvideFloatingNavClearance
 import com.coffeepeek.admin.ui.screen.feed.FeedScreen
 import com.coffeepeek.admin.ui.screen.profile.ProfileScreen
+import com.coffeepeek.admin.ui.icons.CpIcons
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 
 data class BottomNavItem(
     val title: String,
@@ -81,16 +82,10 @@ fun MainScreen() {
 
     val items = listOf(
         BottomNavItem(
-            title = "Лента",
+            title = "Кофейни",
             icon = CpIcons.Coffee,
             graph = Navigator.Screen.FeedGraph,
             startScreen = Navigator.Screen.FeedTab,
-        ),
-        BottomNavItem(
-            title = "Community",
-            icon = CpIcons.Community,
-            graph = Navigator.Screen.CommunityGraph,
-            startScreen = Navigator.Screen.CommunityTab,
         ),
         BottomNavItem(
             title = "Профиль",
@@ -100,80 +95,59 @@ fun MainScreen() {
         ),
     )
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-            ) {
-                val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
+    val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+    val density = LocalDensity.current
+    val systemNavBottom = with(density) {
+        WindowInsets.navigationBars.getBottom(this).toDp()
+    }
+    val floatingClearance = systemNavBottom +
+        CpDimens.floatingNavContentClearance +
+        CpDimens.floatingNavBottomMargin
 
-                items.forEach { item ->
+    ProvideFloatingNavClearance(clearance = floatingClearance) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            NavHost(
+                navController = bottomNavController,
+                startDestination = Navigator.Screen.FeedGraph,
+                modifier = Modifier.fillMaxSize(),
+                enterTransition = { fadeIn(tween(150)) },
+                exitTransition = { fadeOut(tween(150)) },
+                popEnterTransition = { fadeIn(tween(150)) },
+                popExitTransition = { fadeOut(tween(150)) },
+            ) {
+                navigation<Navigator.Screen.FeedGraph>(startDestination = Navigator.Screen.FeedTab) {
+                    composable<Navigator.Screen.FeedTab> { FeedScreen() }
+                }
+
+                navigation<Navigator.Screen.ProfileGraph>(startDestination = Navigator.Screen.ProfileTab) {
+                    composable<Navigator.Screen.ProfileTab> { ProfileScreen() }
+                }
+            }
+
+            FloatingBottomNavBar(
+                items = items.map { item ->
                     val isSelected = currentDestination?.hierarchy?.any { destination ->
                         destination.hasRoute(item.graph::class)
                     } == true
-
-                    NavigationBarItem(
+                    FloatingNavItem(
+                        title = item.title,
+                        icon = item.icon,
                         selected = isSelected,
-                        label = {
-                            Text(
-                                text = item.title,
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        },
-                        icon = { Icon(item.icon, contentDescription = null) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor   = MaterialTheme.colorScheme.primary,
-                            selectedTextColor   = MaterialTheme.colorScheme.primary,
-                            indicatorColor      = MaterialTheme.colorScheme.primaryContainer,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
                         onClick = {
-                            if (isSelected) {
-                                bottomNavController.navigate(item.startScreen) {
-                                    popUpTo(bottomNavController.graph.findStartDestination().id) {
-                                        inclusive = false
-                                    }
-                                    launchSingleTop = true
+                            if (isSelected) return@FloatingNavItem
+                            bottomNavController.navigate(item.graph) {
+                                popUpTo(bottomNavController.graph.findStartDestination().id) {
+                                    saveState = true
                                 }
-                            } else {
-                                bottomNavController.navigate(item.graph) {
-                                    popUpTo(bottomNavController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                                launchSingleTop = true
+                                restoreState = true
                             }
                         },
                     )
-                }
-            }
-        }
-    ) { innerPadding ->
-        NavHost(
-            navController = bottomNavController,
-            startDestination = Navigator.Screen.FeedGraph,
-            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
-            enterTransition = { fadeIn(tween(150)) },
-            exitTransition = { fadeOut(tween(150)) },
-            popEnterTransition = { fadeIn(tween(150)) },
-            popExitTransition = { fadeOut(tween(150)) },
-        ) {
-            navigation<Navigator.Screen.FeedGraph>(startDestination = Navigator.Screen.FeedTab) {
-                composable<Navigator.Screen.FeedTab> { FeedScreen() }
-            }
-
-            navigation<Navigator.Screen.CommunityGraph>(startDestination = Navigator.Screen.CommunityTab) {
-                composable<Navigator.Screen.CommunityTab> { CommunityScreen() }
-            }
-
-            navigation<Navigator.Screen.ProfileGraph>(startDestination = Navigator.Screen.ProfileTab) {
-                composable<Navigator.Screen.ProfileTab> { ProfileScreen() }
-            }
+                },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
         }
     }
 }
-

@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.di
 
+import com.coffeepeek.admin.config.AppConfig
 import com.coffeepeek.admin.locator.Constants
 import com.coffeepeek.admin.locator.Locator
 import com.coffeepeek.admin.theme.ThemeManager
@@ -13,17 +14,28 @@ import com.coffeepeek.admin.ui.screen.addshop.AddShopViewModel
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileViewModel
 import com.coffeepeek.admin.ui.screen.map.MapViewModel
 import com.coffeepeek.admin.ui.screen.profile.ProfileViewModel
+import com.coffeepeek.admin.ui.screen.brew.BeanEditViewModel
+import com.coffeepeek.admin.ui.screen.brew.BeanListViewModel
+import com.coffeepeek.admin.ui.screen.brew.BrewDetailViewModel
+import com.coffeepeek.admin.ui.screen.brew.BrewHomeViewModel
+import com.coffeepeek.admin.ui.screen.brew.BrewOriginsViewModel
+import com.coffeepeek.admin.ui.screen.brew.BrewTrendsViewModel
+import com.coffeepeek.admin.ui.screen.brew.NewBrewViewModel
 import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesViewModel
 import com.coffeepeek.admin.ui.screen.favorites.FavoritesViewModel
 import com.coffeepeek.admin.ui.screen.review.CreateReviewViewModel
 import com.coffeepeek.admin.ui.screen.review.EditReviewViewModel
 import com.coffeepeek.admin.ui.screen.reviews.MyReviewsViewModel
 import com.coffeepeek.admin.ui.screen.shop.ShopDetailViewModel
+import com.coffeepeek.admin.di.imageModule
 import com.coffeepeek.data.di.dataModule
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 
 fun initKoin() {
+    check(AppConfig.baseUrl.isNotBlank()) {
+        "API_BASE_URL is not configured. Copy local.properties.example to local.properties."
+    }
     val database = Locator.database
     ThemeManager.initialize(database.settingRepository)
 
@@ -33,9 +45,10 @@ fun initKoin() {
                 baseUrl = Constants.BASE_URL,
                 cacheFolder = Locator.cacheFolder,
                 database = database,
-                debug = true,
+                debug = AppConfig.isDebug,
             ),
             appModule(),
+            imageModule(),
         )
     }
 }
@@ -47,8 +60,8 @@ private fun appModule() = module {
     factory { NavigatorViewModel(get()) }
     factory { FeedViewModel(get(), get()) }
     factory { MapViewModel(get()) }
-    factory { (shopId: String) -> ShopDetailViewModel(shopId, get(), get(), get()) }
-    factory { ProfileViewModel(get(), get(), get()) }
+    factory { (shopId: String) -> ShopDetailViewModel(shopId, get(), get(), get(), get(), get()) }
+    single { ProfileViewModel(get(), get(), get()) }
     factory { AddShopViewModel(get()) }
     factory { EditProfileViewModel(get()) }
     factory { FavoritesViewModel(get()) }
@@ -56,4 +69,11 @@ private fun appModule() = module {
     factory { VisitedPlacesViewModel(get()) }
     factory { (shopId: String) -> CreateReviewViewModel(shopId, get()) }
     factory { (reviewId: String) -> EditReviewViewModel(reviewId, get(), get()) }
+    factory { BrewHomeViewModel(get()) }
+    factory { (repeatSessionId: String) -> NewBrewViewModel(get(), repeatSessionId) }
+    factory { (sessionId: String) -> BrewDetailViewModel(sessionId, get()) }
+    factory { BeanListViewModel(get()) }
+    factory { (beanId: String) -> BeanEditViewModel(beanId, get()) }
+    factory { BrewTrendsViewModel(get()) }
+    factory { BrewOriginsViewModel(get()) }
 }

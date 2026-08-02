@@ -65,10 +65,11 @@ import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.location.LocationPermissionEffect
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.layout.ContentScale
-import com.coffeepeek.admin.utils.KamelExt
+import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.MAX_SHOP_PHOTOS
 import com.coffeepeek.admin.utils.PhotoPickerController
 import com.coffeepeek.admin.utils.rememberPhotoPicker
@@ -80,6 +81,28 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
     val state by vm.state.collectAsState()
+    var locationPermissionRequestKey by remember { mutableStateOf(1) }
+    var forceMyLocation by remember { mutableStateOf(false) }
+
+    LocationPermissionEffect(
+        requestKey = locationPermissionRequestKey,
+        onGranted = {
+            vm.fillAddressFromCurrentLocation(force = forceMyLocation)
+            forceMyLocation = false
+        },
+        onDenied = {
+            forceMyLocation = false
+            vm.onLocationPermissionDenied()
+        },
+    )
+
+    if (state.showLocationPicker) {
+        PickShopLocationDialog(
+            initialPoint = state.selectedGeoPoint,
+            onConfirm = vm::onLocationPicked,
+            onDismiss = vm::dismissLocationPicker,
+        )
+    }
 
     // Диалог успеха
     if (state.isSuccess) {
@@ -210,7 +233,14 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
                     .padding(CpDimens.spacing4),
             ) {
                 when (step) {
-                    AddShopStep.BASIC    -> StepBasic(state, vm)
+                    AddShopStep.BASIC    -> StepBasic(
+                        state = state,
+                        vm = vm,
+                        onUseMyLocation = {
+                            forceMyLocation = true
+                            locationPermissionRequestKey += 1
+                        },
+                    )
                     AddShopStep.PHOTOS   -> StepPhotos(
                         state = state,
                         vm = vm,
@@ -253,7 +283,11 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
 // ── Шаг 1: Основное ───────────────────────────────────────────────────────────
 
 @Composable
-private fun StepBasic(state: AddShopUiState, vm: AddShopViewModel) {
+private fun StepBasic(
+    state: AddShopUiState,
+    vm: AddShopViewModel,
+    onUseMyLocation: () -> Unit,
+) {
     StepLegend(requiredHint = "Поля со * обязательны для заполнения")
     Spacer(Modifier.height(CpDimens.spacing3))
 
@@ -289,9 +323,61 @@ private fun StepBasic(state: AddShopUiState, vm: AddShopViewModel) {
         AppOutlinedField(
             value = state.address,
             onValueChange = vm::onAddressChange,
-            placeholder = "Минск, пр. Независимости, 15",
+            placeholder = "пр. Независимости, 15",
             errorText = if (state.address.isNotEmpty()) state.addressError else null,
+            minLines = 2,
+            maxLines = 4,
+            trailingContent = {
+                if (state.isResolvingAddress) {
+                    CoffeePeekLoader(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                    )
+                }
+            },
         )
+        Spacer(Modifier.height(CpDimens.spacing2))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        ) {
+            OutlinedButton(
+                onClick = onUseMyLocation,
+                enabled = !state.isResolvingAddress,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(CpDimens.buttonRadius),
+            ) {
+                Icon(
+                    CpIcons.MyLocation,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("Моё место", style = MaterialTheme.typography.labelLarge)
+            }
+            OutlinedButton(
+                onClick = vm::openLocationPicker,
+                enabled = !state.isResolvingAddress,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(CpDimens.buttonRadius),
+            ) {
+                Icon(
+                    CpIcons.Map,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("На карте", style = MaterialTheme.typography.labelLarge)
+            }
+        }
+        state.locationHint?.let { hint ->
+            Spacer(Modifier.height(CpDimens.spacing2))
+            Text(
+                text = hint,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 
     Spacer(Modifier.height(CpDimens.spacing4))
@@ -368,7 +454,7 @@ private fun StepPhotos(
                         .size(96.dp)
                         .clip(RoundedCornerShape(CpDimens.radiusMd)),
                 ) {
-                    KamelExt.FlowerImage(
+                    CpImage(
                         data = photo.bytes,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
@@ -826,6 +912,7 @@ private fun AppOutlinedField(
     minLines: Int = 1,
     maxLines: Int = 1,
     keyboardType: KeyboardType = KeyboardType.Text,
+    trailingContent: (@Composable () -> Unit)? = null,
 ) {
     Column {
         OutlinedTextField(
@@ -842,8 +929,12 @@ private fun AppOutlinedField(
             },
             textStyle = MaterialTheme.typography.bodyLarge,
             isError = errorText != null,
+            singleLine = maxLines <= 1,
             minLines = minLines,
             maxLines = maxLines,
+            trailingIcon = trailingContent?.let { content ->
+                { content() }
+            },
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                 keyboardType = keyboardType,
             ),

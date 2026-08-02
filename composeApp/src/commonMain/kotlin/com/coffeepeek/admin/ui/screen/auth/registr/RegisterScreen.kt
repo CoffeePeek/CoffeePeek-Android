@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.ui.screen.auth.registr
 
 import com.coffeepeek.admin.ui.icons.CpIcons
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -40,20 +41,29 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import coffeepeek.composeapp.generated.resources.Res
+import coffeepeek.composeapp.generated.resources.app_name
 import coffeepeek.composeapp.generated.resources.enter
 import coffeepeek.composeapp.generated.resources.error_enter_password_length
 import coffeepeek.composeapp.generated.resources.have_account
-import coffeepeek.composeapp.generated.resources.join_community
+import coffeepeek.composeapp.generated.resources.ic_app_logo
+import coffeepeek.composeapp.generated.resources.eco_system
 import coffeepeek.composeapp.generated.resources.name
 import coffeepeek.composeapp.generated.resources.name_hint
 import coffeepeek.composeapp.generated.resources.password
+import coffeepeek.composeapp.generated.resources.privacy_link
 import coffeepeek.composeapp.generated.resources.registr
+import coffeepeek.composeapp.generated.resources.terms_accept_prefix
+import coffeepeek.composeapp.generated.resources.terms_and
+import coffeepeek.composeapp.generated.resources.terms_link
 import com.coffeepeek.admin.auth.GoogleSignInButton
+import com.coffeepeek.admin.auth.handleGoogleSignInResult
 import com.coffeepeek.admin.auth.isGoogleSignInConfigured
+import com.coffeepeek.admin.legal.LegalUrls
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.AppTextField
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -81,20 +91,13 @@ object RegisterScreen {
             Spacer(modifier = Modifier.height(CpDimens.spacing10))
 
             // ── Логотип ──────────────────────────────────────────────────────
-            Row(
+            Image(
+                painter = painterResource(Res.drawable.ic_app_logo),
+                contentDescription = stringResource(Res.string.app_name),
                 modifier = Modifier
                     .size(CpDimens.headerLogoSize)
-                    .clip(RoundedCornerShape(CpDimens.radiusMd))
-                    .background(MaterialTheme.colorScheme.primary),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "CP",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            }
+                    .clip(RoundedCornerShape(CpDimens.radiusMd)),
+            )
 
             Spacer(modifier = Modifier.height(CpDimens.spacing4))
 
@@ -104,7 +107,7 @@ object RegisterScreen {
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
-                text = stringResource(Res.string.join_community),
+                text = stringResource(Res.string.eco_system),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -219,7 +222,7 @@ object RegisterScreen {
                         Spacer(modifier = Modifier.height(CpDimens.spacing5))
                         GoogleSignInButton(
                             onResult = { result ->
-                                result.onSuccess(vm::onGoogleLogin)
+                                handleGoogleSignInResult(result, vm::onGoogleLogin)
                             },
                         )
                     }
@@ -238,20 +241,20 @@ private fun TermsText() {
     )
 
     val annotatedString = buildAnnotatedString {
-        append("Я принимаю ")
+        append(stringResource(Res.string.terms_accept_prefix))
         withLink(
             LinkAnnotation.Url(
-                url = "https://coffeepeek.by/terms",
+                url = LegalUrls.TERMS,
                 styles = linkStyles,
             )
-        ) { append("условия использования") }
-        append(" и ")
+        ) { append(stringResource(Res.string.terms_link)) }
+        append(stringResource(Res.string.terms_and))
         withLink(
             LinkAnnotation.Url(
-                url = "https://coffeepeek.by/privacy",
+                url = LegalUrls.PRIVACY,
                 styles = linkStyles,
             )
-        ) { append("политику конфиденциальности") }
+        ) { append(stringResource(Res.string.privacy_link)) }
     }
 
     Text(
