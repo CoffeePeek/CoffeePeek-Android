@@ -14,6 +14,13 @@ import com.coffeepeek.admin.ui.screen.addshop.AddShopViewModel
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileViewModel
 import com.coffeepeek.admin.ui.screen.map.MapViewModel
 import com.coffeepeek.admin.ui.screen.profile.ProfileViewModel
+import com.coffeepeek.admin.ui.screen.brew.BeanEditViewModel
+import com.coffeepeek.admin.ui.screen.brew.BeanListViewModel
+import com.coffeepeek.admin.ui.screen.brew.BrewDetailViewModel
+import com.coffeepeek.admin.ui.screen.brew.BrewHomeViewModel
+import com.coffeepeek.admin.ui.screen.brew.BrewOriginsViewModel
+import com.coffeepeek.admin.ui.screen.brew.BrewTrendsViewModel
+import com.coffeepeek.admin.ui.screen.brew.NewBrewViewModel
 import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesViewModel
 import com.coffeepeek.admin.ui.screen.favorites.FavoritesViewModel
 import com.coffeepeek.admin.ui.screen.review.CreateReviewViewModel
@@ -62,4 +69,11 @@ private fun appModule() = module {
     factory { VisitedPlacesViewModel(get()) }
     factory { (shopId: String) -> CreateReviewViewModel(shopId, get()) }
     factory { (reviewId: String) -> EditReviewViewModel(reviewId, get(), get()) }
+    factory { BrewHomeViewModel(get()) }
+    factory { (repeatSessionId: String) -> NewBrewViewModel(get(), repeatSessionId) }
+    factory { (sessionId: String) -> BrewDetailViewModel(sessionId, get()) }
+    factory { BeanListViewModel(get()) }
+    factory { (beanId: String) -> BeanEditViewModel(beanId, get()) }
+    factory { BrewTrendsViewModel(get()) }
+    factory { BrewOriginsViewModel(get()) }
 }

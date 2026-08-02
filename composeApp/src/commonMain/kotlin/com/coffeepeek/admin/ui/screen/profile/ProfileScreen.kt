@@ -163,6 +163,12 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
             // ── Моя активность ─────────────────────────────────────────────────
             SettingsSection(title = "Моя активность") {
                 SettingsRow(
+                    icon = CpIcons.Coffee,
+                    label = "Мои заварки",
+                    onClick = { Navigator.navigate(Navigator.Screen.BrewHome) },
+                )
+                SettingsDivider()
+                SettingsRow(
                     icon = CpIcons.Favorite,
                     label = "Избранные кофейни",
                     onClick = { Navigator.navigate(Navigator.Screen.Favorites) },
