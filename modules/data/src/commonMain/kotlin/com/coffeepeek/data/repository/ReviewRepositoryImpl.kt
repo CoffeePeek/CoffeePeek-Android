@@ -20,7 +20,7 @@ class ReviewRepositoryImpl(
     override suspend fun canCreateReview(shopId: String): Result<Pair<Boolean, String?>> =
         reviewApiService.canCreateReview(shopId).map { it.canCreate to it.reviewId }
 
-    override suspend fun createReview(input: CreateReviewInput): Result<String> = runCatching {
+    override suspend fun createReview(input: CreateReviewInput): Result<Unit> = runCatching {
         val photos = photoRepository.uploadShopPhotos(input.photos).getOrThrow()
         reviewApiService.createReview(
             SendReviewReq(
@@ -33,8 +33,8 @@ class ReviewRepositoryImpl(
                     coffee = input.coffeeRating,
                 ),
                 photos = photos.toUploadedPhotoReqs().takeIf { it.isNotEmpty() },
-            )
-        ).getOrThrow().entityId ?: error("Не удалось создать отзыв")
+            ),
+        ).getOrThrow()
     }
 
     override suspend fun updateReview(reviewId: String, input: UpdateReviewInput): Result<Unit> = runCatching {

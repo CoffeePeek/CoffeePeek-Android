@@ -7,10 +7,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 class NavigatorViewModel(
-    sessionRepository: SessionRepository,
+    private val sessionRepository: SessionRepository,
 ) : BaseViewModel() {
 
     val isLoggedIn = sessionRepository.observeSession()
-        .map { it?.accessToken?.isNotBlank() == true }
-        .stateIn(workScope, SharingStarted.Eagerly, false)
+        .map { session -> sessionRepository.isActiveSession(session) }
+        .stateIn(
+            scope = workScope,
+            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+            initialValue = sessionRepository.isActiveSession(sessionRepository.peekSession()),
+        )
 }

@@ -28,7 +28,11 @@ actual class CustomUrlFetcher(
         data: CustomUrl, resourceConfig: ResourceConfig
     ): Flow<Resource<ByteReadChannel>> = channelFlow {
         val data = client.get(data.url).body<ByteArray>()
-        val resized = BitmapUtil.load(data).toByteArray()
+        val resized = BitmapUtil.load(
+            byteArray = data,
+            maxHeightWidth = BitmapUtil.DISPLAY_MAX_SIDE,
+            maxByteSize = BitmapUtil.DISPLAY_BYTE_RANGE,
+        ).toByteArray()
         send(Resource.Success(ByteReadChannel(resized), source))
     }
 

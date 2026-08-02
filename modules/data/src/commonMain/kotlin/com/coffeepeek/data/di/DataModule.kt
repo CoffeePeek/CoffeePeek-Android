@@ -71,14 +71,13 @@ fun dataModule(
     single { get<CoffeePeekRepo>().shopApiService }
     single { get<CoffeePeekRepo>().userApiService }
     single { get<CoffeePeekRepo>().photoApiService }
-    single { get<CoffeePeekRepo>().favoriteApiService }
     single { get<CoffeePeekRepo>().reviewApiService }
     single { get<CoffeePeekRepo>().checkInApiService }
     single<PhotoRepository> { PhotoRepositoryImpl(get()) }
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
-    single<ShopRepository> { ShopRepositoryImpl(get(), get()) }
+    single<FavoriteRepository> { FavoriteRepositoryImpl(database) }
+    single<ShopRepository> { ShopRepositoryImpl(get(), get(), get()) }
     single<UserRepository> { UserRepositoryImpl(get(), get(), get(), get()) }
-    single<FavoriteRepository> { FavoriteRepositoryImpl(get()) }
     single<ReviewRepository> { ReviewRepositoryImpl(get(), get()) }
     single<CheckInRepository> { CheckInRepositoryImpl(get()) }
 }

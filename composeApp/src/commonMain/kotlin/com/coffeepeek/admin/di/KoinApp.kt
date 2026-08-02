@@ -53,7 +53,7 @@ private fun appModule() = module {
     factory { NavigatorViewModel(get()) }
     factory { FeedViewModel(get(), get()) }
     factory { MapViewModel(get()) }
-    factory { (shopId: String) -> ShopDetailViewModel(shopId, get(), get(), get()) }
+    factory { (shopId: String) -> ShopDetailViewModel(shopId, get(), get(), get(), get(), get()) }
     single { ProfileViewModel(get(), get(), get()) }
     factory { AddShopViewModel(get()) }
     factory { EditProfileViewModel(get()) }

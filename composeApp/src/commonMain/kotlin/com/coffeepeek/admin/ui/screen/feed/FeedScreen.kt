@@ -44,7 +44,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,10 +65,12 @@ import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
+import com.coffeepeek.admin.ui.component.CityCatalogChips
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.component.CoffeePeekPullToRefresh
+import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
 import androidx.compose.foundation.lazy.LazyColumn
 import com.coffeepeek.domain.model.CatalogItem
-import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CoffeeShop
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
@@ -84,8 +85,13 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
 
     val shouldLoadMore by remember {
         derivedStateOf {
+            if (state.shops.isEmpty()) return@derivedStateOf false
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            lastVisible >= state.shops.size - 5 && state.hasMore && !state.isLoadingMore
+            lastVisible >= state.shops.size - 5 &&
+                state.hasMore &&
+                !state.isLoadingMore &&
+                !state.isLoading &&
+                !state.isRefreshing
         }
     }
     LaunchedEffect(shouldLoadMore) {
@@ -182,75 +188,127 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
             }
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { Navigator.navigate(Navigator.Screen.Map) },
-                icon = {
-                    Icon(
-                        imageVector = CpIcons.Map,
-                        contentDescription = null,
-                    )
-                },
-                text = {
-                    Text("Карта", style = MaterialTheme.typography.labelLarge)
-                },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = RoundedCornerShape(CpDimens.radius2xl),
-            )
+            val navClearance = LocalFloatingNavClearance.current
+            // Keep the FAB just above the floating nav, not high above it.
+            val fabLift = (navClearance - CpDimens.floatingNavBottomMargin - CpDimens.spacing4)
+                .coerceAtLeast(CpDimens.floatingNavBarHeight)
+            Box(modifier = Modifier.padding(bottom = fabLift)) {
+                ExtendedFloatingActionButton(
+                    onClick = { Navigator.navigate(Navigator.Screen.Map) },
+                    icon = {
+                        Icon(
+                            imageVector = CpIcons.Map,
+                            contentDescription = null,
+                        )
+                    },
+                    text = {
+                        Text("Карта", style = MaterialTheme.typography.labelLarge)
+                    },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = RoundedCornerShape(CpDimens.radius2xl),
+                )
+            }
         },
         floatingActionButtonPosition = FabPosition.Center,
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = state.isLoading && state.shops.isEmpty(),
-            onRefresh = vm::refresh,
-            modifier = Modifier.fillMaxSize().padding(padding),
-        ) {
-            when {
-                state.isLoading && state.shops.isEmpty() -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CoffeePeekLoader()
-                    }
+        val contentModifier = Modifier.fillMaxSize().padding(padding)
+        val navClearance = LocalFloatingNavClearance.current
+        val listContentPadding = PaddingValues(
+            start = CpDimens.spacing4,
+            top = CpDimens.spacing4,
+            end = CpDimens.spacing4,
+            bottom = CpDimens.spacing4 + navClearance,
+        )
+
+        when {
+            state.isLoading && state.shops.isEmpty() -> {
+                Box(contentModifier, contentAlignment = Alignment.Center) {
+                    CoffeePeekLoader()
                 }
-                state.error != null && state.shops.isEmpty() -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                state.error ?: "Ошибка загрузки",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(Modifier.height(CpDimens.spacing3))
-                            Button(
-                                onClick = vm::refresh,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                ),
-                            ) { Text("Попробовать снова") }
+            }
+            state.error != null && state.shops.isEmpty() -> {
+                CoffeePeekPullToRefresh(
+                    listState = listState,
+                    isRefreshing = state.isRefreshing,
+                    onRefresh = vm::refresh,
+                    modifier = contentModifier,
+                ) { scrollModifier ->
+                    LazyColumn(
+                        state = listState,
+                        modifier = scrollModifier.fillMaxSize(),
+                        contentPadding = listContentPadding,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        item {
+                            Column(
+                                modifier = Modifier.fillParentMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                Text(
+                                    state.error ?: "Ошибка загрузки",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Spacer(Modifier.height(CpDimens.spacing3))
+                                Button(
+                                    onClick = vm::refresh,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                                ) { Text("Попробовать снова") }
+                            }
                         }
                     }
                 }
-                state.shops.isEmpty() && !state.isLoading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                "Ничего не найдено",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            if (state.activeFilterCount > 0) {
-                                Spacer(Modifier.height(CpDimens.spacing2))
-                                TextButton(onClick = vm::clearFilters) {
-                                    Text("Сбросить фильтры")
+            }
+            state.shops.isEmpty() && !state.isLoading && !state.isRefreshing -> {
+                CoffeePeekPullToRefresh(
+                    listState = listState,
+                    isRefreshing = state.isRefreshing,
+                    onRefresh = vm::refresh,
+                    modifier = contentModifier,
+                ) { scrollModifier ->
+                    LazyColumn(
+                        state = listState,
+                        modifier = scrollModifier.fillMaxSize(),
+                        contentPadding = listContentPadding,
+                    ) {
+                        item {
+                            Column(
+                                modifier = Modifier.fillParentMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                Text(
+                                    "Ничего не найдено",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                if (state.activeFilterCount > 0) {
+                                    Spacer(Modifier.height(CpDimens.spacing2))
+                                    TextButton(onClick = vm::clearFilters) {
+                                        Text("Сбросить фильтры")
+                                    }
                                 }
                             }
                         }
                     }
                 }
-                else -> {
+            }
+            else -> {
+                CoffeePeekPullToRefresh(
+                    listState = listState,
+                    isRefreshing = state.isRefreshing,
+                    onRefresh = vm::refresh,
+                    modifier = contentModifier,
+                ) { scrollModifier ->
                     LazyColumn(
                         state = listState,
-                        contentPadding = PaddingValues(CpDimens.spacing4),
+                        modifier = scrollModifier.fillMaxSize(),
+                        contentPadding = listContentPadding,
                         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
                     ) {
                         items(state.shops, key = { it.id }) { shop ->
@@ -499,7 +557,11 @@ private fun FeedFiltersPanel(
         }
         if (state.cities.isNotEmpty()) {
             FilterSection("Город") {
-                CityChips(state.cities, filters.cityId, onCity)
+                CityCatalogChips(
+                    cities = state.cities,
+                    selectedId = filters.cityId,
+                    onSelect = onCity,
+                )
             }
         }
         FilterSection("Цена") {
@@ -554,22 +616,6 @@ private fun FilterSection(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         content()
-    }
-}
-
-@Composable
-private fun CityChips(cities: List<City>, selectedId: String?, onSelect: (String?) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-    ) {
-        cities.forEach { city ->
-            FilterChip(
-                selected = selectedId == city.id,
-                onClick = { onSelect(if (selectedId == city.id) null else city.id) },
-                label = { Text(city.name, style = MaterialTheme.typography.labelSmall) },
-            )
-        }
     }
 }
 

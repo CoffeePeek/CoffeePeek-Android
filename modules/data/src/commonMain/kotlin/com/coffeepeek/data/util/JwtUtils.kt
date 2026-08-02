@@ -18,6 +18,11 @@ object JwtUtils {
         return nowSeconds >= exp - leewaySeconds
     }
 
+    fun hasModeratorAccess(accessToken: String): Boolean {
+        val json = decodePayloadJson(accessToken) ?: return false
+        return json.contains("\"Moderator\"") || json.contains("\"Admin\"")
+    }
+
     private fun decodePayloadJson(accessToken: String): String? {
         val payload = accessToken.split('.').getOrNull(1) ?: return null
         val padded = payload.padEnd((payload.length + 3) / 4 * 4, '=')

@@ -16,6 +16,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.cookie
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 
@@ -75,7 +76,9 @@ class AuthService(
 
     suspend fun isEmailTaken(email: String): Result<Boolean> =
         runCatching {
-            val response = refreshClient.get("/api/Users/exists?email=$email")
+            val response = refreshClient.get("/api/Users/exists") {
+                parameter("email", email)
+            }
             when (response.status) {
                 HttpStatusCode.NotFound -> false
                 else -> {

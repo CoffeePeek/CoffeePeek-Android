@@ -1,10 +1,14 @@
 package com.coffeepeek.admin
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import com.coffeepeek.admin.theme.CoffeePeekTheme
 import com.coffeepeek.admin.theme.ThemeManager
 import com.coffeepeek.admin.theme.ThemeMode
@@ -17,9 +21,8 @@ import org.koin.compose.koinInject
 
 @Composable
 @Preview
-fun App() {
-    OrientationObserver.StartObserver()
-
+fun App(onReady: () -> Unit = {}) {
+    val kamelConfig = koinInject<KamelConfig>()
     val themeMode by ThemeManager.themeMode.collectAsState()
     val isSystemDark = isSystemInDarkTheme()
 
@@ -29,11 +32,16 @@ fun App() {
         ThemeMode.DARK   -> true
     }
 
-    val kamelConfig = koinInject<KamelConfig>()
+    LaunchedEffect(Unit) {
+        onReady()
+    }
 
     CoffeePeekTheme(darkTheme = darkTheme) {
         CompositionLocalProvider(LocalKamelConfig provides kamelConfig) {
-            Navigator()
+            Box(Modifier.fillMaxSize()) {
+                OrientationObserver.StartObserver()
+                Navigator()
+            }
         }
     }
 }

@@ -16,6 +16,7 @@ import com.coffeepeek.domain.model.MapShop
 import com.coffeepeek.domain.model.PagedResult
 import com.coffeepeek.domain.model.ShopCatalogs
 import com.coffeepeek.domain.model.ShopFilters
+import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.PhotoRepository
 import com.coffeepeek.domain.repository.ShopRepository
 import kotlinx.coroutines.Deferred
@@ -27,6 +28,7 @@ import kotlinx.coroutines.sync.withLock
 class ShopRepositoryImpl(
     private val shopApiService: ShopApiService,
     private val photoRepository: PhotoRepository,
+    private val favoriteRepository: FavoriteRepository,
 ) : ShopRepository {
 
     private var cachedCatalogs: ShopCatalogs? = null
@@ -76,8 +78,11 @@ class ShopRepositoryImpl(
             page = filters.page,
             pageSize = filters.pageSize,
         ).map { dto ->
+            val favoriteIds = favoriteRepository.getFavoriteIds()
             PagedResult(
-                items = dto.coffeeShops.map { it.toDomain() },
+                items = dto.coffeeShops.map { shop ->
+                    shop.toDomain().copy(isFavorite = shop.id in favoriteIds)
+                },
                 totalCount = dto.totalItems,
                 totalPages = dto.totalPages,
                 currentPage = dto.currentPage,
@@ -85,7 +90,12 @@ class ShopRepositoryImpl(
         }
 
     override suspend fun getShopDetails(id: String): Result<CoffeeShopDetails> =
-        shopApiService.getShopDetails(id).map { it.toDomain() }
+        shopApiService.getShopDetails(id).map { details ->
+            val domain = details.toDomain()
+            domain.copy(
+                shop = domain.shop.copy(isFavorite = favoriteRepository.isFavorite(id)),
+            )
+        }
 
     override suspend fun getShopsInBounds(bounds: MapBounds, filters: ShopFilters): Result<List<MapShop>> =
         shopApiService.getShopsInBounds(

@@ -22,9 +22,11 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
+            implementation("androidx.core:core-splashscreen:1.0.1")
             implementation("androidx.exifinterface:exifinterface:1.4.1")
             implementation(libs.yandex.mapkit)
             implementation("com.google.android.gms:play-services-auth:21.3.0")
+            implementation("org.slf4j:slf4j-nop:2.0.16")
         }
         commonMain.dependencies {
             implementation(project(":modules:domain"))

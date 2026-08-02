@@ -27,17 +27,12 @@ class FavoritesViewModel(
     init {
         load()
         FavoriteSync.changes
-            .onEach { change ->
-                if (!change.isFavorite) {
-                    _state.update { state ->
-                        state.copy(shops = state.shops.filter { it.shop.id != change.shopId })
-                    }
-                }
-            }
+            .onEach { load(force = true) }
             .launchIn(workScope)
     }
 
-    fun load() {
+    fun load(force: Boolean = false) {
+        if (!force && (_state.value.isLoading || _state.value.shops.isNotEmpty())) return
         workScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             favoriteRepository.getFavorites()

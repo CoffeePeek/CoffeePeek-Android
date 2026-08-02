@@ -9,6 +9,8 @@ import com.coffeepeek.api.utils.ApiException
 import com.coffeepeek.admin.utils.ErrorHandler
 import com.coffeepeek.admin.utils.LoadingHandler
 import com.coffeepeek.admin.utils.handleError
+import com.coffeepeek.domain.model.Session
+import com.coffeepeek.domain.repository.SessionRepository
 import io.ktor.utils.io.core.Closeable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +43,16 @@ abstract class BaseViewModel : ViewModel(), Closeable {
     ) = this.stateIn(workScope, started, initialValue)
 
     protected fun <T> Result<T>.handleError(): Result<T> = handleError()
+
+    /** Возвращает сессию или сбрасывает её и закрывает доступ к защищённым экранам. */
+    protected suspend fun requireAuthSession(sessionRepository: SessionRepository): Session? {
+        val session = sessionRepository.getSession()
+        if (!sessionRepository.isActiveSession(session)) {
+            sessionRepository.saveSession(null)
+            return null
+        }
+        return session
+    }
 
     /**
      * Универсальный метод для выполнения сетевых запросов.

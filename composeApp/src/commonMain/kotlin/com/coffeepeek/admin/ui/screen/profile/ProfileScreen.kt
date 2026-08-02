@@ -59,6 +59,7 @@ import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
 import com.coffeepeek.admin.utils.CpImage
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.profile_version
@@ -228,7 +229,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 )
             }
 
-            Spacer(Modifier.height(CpDimens.spacing8))
+            Spacer(Modifier.height(CpDimens.spacing8 + LocalFloatingNavClearance.current))
         }
     }
 }

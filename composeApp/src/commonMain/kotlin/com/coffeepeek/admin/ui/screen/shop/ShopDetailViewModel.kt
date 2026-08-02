@@ -2,20 +2,26 @@ package com.coffeepeek.admin.ui.screen.shop
 
 import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.utils.FavoriteSync
+import com.coffeepeek.admin.utils.ReviewSync
+import com.coffeepeek.admin.utils.currentUtcIsoDateTime
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.CreateCheckInInput
 import com.coffeepeek.domain.repository.CheckInRepository
 import com.coffeepeek.domain.repository.FavoriteRepository
+import com.coffeepeek.domain.repository.ReviewRepository
+import com.coffeepeek.domain.repository.SessionRepository
 import com.coffeepeek.domain.repository.ShopRepository
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import com.coffeepeek.admin.utils.FavoriteSync
-import com.coffeepeek.admin.utils.currentUtcIsoDateTime
 
 data class ShopDetailUiState(
     val details: CoffeeShopDetails? = null,
+    val isLoggedIn: Boolean = false,
     val isLoading: Boolean = false,
     val isFavoriteLoading: Boolean = false,
     val isCheckInLoading: Boolean = false,
@@ -29,6 +35,8 @@ class ShopDetailViewModel(
     private val shopRepository: ShopRepository,
     private val favoriteRepository: FavoriteRepository,
     private val checkInRepository: CheckInRepository,
+    private val reviewRepository: ReviewRepository,
+    private val sessionRepository: SessionRepository,
 ) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(ShopDetailUiState())
@@ -36,6 +44,14 @@ class ShopDetailViewModel(
 
     init {
         load()
+        ReviewSync.changes
+            .onEach { changedShopId ->
+                if (changedShopId == shopId) {
+                    _uiState.update { it.copy(actionMessage = "Отзыв отправлен на модерацию") }
+                    refreshDetails(showLoading = false)
+                }
+            }
+            .launchIn(workScope)
     }
 
     fun load() {
@@ -46,9 +62,13 @@ class ShopDetailViewModel(
     }
 
     private suspend fun refreshDetails(showLoading: Boolean) {
+        val isLoggedIn = sessionRepository.isLoggedIn()
         shopRepository.getShopDetails(shopId)
+            .mapCatching { enrichWithReviewAccess(it) }
             .onSuccess { details ->
-                _uiState.update { it.copy(details = details, isLoading = false) }
+                _uiState.update {
+                    it.copy(details = details, isLoggedIn = isLoggedIn, isLoading = false)
+                }
             }
             .onFailure { e ->
                 _uiState.update {
@@ -60,6 +80,16 @@ class ShopDetailViewModel(
             }
     }
 
+    private suspend fun enrichWithReviewAccess(details: CoffeeShopDetails): CoffeeShopDetails {
+        if (!sessionRepository.isLoggedIn()) {
+            return details.copy(existingReviewId = null)
+        }
+        return reviewRepository.canCreateReview(shopId).fold(
+            onSuccess = { (_, reviewId) -> details.copy(existingReviewId = reviewId) },
+            onFailure = { details },
+        )
+    }
+
     fun toggleFavorite() {
         val details = _uiState.value.details ?: return
         val isFavorite = details.shop.isFavorite
@@ -68,7 +98,10 @@ class ShopDetailViewModel(
             val result = if (isFavorite) {
                 favoriteRepository.removeFavorite(shopId)
             } else {
-                favoriteRepository.addFavorite(shopId)
+                favoriteRepository.addFavorite(
+                    shop = details.shop,
+                    address = details.location?.address ?: details.shop.address,
+                )
             }
             result
                 .onSuccess {
@@ -125,7 +158,7 @@ class ShopDetailViewModel(
                     placeRating = placeRating,
                     serviceRating = serviceRating,
                     coffeeRating = coffeeRating,
-                )
+                ),
             ).onSuccess {
                 _uiState.update { state ->
                     val current = state.details
@@ -148,7 +181,21 @@ class ShopDetailViewModel(
     }
 
     fun openCreateReview() {
-        Navigator.navigate(Navigator.Screen.CreateReview(shopId))
+        workScope.launch {
+            if (!sessionRepository.isLoggedIn()) {
+                _uiState.update { it.copy(actionMessage = "Войдите, чтобы оставить отзыв") }
+                return@launch
+            }
+            if (!_uiState.value.details?.existingReviewId.isNullOrBlank()) {
+                _uiState.update { it.copy(actionMessage = "Вы уже оставляли отзыв об этом месте") }
+                return@launch
+            }
+            Navigator.navigate(Navigator.Screen.CreateReview(shopId))
+        }
+    }
+
+    fun openEditReview(reviewId: String) {
+        Navigator.navigate(Navigator.Screen.ReviewEdit(reviewId))
     }
 
     fun openOnMap() {

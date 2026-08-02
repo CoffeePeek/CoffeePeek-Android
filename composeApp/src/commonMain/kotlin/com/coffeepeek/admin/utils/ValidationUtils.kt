@@ -12,6 +12,27 @@ private const val MSG_PHONE_INVALID = "Некорректный формат т�
 private const val MSG_URL_INVALID = "Укажите ссылку с http:// или https://"
 private const val MSG_INSTAGRAM_INVALID = "Некорректный Instagram"
 
+const val MIN_REVIEW_HEADER_LENGTH = 3
+const val MIN_REVIEW_COMMENT_LENGTH = 10
+
+fun validateReviewHeader(header: String): String? {
+    val value = header.trim()
+    return when {
+        value.isBlank() -> "Введите заголовок"
+        value.length < MIN_REVIEW_HEADER_LENGTH -> "Минимум $MIN_REVIEW_HEADER_LENGTH символа в заголовке"
+        else -> null
+    }
+}
+
+fun validateReviewComment(comment: String): String? {
+    val value = comment.trim()
+    return when {
+        value.isBlank() -> "Введите текст отзыва"
+        value.length < MIN_REVIEW_COMMENT_LENGTH -> "Минимум $MIN_REVIEW_COMMENT_LENGTH символов в отзыве"
+        else -> null
+    }
+}
+
 fun validateEmailRequired(email: String): String? = when {
     email.isBlank() -> MSG_EMAIL_REQUIRED
     !EMAIL_REGEX.matches(email.trim()) -> MSG_EMAIL_INVALID

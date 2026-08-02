@@ -6,7 +6,6 @@ import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesScreen
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileScreen
 import com.coffeepeek.admin.ui.screen.favorites.FavoritesScreen
 import com.coffeepeek.admin.ui.screen.reviews.MyReviewsScreen
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,7 +18,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.coffeepeek.admin.theme.Theme
 import com.coffeepeek.admin.ui.dialogs.ErrorDialog
 import com.coffeepeek.admin.ui.dialogs.LoadingDialog
 import com.coffeepeek.admin.ui.screen.auth.AuthScreen
@@ -66,12 +64,10 @@ object Navigator {
 
         // Graphs
         @Serializable data object FeedGraph : Screen
-        @Serializable data object CommunityGraph : Screen
         @Serializable data object ProfileGraph : Screen
 
         // Tabs
         @Serializable data object FeedTab : Screen
-        @Serializable data object CommunityTab : Screen
         @Serializable data object ProfileTab : Screen
 
         // Inner screens (add here + in the graph in MainScreen)
@@ -162,6 +158,7 @@ object Navigator {
         LaunchedEffect(isLoggedIn) {
             if (!isLoggedIn) {
                 ErrorHandler.clearError()
+                LoadingHandler.clearLoading()
             }
         }
 

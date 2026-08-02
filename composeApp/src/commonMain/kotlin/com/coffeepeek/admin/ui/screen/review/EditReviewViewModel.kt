@@ -4,6 +4,9 @@ import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.MAX_REVIEW_PHOTOS
 import com.coffeepeek.admin.utils.PickedImage
+import com.coffeepeek.admin.utils.ReviewSync
+import com.coffeepeek.admin.utils.validateReviewComment
+import com.coffeepeek.admin.utils.validateReviewHeader
 import com.coffeepeek.domain.model.PendingPhotoUpload
 import com.coffeepeek.domain.model.UpdateReviewInput
 import com.coffeepeek.domain.repository.ReviewRepository
@@ -23,6 +26,8 @@ data class EditReviewUiState(
     val existingPhotoUrls: List<String> = emptyList(),
     val newPhotos: List<PickedImage> = emptyList(),
     val isSubmitting: Boolean = false,
+    val headerError: String? = null,
+    val commentError: String? = null,
     val error: String? = null,
 )
 
@@ -34,6 +39,7 @@ class EditReviewViewModel(
 
     private val _state = MutableStateFlow(EditReviewUiState())
     val state = _state.asStateFlow()
+    private var shopIdForSync: String? = null
 
     init {
         loadReview()
@@ -41,11 +47,8 @@ class EditReviewViewModel(
 
     fun loadReview() {
         workScope.launch {
-            val userId = sessionRepository.getSession()?.userId
-            if (userId.isNullOrBlank()) {
-                _state.update { it.copy(isLoading = false, error = "Пользователь не авторизован") }
-                return@launch
-            }
+            val session = requireAuthSession(sessionRepository) ?: return@launch
+            val userId = session.userId ?: return@launch
             _state.update { it.copy(isLoading = true, error = null) }
             reviewRepository.getUserReviews(userId, page = 1, pageSize = 100)
                 .onSuccess { page ->
@@ -54,6 +57,7 @@ class EditReviewViewModel(
                         _state.update { it.copy(isLoading = false, error = "Отзыв не найден") }
                         return@onSuccess
                     }
+                    shopIdForSync = review.shopId
                     _state.update {
                         it.copy(
                             isLoading = false,
@@ -72,8 +76,13 @@ class EditReviewViewModel(
         }
     }
 
-    fun onHeaderChange(v: String) { _state.update { it.copy(header = v.take(120)) } }
-    fun onCommentChange(v: String) { _state.update { it.copy(comment = v.take(2000)) } }
+    fun onHeaderChange(v: String) {
+        _state.update { it.copy(header = v.take(120), headerError = null) }
+    }
+
+    fun onCommentChange(v: String) {
+        _state.update { it.copy(comment = v.take(2000), commentError = null) }
+    }
     fun onPlaceRating(v: Int) { _state.update { it.copy(placeRating = v.coerceIn(1, 5)) } }
     fun onServiceRating(v: Int) { _state.update { it.copy(serviceRating = v.coerceIn(1, 5)) } }
     fun onCoffeeRating(v: Int) { _state.update { it.copy(coffeeRating = v.coerceIn(1, 5)) } }
@@ -95,8 +104,16 @@ class EditReviewViewModel(
 
     fun submit() {
         val s = _state.value
-        if (s.header.isBlank() || s.comment.isBlank()) {
-            _state.update { it.copy(error = "Заполните заголовок и текст отзыва") }
+        val headerError = validateReviewHeader(s.header)
+        val commentError = validateReviewComment(s.comment)
+        if (headerError != null || commentError != null) {
+            _state.update {
+                it.copy(
+                    headerError = headerError,
+                    commentError = commentError,
+                    error = null,
+                )
+            }
             return
         }
         workScope.launch {
@@ -112,6 +129,7 @@ class EditReviewViewModel(
                     photos = s.newPhotos.map { it.toPendingUpload() },
                 )
             ).onSuccess {
+                shopIdForSync?.let { ReviewSync.notifyChanged(it) }
                 _state.update { it.copy(isSubmitting = false) }
                 Navigator.popBack()
             }.onFailure { e ->

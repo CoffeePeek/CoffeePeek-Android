@@ -31,14 +31,9 @@ class CoffeePeekClient(
     private val getToken: () -> AuthResp?,
     private val saveToken: (AuthResp?) -> Unit,
 ) {
-    @Volatile
-    private var cachedTokens: AuthResp? = null
-
-    private fun resolveTokens(): AuthResp? =
-        cachedTokens ?: getToken()?.also { cachedTokens = it }
+    private fun resolveTokens(): AuthResp? = getToken()
 
     private fun persistTokens(tokens: AuthResp?) {
-        cachedTokens = tokens
         saveToken(tokens)
     }
 

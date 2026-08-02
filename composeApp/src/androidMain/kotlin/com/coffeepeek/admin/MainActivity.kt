@@ -6,6 +6,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import java.util.concurrent.atomic.AtomicBoolean
 
 class MainActivity : ComponentActivity() {
 
@@ -15,12 +17,17 @@ class MainActivity : ComponentActivity() {
         val context get() = _context!!
     }
 
+    private val isAppReady = AtomicBoolean(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+        splashScreen.setKeepOnScreenCondition { !isAppReady.get() }
+
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         _context = this
         setContent {
-            App()
+            App(onReady = { isAppReady.set(true) })
         }
     }
 

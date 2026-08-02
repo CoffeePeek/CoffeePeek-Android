@@ -71,7 +71,7 @@ class MapViewModel(
 
     private var boundsJob: Job? = null
     private var detailsJob: Job? = null
-    private var cameraJob: Job? = null
+    private var boundsPauseJob: Job? = null
     private var selectionVersion = 0
     private val detailsCache = mutableMapOf<String, CoffeeShopDetails>()
     private var suppressBoundsUpdates = false
@@ -102,11 +102,14 @@ class MapViewModel(
     }
 
     fun onShopSelected(shop: MapShop) {
-        selectShop(shop, moveCamera = true)
+        if (_state.value.selectedShop?.id == shop.id) return
+        selectShop(shop)
     }
 
     fun clearSelection() {
         detailsJob?.cancel()
+        boundsPauseJob?.cancel()
+        suppressBoundsUpdates = false
         selectionVersion++
         _state.update {
             it.copy(
@@ -180,7 +183,6 @@ class MapViewModel(
             longitude = focus.longitude,
         )
         workScope.launch {
-            suppressBoundsUpdates = true
             _state.update { current ->
                 current.copy(
                     shops = (current.shops + shop).distinctBy { it.id },
@@ -188,9 +190,8 @@ class MapViewModel(
                     cameraZoom = 16f,
                 )
             }
-            selectShop(shop, moveCamera = false)
-            delay(900)
-            suppressBoundsUpdates = false
+            selectShop(shop)
+            pauseBoundsUpdates(700)
         }
     }
 
@@ -205,6 +206,7 @@ class MapViewModel(
                 cameraZoom = 15f,
             )
         }
+        pauseBoundsUpdates(700)
     }
 
     fun onLocationPermissionDenied() {
@@ -286,31 +288,22 @@ class MapViewModel(
         }
     }
 
-    private fun selectShop(shop: MapShop, moveCamera: Boolean) {
+    private fun selectShop(shop: MapShop) {
         detailsJob?.cancel()
-        cameraJob?.cancel()
         val version = ++selectionVersion
         val cachedDetails = detailsCache[shop.id]
-        if (moveCamera) {
-            suppressBoundsUpdates = true
-        }
 
         _state.update {
             it.copy(
                 selectedShop = shop,
                 selectedShopDetails = cachedDetails,
                 isLoadingShopDetails = cachedDetails == null,
-                shops = (it.shops + shop).distinctBy { item -> item.id },
-                cameraTarget = if (moveCamera) shop.latitude to shop.longitude else it.cameraTarget,
-                cameraZoom = if (moveCamera) 16f else it.cameraZoom,
+                shops = if (it.shops.any { item -> item.id == shop.id }) {
+                    it.shops
+                } else {
+                    it.shops + shop
+                },
             )
-        }
-
-        if (moveCamera) {
-            cameraJob = workScope.launch {
-                delay(900)
-                suppressBoundsUpdates = false
-            }
         }
 
         if (cachedDetails != null) return
@@ -333,6 +326,18 @@ class MapViewModel(
                         current.copy(isLoadingShopDetails = false)
                     }
                 }
+        }
+    }
+
+    private fun pauseBoundsUpdates(durationMs: Long = 600) {
+        boundsPauseJob?.cancel()
+        boundsPauseJob = workScope.launch {
+            suppressBoundsUpdates = true
+            try {
+                delay(durationMs)
+            } finally {
+                suppressBoundsUpdates = false
+            }
         }
     }
 

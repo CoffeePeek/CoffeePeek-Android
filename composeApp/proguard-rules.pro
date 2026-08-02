@@ -37,3 +37,7 @@
 # Google Play Services Auth
 -keep class com.google.android.gms.** { *; }
 -dontwarn com.google.android.gms.**
+
+# EncryptedSharedPreferences
+-keep class androidx.security.crypto.** { *; }
+-dontwarn androidx.security.crypto.**

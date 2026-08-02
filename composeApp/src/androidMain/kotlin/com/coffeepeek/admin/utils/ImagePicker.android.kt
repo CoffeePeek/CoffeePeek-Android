@@ -2,7 +2,6 @@ package com.coffeepeek.admin.utils
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.LocalActivity
@@ -10,13 +9,17 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import com.coffeepeek.admin.utils.BitmapUtil.toByteArray
+import androidx.compose.runtime.setValue
+import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
+import java.io.File
 
 @Composable
 actual fun rememberPhotoPicker(
@@ -30,6 +33,7 @@ actual fun rememberPhotoPicker(
     val maxSelectionState = rememberUpdatedState(maxSelection.coerceIn(1, MAX_SHOP_PHOTOS))
     val onPhotosPickedState = rememberUpdatedState(onPhotosPicked)
     val isLoadingState = rememberUpdatedState(isLoading)
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
     fun processUris(uris: List<Uri>) {
         if (uris.isEmpty() || resolver == null) return
@@ -38,10 +42,20 @@ actual fun rememberPhotoPicker(
             val limit = maxSelectionState.value
             val images = uris.take(limit).mapNotNull { uri ->
                 runCatching {
-                    val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return@mapNotNull null
-                    val compressed = BitmapUtil.load(bytes).toByteArray()
-                    val fileName = resolver.queryFileName(uri) ?: "photo_${System.currentTimeMillis()}.jpg"
-                    PickedImage(bytes = compressed, fileName = fileName, contentType = "image/jpeg")
+                    val raw = resolver.openInputStream(uri)?.use { it.readBytes() }
+                        ?: return@mapNotNull null
+                    val prepared = BitmapUtil.prepareForUpload(raw)
+                    val originalName = resolver.queryFileName(uri)
+                    val fileName = originalName
+                        ?.substringBeforeLast('.')
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { "$it.jpg" }
+                        ?: "photo_${System.currentTimeMillis()}.jpg"
+                    PickedImage(
+                        bytes = prepared,
+                        fileName = fileName,
+                        contentType = "image/jpeg",
+                    )
                 }.getOrNull()
             }
             if (images.isNotEmpty()) {
@@ -56,33 +70,39 @@ actual fun rememberPhotoPicker(
     ) { uris -> processUris(uris) }
 
     val takePicture = rememberLauncherForActivityResult(
-        ActivityResultContracts.TakePicturePreview(),
-    ) { bitmap ->
-        if (bitmap == null) return@rememberLauncherForActivityResult
-        scope.launch(Dispatchers.IO) {
-            isLoadingState.value(true)
-            val bytes = bitmap.toJpegBytes()
-            val image = PickedImage(
-                bytes = bytes,
-                fileName = "photo_${System.currentTimeMillis()}.jpg",
-                contentType = "image/jpeg",
-            )
-            withContext(Dispatchers.Main) { onPhotosPickedState.value(listOf(image)) }
-            isLoadingState.value(false)
+        ActivityResultContracts.TakePicture(),
+    ) { success ->
+        val uri = pendingCameraUri
+        pendingCameraUri = null
+        if (!success || uri == null) {
+            // Clean up empty/failed capture file if present.
+            if (uri != null) {
+                runCatching { activity?.contentResolver?.delete(uri, null, null) }
+            }
+            return@rememberLauncherForActivityResult
         }
+        processUris(listOf(uri))
     }
 
     val requestCameraPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
-        if (granted) takePicture.launch(null)
+        if (!granted) return@rememberLauncherForActivityResult
+        val context = activity ?: return@rememberLauncherForActivityResult
+        val uri = context.createCameraImageUri() ?: return@rememberLauncherForActivityResult
+        pendingCameraUri = uri
+        takePicture.launch(uri)
     }
 
     fun launchCamera() {
         val context = activity ?: return
         when {
             context.checkSelfPermission(Manifest.permission.CAMERA) ==
-                PackageManager.PERMISSION_GRANTED -> takePicture.launch(null)
+                PackageManager.PERMISSION_GRANTED -> {
+                val uri = context.createCameraImageUri() ?: return
+                pendingCameraUri = uri
+                takePicture.launch(uri)
+            }
             else -> requestCameraPermission.launch(Manifest.permission.CAMERA)
         }
     }
@@ -99,14 +119,14 @@ actual fun rememberPhotoPicker(
     )
 }
 
+private fun android.content.Context.createCameraImageUri(): Uri? = runCatching {
+    val dir = File(cacheDir, "camera").apply { mkdirs() }
+    val file = File(dir, "capture_${System.currentTimeMillis()}.jpg")
+    FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+}.getOrNull()
+
 private fun android.content.ContentResolver.queryFileName(uri: Uri): String? =
     query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
         val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
         if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
     }
-
-private fun Bitmap.toJpegBytes(quality: Int = 85): ByteArray {
-    val stream = ByteArrayOutputStream()
-    compress(Bitmap.CompressFormat.JPEG, quality, stream)
-    return stream.toByteArray()
-}

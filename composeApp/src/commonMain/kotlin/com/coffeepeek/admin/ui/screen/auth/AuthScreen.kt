@@ -3,7 +3,6 @@ package com.coffeepeek.admin.ui.screen.auth
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,17 +27,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.app_name
 import coffeepeek.composeapp.generated.resources.eco_system
 import coffeepeek.composeapp.generated.resources.entry
+import coffeepeek.composeapp.generated.resources.ic_app_logo
 import coffeepeek.composeapp.generated.resources.login
 import coffeepeek.composeapp.generated.resources.no_account
 import coffeepeek.composeapp.generated.resources.password
-import coffeepeek.composeapp.generated.resources.compose_multiplatform
-import coffeepeek.composeapp.generated.resources.registr
+import coffeepeek.composeapp.generated.resources.registration
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.SpanStyle
 import com.coffeepeek.admin.auth.GoogleSignInButton
+import com.coffeepeek.admin.auth.handleGoogleSignInResult
 import com.coffeepeek.admin.auth.isGoogleSignInConfigured
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
@@ -71,8 +76,8 @@ object AuthScreen {
 
             // ── Логотип ──────────────────────────────────────────────────────
             Image(
-                painter = painterResource(Res.drawable.compose_multiplatform),
-                contentDescription = null,
+                painter = painterResource(Res.drawable.ic_app_logo),
+                contentDescription = stringResource(Res.string.app_name),
                 modifier = Modifier
                     .size(CpDimens.headerLogoSize)
                     .clip(RoundedCornerShape(CpDimens.radiusMd)),
@@ -142,21 +147,9 @@ object AuthScreen {
 
                     Spacer(modifier = Modifier.height(CpDimens.spacing4))
 
-                    Row {
-                        Text(
-                            text = stringResource(Res.string.no_account),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = " " + stringResource(Res.string.registr),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.clickable {
-                                Navigator.navigate(Navigator.Screen.Register)
-                            },
-                        )
-                    }
+                    AuthSignUpPrompt(
+                        onSignUp = { Navigator.navigate(Navigator.Screen.Register) },
+                    )
 
                     if (isGoogleSignInConfigured()) {
                         Spacer(modifier = Modifier.height(CpDimens.spacing5))
@@ -164,7 +157,7 @@ object AuthScreen {
                         Spacer(modifier = Modifier.height(CpDimens.spacing5))
                         GoogleSignInButton(
                             onResult = { result ->
-                                result.onSuccess(vm::onGoogleLogin)
+                                handleGoogleSignInResult(result, vm::onGoogleLogin)
                             },
                         )
                     }
@@ -173,6 +166,31 @@ object AuthScreen {
 
             Spacer(modifier = Modifier.height(CpDimens.spacing8))
         }
+    }
+}
+
+@Composable
+private fun AuthSignUpPrompt(onSignUp: () -> Unit) {
+    val linkColor = MaterialTheme.colorScheme.primary
+    val bodyColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(color = bodyColor)) {
+                    append(stringResource(Res.string.no_account))
+                }
+                withStyle(SpanStyle(color = linkColor)) {
+                    append(stringResource(Res.string.registration))
+                }
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.clickable(onClick = onSignUp),
+        )
     }
 }
 

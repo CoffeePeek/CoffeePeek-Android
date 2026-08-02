@@ -38,7 +38,7 @@ private const val DEFAULT_LON = 27.5615
 private const val DEFAULT_ZOOM = 12f
 
 private data class PlacemarkEntry(
-    val placemark: PlacemarkMapObject,
+    var placemark: PlacemarkMapObject,
     var isSelected: Boolean,
     var latitude: Double,
     var longitude: Double,
@@ -290,26 +290,22 @@ private fun syncPlacemarks(
     shops.forEach { shop ->
         val point = Point(shop.latitude, shop.longitude)
         val isSelected = shop.id == selectedShopId
-        val entry = placemarks.getOrPut(shop.id) {
-            lateinit var newEntry: PlacemarkEntry
-            val placemark = map.mapObjects.addPlacemark(point).apply {
-                setIcon(if (isSelected) selectedIcon else defaultIcon)
-                setIconStyle(iconStyle)
-                zIndex = if (isSelected) 2f else 1f
-                addTapListener { _, _ ->
-                    onShopClick(newEntry.shop)
-                    true
-                }
-            }
-            newEntry = PlacemarkEntry(
-                placemark = placemark,
-                isSelected = isSelected,
-                latitude = shop.latitude,
-                longitude = shop.longitude,
+        val entry = placemarks[shop.id]
+
+        if (entry == null) {
+            placemarks[shop.id] = createPlacemark(
+                map = map,
                 shop = shop,
+                point = point,
+                isSelected = isSelected,
+                defaultIcon = defaultIcon,
+                selectedIcon = selectedIcon,
+                iconStyle = iconStyle,
+                onShopClick = onShopClick,
             )
-            newEntry
+            return@forEach
         }
+
         entry.shop = shop
 
         if (entry.latitude != shop.latitude || entry.longitude != shop.longitude) {
@@ -318,16 +314,52 @@ private fun syncPlacemarks(
             entry.longitude = shop.longitude
         }
 
-        val targetZIndex = if (isSelected) 2f else 1f
-        if (entry.placemark.zIndex != targetZIndex) {
-            entry.placemark.zIndex = targetZIndex
-        }
-
         if (entry.isSelected != isSelected) {
-            entry.placemark.setIcon(if (isSelected) selectedIcon else defaultIcon)
-            entry.isSelected = isSelected
+            map.mapObjects.remove(entry.placemark)
+            val recreated = createPlacemark(
+                map = map,
+                shop = shop,
+                point = point,
+                isSelected = isSelected,
+                defaultIcon = defaultIcon,
+                selectedIcon = selectedIcon,
+                iconStyle = iconStyle,
+                onShopClick = onShopClick,
+            )
+            placemarks[shop.id] = recreated
         }
     }
+}
+
+private fun createPlacemark(
+    map: Map,
+    shop: MapShop,
+    point: Point,
+    isSelected: Boolean,
+    defaultIcon: com.yandex.runtime.image.ImageProvider,
+    selectedIcon: com.yandex.runtime.image.ImageProvider,
+    iconStyle: IconStyle,
+    onShopClick: (MapShop) -> Unit,
+): PlacemarkEntry {
+    lateinit var entry: PlacemarkEntry
+    val placemark = map.mapObjects.addPlacemark(point).apply {
+        setIcon(if (isSelected) selectedIcon else defaultIcon)
+        setIconStyle(iconStyle)
+        zIndex = if (isSelected) 2f else 1f
+        isDraggable = false
+        addTapListener { _, _ ->
+            onShopClick(entry.shop)
+            true
+        }
+    }
+    entry = PlacemarkEntry(
+        placemark = placemark,
+        isSelected = isSelected,
+        latitude = shop.latitude,
+        longitude = shop.longitude,
+        shop = shop,
+    )
+    return entry
 }
 
 private fun VisibleRegion.toMapBounds(): MapBounds {
