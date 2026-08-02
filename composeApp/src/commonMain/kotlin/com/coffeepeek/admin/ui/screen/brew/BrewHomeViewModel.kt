@@ -32,6 +32,7 @@ class BrewHomeViewModel(
                     it.copy(
                         recent = sessions.take(5),
                         isLoading = false,
+                        weekTrends = brewRepository.getTrends(7),
                     )
                 }
             }
@@ -40,17 +41,5 @@ class BrewHomeViewModel(
         brewRepository.observeBeans()
             .onEach { beans -> _state.update { it.copy(beanCount = beans.size) } }
             .launchIn(workScope)
-
-        workScope.launch {
-            val trends = brewRepository.getTrends(7)
-            _state.update { it.copy(weekTrends = trends) }
-        }
-    }
-
-    fun refreshTrends() {
-        workScope.launch {
-            val trends = brewRepository.getTrends(7)
-            _state.update { it.copy(weekTrends = trends) }
-        }
     }
 }
