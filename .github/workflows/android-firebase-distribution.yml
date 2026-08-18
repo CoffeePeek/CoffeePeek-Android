@@ -64,20 +64,40 @@ jobs:
   distribute-to-firebase:
     needs: build-debug-apk
     runs-on: ubuntu-latest
-    if: >-
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      secrets.FIREBASE_APP_ID_ANDROID != '' &&
-      secrets.FIREBASE_SERVICE_ACCOUNT_JSON != '' &&
-      (secrets.FIREBASE_TESTER_GROUPS != '' || secrets.FIREBASE_TESTERS != '')
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     steps:
+      - name: Validate Firebase secrets
+        id: firebase
+        shell: bash
+        run: |
+          enabled=true
+          if [ -z "${{ secrets.FIREBASE_APP_ID_ANDROID }}" ]; then
+            echo "FIREBASE_APP_ID_ANDROID is empty."
+            enabled=false
+          fi
+          if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" ]; then
+            echo "FIREBASE_SERVICE_ACCOUNT_JSON is empty."
+            enabled=false
+          fi
+          if [ -z "${{ secrets.FIREBASE_TESTER_GROUPS }}" ] && [ -z "${{ secrets.FIREBASE_TESTERS }}" ]; then
+            echo "Either FIREBASE_TESTER_GROUPS or FIREBASE_TESTERS must be set."
+            enabled=false
+          fi
+          echo "enabled=$enabled" >> "$GITHUB_OUTPUT"
+          if [ "$enabled" = "false" ]; then
+            echo "::notice::Firebase distribution skipped due to missing secrets."
+          fi
+
       - name: Download debug APK artifact
+        if: steps.firebase.outputs.enabled == 'true'
         uses: actions/download-artifact@v4
         with:
           name: composeapp-debug-apk
           path: artifacts
 
       - name: Resolve APK path
+        if: steps.firebase.outputs.enabled == 'true'
         id: apk
         shell: bash
         run: |
@@ -90,6 +110,7 @@ jobs:
           echo "path=${files[0]}" >> "$GITHUB_OUTPUT"
 
       - name: Build release notes
+        if: steps.firebase.outputs.enabled == 'true'
         id: notes
         shell: bash
         run: |
@@ -100,6 +121,7 @@ jobs:
           fi
 
       - name: Distribute build to Firebase
+        if: steps.firebase.outputs.enabled == 'true'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_APP_ID_ANDROID }}
