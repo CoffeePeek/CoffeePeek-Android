@@ -317,18 +317,22 @@ private fun ShopDetailContent(
                                 )
                             }
                             contact.website?.let {
-                                ContactRow(
-                                    icon = CpIcons.Globe,
-                                    text = it,
-                                    onClick = { OpenInBrowser.openInBrowser(it) },
-                                )
+                                formatWebsiteLink(it)?.let { website ->
+                                    ContactRow(
+                                        icon = CpIcons.Globe,
+                                        text = website.displayText,
+                                        onClick = { OpenInBrowser.openInBrowser(website.targetUrl) },
+                                    )
+                                }
                             }
                             contact.instagram?.let {
-                                ContactRow(
-                                    icon = CpIcons.Favorite,
-                                    text = "Instagram: $it",
-                                    onClick = { OpenInBrowser.openInBrowser(it) },
-                                )
+                                formatInstagramLink(it)?.let { instagram ->
+                                    ContactRow(
+                                        icon = CpIcons.Profile,
+                                        text = instagram.displayText,
+                                        onClick = { OpenInBrowser.openInBrowser(instagram.targetUrl) },
+                                    )
+                                }
                             }
                         }
                     }
@@ -443,7 +447,7 @@ private fun ShopHeroActions(
             contentDescription = if (isVisited) "Уже отмечено" else "Чек-ин",
         ) {
             Icon(
-                imageVector = CpIcons.AddLocationAlt,
+                imageVector = CpIcons.Check,
                 contentDescription = null,
                 tint = Color.White,
             )
@@ -951,6 +955,77 @@ private fun RatingPill(label: String, value: Int) {
 
 private fun ShopContact.hasAny(): Boolean =
     listOf(phone, email, website, instagram).any { !it.isNullOrBlank() }
+
+private data class ExternalLink(
+    val displayText: String,
+    val targetUrl: String,
+)
+
+private fun formatWebsiteLink(raw: String): ExternalLink? {
+    val value = raw.trim().takeIf { it.isNotBlank() } ?: return null
+    val targetUrl = ensureHttpScheme(value)
+    return ExternalLink(
+        displayText = prettyLinkText(targetUrl),
+        targetUrl = targetUrl,
+    )
+}
+
+private fun formatInstagramLink(raw: String): ExternalLink? {
+    val value = raw.trim().takeIf { it.isNotBlank() } ?: return null
+    val handleFromUrl = extractInstagramHandleFromUrl(value)
+    val handle = (handleFromUrl ?: value.removePrefix("@"))
+        .trim()
+        .trim('/')
+        .substringBefore('?')
+        .substringBefore('#')
+
+    if (handle.isNotBlank() && handle.matches("^[A-Za-z0-9._]{1,30}$".toRegex())) {
+        val targetUrl = "https://instagram.com/$handle"
+        return ExternalLink(
+            displayText = "instagram.com/$handle",
+            targetUrl = targetUrl,
+        )
+    }
+
+    val targetUrl = ensureHttpScheme(value)
+    return ExternalLink(
+        displayText = prettyLinkText(targetUrl),
+        targetUrl = targetUrl,
+    )
+}
+
+private fun extractInstagramHandleFromUrl(raw: String): String? {
+    val value = raw.trim()
+        .removePrefix("https://")
+        .removePrefix("http://")
+        .removePrefix("www.")
+    if (!value.startsWith("instagram.com/", ignoreCase = true)) return null
+    return value
+        .substringAfter("instagram.com/", "")
+        .substringBefore('/')
+        .substringBefore('?')
+        .substringBefore('#')
+        .ifBlank { null }
+}
+
+private fun ensureHttpScheme(value: String): String {
+    return if (value.startsWith("http://", ignoreCase = true) || value.startsWith("https://", ignoreCase = true)) {
+        value
+    } else {
+        "https://$value"
+    }
+}
+
+private fun prettyLinkText(value: String): String {
+    return value
+        .removePrefix("https://")
+        .removePrefix("http://")
+        .removePrefix("www.")
+        .substringBefore('?')
+        .substringBefore('#')
+        .trimEnd('/')
+        .ifBlank { value }
+}
 
 private fun dayOfWeekLabel(day: Int): String = when (day) {
     0 -> "Воскресенье"

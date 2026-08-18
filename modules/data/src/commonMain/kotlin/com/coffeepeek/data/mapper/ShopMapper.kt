@@ -7,6 +7,11 @@ import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.Review
 import com.coffeepeek.domain.model.ReviewRating
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 internal object ShopMapper {
 
@@ -21,7 +26,9 @@ internal object ShopMapper {
         address = location?.address,
         isOpen = isOpen,
         reviewCount = reviewCount,
-        tags = (brewMethods + roasters + beans).take(3).map { it.name },
+        tags = extractBackendTags(tags, shopTags)
+            .ifEmpty { (brewMethods + roasters + beans).map { it.name } }
+            .take(3),
     )
 
     fun CoffeeShopDetailsDto.toDomain() = CoffeeShopDetails(
@@ -36,7 +43,9 @@ internal object ShopMapper {
             address = location?.address,
             isOpen = isOpen,
             reviewCount = reviewCount,
-            tags = (brewMethods + roasters + coffeeBeans).take(3).map { it.name },
+            tags = extractBackendTags(tags, shopTags)
+                .ifEmpty { (brewMethods + roasters + coffeeBeans).map { it.name } }
+                .take(3),
         ),
         cityId = cityId,
         description = description,
@@ -104,5 +113,35 @@ internal object ShopMapper {
         3 -> "$$$"
         4 -> "$$$$"
         else -> null
+    }
+
+    private fun extractBackendTags(vararg rawCandidates: JsonElement?): List<String> {
+        val parsed = rawCandidates
+            .asSequence()
+            .flatMap { parseTagNames(it).asSequence() }
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .toList()
+        return parsed.distinct()
+    }
+
+    private fun parseTagNames(raw: JsonElement?): List<String> {
+        val array = raw as? JsonArray ?: return emptyList()
+        return array.mapNotNull { item ->
+            when (item) {
+                is JsonPrimitive -> item.contentOrNull
+                is JsonObject -> item.readTagName()
+                else -> null
+            }
+        }
+    }
+
+    private fun JsonObject.readTagName(): String? {
+        val keys = listOf("name", "title", "label", "value")
+        return keys.asSequence()
+            .mapNotNull { key ->
+                (this[key] as? JsonPrimitive)?.contentOrNull
+            }
+            .firstOrNull { it.isNotBlank() }
     }
 }

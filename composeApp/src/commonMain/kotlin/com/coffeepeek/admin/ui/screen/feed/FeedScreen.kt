@@ -36,8 +36,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -187,30 +185,6 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                 }
             }
         },
-        floatingActionButton = {
-            val navClearance = LocalFloatingNavClearance.current
-            // Keep the FAB just above the floating nav, not high above it.
-            val fabLift = (navClearance - CpDimens.floatingNavBottomMargin - CpDimens.spacing4)
-                .coerceAtLeast(CpDimens.floatingNavBarHeight)
-            Box(modifier = Modifier.padding(bottom = fabLift)) {
-                ExtendedFloatingActionButton(
-                    onClick = { Navigator.navigate(Navigator.Screen.Map) },
-                    icon = {
-                        Icon(
-                            imageVector = CpIcons.Map,
-                            contentDescription = null,
-                        )
-                    },
-                    text = {
-                        Text("Карта", style = MaterialTheme.typography.labelLarge)
-                    },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    shape = RoundedCornerShape(CpDimens.radius2xl),
-                )
-            }
-        },
-        floatingActionButtonPosition = FabPosition.Center,
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         val contentModifier = Modifier.fillMaxSize().padding(padding)

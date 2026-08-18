@@ -27,6 +27,7 @@ import com.coffeepeek.admin.ui.component.FloatingBottomNavBar
 import com.coffeepeek.admin.ui.component.FloatingNavItem
 import com.coffeepeek.admin.ui.component.ProvideFloatingNavClearance
 import com.coffeepeek.admin.ui.screen.feed.FeedScreen
+import com.coffeepeek.admin.ui.screen.map.MapScreen
 import com.coffeepeek.admin.ui.screen.profile.ProfileScreen
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.animation.core.tween
@@ -88,6 +89,12 @@ fun MainScreen() {
             startScreen = Navigator.Screen.FeedTab,
         ),
         BottomNavItem(
+            title = "Карта",
+            icon = CpIcons.Map,
+            graph = Navigator.Screen.MapGraph,
+            startScreen = Navigator.Screen.MapTab,
+        ),
+        BottomNavItem(
             title = "Профиль",
             icon = CpIcons.Profile,
             graph = Navigator.Screen.ProfileGraph,
@@ -118,6 +125,10 @@ fun MainScreen() {
             ) {
                 navigation<Navigator.Screen.FeedGraph>(startDestination = Navigator.Screen.FeedTab) {
                     composable<Navigator.Screen.FeedTab> { FeedScreen() }
+                }
+
+                navigation<Navigator.Screen.MapGraph>(startDestination = Navigator.Screen.MapTab) {
+                    composable<Navigator.Screen.MapTab> { MapScreen() }
                 }
 
                 navigation<Navigator.Screen.ProfileGraph>(startDestination = Navigator.Screen.ProfileTab) {

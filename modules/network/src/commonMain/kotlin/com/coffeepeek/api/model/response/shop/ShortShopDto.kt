@@ -3,6 +3,7 @@ package com.coffeepeek.api.model.response.shop
 import com.coffeepeek.api.model.DataResponse
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class ShortShopDto(
@@ -22,6 +23,8 @@ data class ShortShopDto(
     @SerialName("roasters") val roasters: List<CatalogItemDto> = emptyList(),
     @SerialName("equipments") val equipments: List<CatalogItemDto> = emptyList(),
     @SerialName("brewMethods") val brewMethods: List<CatalogItemDto> = emptyList(),
+    @SerialName("tags") val tags: JsonElement? = null,
+    @SerialName("shopTags") val shopTags: JsonElement? = null,
 )
 
 @Serializable
