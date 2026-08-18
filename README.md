@@ -100,4 +100,5 @@ CoffeePeek-Android/
 ## Полезные ссылки
 
 - [CONTRIBUTING.md](./CONTRIBUTING.md) — онбординг, стиль кода, PR
+- [docs/FIREBASE_CD.md](./docs/FIREBASE_CD.md) — настройка CD через Firebase App Distribution (без Play Console)
 - [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/)
