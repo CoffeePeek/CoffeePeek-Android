@@ -48,7 +48,6 @@
 
 > Важно: кнопка **Run workflow** в GitHub обычно доступна, когда файл workflow уже есть в `main` (default branch).
 > Если workflow пока только в feature-ветке, ручного запуска может не быть — это нормально.
-
 ## Что получат тестировщики
 
 - Ссылку на установку через Firebase App Distribution.
