@@ -55,12 +55,14 @@ class ShopRepositoryImpl(
             val equipment   = async { shopApiService.getEquipment().getOrThrow() }
             val roasters    = async { shopApiService.getRoasters().getOrThrow() }
             val brewMethods = async { shopApiService.getBrewMethods().getOrThrow() }
+            val shopTags    = async { shopApiService.getShopTags().getOrThrow() }
             ShopCatalogs(
                 cities      = cities.await().map { City(it.id, it.name) },
                 beans       = beans.await().map { CatalogItem(it.id, it.name) },
                 equipment   = equipment.await().map { CatalogItem(it.id, it.name) },
                 roasters    = roasters.await().map { CatalogItem(it.id, it.name) },
                 brewMethods = brewMethods.await().map { CatalogItem(it.id, it.name) },
+                shopTags    = shopTags.await().map { CatalogItem(it.id, it.name) },
             ).also { cachedCatalogs = it }
         }
     }
@@ -73,7 +75,8 @@ class ShopRepositoryImpl(
             equipmentIds = filters.equipmentIds.takeIf { it.isNotEmpty() },
             beanIds = filters.beanIds.takeIf { it.isNotEmpty() },
             brewMethodIds = filters.brewMethodIds.takeIf { it.isNotEmpty() },
-            priceRange = filters.priceRange,
+            tagIds = filters.tagIds.takeIf { it.isNotEmpty() },
+            priceRange = filters.priceRange.toApiPriceRange(),
             minRating = filters.minRating,
             page = filters.page,
             pageSize = filters.pageSize,
@@ -109,13 +112,14 @@ class ShopRepositoryImpl(
             equipmentIds = filters.equipmentIds.takeIf { it.isNotEmpty() },
             beanIds = filters.beanIds.takeIf { it.isNotEmpty() },
             brewMethodIds = filters.brewMethodIds.takeIf { it.isNotEmpty() },
-            priceRange = filters.priceRange,
+            tagIds = filters.tagIds.takeIf { it.isNotEmpty() },
+            priceRange = filters.priceRange.toApiPriceRange(),
             minRating = filters.minRating,
         ).map { shops ->
             shops.map { dto ->
                 MapShop(
                     id = dto.id,
-                    title = dto.title,
+                    title = dto.title?.takeIf { it.isNotBlank() } ?: "Кофейня",
                     latitude = dto.latitude,
                     longitude = dto.longitude,
                 )
@@ -131,7 +135,6 @@ class ShopRepositoryImpl(
                 address     = input.address,
                 cityId      = input.cityId,
                 description = input.description?.takeIf { it.isNotBlank() },
-                priceRange  = input.priceRange,
                 shopContact = if (listOf(input.phone, input.email, input.website, input.instagram).any { !it.isNullOrBlank() }) {
                     CreateShopContactReq(
                         phoneNumber   = input.phone?.takeIf { it.isNotBlank() },
@@ -142,7 +145,7 @@ class ShopRepositoryImpl(
                 } else null,
                 schedules = input.schedules.takeIf { it.isNotEmpty() }?.map { schedule ->
                     ScheduleReq(
-                        dayOfWeek = schedule.dayOfWeek,
+                        dayOfWeek = schedule.dayOfWeek.toApiDayOfWeek(),
                         isClosed = schedule.isClosed,
                         intervals = schedule.intervals.takeIf { it.isNotEmpty() }?.map { interval ->
                             ScheduleIntervalReq(
@@ -153,6 +156,7 @@ class ShopRepositoryImpl(
                     )
                 },
                 shopPhotos = uploadedPhotos.toUploadedPhotoReqs().takeIf { it.isNotEmpty() },
+                priceRange = input.priceRange.toApiPriceRange(),
                 equipmentIds  = input.equipmentIds.takeIf { it.isNotEmpty() },
                 coffeeBeanIds = input.coffeeBeanIds.takeIf { it.isNotEmpty() },
                 roasterIds    = input.roasterIds.takeIf { it.isNotEmpty() },
@@ -160,4 +164,24 @@ class ShopRepositoryImpl(
             )
         ).getOrThrow()
     }
+}
+
+private fun Int?.toApiPriceRange(): String? = when (this) {
+    null -> null
+    1 -> "Cheap"
+    2 -> "Moderate"
+    3 -> "Expensive"
+    4 -> "Luxury"
+    else -> null
+}
+
+private fun Int.toApiDayOfWeek(): String = when (this) {
+    0 -> "Sunday"
+    1 -> "Monday"
+    2 -> "Tuesday"
+    3 -> "Wednesday"
+    4 -> "Thursday"
+    5 -> "Friday"
+    6 -> "Saturday"
+    else -> "Monday"
 }

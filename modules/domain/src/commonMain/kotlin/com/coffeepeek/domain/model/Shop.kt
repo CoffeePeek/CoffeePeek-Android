@@ -83,6 +83,7 @@ data class ShopFilters(
     val equipmentIds: List<String> = emptyList(),
     val beanIds: List<String> = emptyList(),
     val brewMethodIds: List<String> = emptyList(),
+    val tagIds: List<String> = emptyList(),
     val priceRange: Int? = null,
     val minRating: Double? = null,
     val page: Int = 1,

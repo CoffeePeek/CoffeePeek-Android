@@ -326,6 +326,11 @@ private fun MapFiltersDialog(
                         CatalogFilterChips(state.brewMethods, filters.brewMethodIds, "brew", onToggleCatalog)
                     }
                 }
+                if (state.shopTags.isNotEmpty()) {
+                    FilterSection("Теги") {
+                        CatalogFilterChips(state.shopTags, filters.tagIds, "tag", onToggleCatalog)
+                    }
+                }
             }
         },
         dismissButton = {

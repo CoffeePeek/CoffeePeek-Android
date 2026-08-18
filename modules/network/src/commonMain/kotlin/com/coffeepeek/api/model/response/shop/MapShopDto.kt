@@ -9,7 +9,7 @@ data class MapShopDto(
     @SerialName("id") val id: String,
     @SerialName("latitude") val latitude: Double,
     @SerialName("longitude") val longitude: Double,
-    @SerialName("title") val title: String,
+    @SerialName("title") val title: String? = null,
 )
 
 @Serializable

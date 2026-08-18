@@ -76,7 +76,7 @@ internal object ShopMapper {
         equipment = equipments.map { it.name },
         schedules = schedules.orEmpty().map { schedule ->
             com.coffeepeek.domain.model.ShopSchedule(
-                dayOfWeek = schedule.dayOfWeek,
+                dayOfWeek = parseDayOfWeek(schedule.dayOfWeek),
                 isClosed = schedule.isClosed,
                 intervals = schedule.intervals.orEmpty().map { interval ->
                     com.coffeepeek.domain.model.ScheduleInterval(
@@ -107,12 +107,31 @@ internal object ShopMapper {
         },
     )
 
-    private fun priceRangeLabel(range: Int) = when (range) {
-        1 -> "$"
-        2 -> "$$"
-        3 -> "$$$"
-        4 -> "$$$$"
-        else -> null
+    private fun priceRangeLabel(range: JsonElement?): String? {
+        val value = (range as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()
+        if (value.isBlank()) return null
+        return when (value.lowercase()) {
+            "1", "cheap", "$" -> "$"
+            "2", "moderate", "$$" -> "$$"
+            "3", "expensive", "$$$" -> "$$$"
+            "4", "luxury", "$$$$" -> "$$$$"
+            else -> null
+        }
+    }
+
+    private fun parseDayOfWeek(raw: JsonElement?): Int {
+        val token = (raw as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()
+        if (token.isBlank()) return 0
+        return when (token.lowercase()) {
+            "0", "sunday" -> 0
+            "1", "monday" -> 1
+            "2", "tuesday" -> 2
+            "3", "wednesday" -> 3
+            "4", "thursday" -> 4
+            "5", "friday" -> 5
+            "6", "saturday" -> 6
+            else -> token.toIntOrNull()?.coerceIn(0, 6) ?: 0
+        }
     }
 
     private fun extractBackendTags(vararg rawCandidates: JsonElement?): List<String> {

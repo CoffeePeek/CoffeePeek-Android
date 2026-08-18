@@ -10,6 +10,7 @@ import com.coffeepeek.api.model.response.shop.GetBrewMethodsResponseDto
 import com.coffeepeek.api.model.response.shop.GetCitiesResponseDto
 import com.coffeepeek.api.model.response.shop.GetEquipmentResponseDto
 import com.coffeepeek.api.model.response.shop.GetRoastersResponseDto
+import com.coffeepeek.api.model.response.shop.GetShopTagsResponseDto
 import com.coffeepeek.api.model.response.shop.GetShopDetailsResponseDto
 import com.coffeepeek.api.model.response.shop.GetShopsInBoundsResponseDto
 import com.coffeepeek.api.model.response.shop.MapShopDto
@@ -36,7 +37,8 @@ class ShopApiService(private val client: HttpClient) {
         equipmentIds: List<String>? = null,
         beanIds: List<String>? = null,
         brewMethodIds: List<String>? = null,
-        priceRange: Int? = null,
+        tagIds: List<String>? = null,
+        priceRange: String? = null,
         minRating: Double? = null,
         page: Int = 1,
         pageSize: Int = 20,
@@ -48,6 +50,7 @@ class ShopApiService(private val client: HttpClient) {
             equipmentIds?.forEach { parameter("equipments", it) }
             beanIds?.forEach { parameter("beans", it) }
             brewMethodIds?.forEach { parameter("brewMethods", it) }
+            tagIds?.forEach { parameter("tags", it) }
             priceRange?.let { parameter("priceRange", it) }
             minRating?.let { parameter("minRating", it) }
             parameter("page", page)
@@ -115,6 +118,13 @@ class ShopApiService(private val client: HttpClient) {
         apiResponse.data.brewMethods
     }
 
+    suspend fun getShopTags(): Result<List<CatalogItemDto>> = runCatching {
+        val response = client.get("/api/Catalogs/shop-tags")
+        val apiResponse = response.body<ApiResponse<GetShopTagsResponseDto>>()
+        if (!apiResponse.isSuccess || apiResponse.data == null) throw ApiException(apiResponse.message)
+        apiResponse.data.tags.map { CatalogItemDto(id = it.id, name = it.name) }
+    }
+
     suspend fun getShopsInBounds(
         minLat: Double,
         minLon: Double,
@@ -126,7 +136,8 @@ class ShopApiService(private val client: HttpClient) {
         equipmentIds: List<String>? = null,
         beanIds: List<String>? = null,
         brewMethodIds: List<String>? = null,
-        priceRange: Int? = null,
+        tagIds: List<String>? = null,
+        priceRange: String? = null,
         minRating: Double? = null,
     ): Result<List<MapShopDto>> = runCatching {
         val response = client.get("/api/Map") {
@@ -140,6 +151,7 @@ class ShopApiService(private val client: HttpClient) {
             equipmentIds?.forEach { parameter("equipments", it) }
             beanIds?.forEach { parameter("beans", it) }
             brewMethodIds?.forEach { parameter("brewMethods", it) }
+            tagIds?.forEach { parameter("tags", it) }
             priceRange?.let { parameter("priceRange", it) }
             minRating?.let { parameter("minRating", it) }
         }
