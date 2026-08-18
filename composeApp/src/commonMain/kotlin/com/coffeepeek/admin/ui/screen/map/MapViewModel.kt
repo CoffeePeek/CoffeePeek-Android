@@ -25,6 +25,7 @@ data class MapFiltersUi(
     val beanIds: Set<String> = emptySet(),
     val equipmentIds: Set<String> = emptySet(),
     val brewMethodIds: Set<String> = emptySet(),
+    val tagIds: Set<String> = emptySet(),
 )
 
 data class MapUiState(
@@ -41,6 +42,7 @@ data class MapUiState(
     val equipment: List<CatalogItem> = emptyList(),
     val roasters: List<CatalogItem> = emptyList(),
     val brewMethods: List<CatalogItem> = emptyList(),
+    val shopTags: List<CatalogItem> = emptyList(),
     val showFilters: Boolean = false,
     val showSearchArea: Boolean = false,
     val activeBounds: MapBounds? = null,
@@ -57,7 +59,7 @@ data class MapUiState(
             if (filters.priceRange != null) count++
             if (filters.minRating != null) count++
             count += filters.roasterIds.size + filters.beanIds.size +
-                filters.equipmentIds.size + filters.brewMethodIds.size
+                filters.equipmentIds.size + filters.brewMethodIds.size + filters.tagIds.size
             return count
         }
 }
@@ -155,6 +157,7 @@ class MapViewModel(
                 "bean" -> state.filters.copy(beanIds = state.filters.beanIds.toggle(id))
                 "equipment" -> state.filters.copy(equipmentIds = state.filters.equipmentIds.toggle(id))
                 "brew" -> state.filters.copy(brewMethodIds = state.filters.brewMethodIds.toggle(id))
+                "tag" -> state.filters.copy(tagIds = state.filters.tagIds.toggle(id))
                 else -> state.filters
             }
             state.copy(filters = filters)
@@ -226,6 +229,7 @@ class MapViewModel(
                             equipment = catalogs.equipment,
                             roasters = catalogs.roasters,
                             brewMethods = catalogs.brewMethods,
+                            shopTags = catalogs.shopTags,
                         )
                     }
                 }
@@ -261,6 +265,7 @@ class MapViewModel(
                     beanIds = filters.beanIds.toList(),
                     equipmentIds = filters.equipmentIds.toList(),
                     brewMethodIds = filters.brewMethodIds.toList(),
+                    tagIds = filters.tagIds.toList(),
                     priceRange = filters.priceRange,
                     minRating = filters.minRating,
                 ),

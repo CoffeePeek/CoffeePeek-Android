@@ -41,3 +41,15 @@ data class GetRoastersResponseDto(
 data class GetBrewMethodsResponseDto(
     @SerialName("brewMethods") val brewMethods: List<CatalogItemDto> = emptyList(),
 ) : DataResponse()
+
+@Serializable
+data class ShopTagDto(
+    @SerialName("id") val id: String,
+    @SerialName("slug") val slug: String = "",
+    @SerialName("name") val name: String = "",
+)
+
+@Serializable
+data class GetShopTagsResponseDto(
+    @SerialName("tags") val tags: List<ShopTagDto> = emptyList(),
+) : DataResponse()

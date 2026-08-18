@@ -2,10 +2,11 @@ package com.coffeepeek.api.model.response.shop
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class ScheduleDto(
-    @SerialName("dayOfWeek") val dayOfWeek: Int = 0,
+    @SerialName("dayOfWeek") val dayOfWeek: JsonElement? = null,
     @SerialName("isClosed") val isClosed: Boolean = false,
     @SerialName("intervals") val intervals: List<ShopScheduleIntervalDto>? = null,
 )

@@ -9,7 +9,7 @@ data class CreateShopReq(
     @SerialName("address")       val address: String,
     @SerialName("cityId")        val cityId: String,
     @SerialName("description")   val description: String?      = null,
-    @SerialName("priceRange")    val priceRange: Int?          = null,
+    @SerialName("priceRange")    val priceRange: String?       = null,
     @SerialName("shopContact")   val shopContact: CreateShopContactReq? = null,
     @SerialName("schedules")     val schedules: List<ScheduleReq>? = null,
     @SerialName("shopPhotos")    val shopPhotos: List<UploadedPhotoReq>? = null,

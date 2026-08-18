@@ -16,6 +16,7 @@ data class ShopCatalogs(
     val equipment: List<CatalogItem> = emptyList(),
     val roasters: List<CatalogItem> = emptyList(),
     val brewMethods: List<CatalogItem> = emptyList(),
+    val shopTags: List<CatalogItem> = emptyList(),
 )
 
 data class CreateShopInput(

@@ -20,7 +20,7 @@ data class UploadedPhotoReq(
 
 @Serializable
 data class ScheduleReq(
-    @SerialName("dayOfWeek") val dayOfWeek: Int,
+    @SerialName("dayOfWeek") val dayOfWeek: String,
     @SerialName("isClosed") val isClosed: Boolean,
     @SerialName("intervals") val intervals: List<ScheduleIntervalReq>? = null,
 )

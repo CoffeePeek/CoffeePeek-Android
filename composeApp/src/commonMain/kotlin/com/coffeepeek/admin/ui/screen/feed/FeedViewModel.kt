@@ -31,6 +31,7 @@ data class FeedFiltersUi(
     val beanIds: Set<String> = emptySet(),
     val equipmentIds: Set<String> = emptySet(),
     val brewMethodIds: Set<String> = emptySet(),
+    val tagIds: Set<String> = emptySet(),
 )
 
 data class FeedUiState(
@@ -46,6 +47,7 @@ data class FeedUiState(
     val equipment: List<CatalogItem> = emptyList(),
     val roasters: List<CatalogItem> = emptyList(),
     val brewMethods: List<CatalogItem> = emptyList(),
+    val shopTags: List<CatalogItem> = emptyList(),
     val showFilters: Boolean = false,
     val currentPage: Int = 1,
     val totalPages: Int = 1,
@@ -58,7 +60,7 @@ data class FeedUiState(
             if (filters.priceRange != null) count++
             if (filters.minRating != null) count++
             count += filters.roasterIds.size + filters.beanIds.size +
-                filters.equipmentIds.size + filters.brewMethodIds.size
+                filters.equipmentIds.size + filters.brewMethodIds.size + filters.tagIds.size
             return count
         }
 }
@@ -115,6 +117,7 @@ class FeedViewModel(
                             equipment = catalogs.equipment,
                             roasters = catalogs.roasters,
                             brewMethods = catalogs.brewMethods,
+                            shopTags = catalogs.shopTags,
                         )
                     }
                 }
@@ -166,6 +169,9 @@ class FeedViewModel(
                 )
                 "brew" -> state.filters.copy(
                     brewMethodIds = state.filters.brewMethodIds.toggle(id),
+                )
+                "tag" -> state.filters.copy(
+                    tagIds = state.filters.tagIds.toggle(id),
                 )
                 else -> state.filters
             }
@@ -254,6 +260,7 @@ class FeedViewModel(
                     beanIds = filters.beanIds.toList(),
                     equipmentIds = filters.equipmentIds.toList(),
                     brewMethodIds = filters.brewMethodIds.toList(),
+                    tagIds = filters.tagIds.toList(),
                     priceRange = filters.priceRange,
                     minRating = filters.minRating,
                     page = page,
