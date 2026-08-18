@@ -1,0 +1,110 @@
+name: Android CI + Firebase App Distribution
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-firebase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-debug-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android 36 platform
+        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Create local.properties for CI builds
+        shell: bash
+        run: |
+          API_BASE_URL="${{ vars.API_BASE_URL_CI }}"
+          if [ -z "$API_BASE_URL" ]; then
+            API_BASE_URL="https://example.com/"
+          fi
+          cat > local.properties <<EOF
+          API_BASE_URL=$API_BASE_URL
+          MAPKIT_API_KEY=${{ secrets.MAPKIT_API_KEY }}
+          GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          EOF
+
+      - name: Assemble debug APK
+        run: ./gradlew --no-daemon :composeApp:assembleDebug
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: composeapp-debug-apk
+          path: composeApp/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  distribute-to-firebase:
+    needs: build-debug-apk
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      secrets.FIREBASE_APP_ID_ANDROID != '' &&
+      secrets.FIREBASE_SERVICE_ACCOUNT_JSON != '' &&
+      (secrets.FIREBASE_TESTER_GROUPS != '' || secrets.FIREBASE_TESTERS != '')
+
+    steps:
+      - name: Download debug APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: composeapp-debug-apk
+          path: artifacts
+
+      - name: Resolve APK path
+        id: apk
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(artifacts/*.apk)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No APK was found in artifacts directory."
+            exit 1
+          fi
+          echo "path=${files[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Build release notes
+        id: notes
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "text=Manual build from workflow #${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "text=${{ github.event.head_commit.message }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Distribute build to Firebase
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID_ANDROID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          groups: ${{ secrets.FIREBASE_TESTER_GROUPS }}
+          testers: ${{ secrets.FIREBASE_TESTERS }}
+          file: ${{ steps.apk.outputs.path }}
+          releaseNotes: ${{ steps.notes.outputs.text }}
