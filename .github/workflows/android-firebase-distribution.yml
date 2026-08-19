@@ -112,12 +112,22 @@ jobs:
       - name: Build release notes
         if: steps.firebase.outputs.enabled == 'true'
         id: notes
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "text=Manual build from workflow #${{ github.run_number }}" >> "$GITHUB_OUTPUT"
           else
-            echo "text=${{ github.event.head_commit.message }}" >> "$GITHUB_OUTPUT"
+            message="$COMMIT_MESSAGE"
+            if [ -z "$message" ]; then
+              message="Build from commit ${{ github.sha }}"
+            fi
+            {
+              echo "text<<EOF"
+              printf '%s\n' "$message"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
           fi
 
       - name: Distribute build to Firebase
