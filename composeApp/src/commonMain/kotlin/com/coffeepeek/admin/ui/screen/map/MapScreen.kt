@@ -55,7 +55,6 @@ import com.coffeepeek.admin.map.CoffeeMap
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
-import com.coffeepeek.admin.ui.component.CityCatalogChips
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CoffeeShopDetails
@@ -197,7 +196,6 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
                 state = state,
                 onDismiss = vm::dismissFilters,
                 onQueryChange = vm::onQueryChange,
-                onCity = vm::setCity,
                 onPrice = vm::setPriceRange,
                 onRating = vm::setMinRating,
                 onToggleCatalog = vm::toggleFilterCatalog,
@@ -236,7 +234,6 @@ private fun MapFiltersDialog(
     state: MapUiState,
     onDismiss: () -> Unit,
     onQueryChange: (String) -> Unit,
-    onCity: (String?) -> Unit,
     onPrice: (Int?) -> Unit,
     onRating: (Double?) -> Unit,
     onToggleCatalog: (String, String) -> Unit,
@@ -266,15 +263,6 @@ private fun MapFiltersDialog(
                     label = { Text("Поиск") },
                     leadingIcon = { Icon(CpIcons.Search, contentDescription = null) },
                 )
-                if (state.cities.isNotEmpty()) {
-                    FilterSection("Город") {
-                        CityCatalogChips(
-                            cities = state.cities,
-                            selectedId = filters.cityId,
-                            onSelect = onCity,
-                        )
-                    }
-                }
                 FilterSection("Цена") {
                     CatalogChips(
                         items = listOf("₽" to 1, "₽₽" to 2, "₽₽₽" to 3, "₽₽₽₽" to 4),

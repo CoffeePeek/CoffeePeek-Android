@@ -63,7 +63,6 @@ import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
-import com.coffeepeek.admin.ui.component.CityCatalogChips
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CoffeePeekPullToRefresh
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
@@ -184,7 +183,6 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                     AnimatedVisibility(visible = state.showFilters) {
                         FeedFiltersPanel(
                             state = state,
-                            onCity = vm::setCity,
                             onPrice = vm::setPriceRange,
                             onRating = vm::setMinRating,
                             onToggleCatalog = vm::toggleFilterCatalog,
@@ -515,7 +513,6 @@ private fun StatusBadge(text: String, color: Color) {
 @Composable
 private fun FeedFiltersPanel(
     state: FeedUiState,
-    onCity: (String?) -> Unit,
     onPrice: (Int?) -> Unit,
     onRating: (Double?) -> Unit,
     onToggleCatalog: (String, String) -> Unit,
@@ -536,15 +533,6 @@ private fun FeedFiltersPanel(
             Text("Фильтры", style = MaterialTheme.typography.labelLarge)
             if (state.activeFilterCount > 0) {
                 TextButton(onClick = onClear) { Text("Сбросить") }
-            }
-        }
-        if (state.cities.isNotEmpty()) {
-            FilterSection("Город") {
-                CityCatalogChips(
-                    cities = state.cities,
-                    selectedId = filters.cityId,
-                    onSelect = onCity,
-                )
             }
         }
         FilterSection("Цена") {
