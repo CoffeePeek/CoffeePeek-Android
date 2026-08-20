@@ -24,6 +24,8 @@ data class ShortShopDto(
     @SerialName("roasters") val roasters: List<CatalogItemDto> = emptyList(),
     @SerialName("equipments") val equipments: List<CatalogItemDto> = emptyList(),
     @SerialName("brewMethods") val brewMethods: List<CatalogItemDto> = emptyList(),
+    @SerialName("tags") val tags: JsonElement? = null,
+    @SerialName("shopTags") val shopTags: JsonElement? = null,
 )
 
 @Serializable

@@ -86,16 +86,13 @@ class MapViewModel(
     fun onBoundsChanged(bounds: MapBounds) {
         if (suppressBoundsUpdates) return
         boundsJob?.cancel()
-        val shouldLoadImmediately = _state.value.activeBounds == null && _state.value.shops.isEmpty()
         _state.update {
             it.copy(
                 pendingBounds = bounds,
-                showSearchArea = !shouldLoadImmediately,
+                showSearchArea = false,
             )
         }
-        if (shouldLoadImmediately) {
-            loadBounds(bounds)
-        }
+        loadBounds(bounds)
     }
 
     fun searchCurrentArea() {
@@ -287,6 +284,7 @@ class MapViewModel(
                         it.copy(
                             isLoading = false,
                             error = err.message ?: "Ошибка загрузки кофеен",
+                            showSearchArea = true,
                         )
                     }
                 }
