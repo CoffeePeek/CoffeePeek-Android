@@ -7,6 +7,9 @@ import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.Review
 import com.coffeepeek.domain.model.ReviewRating
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 internal object ShopMapper {
 
