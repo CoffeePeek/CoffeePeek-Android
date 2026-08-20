@@ -3,6 +3,7 @@ package com.coffeepeek.api.model.response.shop
 import com.coffeepeek.api.model.DataResponse
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class ShortShopDto(
