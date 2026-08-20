@@ -29,7 +29,6 @@ import com.coffeepeek.admin.ui.dialogs.ErrorDialog
 import com.coffeepeek.admin.ui.dialogs.LoadingDialog
 import com.coffeepeek.admin.ui.screen.auth.AuthScreen
 import com.coffeepeek.admin.ui.screen.main.MainScreen
-import com.coffeepeek.admin.ui.screen.map.MapScreen
 import com.coffeepeek.admin.ui.screen.review.CreateReviewScreen
 import com.coffeepeek.admin.ui.screen.review.EditReviewScreen
 import com.coffeepeek.admin.ui.screen.shop.ShopDetailScreen
@@ -67,14 +66,15 @@ object Navigator {
         @Serializable data object Auth : Screen
         @Serializable data object Register : Screen
         @Serializable data object Main : Screen
-        @Serializable data object Map : Screen
 
         // Graphs
         @Serializable data object FeedGraph : Screen
+        @Serializable data object MapGraph : Screen
         @Serializable data object ProfileGraph : Screen
 
         // Tabs
         @Serializable data object FeedTab : Screen
+        @Serializable data object MapTab : Screen
         @Serializable data object ProfileTab : Screen
 
         // Inner screens (add here + in the graph in MainScreen)
@@ -121,7 +121,9 @@ object Navigator {
     fun openShopOnMap(shopId: String, latitude: Double, longitude: Double, title: String) {
         navigatorScope.launch {
             _pendingMapFocus.value = MapShopFocus(shopId, latitude, longitude, title)
-            _navigationEvents.emit(NavEvent.NavigateTo(Screen.Map))
+            _navigationEvents.emit(NavEvent.PopBack)
+            _pendingTabSelection.value = Screen.MapTab
+            _navigationEvents.emit(NavEvent.SelectTab(Screen.MapTab))
         }
     }
 
@@ -129,7 +131,6 @@ object Navigator {
         is Screen.Auth,
         is Screen.Register,
         is Screen.Main,
-        is Screen.Map,
         is Screen.ShopDetail,
         is Screen.AddShop,
         is Screen.EditProfile,
@@ -224,7 +225,6 @@ object Navigator {
                 composable<Screen.Auth> { AuthScreen() }
                 composable<Screen.Register> { RegisterScreen() }
                 composable<Screen.Main> { MainScreen() }
-                composable<Screen.Map> { MapScreen() }
                 composable<Screen.ShopDetail> { backStack ->
                     val route = backStack.toRoute<Screen.ShopDetail>()
                     ShopDetailScreen(shopId = route.shopId)

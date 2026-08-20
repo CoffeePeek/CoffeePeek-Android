@@ -129,16 +129,6 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
             onLocationPermissionDenied = vm::onLocationPermissionDenied,
         )
 
-        MapControlButton(
-            onClick = { Navigator.popBack() },
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .statusBarsPadding()
-                .padding(CpDimens.spacing4),
-        ) {
-            Icon(CpIcons.Close, contentDescription = "Закрыть карту")
-        }
-
         Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
