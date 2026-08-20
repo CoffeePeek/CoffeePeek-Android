@@ -56,6 +56,7 @@ import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.MapShop
@@ -83,6 +84,7 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
         ?: pendingFocus?.let { it.latitude to it.longitude }
     val cameraZoom = state.cameraZoom ?: if (pendingFocus != null) 16f else null
     val isDarkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val navClearance = LocalFloatingNavClearance.current
 
     LaunchedEffect(pendingFocus) {
         pendingFocus?.let { focus ->
@@ -166,7 +168,9 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
                 onClick = vm::searchCurrentArea,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = if (state.selectedShop == null) 32.dp else 148.dp),
+                    .padding(
+                        bottom = navClearance + if (state.selectedShop == null) 32.dp else 148.dp,
+                    ),
                 shape = RoundedCornerShape(CpDimens.radius2xl),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.onSurface,
@@ -187,7 +191,11 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
                 onDismiss = vm::clearSelection,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing4),
+                    .padding(
+                        start = CpDimens.spacing4,
+                        end = CpDimens.spacing4,
+                        bottom = navClearance + CpDimens.spacing4,
+                    ),
             )
         }
 
