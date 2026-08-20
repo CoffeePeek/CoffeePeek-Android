@@ -172,6 +172,15 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                             }
                         }
                     }
+                    if (state.shopTags.isNotEmpty()) {
+                        Spacer(Modifier.height(CpDimens.spacing2))
+                        CatalogFilterChips(
+                            items = state.shopTags,
+                            selectedIds = state.filters.tagIds,
+                            type = "tag",
+                            onToggle = vm::toggleFilterCatalog,
+                        )
+                    }
                     AnimatedVisibility(visible = state.showFilters) {
                         FeedFiltersPanel(
                             state = state,

@@ -79,6 +79,7 @@ class FeedViewModel(
 
     init {
         loadShops(reset = true)
+        loadCatalogs()
         queryFlow
             .debounce(400)
             .distinctUntilChanged()
