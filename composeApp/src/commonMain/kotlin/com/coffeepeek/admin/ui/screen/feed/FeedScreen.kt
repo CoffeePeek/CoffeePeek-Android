@@ -184,7 +184,6 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                         FeedFiltersPanel(
                             state = state,
                             onPrice = vm::setPriceRange,
-                            onRating = vm::setMinRating,
                             onToggleCatalog = vm::toggleFilterCatalog,
                             onClear = vm::clearFilters,
                         )
@@ -514,7 +513,6 @@ private fun StatusBadge(text: String, color: Color) {
 private fun FeedFiltersPanel(
     state: FeedUiState,
     onPrice: (Int?) -> Unit,
-    onRating: (Double?) -> Unit,
     onToggleCatalog: (String, String) -> Unit,
     onClear: () -> Unit,
 ) {
@@ -542,18 +540,6 @@ private fun FeedFiltersPanel(
                 onToggle = { id ->
                     val value = id.toIntOrNull()
                     onPrice(if (filters.priceRange == value) null else value)
-                },
-                idSelector = { it.second.toString() },
-                labelSelector = { it.first },
-            )
-        }
-        FilterSection("Рейтинг от") {
-            CatalogChips(
-                items = listOf("3.0+" to 3.0, "4.0+" to 4.0, "4.5+" to 4.5),
-                selectedIds = filters.minRating?.toString()?.let { setOf(it) } ?: emptySet(),
-                onToggle = { id ->
-                    val value = id.toDoubleOrNull()
-                    onRating(if (filters.minRating == value) null else value)
                 },
                 idSelector = { it.second.toString() },
                 labelSelector = { it.first },

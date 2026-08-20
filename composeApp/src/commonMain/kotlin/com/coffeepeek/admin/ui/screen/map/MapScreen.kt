@@ -197,7 +197,6 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
                 onDismiss = vm::dismissFilters,
                 onQueryChange = vm::onQueryChange,
                 onPrice = vm::setPriceRange,
-                onRating = vm::setMinRating,
                 onToggleCatalog = vm::toggleFilterCatalog,
                 onClear = vm::clearFilters,
                 onApply = vm::applyFilters,
@@ -235,7 +234,6 @@ private fun MapFiltersDialog(
     onDismiss: () -> Unit,
     onQueryChange: (String) -> Unit,
     onPrice: (Int?) -> Unit,
-    onRating: (Double?) -> Unit,
     onToggleCatalog: (String, String) -> Unit,
     onClear: () -> Unit,
     onApply: () -> Unit,
@@ -270,25 +268,6 @@ private fun MapFiltersDialog(
                         onToggle = { id ->
                             val value = id.toIntOrNull()
                             onPrice(if (filters.priceRange == value) null else value)
-                        },
-                        idSelector = { it.second.toString() },
-                        labelSelector = { it.first },
-                    )
-                }
-                FilterSection("Рейтинг от") {
-                    CatalogChips(
-                        items = listOf(
-                            "2.5+" to 2.5,
-                            "3.0+" to 3.0,
-                            "3.5+" to 3.5,
-                            "4.0+" to 4.0,
-                            "4.5+" to 4.5,
-                            "5.0" to 5.0,
-                        ),
-                        selectedIds = filters.minRating?.toString()?.let { setOf(it) } ?: emptySet(),
-                        onToggle = { id ->
-                            val value = id.toDoubleOrNull()
-                            onRating(if (filters.minRating == value) null else value)
                         },
                         idSelector = { it.second.toString() },
                         labelSelector = { it.first },
