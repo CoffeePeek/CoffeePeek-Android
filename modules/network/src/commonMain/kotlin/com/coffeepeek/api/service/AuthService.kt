@@ -5,7 +5,6 @@ import com.coffeepeek.api.model.request.GoogleLoginReq
 import com.coffeepeek.api.model.request.LoginReq
 import com.coffeepeek.api.model.request.RegistrationReq
 import com.coffeepeek.api.model.response.AuthResp
-import com.coffeepeek.api.model.response.GoogleLoginResp
 import com.coffeepeek.api.utils.ApiException
 import com.coffeepeek.api.utils.deleteResult
 import com.coffeepeek.api.utils.extractRefreshToken
@@ -49,16 +48,15 @@ class AuthService(
                 setJsonBody(GoogleLoginReq(idToken))
             }.getOrThrow()
 
-            val apiResponse = response.body<ApiResponse<GoogleLoginResp>>()
+            val apiResponse = response.body<ApiResponse<AuthResp>>()
             if (!apiResponse.isSuccess || apiResponse.data == null) {
                 throw ApiException(apiResponse.message)
             }
 
-            AuthResp(
-                accessToken = apiResponse.data.accessToken,
+            apiResponse.data.copy(
                 refreshToken = response.extractRefreshToken()
                     ?.takeIf { it.isNotBlank() }
-                    .orEmpty(),
+                    ?: apiResponse.data.refreshToken,
             )
         }
 

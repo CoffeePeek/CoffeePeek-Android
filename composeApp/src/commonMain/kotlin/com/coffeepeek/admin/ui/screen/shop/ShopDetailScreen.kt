@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,8 +40,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -110,27 +107,6 @@ fun ShopDetailScreen(shopId: String) {
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = state.details?.shop?.title ?: "Кофейня",
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 1,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { Navigator.popBack() }) {
-                        Icon(CpIcons.Back, contentDescription = "Назад")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
-        },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         when {
@@ -172,9 +148,11 @@ fun ShopDetailScreen(shopId: String) {
                     showCreateReview = state.isLoggedIn && state.details!!.existingReviewId.isNullOrBlank(),
                     onToggleFavorite = vm::toggleFavorite,
                     onCheckIn = vm::openCheckInSheet,
+                    onShare = vm::shareShop,
                     onCreateReview = vm::openCreateReview,
                     onEditReview = vm::openEditReview,
                     onOpenOnMap = vm::openOnMap,
+                    onBack = Navigator::popBack,
                     onReviewPhotoClick = { previewImageUrl = it },
                 )
             }
@@ -192,9 +170,11 @@ private fun ShopDetailContent(
     showCreateReview: Boolean = false,
     onToggleFavorite: () -> Unit = {},
     onCheckIn: () -> Unit = {},
+    onShare: () -> Unit = {},
     onCreateReview: () -> Unit = {},
     onEditReview: (String) -> Unit = {},
     onOpenOnMap: () -> Unit = {},
+    onBack: () -> Unit = {},
     onReviewPhotoClick: (String) -> Unit = {},
 ) {
     val shop = details.shop
@@ -202,157 +182,184 @@ private fun ShopDetailContent(
         listOfNotNull(shop.photoUrl?.takeIf { it.isNotBlank() })
     }
 
-    LazyColumn(modifier = modifier.fillMaxSize()) {
-        item {
-            ShopHeroImage(
-                photos = photos,
-                title = shop.title,
-                isFavorite = shop.isFavorite,
-                isFavoriteLoading = isFavoriteLoading,
-                isCheckInLoading = isCheckInLoading,
-                isVisited = details.isVisited,
-                onToggleFavorite = onToggleFavorite,
-                onCheckIn = onCheckIn,
-            )
-        }
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            item {
+                ShopHeroImage(
+                    photos = photos,
+                    title = shop.title,
+                )
+            }
 
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = CpDimens.spacing4)
-                    .offset(y = (-16).dp),
-                shape = RoundedCornerShape(CpDimens.cardRadius),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            ) {
-                Column(modifier = Modifier.padding(CpDimens.spacing4)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        Text(
-                            text = shop.title,
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f),
-                        )
-                        RatingBlock(
-                            rating = shop.rating,
-                            reviewCount = shop.reviewCount,
-                        )
-                    }
-
-                    Spacer(Modifier.height(CpDimens.spacing2))
-                    StatusBadges(details = details)
-
-                    shop.priceRange?.let { price ->
-                        Spacer(Modifier.height(CpDimens.spacing2))
-                        InfoChip("Ценовой диапазон: $price")
-                    }
-
-                    details.location?.address?.let { address ->
-                        Spacer(Modifier.height(CpDimens.spacing2))
-                        LocationRow(address = address)
-                    }
-
-                    val lat = details.location?.latitude
-                    val lon = details.location?.longitude
-                    if (lat != null && lon != null) {
-                        Spacer(Modifier.height(CpDimens.spacing2))
-                        OutlinedButton(
-                            onClick = onOpenOnMap,
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
+                    shape = RoundedCornerShape(CpDimens.cardRadius),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant,
+                    ),
+                ) {
+                    Column(modifier = Modifier.padding(CpDimens.spacing4)) {
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top,
                         ) {
-                            Icon(CpIcons.Map, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(CpDimens.spacing2))
-                            Text("Посмотреть на карте")
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                            ) {
+                                Text(
+                                    text = shop.title,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                ShopMetaRow(
+                                    rating = shop.rating,
+                                    reviewCount = shop.reviewCount,
+                                    isNew = details.isNew,
+                                    isOpen = shop.isOpen,
+                                )
+                            }
+                            HeaderActionButtons(
+                                isFavorite = shop.isFavorite,
+                                isFavoriteLoading = isFavoriteLoading,
+                                isCheckInLoading = isCheckInLoading,
+                                isVisited = details.isVisited,
+                                onToggleFavorite = onToggleFavorite,
+                                onCheckIn = onCheckIn,
+                                onShare = onShare,
+                            )
+                        }
+
+                        shop.priceRange?.let { price ->
+                            Spacer(Modifier.height(CpDimens.spacing2))
+                            InfoChip("Ценовой диапазон: $price")
+                        }
+
+                        details.location?.address?.let { address ->
+                            Spacer(Modifier.height(CpDimens.spacing3))
+                            LocationRow(address = address)
+                        }
+
+                        val lat = details.location?.latitude
+                        val lon = details.location?.longitude
+                        if (lat != null && lon != null) {
+                            Spacer(Modifier.height(CpDimens.spacing3))
+                            OutlinedButton(
+                                onClick = onOpenOnMap,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Icon(CpIcons.Map, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(CpDimens.spacing2))
+                                Text("Посмотреть на карте")
+                            }
                         }
                     }
                 }
             }
-        }
 
-        details.description?.takeIf { it.isNotBlank() }?.let { description ->
-            item {
-                SectionCard(title = "О заведении") {
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
-        }
-
-        if (details.schedules.isNotEmpty()) {
-            item {
-                CollapsibleScheduleSection(schedules = details.schedules)
-            }
-        }
-
-        catalogSection(title = "Способы заваривания", items = details.brewMethods)
-        catalogSection(title = "Кофейные зёрна", items = details.coffeeBeans)
-        catalogSection(title = "Обжарщики", items = details.roasters)
-        catalogSection(title = "Оборудование", items = details.equipment)
-
-        details.contact?.let { contact ->
-            if (contact.hasAny()) {
+            details.description?.takeIf { it.isNotBlank() }?.let { description ->
                 item {
-                    SectionCard(title = "Контакты") {
-                        Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-                            contact.phone?.let {
-                                ContactRow(
-                                    icon = CpIcons.Phone,
-                                    text = it,
-                                    onClick = { OpenInBrowser.openInBrowser("tel:$it") },
-                                )
-                            }
-                            contact.email?.let {
-                                ContactRow(
-                                    icon = CpIcons.Email,
-                                    text = it,
-                                    onClick = { OpenInBrowser.openInBrowser("mailto:$it") },
-                                )
-                            }
-                            contact.website?.let {
-                                formatWebsiteLink(it)?.let { website ->
+                    SectionCard(title = "О заведении") {
+                        Text(
+                            text = description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+            }
+
+            if (details.schedules.isNotEmpty()) {
+                item {
+                    CollapsibleScheduleSection(schedules = details.schedules)
+                }
+            }
+
+            catalogSection(title = "Способы заваривания", items = details.brewMethods)
+            catalogSection(title = "Кофейные зёрна", items = details.coffeeBeans)
+            catalogSection(title = "Обжарщики", items = details.roasters)
+            catalogSection(title = "Оборудование", items = details.equipment)
+
+            details.contact?.let { contact ->
+                if (contact.hasAny()) {
+                    item {
+                        SectionCard(title = "Контакты") {
+                            Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
+                                contact.phone?.let {
                                     ContactRow(
-                                        icon = CpIcons.Globe,
-                                        text = website.displayText,
-                                        onClick = { OpenInBrowser.openInBrowser(website.targetUrl) },
+                                        icon = CpIcons.Phone,
+                                        text = it,
+                                        onClick = { OpenInBrowser.openInBrowser("tel:$it") },
                                     )
                                 }
-                            }
-                            contact.instagram?.let {
-                                formatInstagramLink(it)?.let { instagram ->
+                                contact.email?.let {
                                     ContactRow(
-                                        icon = CpIcons.Profile,
-                                        text = instagram.displayText,
-                                        onClick = { OpenInBrowser.openInBrowser(instagram.targetUrl) },
+                                        icon = CpIcons.Email,
+                                        text = it,
+                                        onClick = { OpenInBrowser.openInBrowser("mailto:$it") },
                                     )
+                                }
+                                contact.website?.let {
+                                    formatWebsiteLink(it)?.let { website ->
+                                        ContactRow(
+                                            icon = CpIcons.Globe,
+                                            text = website.displayText,
+                                            onClick = { OpenInBrowser.openInBrowser(website.targetUrl) },
+                                        )
+                                    }
+                                }
+                                contact.instagram?.let {
+                                    formatInstagramLink(it)?.let { instagram ->
+                                        ContactRow(
+                                            icon = CpIcons.Profile,
+                                            text = instagram.displayText,
+                                            onClick = { OpenInBrowser.openInBrowser(instagram.targetUrl) },
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+
+            item {
+                ReviewsSection(
+                    reviews = details.reviews,
+                    reviewCount = shop.reviewCount,
+                    showCreateReview = showCreateReview,
+                    existingReviewId = details.existingReviewId,
+                    onCreateReview = onCreateReview,
+                    onEditReview = onEditReview,
+                    onReviewPhotoClick = onReviewPhotoClick,
+                )
+            }
+
+            item { Spacer(Modifier.height(96.dp)) }
         }
 
-        item {
-            ReviewsSection(
-                reviews = details.reviews,
-                reviewCount = shop.reviewCount,
-                showCreateReview = showCreateReview,
-                existingReviewId = details.existingReviewId,
-                onCreateReview = onCreateReview,
-                onEditReview = onEditReview,
-                onReviewPhotoClick = onReviewPhotoClick,
-            )
+        Button(
+            onClick = onBack,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = CpDimens.spacing4, bottom = CpDimens.spacing4),
+            shape = RoundedCornerShape(CpDimens.radius2xl),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+        ) {
+            Icon(CpIcons.Back, contentDescription = null)
+            Spacer(Modifier.width(CpDimens.spacing2))
+            Text("Назад", style = MaterialTheme.typography.titleMedium)
         }
-
-        item { Spacer(Modifier.height(CpDimens.spacing6)) }
     }
 }
 
@@ -360,12 +367,6 @@ private fun ShopDetailContent(
 private fun ShopHeroImage(
     photos: List<String>,
     title: String,
-    isFavorite: Boolean,
-    isFavoriteLoading: Boolean,
-    isCheckInLoading: Boolean,
-    isVisited: Boolean,
-    onToggleFavorite: () -> Unit,
-    onCheckIn: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -402,44 +403,22 @@ private fun ShopHeroImage(
                 )
         )
 
-        ShopHeroActions(
-            isFavorite = isFavorite,
-            isFavoriteLoading = isFavoriteLoading,
-            isCheckInLoading = isCheckInLoading,
-            isVisited = isVisited,
-            onToggleFavorite = onToggleFavorite,
-            onCheckIn = onCheckIn,
-            modifier = Modifier.align(Alignment.TopEnd),
-        )
     }
 }
 
 @Composable
-private fun ShopHeroActions(
+private fun HeaderActionButtons(
     isFavorite: Boolean,
     isFavoriteLoading: Boolean,
     isCheckInLoading: Boolean,
     isVisited: Boolean,
     onToggleFavorite: () -> Unit,
     onCheckIn: () -> Unit,
-    modifier: Modifier = Modifier,
+    onShare: () -> Unit,
 ) {
     Row(
-        modifier = modifier.padding(CpDimens.spacing3),
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
     ) {
-        HeroIconButton(
-            onClick = onToggleFavorite,
-            enabled = !isFavoriteLoading,
-            isLoading = isFavoriteLoading,
-            contentDescription = if (isFavorite) "Убрать из избранного" else "Добавить в избранное",
-        ) {
-            Icon(
-                imageVector = if (isFavorite) CpIcons.FavoriteFilled else CpIcons.Favorite,
-                contentDescription = null,
-                tint = if (isFavorite) CpColor.Error else Color.White,
-            )
-        }
         HeroIconButton(
             onClick = onCheckIn,
             enabled = !isCheckInLoading && !isVisited,
@@ -449,8 +428,59 @@ private fun ShopHeroActions(
             Icon(
                 imageVector = CpIcons.Check,
                 contentDescription = null,
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.primary,
             )
+        }
+        HeroIconButton(
+            onClick = onToggleFavorite,
+            enabled = !isFavoriteLoading,
+            isLoading = isFavoriteLoading,
+            contentDescription = if (isFavorite) "Убрать из избранного" else "Добавить в избранное",
+        ) {
+            Icon(
+                imageVector = if (isFavorite) CpIcons.FavoriteFilled else CpIcons.Favorite,
+                contentDescription = null,
+                tint = if (isFavorite) CpColor.Error else MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        HeroIconButton(
+            onClick = onShare,
+            enabled = true,
+            isLoading = false,
+            contentDescription = "Поделиться",
+        ) {
+            Icon(
+                imageVector = CpIcons.Share,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShopMetaRow(
+    rating: Double?,
+    reviewCount: Int,
+    isNew: Boolean,
+    isOpen: Boolean,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+    ) {
+        if (rating != null && rating > 0) {
+            InfoChip(
+                text = "★ %.1f".format(rating),
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                textColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+        InfoChip("$reviewCount отзывов")
+        if (isNew) InfoChip("Новая", containerColor = CpColor.Success.copy(alpha = 0.2f), textColor = CpColor.Success)
+        if (isOpen) {
+            InfoChip("Открыто", containerColor = CpColor.Success.copy(alpha = 0.2f), textColor = CpColor.Success)
+        } else {
+            InfoChip("Закрыто", containerColor = CpColor.Error.copy(alpha = 0.2f), textColor = CpColor.Error)
         }
     }
 }
@@ -464,9 +494,10 @@ private fun HeroIconButton(
     content: @Composable () -> Unit,
 ) {
     Surface(
-        shape = CircleShape,
-        color = Color.Black.copy(alpha = 0.45f),
-        modifier = Modifier.size(40.dp),
+        shape = RoundedCornerShape(CpDimens.radiusMd),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 0.dp,
+        modifier = Modifier.size(42.dp),
     ) {
         IconButton(
             onClick = onClick,
@@ -476,7 +507,7 @@ private fun HeroIconButton(
                 CoffeePeekLoader(
                     size = 18.dp,
                     strokeWidth = 2.dp,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             } else {
                 content()
@@ -782,17 +813,21 @@ private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Un
 }
 
 @Composable
-private fun InfoChip(text: String) {
+private fun InfoChip(
+    text: String,
+    containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    textColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(CpDimens.radiusSm))
-            .background(MaterialTheme.colorScheme.primaryContainer)
+            .background(containerColor)
             .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            color = textColor,
         )
     }
 }

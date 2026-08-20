@@ -36,6 +36,7 @@ import com.adamglin.phosphoricons.regular.NotePencil
 import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Phone
 import com.adamglin.phosphoricons.regular.Plus
+import com.adamglin.phosphoricons.regular.ShareNetwork
 import com.adamglin.phosphoricons.regular.SignOut
 import com.adamglin.phosphoricons.regular.Star
 import com.adamglin.phosphoricons.regular.Sun
@@ -74,6 +75,7 @@ object CpIcons {
     val Photo: ImageVector get() = PhosphorIcons.Regular.ImageSquare
     val Profile: ImageVector get() = PhosphorIcons.Regular.User
     val Review: ImageVector get() = PhosphorIcons.Regular.ChatCenteredText
+    val Share: ImageVector get() = PhosphorIcons.Regular.ShareNetwork
     val Search: ImageVector get() = PhosphorIcons.Regular.MagnifyingGlass
     val Star: ImageVector get() = PhosphorIcons.Regular.Star
     val StarOutline: ImageVector get() = Star

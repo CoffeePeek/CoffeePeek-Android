@@ -121,9 +121,9 @@ object Navigator {
     fun openShopOnMap(shopId: String, latitude: Double, longitude: Double, title: String) {
         navigatorScope.launch {
             _pendingMapFocus.value = MapShopFocus(shopId, latitude, longitude, title)
-            _pendingTabSelection.value = Screen.MapGraph
             _navigationEvents.emit(NavEvent.PopBack)
-            _navigationEvents.emit(NavEvent.SelectTab(Screen.MapGraph))
+            _pendingTabSelection.value = Screen.MapTab
+            _navigationEvents.emit(NavEvent.SelectTab(Screen.MapTab))
         }
     }
 
