@@ -211,6 +211,11 @@ class ShopDetailViewModel(
         )
     }
 
+    fun shareShop() {
+        val shareUrl = "https://coffeepeek.by/shops/$shopId"
+        _uiState.update { it.copy(actionMessage = "Ссылка на кофейню: $shareUrl") }
+    }
+
     fun clearActionMessage() {
         _uiState.update { it.copy(actionMessage = null) }
     }

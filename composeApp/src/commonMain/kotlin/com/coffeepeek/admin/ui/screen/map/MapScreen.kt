@@ -55,7 +55,6 @@ import com.coffeepeek.admin.map.CoffeeMap
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
-import com.coffeepeek.admin.ui.component.CityCatalogChips
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CoffeeShopDetails
@@ -197,9 +196,7 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
                 state = state,
                 onDismiss = vm::dismissFilters,
                 onQueryChange = vm::onQueryChange,
-                onCity = vm::setCity,
                 onPrice = vm::setPriceRange,
-                onRating = vm::setMinRating,
                 onToggleCatalog = vm::toggleFilterCatalog,
                 onClear = vm::clearFilters,
                 onApply = vm::applyFilters,
@@ -236,9 +233,7 @@ private fun MapFiltersDialog(
     state: MapUiState,
     onDismiss: () -> Unit,
     onQueryChange: (String) -> Unit,
-    onCity: (String?) -> Unit,
     onPrice: (Int?) -> Unit,
-    onRating: (Double?) -> Unit,
     onToggleCatalog: (String, String) -> Unit,
     onClear: () -> Unit,
     onApply: () -> Unit,
@@ -266,15 +261,6 @@ private fun MapFiltersDialog(
                     label = { Text("Поиск") },
                     leadingIcon = { Icon(CpIcons.Search, contentDescription = null) },
                 )
-                if (state.cities.isNotEmpty()) {
-                    FilterSection("Город") {
-                        CityCatalogChips(
-                            cities = state.cities,
-                            selectedId = filters.cityId,
-                            onSelect = onCity,
-                        )
-                    }
-                }
                 FilterSection("Цена") {
                     CatalogChips(
                         items = listOf("₽" to 1, "₽₽" to 2, "₽₽₽" to 3, "₽₽₽₽" to 4),
@@ -282,25 +268,6 @@ private fun MapFiltersDialog(
                         onToggle = { id ->
                             val value = id.toIntOrNull()
                             onPrice(if (filters.priceRange == value) null else value)
-                        },
-                        idSelector = { it.second.toString() },
-                        labelSelector = { it.first },
-                    )
-                }
-                FilterSection("Рейтинг от") {
-                    CatalogChips(
-                        items = listOf(
-                            "2.5+" to 2.5,
-                            "3.0+" to 3.0,
-                            "3.5+" to 3.5,
-                            "4.0+" to 4.0,
-                            "4.5+" to 4.5,
-                            "5.0" to 5.0,
-                        ),
-                        selectedIds = filters.minRating?.toString()?.let { setOf(it) } ?: emptySet(),
-                        onToggle = { id ->
-                            val value = id.toDoubleOrNull()
-                            onRating(if (filters.minRating == value) null else value)
                         },
                         idSelector = { it.second.toString() },
                         labelSelector = { it.first },

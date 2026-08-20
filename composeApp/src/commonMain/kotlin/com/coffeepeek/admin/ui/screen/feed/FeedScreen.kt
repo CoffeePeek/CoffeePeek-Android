@@ -63,7 +63,6 @@ import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
-import com.coffeepeek.admin.ui.component.CityCatalogChips
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CoffeePeekPullToRefresh
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
@@ -184,9 +183,7 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                     AnimatedVisibility(visible = state.showFilters) {
                         FeedFiltersPanel(
                             state = state,
-                            onCity = vm::setCity,
                             onPrice = vm::setPriceRange,
-                            onRating = vm::setMinRating,
                             onToggleCatalog = vm::toggleFilterCatalog,
                             onClear = vm::clearFilters,
                         )
@@ -515,9 +512,7 @@ private fun StatusBadge(text: String, color: Color) {
 @Composable
 private fun FeedFiltersPanel(
     state: FeedUiState,
-    onCity: (String?) -> Unit,
     onPrice: (Int?) -> Unit,
-    onRating: (Double?) -> Unit,
     onToggleCatalog: (String, String) -> Unit,
     onClear: () -> Unit,
 ) {
@@ -538,15 +533,6 @@ private fun FeedFiltersPanel(
                 TextButton(onClick = onClear) { Text("Сбросить") }
             }
         }
-        if (state.cities.isNotEmpty()) {
-            FilterSection("Город") {
-                CityCatalogChips(
-                    cities = state.cities,
-                    selectedId = filters.cityId,
-                    onSelect = onCity,
-                )
-            }
-        }
         FilterSection("Цена") {
             CatalogChips(
                 items = listOf("₽" to 1, "₽₽" to 2, "₽₽₽" to 3, "₽₽₽₽" to 4),
@@ -554,18 +540,6 @@ private fun FeedFiltersPanel(
                 onToggle = { id ->
                     val value = id.toIntOrNull()
                     onPrice(if (filters.priceRange == value) null else value)
-                },
-                idSelector = { it.second.toString() },
-                labelSelector = { it.first },
-            )
-        }
-        FilterSection("Рейтинг от") {
-            CatalogChips(
-                items = listOf("3.0+" to 3.0, "4.0+" to 4.0, "4.5+" to 4.5),
-                selectedIds = filters.minRating?.toString()?.let { setOf(it) } ?: emptySet(),
-                onToggle = { id ->
-                    val value = id.toDoubleOrNull()
-                    onRating(if (filters.minRating == value) null else value)
                 },
                 idSelector = { it.second.toString() },
                 labelSelector = { it.first },
