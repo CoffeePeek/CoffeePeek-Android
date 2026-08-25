@@ -37,18 +37,19 @@ fun PriceBeansRow(
     activeTint: Color = CpColor.Primary,
     inactiveTint: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
     showEmptySlots: Boolean = false,
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.spacedBy(2.dp),
 ) {
     val filled = level.coerceIn(0, maxLevel)
     val count = if (showEmptySlots) maxLevel else filled
     if (count <= 0) return
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalArrangement = horizontalArrangement,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         repeat(count) { index ->
             Icon(
-                imageVector = CpIcons.Coffee,
+                imageVector = CpIcons.CoffeeBean,
                 contentDescription = null,
                 tint = if (index < filled) activeTint else inactiveTint,
                 modifier = Modifier.size(iconSize),
@@ -91,8 +92,10 @@ fun PriceBeanSlider(
         PriceBeansRow(
             level = selected ?: 0,
             showEmptySlots = true,
-            iconSize = 20.dp,
+            iconSize = 22.dp,
             inactiveTint = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
         )
         Slider(
             value = value,
