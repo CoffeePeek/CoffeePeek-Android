@@ -1,9 +1,13 @@
 package com.coffeepeek.admin.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -60,6 +64,7 @@ fun PriceBeansRow(
 
 /**
  * Discrete price filter: 0 = any, 1–4 = coffee-bean levels.
+ * Each bean is aligned above the corresponding slider tick (1..4).
  */
 @Composable
 fun PriceBeanSlider(
@@ -69,6 +74,11 @@ fun PriceBeanSlider(
     title: String = "Цена",
 ) {
     val value = (selected ?: 0).coerceIn(0, 4).toFloat()
+    val filled = (selected ?: 0).coerceIn(0, 4)
+    val iconSize = 22.dp
+    // Match Material3 thumb travel inset so beans sit over tick centers.
+    val trackInset = 10.dp
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
@@ -89,14 +99,37 @@ fun PriceBeanSlider(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        PriceBeansRow(
-            level = selected ?: 0,
-            showEmptySlots = true,
-            iconSize = 22.dp,
-            inactiveTint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
-        )
+
+        // Four equal segments cover ticks 0→1, 1→2, 2→3, 3→4.
+        // Place each bean so its center sits on ticks 1, 2, 3, 4.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = trackInset)
+                .height(iconSize),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            repeat(4) { index ->
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
+                    Icon(
+                        imageVector = CpIcons.CoffeeBean,
+                        contentDescription = null,
+                        tint = if (index < filled) {
+                            CpColor.Primary
+                        } else {
+                            MaterialTheme.colorScheme.outline
+                        },
+                        modifier = Modifier
+                            .size(iconSize)
+                            .offset(x = iconSize / 2),
+                    )
+                }
+            }
+        }
+
         Slider(
             value = value,
             onValueChange = { raw ->
