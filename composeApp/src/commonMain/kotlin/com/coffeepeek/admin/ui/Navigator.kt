@@ -2,13 +2,6 @@ package com.coffeepeek.admin.ui
 
 import com.coffeepeek.admin.ui.screen.addshop.AddShopScreen
 import com.coffeepeek.admin.ui.screen.auth.registr.RegisterScreen
-import com.coffeepeek.admin.ui.screen.brew.BeanEditScreen
-import com.coffeepeek.admin.ui.screen.brew.BeanListScreen
-import com.coffeepeek.admin.ui.screen.brew.BrewDetailScreen
-import com.coffeepeek.admin.ui.screen.brew.BrewHomeScreen
-import com.coffeepeek.admin.ui.screen.brew.BrewOriginsScreen
-import com.coffeepeek.admin.ui.screen.brew.BrewTrendsScreen
-import com.coffeepeek.admin.ui.screen.brew.NewBrewScreen
 import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesScreen
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileScreen
 import com.coffeepeek.admin.ui.screen.favorites.FavoritesScreen
@@ -86,15 +79,6 @@ object Navigator {
         @Serializable data object VisitedPlaces : Screen
         @Serializable data class CreateReview(val shopId: String) : Screen
         @Serializable data class ReviewEdit(val reviewId: String) : Screen
-
-        // Brew journal (local-first)
-        @Serializable data object BrewHome : Screen
-        @Serializable data class NewBrew(val repeatSessionId: String = "") : Screen
-        @Serializable data class BrewDetail(val sessionId: String) : Screen
-        @Serializable data object BrewBeans : Screen
-        @Serializable data class BeanEdit(val beanId: String = "") : Screen
-        @Serializable data object BrewTrends : Screen
-        @Serializable data object BrewOrigins : Screen
     }
 
     data class MapShopFocus(
@@ -138,14 +122,7 @@ object Navigator {
         is Screen.ReviewEdit,
         is Screen.Favorites,
         is Screen.MyReviews,
-        is Screen.VisitedPlaces,
-        is Screen.BrewHome,
-        is Screen.NewBrew,
-        is Screen.BrewDetail,
-        is Screen.BrewBeans,
-        is Screen.BeanEdit,
-        is Screen.BrewTrends,
-        is Screen.BrewOrigins -> true
+        is Screen.VisitedPlaces -> true
         else -> false
     }
 
@@ -242,22 +219,6 @@ object Navigator {
                 composable<Screen.Favorites> { FavoritesScreen() }
                 composable<Screen.MyReviews> { MyReviewsScreen() }
                 composable<Screen.VisitedPlaces> { VisitedPlacesScreen() }
-                composable<Screen.BrewHome> { BrewHomeScreen() }
-                composable<Screen.NewBrew> { backStack ->
-                    val route = backStack.toRoute<Screen.NewBrew>()
-                    NewBrewScreen(repeatSessionId = route.repeatSessionId)
-                }
-                composable<Screen.BrewDetail> { backStack ->
-                    val route = backStack.toRoute<Screen.BrewDetail>()
-                    BrewDetailScreen(sessionId = route.sessionId)
-                }
-                composable<Screen.BrewBeans> { BeanListScreen() }
-                composable<Screen.BeanEdit> { backStack ->
-                    val route = backStack.toRoute<Screen.BeanEdit>()
-                    BeanEditScreen(beanId = route.beanId)
-                }
-                composable<Screen.BrewTrends> { BrewTrendsScreen() }
-                composable<Screen.BrewOrigins> { BrewOriginsScreen() }
             }
         }
     }
