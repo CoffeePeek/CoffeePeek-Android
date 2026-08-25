@@ -3,7 +3,6 @@ package com.coffeepeek.admin.auth
 import androidx.annotation.Keep
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.ErrorHandler
-import com.google.gson.annotations.SerializedName
 import com.coffeepeek.domain.model.Session
 import com.coffeepeek.domain.repository.SessionRepository
 import com.microsoft.signalr.HubConnection
@@ -95,24 +94,39 @@ class SessionRealtimeManager(
     }
 
     private fun createConnection(): HubConnection {
+        // Java SignalR client has no withAutomaticReconnect(); reconnect is handled manually.
         val connection = HubConnectionBuilder
             .create(resolveRealtimeSessionUrl(baseUrl))
             .withAccessTokenProvider(
-                Single.defer<String> {
+                Single.defer {
                     val token = activeAccessToken ?: activeAccessTokenOrNull(sessionRepository.peekSession())
                     if (token.isNullOrBlank()) {
-                        Single.error<String>(IllegalStateException("No active access token for realtime session"))
+                        Single.error(IllegalStateException("No active access token for realtime session"))
                     } else {
                         Single.just(token)
                     }
                 },
             )
-            .withAutomaticReconnect()
             .build()
 
-        connection.on(FORCE_LOGOUT_METHOD, { payload ->
-            scope.launch { handleForceLogout(payload) }
-        }, ForceLogoutPayload::class.java)
+        connection.on(
+            FORCE_LOGOUT_METHOD,
+            { payload: ForceLogoutPayload ->
+                scope.launch { handleForceLogout(payload) }
+            },
+            ForceLogoutPayload::class.java,
+        )
+
+        connection.onClosed {
+            val token = activeAccessToken
+            if (!token.isNullOrBlank() &&
+                activeAccessTokenOrNull(sessionRepository.peekSession()) == token
+            ) {
+                hubConnection = null
+                activeAccessToken = null
+                scheduleReconnect(token)
+            }
+        }
 
         return connection
     }
@@ -163,9 +177,6 @@ private fun resolveRealtimeSessionUrl(baseUrl: String): String {
 
 @Keep
 class ForceLogoutPayload {
-    @SerializedName("reason")
     var reason: String? = null
-
-    @SerializedName("occurredAtUtc")
     var occurredAtUtc: String? = null
 }
