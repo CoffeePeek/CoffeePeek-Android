@@ -173,7 +173,7 @@ fun ShopFiltersScreen(
                                 },
                             )
                             ExpandableCheckboxSection(
-                                title = "Теги",
+                                title = "Особенности",
                                 items = state.shopTags,
                                 selectedIds = draft.tagIds,
                                 onToggle = { id ->
