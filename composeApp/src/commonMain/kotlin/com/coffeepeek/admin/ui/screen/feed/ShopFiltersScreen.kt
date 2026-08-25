@@ -24,8 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -43,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -312,37 +311,16 @@ private fun FilterCheckboxRow(
     checked: Boolean,
     onClick: () -> Unit,
 ) {
-    val rowShape = RoundedCornerShape(CpDimens.radiusMd)
-    val rowBorderColor = if (checked) {
-        CpColor.Primary.copy(alpha = 0.5f)
-    } else {
-        MaterialTheme.colorScheme.outlineVariant
-    }
-    val rowBackgroundColor = if (checked) {
-        CpColor.Primary.copy(alpha = 0.12f)
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(rowShape)
-            .border(width = 1.dp, color = rowBorderColor, shape = rowShape)
-            .background(rowBackgroundColor)
             .clickable(onClick = onClick)
-            .padding(horizontal = CpDimens.spacing1, vertical = 4.dp),
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(
+        RoundedFilterCheckbox(
             checked = checked,
-            onCheckedChange = { onClick() },
-            colors = CheckboxDefaults.colors(
-                checkedColor = CpColor.Primary,
-                checkmarkColor = CpColor.DarkTextOnPrimary,
-                uncheckedColor = MaterialTheme.colorScheme.outline,
-            ),
-            modifier = Modifier.size(24.dp),
+            onClick = onClick,
         )
         Text(
             text = label,
@@ -352,6 +330,37 @@ private fun FilterCheckboxRow(
                 .weight(1f)
                 .padding(start = CpDimens.spacing2),
         )
+    }
+}
+
+@Composable
+private fun RoundedFilterCheckbox(
+    checked: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(6.dp)
+    Box(
+        modifier = modifier
+            .size(22.dp)
+            .clip(shape)
+            .background(if (checked) CpColor.Primary else Color.Transparent)
+            .border(
+                width = 1.5.dp,
+                color = if (checked) CpColor.Primary else MaterialTheme.colorScheme.outline,
+                shape = shape,
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (checked) {
+            Icon(
+                imageVector = CpIcons.Check,
+                contentDescription = null,
+                tint = CpColor.DarkTextOnPrimary,
+                modifier = Modifier.size(14.dp),
+            )
+        }
     }
 }
 
