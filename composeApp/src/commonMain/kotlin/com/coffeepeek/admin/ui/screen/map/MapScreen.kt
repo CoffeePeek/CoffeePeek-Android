@@ -302,7 +302,7 @@ private fun MapFiltersDialog(
                     }
                 }
                 if (state.shopTags.isNotEmpty()) {
-                    FilterSection("Теги") {
+                    FilterSection("Особенности") {
                         CatalogFilterChips(state.shopTags, filters.tagIds, "tag", onToggleCatalog)
                     }
                 }
