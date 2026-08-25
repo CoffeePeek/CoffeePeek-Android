@@ -53,10 +53,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.lazy.rememberLazyListState
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -122,6 +119,20 @@ fun ShopDetailScreen(shopId: String) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            val details = state.details
+            if (details != null) {
+                ShopDetailBottomBar(
+                    isCheckInLoading = state.isCheckInLoading,
+                    isVisited = details.isVisited,
+                    canOpenRoute = details.location?.latitude != null &&
+                        details.location?.longitude != null,
+                    onRoute = vm::openRouteInYandexMaps,
+                    onReview = vm::openReviewAction,
+                    onCheckIn = vm::openCheckInSheet,
+                )
+            }
+        },
     ) { padding ->
         when {
             state.isLoading -> {
@@ -158,14 +169,10 @@ fun ShopDetailScreen(shopId: String) {
                     details = state.details!!,
                     modifier = Modifier.padding(padding),
                     isFavoriteLoading = state.isFavoriteLoading,
-                    isCheckInLoading = state.isCheckInLoading,
                     onToggleFavorite = vm::toggleFavorite,
                     onShare = vm::shareShop,
                     onOpenOnMap = vm::openOnMap,
                     onCopyPhone = vm::copyPhone,
-                    onRoute = vm::openRouteInYandexMaps,
-                    onReview = vm::openReviewAction,
-                    onCheckIn = vm::openCheckInSheet,
                     onBack = Navigator::popBack,
                     onReviewPhotoClick = { previewImageUrl = it },
                 )
@@ -180,14 +187,10 @@ private fun ShopDetailContent(
     details: CoffeeShopDetails,
     modifier: Modifier = Modifier,
     isFavoriteLoading: Boolean = false,
-    isCheckInLoading: Boolean = false,
     onToggleFavorite: () -> Unit = {},
     onShare: () -> Unit = {},
     onOpenOnMap: () -> Unit = {},
     onCopyPhone: (String) -> Unit = {},
-    onRoute: () -> Unit = {},
-    onReview: () -> Unit = {},
-    onCheckIn: () -> Unit = {},
     onBack: () -> Unit = {},
     onReviewPhotoClick: (String) -> Unit = {},
 ) {
@@ -195,129 +198,107 @@ private fun ShopDetailContent(
     val photos = details.photos.filter { it.isNotBlank() }.ifEmpty {
         listOfNotNull(shop.photoUrl?.takeIf { it.isNotBlank() })
     }
-    val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
-    // Fixed item indices in the list below (hero=0, header=1, description=2, menu=3)
-    val menuItemIndex = 3
 
-    Box(modifier = modifier.fillMaxSize()) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 88.dp),
-        ) {
-            item {
-                ShopHeroImage(
-                    photos = photos,
-                    title = shop.title,
-                    onBack = onBack,
-                    isFavorite = shop.isFavorite,
-                    isFavoriteLoading = isFavoriteLoading,
-                    onToggleFavorite = onToggleFavorite,
-                    onShare = onShare,
-                )
-            }
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = CpDimens.spacing4),
+    ) {
+        item {
+            ShopHeroImage(
+                photos = photos,
+                title = shop.title,
+                onBack = onBack,
+                isFavorite = shop.isFavorite,
+                isFavoriteLoading = isFavoriteLoading,
+                onToggleFavorite = onToggleFavorite,
+                onShare = onShare,
+            )
+        }
 
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = CpDimens.spacing4)
-                        .padding(top = CpDimens.spacing5, bottom = CpDimens.spacing4),
-                    verticalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-                        Text(
-                            text = shop.title,
-                            style = MaterialTheme.typography.headlineLarge.copy(
-                                fontSize = 30.sp,
-                                lineHeight = 36.sp,
-                                letterSpacing = (-0.75).sp,
-                                fontWeight = FontWeight.Bold,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        ShopMetaRow(
-                            rating = shop.rating,
-                            reviewCount = shop.reviewCount,
-                            isNew = details.isNew,
-                            isOpen = shop.isOpen,
-                            priceRange = shop.priceRange,
-                        )
-                    }
-                    if (shop.tags.isNotEmpty()) {
-                        ShopTagRow(tags = shop.tags)
-                    }
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = CpDimens.spacing4)
+                    .padding(top = CpDimens.spacing5, bottom = CpDimens.spacing4),
+                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
+                    Text(
+                        text = shop.title,
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontSize = 30.sp,
+                            lineHeight = 36.sp,
+                            letterSpacing = (-0.75).sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    ShopMetaRow(
+                        rating = shop.rating,
+                        reviewCount = shop.reviewCount,
+                        isNew = details.isNew,
+                        isOpen = shop.isOpen,
+                        priceRange = shop.priceRange,
+                    )
+                }
+                if (shop.tags.isNotEmpty()) {
+                    ShopTagRow(tags = shop.tags)
                 }
             }
+        }
 
+        item {
+            DescriptionSection(description = details.description)
+        }
+
+        item {
+            MenuSection()
+        }
+
+        if (details.schedules.isNotEmpty()) {
             item {
-                DescriptionSection(description = details.description)
+                CollapsibleScheduleSection(schedules = details.schedules)
             }
+        }
 
-            item {
-                MenuSection()
-            }
+        catalogSection(title = "Способы заваривания", items = details.brewMethods)
+        catalogSection(title = "Кофейные зёрна", items = details.coffeeBeans)
+        catalogSection(title = "Обжарщики", items = details.roasters)
+        catalogSection(title = "Оборудование", items = details.equipment)
 
-            if (details.schedules.isNotEmpty()) {
+        details.contact?.let { contact ->
+            if (contact.hasAny()) {
                 item {
-                    CollapsibleScheduleSection(schedules = details.schedules)
-                }
-            }
-
-            catalogSection(title = "Способы заваривания", items = details.brewMethods)
-            catalogSection(title = "Кофейные зёрна", items = details.coffeeBeans)
-            catalogSection(title = "Обжарщики", items = details.roasters)
-            catalogSection(title = "Оборудование", items = details.equipment)
-
-            details.contact?.let { contact ->
-                if (contact.hasAny()) {
-                    item {
-                        ContactsSection(
-                            contact = contact,
-                            onCopyPhone = onCopyPhone,
-                        )
-                    }
-                }
-            }
-
-            item {
-                ReviewsSection(
-                    reviews = details.reviews,
-                    onReviewPhotoClick = onReviewPhotoClick,
-                )
-            }
-
-            val address = details.location?.address ?: shop.address
-            val lat = details.location?.latitude
-            val lon = details.location?.longitude
-            if (!address.isNullOrBlank() || (lat != null && lon != null)) {
-                item {
-                    AddressCard(
-                        address = address,
-                        canOpenMap = lat != null && lon != null,
-                        onOpenOnMap = onOpenOnMap,
+                    ContactsSection(
+                        contact = contact,
+                        onCopyPhone = onCopyPhone,
                     )
                 }
             }
-
-            item { Spacer(Modifier.height(CpDimens.spacing6)) }
         }
 
-        ShopDetailBottomBar(
-            modifier = Modifier.align(Alignment.BottomCenter),
-            isCheckInLoading = isCheckInLoading,
-            isVisited = details.isVisited,
-            canOpenRoute = details.location?.latitude != null && details.location?.longitude != null,
-            onRoute = onRoute,
-            onReview = onReview,
-            onCheckIn = onCheckIn,
-            onMenu = {
-                scope.launch {
-                    listState.animateScrollToItem(menuItemIndex)
-                }
-            },
-        )
+        item {
+            ReviewsSection(
+                reviews = details.reviews,
+                onReviewPhotoClick = onReviewPhotoClick,
+            )
+        }
+
+        val address = details.location?.address ?: shop.address
+        val lat = details.location?.latitude
+        val lon = details.location?.longitude
+        if (!address.isNullOrBlank() || (lat != null && lon != null)) {
+            item {
+                AddressCard(
+                    address = address,
+                    canOpenMap = lat != null && lon != null,
+                    onOpenOnMap = onOpenOnMap,
+                )
+            }
+        }
+
+        item { Spacer(Modifier.height(CpDimens.spacing6)) }
     }
 }
 
@@ -744,7 +725,7 @@ private fun PhoneContactPill(
             )
             Text(
                 text = phone,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
             )
@@ -923,46 +904,45 @@ private fun ShopDetailBottomBar(
     onRoute: () -> Unit,
     onReview: () -> Unit,
     onCheckIn: () -> Unit,
-    onMenu: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
-        shadowElevation = 8.dp,
+        shadowElevation = 0.dp,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = CpDimens.spacing2, vertical = CpDimens.spacing2),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            BottomBarAction(
-                icon = CpIcons.Navigation,
-                label = "Маршрут",
-                enabled = canOpenRoute,
-                onClick = onRoute,
-            )
-            BottomBarAction(
-                icon = CpIcons.Review,
-                label = "Отзыв",
-                onClick = onReview,
-            )
-            BottomBarAction(
-                icon = CpIcons.Check,
-                label = "Чекин",
-                enabled = !isCheckInLoading && !isVisited,
-                isLoading = isCheckInLoading,
-                onClick = onCheckIn,
-            )
-            BottomBarAction(
-                icon = CpIcons.Menu,
-                label = "Меню",
-                onClick = onMenu,
-            )
+        Column(modifier = Modifier.fillMaxWidth()) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing3),
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BottomBarAction(
+                    icon = CpIcons.Navigation,
+                    label = "Маршрут",
+                    enabled = canOpenRoute,
+                    onClick = onRoute,
+                    modifier = Modifier.weight(1f),
+                )
+                BottomBarAction(
+                    icon = CpIcons.Review,
+                    label = "Отзыв",
+                    onClick = onReview,
+                    modifier = Modifier.weight(1f),
+                )
+                BottomBarAction(
+                    icon = CpIcons.Check,
+                    label = "Чекин",
+                    enabled = !isCheckInLoading && !isVisited,
+                    isLoading = isCheckInLoading,
+                    onClick = onCheckIn,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }
@@ -972,6 +952,7 @@ private fun BottomBarAction(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     enabled: Boolean = true,
     isLoading: Boolean = false,
 ) {
@@ -980,29 +961,33 @@ private fun BottomBarAction(
     } else {
         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
     }
-    Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(CpDimens.radiusMd))
+    Row(
+        modifier = modifier
+            .height(42.dp)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(999.dp))
             .clickable(enabled = enabled && !isLoading, onClick = onClick)
-            .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing2),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+            .padding(horizontal = CpDimens.spacing3),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
     ) {
         if (isLoading) {
-            CoffeePeekLoader(size = 20.dp, strokeWidth = 2.dp)
+            CoffeePeekLoader(size = 16.dp, strokeWidth = 2.dp)
         } else {
             Icon(
                 imageVector = icon,
-                contentDescription = label,
+                contentDescription = null,
                 tint = tint,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(16.dp),
             )
         }
+        Spacer(Modifier.width(CpDimens.spacing1))
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
             color = tint,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
