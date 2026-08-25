@@ -297,7 +297,7 @@ private fun ExpandableCheckboxSection(
             ) {
                 Text(
                     text = if (expanded) "Свернуть" else "Показать ещё ($hiddenCount)",
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelMedium,
                     color = CpColor.Primary,
                 )
             }
