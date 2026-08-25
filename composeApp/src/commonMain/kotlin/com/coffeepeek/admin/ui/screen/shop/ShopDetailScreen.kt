@@ -891,42 +891,32 @@ private fun ShopDetailBottomBar(
     onReview: () -> Unit,
     onCheckIn: () -> Unit,
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing3),
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing3),
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RouteIconButton(
-                    enabled = canOpenRoute,
-                    onClick = onRoute,
-                )
-                BottomBarAction(
-                    icon = CpIcons.Review,
-                    label = "Отзыв",
-                    onClick = onReview,
-                    modifier = Modifier.weight(1f),
-                )
-                BottomBarAction(
-                    icon = CpIcons.Check,
-                    label = "Чекин",
-                    enabled = !isCheckInLoading && !isVisited,
-                    isLoading = isCheckInLoading,
-                    onClick = onCheckIn,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
+        RouteIconButton(
+            enabled = canOpenRoute,
+            onClick = onRoute,
+        )
+        BottomBarAction(
+            icon = CpIcons.Review,
+            label = "Отзыв",
+            onClick = onReview,
+            modifier = Modifier.weight(1f),
+        )
+        BottomBarAction(
+            icon = CpIcons.Check,
+            label = "Чекин",
+            enabled = !isCheckInLoading && !isVisited,
+            isLoading = isCheckInLoading,
+            onClick = onCheckIn,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

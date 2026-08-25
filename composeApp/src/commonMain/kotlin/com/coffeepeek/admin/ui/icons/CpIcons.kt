@@ -16,6 +16,7 @@ import com.adamglin.phosphoricons.regular.ChatCenteredText
 import com.adamglin.phosphoricons.regular.Check
 import com.adamglin.phosphoricons.regular.Clock
 import com.adamglin.phosphoricons.regular.Coffee
+import com.adamglin.phosphoricons.regular.CoffeeBean
 import com.adamglin.phosphoricons.regular.Copy
 import com.adamglin.phosphoricons.regular.Envelope
 import com.adamglin.phosphoricons.regular.InstagramLogo
@@ -61,6 +62,7 @@ object CpIcons {
     val ChevronUp: ImageVector get() = PhosphorIcons.Regular.CaretUp
     val Close: ImageVector get() = PhosphorIcons.Regular.X
     val Coffee: ImageVector get() = PhosphorIcons.Regular.Coffee
+    val CoffeeBean: ImageVector get() = PhosphorIcons.Regular.CoffeeBean
     val Copy: ImageVector get() = PhosphorIcons.Regular.Copy
     val Delete: ImageVector get() = PhosphorIcons.Regular.Trash
     val Email: ImageVector get() = PhosphorIcons.Regular.Envelope
