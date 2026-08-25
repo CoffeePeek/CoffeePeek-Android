@@ -2,9 +2,16 @@
     <string name="app_name">CoffeePeek</string>
     <string name="eco_system">Экосистема спешелти-кофе</string>
     <string name="entry">Вход</string>
+    <string name="login_title">Вход в аккаунт</string>
+    <string name="login_subtitle">Войдите в свой аккаунт CoffeePeek.</string>
     <string name="password">Пароль</string>
     <string name="no_account">Нет аккаунта? </string>
     <string name="login">Войти</string>
+    <string name="sign_in_google">Войти через Google</string>
+    <string name="create_account">Создать аккаунт</string>
+    <string name="create_account_title">Создайте аккаунт</string>
+    <string name="forgot_password">Забыли пароль?</string>
+    <string name="forgot_password_soon">Восстановление пароля скоро будет доступно</string>
     <string name="registr">Зарегистрироваться</string>
     <string name="registration">Регистрация</string>
     <string name="email_no_exist">Этот Email уже занят</string>
@@ -18,10 +25,21 @@
     <string name="error_email_name">Введите email!</string>
     <string name="error_valid_email">Некорректный формат email!</string>
     <string name="name">Имя</string>
-    <string name="name_hint">Ваше имя</string>
+    <string name="name_hint">Как вас зовут?</string>
     <string name="have_account">Уже есть аккаунт? </string>
+    <string name="already_have_account">Уже есть аккаунт</string>
     <string name="enter">Войти</string>
     <string name="error_registr">Ошибка при попытке создания учетной записи, попробуйте позже!</string>
+    <string name="continue_action">Продолжить</string>
+    <string name="email_step_title">Введите email</string>
+    <string name="email_check_subtitle">Мы проверим, есть ли у вас уже аккаунт CoffeePeek.</string>
+    <string name="step_email">Email</string>
+    <string name="step_register">Регистрация</string>
+    <string name="step_done">Готово</string>
+    <string name="new_profile">Новый профиль</string>
+    <string name="register_success_title">Проверьте почту</string>
+    <string name="register_success_subtitle">Мы отправили ссылку на %1$s. Перейдите по ссылке чтобы активировать аккаунт. Ссылка действует 10 минут.</string>
+    <string name="go_to_login">На страницу входа</string>
 
     <string name="profile_version">Версия приложения</string>
     <string name="retry">Попробовать снова</string>
@@ -37,6 +55,6 @@
     <string name="error_invalid_instagram">Некорректный Instagram</string>
     <string name="terms_accept_prefix">Я принимаю </string>
     <string name="terms_link">условия использования</string>
-    <string name="terms_and"> и </string>
-    <string name="privacy_link">политику конфиденциальности</string>
+    <string name="terms_and"> и даю согласие на </string>
+    <string name="privacy_link">обработку персональных данных</string>
 </resources>

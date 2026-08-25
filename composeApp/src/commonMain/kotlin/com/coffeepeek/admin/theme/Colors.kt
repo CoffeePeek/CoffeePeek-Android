@@ -21,6 +21,14 @@ object CpColor {
     val Warning        = Color(0xFFEAB308)
     val Info           = Color(0xFF3B82F6)
 
+    // ── Auth ──────────────────────────────────────────────────────────────────
+    val AuthLightBackground = Color(0xFFFFFCF7)
+    val AuthCardDark        = Color(0x992D241F) // 60% Cocoa Brown
+    val AuthGlowGold        = Color(0x29EAB308) // ~16% gold
+    val AuthGlowWarm        = Color(0x1AB48C4B) // ~10% warm gold
+    val AuthInputDark       = Color(0x08FFFFFF) // 3% white
+    val AuthGoogleBg        = Color(0x0AFFFFFF) // 4% white
+
     // ── Light palette ─────────────────────────────────────────────────────────
     val LightBackground    = Color(0xFFFAFAF9)
     val LightSurface       = Color(0xFFFFFFFF)
