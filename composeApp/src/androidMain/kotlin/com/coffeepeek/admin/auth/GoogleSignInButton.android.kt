@@ -48,7 +48,7 @@ actual fun GoogleSignInButton(
     )
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
-    // Match AuthTextField leading-icon inset (~14–16dp) so the G lines up with envelope/lock.
+    // Centered Google mark + label, matching the Figma auth button.
     OutlinedButton(
         onClick = launchSignIn,
         modifier = modifier
@@ -65,14 +65,14 @@ actual fun GoogleSignInButton(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
+            horizontalArrangement = Arrangement.Center,
         ) {
             Image(
                 painter = painterResource(Res.drawable.ic_google_g),
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
             )
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(Modifier = Modifier.width(12.dp))
             Text(
                 text = stringResource(Res.string.sign_in_google),
                 style = MaterialTheme.typography.labelLarge.copy(

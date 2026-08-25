@@ -48,8 +48,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coffeepeek.composeapp.generated.resources.Res
-import coffeepeek.composeapp.generated.resources.logo_app_dark
-import coffeepeek.composeapp.generated.resources.logo_app_light
 import coffeepeek.composeapp.generated.resources.maskot_happy
 import coffeepeek.composeapp.generated.resources.maskot_with_laptop
 import com.coffeepeek.admin.theme.CpColor
@@ -102,7 +100,7 @@ fun AuthScreenScaffold(
         ) {
             Spacer(modifier = Modifier.height(CpDimens.spacing4))
 
-            AuthBrandLogo(isDark = isDark)
+            AuthWordmark()
 
             Box(
                 modifier = Modifier
@@ -202,20 +200,6 @@ private fun AuthAmbientBackground(isDark: Boolean) {
                 ),
         )
     }
-}
-
-@Composable
-fun AuthBrandLogo(
-    isDark: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val logo = if (isDark) Res.drawable.logo_app_dark else Res.drawable.logo_app_light
-    Image(
-        painter = painterResource(logo),
-        contentDescription = "CoffeePeek",
-        contentScale = ContentScale.Fit,
-        modifier = modifier.size(CpDimens.authBrandLogoSize),
-    )
 }
 
 @Composable
