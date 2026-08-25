@@ -857,7 +857,7 @@ private fun AddressCard(
             if (!address.isNullOrBlank()) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
-                    verticalAlignment = Alignment.Top,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
                         modifier = Modifier
@@ -921,12 +921,9 @@ private fun ShopDetailBottomBar(
                 horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                BottomBarAction(
-                    icon = CpIcons.Navigation,
-                    label = "Маршрут",
+                RouteIconButton(
                     enabled = canOpenRoute,
                     onClick = onRoute,
-                    modifier = Modifier.weight(1f),
                 )
                 BottomBarAction(
                     icon = CpIcons.Review,
@@ -944,6 +941,31 @@ private fun ShopDetailBottomBar(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun RouteIconButton(
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(42.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(
+                if (enabled) CpColor.Primary
+                else CpColor.Primary.copy(alpha = 0.38f),
+            )
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = CpIcons.Navigation,
+            contentDescription = "Маршрут",
+            tint = CpColor.DarkTextOnPrimary,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 
