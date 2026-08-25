@@ -71,6 +71,7 @@ class ShopRepositoryImpl(
         shopApiService.searchShops(
             query = filters.query,
             cityId = filters.cityId,
+            coffeeFocus = filters.coffeeFocus,
             roasterIds = filters.roasterIds.takeIf { it.isNotEmpty() },
             equipmentIds = filters.equipmentIds.takeIf { it.isNotEmpty() },
             beanIds = filters.beanIds.takeIf { it.isNotEmpty() },
@@ -108,6 +109,7 @@ class ShopRepositoryImpl(
             maxLon = bounds.maxLon,
             query = filters.query,
             cityId = filters.cityId,
+            coffeeFocus = filters.coffeeFocus,
             roasterIds = filters.roasterIds.takeIf { it.isNotEmpty() },
             equipmentIds = filters.equipmentIds.takeIf { it.isNotEmpty() },
             beanIds = filters.beanIds.takeIf { it.isNotEmpty() },
