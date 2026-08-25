@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
@@ -139,6 +140,14 @@ fun ShopFiltersScreen(
                                     draft = draft.copy(priceRange = value)
                                 },
                             )
+                            CoffeeFocusSection(
+                                selectedId = draft.coffeeFocus,
+                                onSelect = { focusId ->
+                                    draft = draft.copy(
+                                        coffeeFocus = if (draft.coffeeFocus == focusId) null else focusId,
+                                    )
+                                },
+                            )
 
                             ExpandableCheckboxSection(
                                 title = "Обжарщики",
@@ -226,6 +235,27 @@ private fun FilterPriceSection(
         selected = selected,
         onSelect = onSelect,
     )
+}
+
+@Composable
+private fun CoffeeFocusSection(
+    selectedId: String?,
+    onSelect: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1)) {
+        Text(
+            text = "Формат точки",
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        COFFEE_FOCUS_OPTIONS.forEach { option ->
+            FilterCheckboxRow(
+                label = option.label,
+                checked = selectedId == option.id,
+                onClick = { onSelect(option.id) },
+            )
+        }
+    }
 }
 
 @Composable

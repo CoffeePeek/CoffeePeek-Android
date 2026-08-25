@@ -58,6 +58,7 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
+import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.MapShop
@@ -206,6 +207,7 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
                 onDismiss = vm::dismissFilters,
                 onQueryChange = vm::onQueryChange,
                 onPrice = vm::setPriceRange,
+                onCoffeeFocusChange = vm::setCoffeeFocus,
                 onToggleCatalog = vm::toggleFilterCatalog,
                 onClear = vm::clearFilters,
                 onApply = vm::applyFilters,
@@ -243,6 +245,7 @@ private fun MapFiltersDialog(
     onDismiss: () -> Unit,
     onQueryChange: (String) -> Unit,
     onPrice: (Int?) -> Unit,
+    onCoffeeFocusChange: (String?) -> Unit,
     onToggleCatalog: (String, String) -> Unit,
     onClear: () -> Unit,
     onApply: () -> Unit,
@@ -274,6 +277,12 @@ private fun MapFiltersDialog(
                     PriceBeanSlider(
                         selected = filters.priceRange,
                         onSelect = onPrice,
+                    )
+                }
+                FilterSection("Формат точки") {
+                    CoffeeFocusFilterChips(
+                        selectedId = filters.coffeeFocus,
+                        onSelect = onCoffeeFocusChange,
                     )
                 }
                 if (state.roasters.isNotEmpty()) {
@@ -325,6 +334,29 @@ private fun FilterSection(title: String, content: @Composable () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         content()
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CoffeeFocusFilterChips(
+    selectedId: String?,
+    onSelect: (String?) -> Unit,
+) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+    ) {
+        COFFEE_FOCUS_OPTIONS.forEach { option ->
+            FilterChip(
+                selected = selectedId == option.id,
+                onClick = {
+                    onSelect(if (selectedId == option.id) null else option.id)
+                },
+                label = { Text(option.label, style = MaterialTheme.typography.labelSmall) },
+            )
+        }
     }
 }
 

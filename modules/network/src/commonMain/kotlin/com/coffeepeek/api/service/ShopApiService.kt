@@ -33,6 +33,7 @@ class ShopApiService(private val client: HttpClient) {
     suspend fun searchShops(
         query: String? = null,
         cityId: String? = null,
+        coffeeFocus: String? = null,
         roasterIds: List<String>? = null,
         equipmentIds: List<String>? = null,
         beanIds: List<String>? = null,
@@ -46,6 +47,7 @@ class ShopApiService(private val client: HttpClient) {
         val response = client.get("/api/CoffeeShops") {
             query?.let { parameter("q", it) }
             cityId?.let { parameter("cityId", it) }
+            coffeeFocus?.let { parameter("coffeeFocus", it) }
             roasterIds?.forEach { parameter("roasters", it) }
             equipmentIds?.forEach { parameter("equipments", it) }
             beanIds?.forEach { parameter("beans", it) }
@@ -132,6 +134,7 @@ class ShopApiService(private val client: HttpClient) {
         maxLon: Double,
         query: String? = null,
         cityId: String? = null,
+        coffeeFocus: String? = null,
         roasterIds: List<String>? = null,
         equipmentIds: List<String>? = null,
         beanIds: List<String>? = null,
@@ -147,6 +150,7 @@ class ShopApiService(private val client: HttpClient) {
             parameter("maxLon", maxLon)
             query?.let { parameter("q", it) }
             cityId?.let { parameter("cityId", it) }
+            coffeeFocus?.let { parameter("coffeeFocus", it) }
             roasterIds?.forEach { parameter("roasters", it) }
             equipmentIds?.forEach { parameter("equipments", it) }
             beanIds?.forEach { parameter("beans", it) }
