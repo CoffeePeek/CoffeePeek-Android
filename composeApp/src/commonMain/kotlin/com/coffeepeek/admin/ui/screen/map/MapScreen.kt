@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.ui.screen.map
 
 import com.coffeepeek.admin.ui.icons.CpIcons
+import com.coffeepeek.admin.ui.component.PriceBeanSlider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -270,15 +271,9 @@ private fun MapFiltersDialog(
                     leadingIcon = { Icon(CpIcons.Search, contentDescription = null) },
                 )
                 FilterSection("Цена") {
-                    CatalogChips(
-                        items = listOf("₽" to 1, "₽₽" to 2, "₽₽₽" to 3, "₽₽₽₽" to 4),
-                        selectedIds = filters.priceRange?.toString()?.let { setOf(it) } ?: emptySet(),
-                        onToggle = { id ->
-                            val value = id.toIntOrNull()
-                            onPrice(if (filters.priceRange == value) null else value)
-                        },
-                        idSelector = { it.second.toString() },
-                        labelSelector = { it.first },
+                    PriceBeanSlider(
+                        selected = filters.priceRange,
+                        onSelect = onPrice,
                     )
                 }
                 if (state.roasters.isNotEmpty()) {
