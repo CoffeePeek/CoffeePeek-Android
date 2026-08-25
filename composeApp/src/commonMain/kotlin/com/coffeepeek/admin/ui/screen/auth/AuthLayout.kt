@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -342,12 +343,22 @@ fun AuthStepper(
     steps: List<String>,
     modifier: Modifier = Modifier,
 ) {
-    // Card uses 40dp horizontal padding; pull the stepper wider so all labels fit.
+    // Card uses 40dp horizontal padding; bleed into it so labels fit.
+    // Do not use negative Modifier.padding — Compose requires non-negative values.
     val expandBy = CpDimens.authCardPadding - 16.dp
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = -expandBy),
+            .layout { measurable, constraints ->
+                val expandPx = expandBy.roundToPx()
+                val widened = (constraints.maxWidth + expandPx * 2).coerceAtLeast(0)
+                val placeable = measurable.measure(
+                    constraints.copy(minWidth = widened, maxWidth = widened),
+                )
+                layout(constraints.maxWidth, placeable.height) {
+                    placeable.placeRelative(-expandPx, 0)
+                }
+            },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
