@@ -65,6 +65,8 @@ import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CoffeePeekPullToRefresh
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
+import com.coffeepeek.admin.ui.component.PriceBeansRow
+import com.coffeepeek.admin.ui.component.priceRangeLevel
 import androidx.compose.foundation.lazy.LazyColumn
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CoffeeShop
@@ -363,8 +365,7 @@ private fun ShopCard(
                     onClick = onToggleFavorite,
                     modifier = Modifier.align(Alignment.TopEnd).padding(CpDimens.spacing2),
                 )
-                val priceRange = shop.priceRange
-                if (!priceRange.isNullOrBlank()) {
+                priceRangeLevel(shop.priceRange)?.let { level ->
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -373,10 +374,10 @@ private fun ShopCard(
                             .background(Color.Black.copy(alpha = 0.55f))
                             .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
                     ) {
-                        Text(
-                            text = priceRange,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
+                        PriceBeansRow(
+                            level = level,
+                            iconSize = 12.dp,
+                            activeTint = Color.White,
                         )
                     }
                 }

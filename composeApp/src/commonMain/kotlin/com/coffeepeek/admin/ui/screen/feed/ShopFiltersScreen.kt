@@ -25,7 +25,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,6 +46,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.component.PriceBeanSlider
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.domain.model.CatalogItem
 
@@ -134,9 +134,7 @@ fun ShopFiltersScreen(
                             FilterPriceSection(
                                 selected = draft.priceRange,
                                 onSelect = { value ->
-                                    draft = draft.copy(
-                                        priceRange = if (draft.priceRange == value) null else value,
-                                    )
+                                    draft = draft.copy(priceRange = value)
                                 },
                             )
 
@@ -220,24 +218,12 @@ fun ShopFiltersScreen(
 @Composable
 private fun FilterPriceSection(
     selected: Int?,
-    onSelect: (Int) -> Unit,
+    onSelect: (Int?) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-        Text(
-            text = "Цена",
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1)) {
-            listOf(1 to "₽", 2 to "₽₽", 3 to "₽₽₽", 4 to "₽₽₽₽").forEach { (value, label) ->
-                FilterChip(
-                    selected = selected == value,
-                    onClick = { onSelect(value) },
-                    label = { Text(label, style = MaterialTheme.typography.labelMedium) },
-                )
-            }
-        }
-    }
+    PriceBeanSlider(
+        selected = selected,
+        onSelect = onSelect,
+    )
 }
 
 @Composable
