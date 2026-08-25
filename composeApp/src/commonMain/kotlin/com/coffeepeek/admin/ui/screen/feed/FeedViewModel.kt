@@ -138,6 +138,15 @@ class FeedViewModel(
         }
     }
 
+    fun closeFilters() {
+        _uiState.update { it.copy(showFilters = false) }
+    }
+
+    fun applyFilters(filters: FeedFiltersUi) {
+        _uiState.update { it.copy(filters = filters) }
+        loadShops(reset = true)
+    }
+
     fun setCity(cityId: String?) {
         _uiState.update { it.copy(filters = it.filters.copy(cityId = cityId)) }
         loadShops(reset = true)

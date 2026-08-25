@@ -8,6 +8,7 @@ data class City(
 data class CatalogItem(
     val id: String,
     val name: String,
+    val slug: String = "",
 )
 
 data class ShopCatalogs(
