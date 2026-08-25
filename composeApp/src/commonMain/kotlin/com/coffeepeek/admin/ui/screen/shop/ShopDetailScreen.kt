@@ -76,6 +76,8 @@ import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
+import com.coffeepeek.admin.ui.component.PriceBeansRow
+import com.coffeepeek.admin.ui.component.priceRangeLevel
 import com.coffeepeek.admin.ui.component.FullScreenImageDialog
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.utils.OpenInBrowser
@@ -471,19 +473,7 @@ private fun ShopMetaRow(
             )
         }
         priceRangeLevel(priceRange)?.let { level ->
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                repeat(level) {
-                    Icon(
-                        imageVector = CpIcons.Coffee,
-                        contentDescription = null,
-                        tint = CpColor.Primary,
-                        modifier = Modifier.size(14.dp),
-                    )
-                }
-            }
+            PriceBeansRow(level = level)
         }
     }
 }
@@ -523,10 +513,6 @@ private fun reviewCountLabel(count: Int): String {
     return "$count $word"
 }
 
-private fun priceRangeLevel(priceRange: String?): Int? {
-    val level = priceRange?.count { it == '$' } ?: return null
-    return level.takeIf { it in 1..4 }
-}
 
 @Composable
 private fun ShopTagRow(tags: List<String>) {

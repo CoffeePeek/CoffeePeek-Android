@@ -62,6 +62,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.component.PriceBeanSlider
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
@@ -395,28 +396,10 @@ private fun StepBasic(
     Spacer(Modifier.height(CpDimens.spacing4))
 
     FormField(label = "Ценовой диапазон", optional = true) {
-        Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-            listOf(1 to "$", 2 to "$$", 3 to "$$$", 4 to "$$$$").forEach { (value, label) ->
-                FilterChip(
-                    selected = state.priceRange == value,
-                    onClick = { vm.onPriceRangeSelect(if (state.priceRange == value) null else value) },
-                    label = { Text(label, style = MaterialTheme.typography.labelMedium) },
-                    modifier = Modifier.weight(1f),
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = state.priceRange == value,
-                        borderColor = MaterialTheme.colorScheme.outlineVariant,
-                        selectedBorderColor = Color.Transparent,
-                    ),
-                    shape = RoundedCornerShape(CpDimens.buttonRadius),
-                )
-            }
-        }
+        PriceBeanSlider(
+            selected = state.priceRange,
+            onSelect = vm::onPriceRangeSelect,
+        )
     }
 }
 
