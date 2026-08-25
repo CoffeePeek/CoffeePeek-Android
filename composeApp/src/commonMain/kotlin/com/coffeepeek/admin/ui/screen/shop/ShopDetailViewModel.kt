@@ -4,6 +4,7 @@ import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.ClipboardHelper
 import com.coffeepeek.admin.utils.FavoriteSync
+import com.coffeepeek.admin.utils.OpenInBrowser
 import com.coffeepeek.admin.utils.ReviewSync
 import com.coffeepeek.admin.utils.currentUtcIsoDateTime
 import com.coffeepeek.domain.model.CoffeeShopDetails
@@ -195,6 +196,21 @@ class ShopDetailViewModel(
         }
     }
 
+    fun openReviewAction() {
+        workScope.launch {
+            if (!sessionRepository.isLoggedIn()) {
+                _uiState.update { it.copy(actionMessage = "Войдите, чтобы оставить отзыв") }
+                return@launch
+            }
+            val existingId = _uiState.value.details?.existingReviewId
+            if (!existingId.isNullOrBlank()) {
+                Navigator.navigate(Navigator.Screen.ReviewEdit(existingId))
+            } else {
+                Navigator.navigate(Navigator.Screen.CreateReview(shopId))
+            }
+        }
+    }
+
     fun openEditReview(reviewId: String) {
         Navigator.navigate(Navigator.Screen.ReviewEdit(reviewId))
     }
@@ -210,6 +226,19 @@ class ShopDetailViewModel(
             longitude = lon,
             title = details.shop.title,
         )
+    }
+
+    fun openRouteInYandexMaps() {
+        val details = _uiState.value.details ?: return
+        val location = details.location
+        val lat = location?.latitude
+        val lon = location?.longitude
+        if (lat == null || lon == null) {
+            _uiState.update { it.copy(actionMessage = "Координаты кофейни недоступны") }
+            return
+        }
+        // Empty "from" → Yandex builds the route from the user's current location.
+        OpenInBrowser.openInBrowser("https://yandex.ru/maps/?rtext=~$lat,$lon&rtt=auto")
     }
 
     fun shareShop() {

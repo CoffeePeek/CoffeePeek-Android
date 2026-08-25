@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -52,7 +53,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.lazy.rememberLazyListState
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,12 +65,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coffeepeek.composeapp.generated.resources.Res
+import coffeepeek.composeapp.generated.resources.maskot_happy
 import coffeepeek.composeapp.generated.resources.maskot_with_book
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
@@ -81,7 +89,6 @@ import com.coffeepeek.domain.model.ShopContact
 import com.coffeepeek.domain.model.ShopSchedule
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
-import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -152,14 +159,13 @@ fun ShopDetailScreen(shopId: String) {
                     modifier = Modifier.padding(padding),
                     isFavoriteLoading = state.isFavoriteLoading,
                     isCheckInLoading = state.isCheckInLoading,
-                    showCreateReview = state.isLoggedIn && state.details!!.existingReviewId.isNullOrBlank(),
                     onToggleFavorite = vm::toggleFavorite,
-                    onCheckIn = vm::openCheckInSheet,
                     onShare = vm::shareShop,
-                    onCreateReview = vm::openCreateReview,
-                    onEditReview = vm::openEditReview,
                     onOpenOnMap = vm::openOnMap,
                     onCopyPhone = vm::copyPhone,
+                    onRoute = vm::openRouteInYandexMaps,
+                    onReview = vm::openReviewAction,
+                    onCheckIn = vm::openCheckInSheet,
                     onBack = Navigator::popBack,
                     onReviewPhotoClick = { previewImageUrl = it },
                 )
@@ -175,14 +181,13 @@ private fun ShopDetailContent(
     modifier: Modifier = Modifier,
     isFavoriteLoading: Boolean = false,
     isCheckInLoading: Boolean = false,
-    showCreateReview: Boolean = false,
     onToggleFavorite: () -> Unit = {},
-    onCheckIn: () -> Unit = {},
     onShare: () -> Unit = {},
-    onCreateReview: () -> Unit = {},
-    onEditReview: (String) -> Unit = {},
     onOpenOnMap: () -> Unit = {},
     onCopyPhone: (String) -> Unit = {},
+    onRoute: () -> Unit = {},
+    onReview: () -> Unit = {},
+    onCheckIn: () -> Unit = {},
     onBack: () -> Unit = {},
     onReviewPhotoClick: (String) -> Unit = {},
 ) {
@@ -190,9 +195,17 @@ private fun ShopDetailContent(
     val photos = details.photos.filter { it.isNotBlank() }.ifEmpty {
         listOfNotNull(shop.photoUrl?.takeIf { it.isNotBlank() })
     }
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    // Fixed item indices in the list below (hero=0, header=1, description=2, menu=3)
+    val menuItemIndex = 3
 
     Box(modifier = modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 88.dp),
+        ) {
             item {
                 ShopHeroImage(
                     photos = photos,
@@ -200,10 +213,7 @@ private fun ShopDetailContent(
                     onBack = onBack,
                     isFavorite = shop.isFavorite,
                     isFavoriteLoading = isFavoriteLoading,
-                    isCheckInLoading = isCheckInLoading,
-                    isVisited = details.isVisited,
                     onToggleFavorite = onToggleFavorite,
-                    onCheckIn = onCheckIn,
                     onShare = onShare,
                 )
             }
@@ -241,16 +251,12 @@ private fun ShopDetailContent(
                 }
             }
 
-            details.description?.takeIf { it.isNotBlank() }?.let { description ->
-                item {
-                    SectionCard(title = "О заведении") {
-                        Text(
-                            text = description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
+            item {
+                DescriptionSection(description = details.description)
+            }
+
+            item {
+                MenuSection()
             }
 
             if (details.schedules.isNotEmpty()) {
@@ -278,10 +284,6 @@ private fun ShopDetailContent(
             item {
                 ReviewsSection(
                     reviews = details.reviews,
-                    showCreateReview = showCreateReview,
-                    existingReviewId = details.existingReviewId,
-                    onCreateReview = onCreateReview,
-                    onEditReview = onEditReview,
                     onReviewPhotoClick = onReviewPhotoClick,
                 )
             }
@@ -291,7 +293,7 @@ private fun ShopDetailContent(
             val lon = details.location?.longitude
             if (!address.isNullOrBlank() || (lat != null && lon != null)) {
                 item {
-                    LocationMapCard(
+                    AddressCard(
                         address = address,
                         canOpenMap = lat != null && lon != null,
                         onOpenOnMap = onOpenOnMap,
@@ -301,6 +303,21 @@ private fun ShopDetailContent(
 
             item { Spacer(Modifier.height(CpDimens.spacing6)) }
         }
+
+        ShopDetailBottomBar(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            isCheckInLoading = isCheckInLoading,
+            isVisited = details.isVisited,
+            canOpenRoute = details.location?.latitude != null && details.location?.longitude != null,
+            onRoute = onRoute,
+            onReview = onReview,
+            onCheckIn = onCheckIn,
+            onMenu = {
+                scope.launch {
+                    listState.animateScrollToItem(menuItemIndex)
+                }
+            },
+        )
     }
 }
 
@@ -311,10 +328,7 @@ private fun ShopHeroImage(
     onBack: () -> Unit,
     isFavorite: Boolean,
     isFavoriteLoading: Boolean,
-    isCheckInLoading: Boolean,
-    isVisited: Boolean,
     onToggleFavorite: () -> Unit,
-    onCheckIn: () -> Unit,
     onShare: () -> Unit,
 ) {
     Box(
@@ -374,10 +388,7 @@ private fun ShopHeroImage(
             HeaderActionButtons(
                 isFavorite = isFavorite,
                 isFavoriteLoading = isFavoriteLoading,
-                isCheckInLoading = isCheckInLoading,
-                isVisited = isVisited,
                 onToggleFavorite = onToggleFavorite,
-                onCheckIn = onCheckIn,
                 onShare = onShare,
             )
         }
@@ -388,45 +399,13 @@ private fun ShopHeroImage(
 private fun HeaderActionButtons(
     isFavorite: Boolean,
     isFavoriteLoading: Boolean,
-    isCheckInLoading: Boolean,
-    isVisited: Boolean,
     onToggleFavorite: () -> Unit,
-    onCheckIn: () -> Unit,
     onShare: () -> Unit,
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Button(
-            onClick = onCheckIn,
-            enabled = !isCheckInLoading && !isVisited,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-            shape = RoundedCornerShape(CpDimens.radiusMd),
-            contentPadding = PaddingValues(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing2),
-        ) {
-            if (isCheckInLoading) {
-                CoffeePeekLoader(
-                    size = 16.dp,
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            } else {
-                Icon(
-                    imageVector = CpIcons.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(CpDimens.spacing1))
-                Text(
-                    text = "Чекиниться",
-                    style = MaterialTheme.typography.labelLarge,
-                )
-            }
-        }
         HeroIconButton(
             onClick = onToggleFavorite,
             enabled = !isFavoriteLoading,
@@ -787,10 +766,6 @@ private fun PhoneContactPill(
 @Composable
 private fun ReviewsSection(
     reviews: List<Review>,
-    showCreateReview: Boolean,
-    existingReviewId: String?,
-    onCreateReview: () -> Unit,
-    onEditReview: (String) -> Unit,
     onReviewPhotoClick: (String) -> Unit,
 ) {
     Column(
@@ -801,59 +776,12 @@ private fun ReviewsSection(
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing6),
     ) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SectionTitle("Отзывы клиентов", barColor = CpColor.Primary)
-            when {
-                showCreateReview -> {
-                    Button(
-                        onClick = onCreateReview,
-                        shape = RoundedCornerShape(CpDimens.radiusMd),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                        contentPadding = PaddingValues(
-                            horizontal = CpDimens.spacing3,
-                            vertical = CpDimens.spacing2,
-                        ),
-                    ) {
-                        Text("Написать", style = MaterialTheme.typography.labelLarge)
-                    }
-                }
-                !existingReviewId.isNullOrBlank() -> {
-                    OutlinedButton(
-                        onClick = { onEditReview(existingReviewId) },
-                        shape = RoundedCornerShape(CpDimens.radiusMd),
-                    ) {
-                        Text("Редактировать", style = MaterialTheme.typography.labelLarge)
-                    }
-                }
-            }
-        }
+        SectionTitle("Отзывы клиентов", barColor = CpColor.Primary)
         if (reviews.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = CpDimens.spacing6),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Image(
-                    painter = painterResource(Res.drawable.maskot_with_book),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(120.dp),
-                )
-                Spacer(Modifier.height(CpDimens.spacing3))
-                Text(
-                    text = "Пока нет отзывов",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            EmptyMascotState(
+                mascot = Res.drawable.maskot_with_book,
+                message = "Пока нет отзывов",
+            )
         } else {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -871,7 +799,63 @@ private fun ReviewsSection(
 }
 
 @Composable
-private fun LocationMapCard(
+private fun DescriptionSection(description: String?) {
+    SectionCard(title = "Описание") {
+        val text = description?.trim().orEmpty()
+        if (text.isNotBlank()) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        } else {
+            EmptyMascotState(
+                mascot = Res.drawable.maskot_happy,
+                message = "Пока нет описания",
+            )
+        }
+    }
+}
+
+@Composable
+private fun MenuSection() {
+    SectionCard(title = "Меню") {
+        EmptyMascotState(
+            mascot = Res.drawable.maskot_with_book,
+            message = "Меню пока недоступно",
+        )
+    }
+}
+
+@Composable
+private fun EmptyMascotState(
+    mascot: DrawableResource,
+    message: String,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = CpDimens.spacing4),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Image(
+            painter = painterResource(mascot),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.size(120.dp),
+        )
+        Spacer(Modifier.height(CpDimens.spacing3))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+private fun AddressCard(
     address: String?,
     canOpenMap: Boolean,
     onOpenOnMap: () -> Unit,
@@ -885,54 +869,12 @@ private fun LocationMapCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(208.dp)
-                    .then(
-                        if (canOpenMap) Modifier.clickable(onClick = onOpenOnMap) else Modifier,
-                    )
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                MaterialTheme.colorScheme.surface,
-                            ),
-                        ),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(CpColor.PrimaryTint10),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = CpIcons.Coffee,
-                            contentDescription = null,
-                            tint = CpColor.Primary,
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-                    if (canOpenMap) {
-                        Spacer(Modifier.height(CpDimens.spacing2))
-                        Text(
-                            text = "Открыть на карте",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = CpColor.Primary,
-                        )
-                    }
-                }
-            }
+        Column(
+            modifier = Modifier.padding(CpDimens.spacing4),
+            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+        ) {
             if (!address.isNullOrBlank()) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = CpDimens.spacing5, vertical = CpDimens.spacing5),
                     horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
                     verticalAlignment = Alignment.Top,
                 ) {
@@ -958,7 +900,110 @@ private fun LocationMapCard(
                     )
                 }
             }
+            if (canOpenMap) {
+                OutlinedButton(
+                    onClick = onOpenOnMap,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(CpDimens.radiusLg),
+                ) {
+                    Icon(CpIcons.Map, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(CpDimens.spacing2))
+                    Text("Открыть на карте")
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun ShopDetailBottomBar(
+    isCheckInLoading: Boolean,
+    isVisited: Boolean,
+    canOpenRoute: Boolean,
+    onRoute: () -> Unit,
+    onReview: () -> Unit,
+    onCheckIn: () -> Unit,
+    onMenu: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        tonalElevation = 0.dp,
+        shadowElevation = 8.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = CpDimens.spacing2, vertical = CpDimens.spacing2),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BottomBarAction(
+                icon = CpIcons.Navigation,
+                label = "Маршрут",
+                enabled = canOpenRoute,
+                onClick = onRoute,
+            )
+            BottomBarAction(
+                icon = CpIcons.Review,
+                label = "Отзыв",
+                onClick = onReview,
+            )
+            BottomBarAction(
+                icon = CpIcons.Check,
+                label = "Чекин",
+                enabled = !isCheckInLoading && !isVisited,
+                isLoading = isCheckInLoading,
+                onClick = onCheckIn,
+            )
+            BottomBarAction(
+                icon = CpIcons.Menu,
+                label = "Меню",
+                onClick = onMenu,
+            )
+        }
+    }
+}
+
+@Composable
+private fun BottomBarAction(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    isLoading: Boolean = false,
+) {
+    val tint = if (enabled) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    }
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(CpDimens.radiusMd))
+            .clickable(enabled = enabled && !isLoading, onClick = onClick)
+            .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing2),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        if (isLoading) {
+            CoffeePeekLoader(size = 20.dp, strokeWidth = 2.dp)
+        } else {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = tint,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = tint,
+            maxLines = 1,
+        )
     }
 }
 
