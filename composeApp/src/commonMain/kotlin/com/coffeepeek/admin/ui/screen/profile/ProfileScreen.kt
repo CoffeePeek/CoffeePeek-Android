@@ -393,7 +393,7 @@ private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     var anchorWidth by remember { mutableStateOf(0.dp) }
     val density = LocalDensity.current
-    val menuMinWidth = 168.dp
+    val menuMinWidth = 208.dp
     val menuWidth = anchorWidth.coerceAtLeast(menuMinWidth)
     val selectShape = RoundedCornerShape(CpDimens.selectRadius)
 
