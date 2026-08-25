@@ -57,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -65,6 +66,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coffeepeek.composeapp.generated.resources.Res
@@ -118,67 +120,72 @@ fun ShopDetailScreen(shopId: String) {
         )
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            val details = state.details
-            if (details != null) {
-                ShopDetailBottomBar(
-                    isCheckInLoading = state.isCheckInLoading,
-                    isVisited = details.isVisited,
-                    canOpenRoute = details.location?.latitude != null &&
-                        details.location?.longitude != null,
-                    onRoute = vm::openRouteInYandexMaps,
-                    onReview = vm::openReviewAction,
-                    onCheckIn = vm::openCheckInSheet,
-                )
-            }
-        },
-    ) { padding ->
-        when {
-            state.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CoffeePeekLoader()
-                }
-            }
-            state.error != null -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = state.error ?: "Ошибка",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.height(CpDimens.spacing3))
-                        Button(
-                            onClick = vm::load,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                            ),
-                        ) { Text("Повторить") }
+    val details = state.details
+    val floatingActionsClearance = 72.dp
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            containerColor = MaterialTheme.colorScheme.background,
+        ) { padding ->
+            when {
+                state.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(padding),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CoffeePeekLoader()
                     }
                 }
+                state.error != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(padding),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = state.error ?: "Ошибка",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(CpDimens.spacing3))
+                            Button(
+                                onClick = vm::load,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                ),
+                            ) { Text("Повторить") }
+                        }
+                    }
+                }
+                details != null -> {
+                    ShopDetailContent(
+                        details = details,
+                        modifier = Modifier.padding(padding),
+                        bottomContentPadding = floatingActionsClearance,
+                        isFavoriteLoading = state.isFavoriteLoading,
+                        onToggleFavorite = vm::toggleFavorite,
+                        onShare = vm::shareShop,
+                        onOpenOnMap = vm::openOnMap,
+                        onCopyPhone = vm::copyPhone,
+                        onBack = Navigator::popBack,
+                        onReviewPhotoClick = { previewImageUrl = it },
+                    )
+                }
             }
-            state.details != null -> {
-                ShopDetailContent(
-                    details = state.details!!,
-                    modifier = Modifier.padding(padding),
-                    isFavoriteLoading = state.isFavoriteLoading,
-                    onToggleFavorite = vm::toggleFavorite,
-                    onShare = vm::shareShop,
-                    onOpenOnMap = vm::openOnMap,
-                    onCopyPhone = vm::copyPhone,
-                    onBack = Navigator::popBack,
-                    onReviewPhotoClick = { previewImageUrl = it },
-                )
-            }
+        }
+
+        if (details != null) {
+            ShopDetailBottomBar(
+                isCheckInLoading = state.isCheckInLoading,
+                isVisited = details.isVisited,
+                canOpenRoute = details.location?.latitude != null &&
+                    details.location?.longitude != null,
+                onRoute = vm::openRouteInYandexMaps,
+                onReview = vm::openReviewAction,
+                onCheckIn = vm::openCheckInSheet,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
         }
     }
 }
@@ -188,6 +195,7 @@ fun ShopDetailScreen(shopId: String) {
 private fun ShopDetailContent(
     details: CoffeeShopDetails,
     modifier: Modifier = Modifier,
+    bottomContentPadding: Dp = CpDimens.spacing4,
     isFavoriteLoading: Boolean = false,
     onToggleFavorite: () -> Unit = {},
     onShare: () -> Unit = {},
@@ -203,7 +211,7 @@ private fun ShopDetailContent(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = CpDimens.spacing4),
+        contentPadding = PaddingValues(bottom = bottomContentPadding + CpDimens.spacing4),
     ) {
         item {
             ShopHeroImage(
@@ -890,9 +898,10 @@ private fun ShopDetailBottomBar(
     onRoute: () -> Unit,
     onReview: () -> Unit,
     onCheckIn: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing3),
@@ -925,10 +934,12 @@ private fun RouteIconButton(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
+    val shape = RoundedCornerShape(999.dp)
     Box(
         modifier = Modifier
             .size(42.dp)
-            .clip(RoundedCornerShape(999.dp))
+            .shadow(elevation = 8.dp, shape = shape, clip = false)
+            .clip(shape)
             .background(
                 if (enabled) CpColor.Primary
                 else CpColor.Primary.copy(alpha = 0.38f),
@@ -959,11 +970,14 @@ private fun BottomBarAction(
     } else {
         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
     }
+    val shape = RoundedCornerShape(999.dp)
     Row(
         modifier = modifier
             .height(42.dp)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
-            .clip(RoundedCornerShape(999.dp))
+            .shadow(elevation = 8.dp, shape = shape, clip = false)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
             .clickable(enabled = enabled && !isLoading, onClick = onClick)
             .padding(horizontal = CpDimens.spacing3),
         verticalAlignment = Alignment.CenterVertically,
