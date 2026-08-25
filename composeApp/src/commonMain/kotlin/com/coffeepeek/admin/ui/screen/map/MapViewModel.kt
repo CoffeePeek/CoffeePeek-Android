@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 
 data class MapFiltersUi(
     val cityId: String? = null,
+    val coffeeFocus: String? = null,
     val priceRange: Int? = null,
     val minRating: Double? = null,
     val roasterIds: Set<String> = emptySet(),
@@ -56,6 +57,7 @@ data class MapUiState(
             var count = 0
             if (query.isNotBlank()) count++
             if (filters.cityId != null) count++
+            if (filters.coffeeFocus != null) count++
             if (filters.priceRange != null) count++
             if (filters.minRating != null) count++
             count += filters.roasterIds.size + filters.beanIds.size +
@@ -137,6 +139,10 @@ class MapViewModel(
 
     fun setCity(cityId: String?) {
         _state.update { it.copy(filters = it.filters.copy(cityId = cityId)) }
+    }
+
+    fun setCoffeeFocus(coffeeFocus: String?) {
+        _state.update { it.copy(filters = it.filters.copy(coffeeFocus = coffeeFocus)) }
     }
 
     fun setPriceRange(priceRange: Int?) {
@@ -258,6 +264,7 @@ class MapViewModel(
                 filters = ShopFilters(
                     query = state.query.takeIf { it.isNotBlank() },
                     cityId = filters.cityId,
+                    coffeeFocus = filters.coffeeFocus,
                     roasterIds = filters.roasterIds.toList(),
                     beanIds = filters.beanIds.toList(),
                     equipmentIds = filters.equipmentIds.toList(),

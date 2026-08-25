@@ -25,6 +25,7 @@ private const val PAGE_SIZE = 20
 
 data class FeedFiltersUi(
     val cityId: String? = null,
+    val coffeeFocus: String? = null,
     val priceRange: Int? = null,
     val minRating: Double? = null,
     val roasterIds: Set<String> = emptySet(),
@@ -57,6 +58,7 @@ data class FeedUiState(
         get() {
             var count = 0
             if (filters.cityId != null) count++
+            if (filters.coffeeFocus != null) count++
             if (filters.priceRange != null) count++
             if (filters.minRating != null) count++
             count += filters.roasterIds.size + filters.beanIds.size +
@@ -149,6 +151,11 @@ class FeedViewModel(
 
     fun setCity(cityId: String?) {
         _uiState.update { it.copy(filters = it.filters.copy(cityId = cityId)) }
+        loadShops(reset = true)
+    }
+
+    fun setCoffeeFocus(coffeeFocus: String?) {
+        _uiState.update { it.copy(filters = it.filters.copy(coffeeFocus = coffeeFocus)) }
         loadShops(reset = true)
     }
 
@@ -266,6 +273,7 @@ class FeedViewModel(
                 ShopFilters(
                     query = current.query.takeIf { it.isNotBlank() },
                     cityId = filters.cityId,
+                    coffeeFocus = filters.coffeeFocus,
                     roasterIds = filters.roasterIds.toList(),
                     beanIds = filters.beanIds.toList(),
                     equipmentIds = filters.equipmentIds.toList(),

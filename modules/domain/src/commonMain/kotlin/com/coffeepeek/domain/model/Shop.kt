@@ -79,6 +79,7 @@ data class ShopContact(
 data class ShopFilters(
     val query: String? = null,
     val cityId: String? = null,
+    val coffeeFocus: String? = null,
     val roasterIds: List<String> = emptyList(),
     val equipmentIds: List<String> = emptyList(),
     val beanIds: List<String> = emptyList(),
