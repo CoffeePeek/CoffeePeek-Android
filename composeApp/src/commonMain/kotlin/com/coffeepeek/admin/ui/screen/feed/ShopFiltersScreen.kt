@@ -6,7 +6,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -276,11 +278,26 @@ private fun FilterCheckboxRow(
     checked: Boolean,
     onClick: () -> Unit,
 ) {
+    val rowShape = RoundedCornerShape(CpDimens.radiusMd)
+    val rowBorderColor = if (checked) {
+        CpColor.Primary.copy(alpha = 0.5f)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant
+    }
+    val rowBackgroundColor = if (checked) {
+        CpColor.Primary.copy(alpha = 0.12f)
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(rowShape)
+            .border(width = 1.dp, color = rowBorderColor, shape = rowShape)
+            .background(rowBackgroundColor)
             .clickable(onClick = onClick)
-            .padding(vertical = 2.dp),
+            .padding(horizontal = CpDimens.spacing1, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(
@@ -289,14 +306,17 @@ private fun FilterCheckboxRow(
             colors = CheckboxDefaults.colors(
                 checkedColor = CpColor.Primary,
                 checkmarkColor = CpColor.DarkTextOnPrimary,
+                uncheckedColor = MaterialTheme.colorScheme.outline,
             ),
-            modifier = Modifier.size(40.dp),
+            modifier = Modifier.size(24.dp),
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
+            color = if (checked) CpColor.Primary else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = CpDimens.spacing2),
         )
     }
 }
