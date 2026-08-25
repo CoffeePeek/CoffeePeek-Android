@@ -16,7 +16,9 @@ import com.adamglin.phosphoricons.regular.ChatCenteredText
 import com.adamglin.phosphoricons.regular.Check
 import com.adamglin.phosphoricons.regular.Clock
 import com.adamglin.phosphoricons.regular.Coffee
+import com.adamglin.phosphoricons.regular.Copy
 import com.adamglin.phosphoricons.regular.Envelope
+import com.adamglin.phosphoricons.regular.InstagramLogo
 import com.adamglin.phosphoricons.regular.Eye
 import com.adamglin.phosphoricons.regular.EyeSlash
 import com.adamglin.phosphoricons.regular.Funnel
@@ -57,6 +59,7 @@ object CpIcons {
     val ChevronUp: ImageVector get() = PhosphorIcons.Regular.CaretUp
     val Close: ImageVector get() = PhosphorIcons.Regular.X
     val Coffee: ImageVector get() = PhosphorIcons.Regular.Coffee
+    val Copy: ImageVector get() = PhosphorIcons.Regular.Copy
     val Delete: ImageVector get() = PhosphorIcons.Regular.Trash
     val Email: ImageVector get() = PhosphorIcons.Regular.Envelope
     val Error: ImageVector get() = PhosphorIcons.Regular.WarningCircle
@@ -66,6 +69,7 @@ object CpIcons {
     val Gallery: ImageVector get() = PhosphorIcons.Regular.Images
     val Globe: ImageVector get() = PhosphorIcons.Regular.Globe
     val Info: ImageVector get() = PhosphorIcons.Regular.Info
+    val Instagram: ImageVector get() = PhosphorIcons.Regular.InstagramLogo
     val Location: ImageVector get() = PhosphorIcons.Regular.MapPin
     val AddLocationAlt: ImageVector get() = Location
     val Lock: ImageVector get() = PhosphorIcons.Regular.Lock
