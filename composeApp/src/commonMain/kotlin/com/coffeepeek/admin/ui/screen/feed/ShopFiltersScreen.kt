@@ -8,11 +8,11 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -26,6 +26,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,11 +47,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
 import com.coffeepeek.admin.ui.icons.CpIcons
+import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.domain.model.CatalogItem
 
 private const val COLLAPSED_COUNT = 3
@@ -140,7 +141,8 @@ fun ShopFiltersScreen(
                                     draft = draft.copy(priceRange = value)
                                 },
                             )
-                            CoffeeFocusSection(
+                            // Specialty / Кофейня / Кафе — чипы как типы в основном поиске
+                            CoffeeFocusChips(
                                 selectedId = draft.coffeeFocus,
                                 onSelect = { focusId ->
                                     draft = draft.copy(
@@ -148,7 +150,6 @@ fun ShopFiltersScreen(
                                     )
                                 },
                             )
-
                             ExpandableCheckboxSection(
                                 title = "Обжарщики",
                                 items = state.roasters,
@@ -183,7 +184,7 @@ fun ShopFiltersScreen(
                             )
                             ExpandableCheckboxSection(
                                 title = "Особенности",
-                                items = state.shopTags,
+                                items = ShopTagGroups.amenityTags(state.shopTags),
                                 selectedIds = draft.tagIds,
                                 onToggle = { id ->
                                     draft = draft.copy(tagIds = draft.tagIds.toggle(id))
@@ -237,22 +238,25 @@ private fun FilterPriceSection(
     )
 }
 
+/** Same chip row style as venue types on the main feed search. */
 @Composable
-private fun CoffeeFocusSection(
+private fun CoffeeFocusChips(
     selectedId: String?,
     onSelect: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1)) {
-        Text(
-            text = "Формат точки",
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+    ) {
         COFFEE_FOCUS_OPTIONS.forEach { option ->
-            FilterCheckboxRow(
-                label = option.label,
-                checked = selectedId == option.id,
+            FilterChip(
+                selected = selectedId == option.id,
                 onClick = { onSelect(option.id) },
+                label = {
+                    Text(option.label, style = MaterialTheme.typography.labelSmall)
+                },
             )
         }
     }
