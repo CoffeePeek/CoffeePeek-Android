@@ -1,11 +1,9 @@
 package com.coffeepeek.admin.ui.screen.auth.registr
 
-
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.email_no_exist
 import coffeepeek.composeapp.generated.resources.error_email_name
 import coffeepeek.composeapp.generated.resources.error_enter_name
-import coffeepeek.composeapp.generated.resources.error_enter_password
 import coffeepeek.composeapp.generated.resources.error_enter_password_length
 import coffeepeek.composeapp.generated.resources.error_registr
 import coffeepeek.composeapp.generated.resources.error_term_of_user
@@ -17,21 +15,23 @@ import com.coffeepeek.admin.utils.ErrorHandler
 import com.coffeepeek.admin.utils.validateEmailRequired
 import com.coffeepeek.admin.utils.validatePasswordRequired
 import com.coffeepeek.domain.repository.AuthRepository
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 
-@OptIn(FlowPreview::class)
+enum class RegisterStep {
+    Email,
+    Details,
+    Success,
+}
+
 class RegisterViewModel(
     private val authRepository: AuthRepository,
 ) : BaseViewModel() {
+
+    private val _step = MutableStateFlow(RegisterStep.Email)
+    val step = _step.asStateFlow()
 
     private val _name = MutableStateFlow("")
     val name = _name.asStateFlow()
@@ -51,35 +51,21 @@ class RegisterViewModel(
     private val _emailError = MutableStateFlow<String?>(null)
     val emailError = _emailError.asStateFlow()
 
-    init {
-        observePasswordInput()
-        observeEmailInput()
-    }
-
-    private fun observeEmailInput() {
-        workScope.launch {
-            _email
-                .filter { it.length > 3 }
-                .debounce(700)
-                .distinctUntilChanged()
-                .collectLatest { emailToCheck ->
-                    checkEmailAvailability(emailToCheck)
-                }
-        }
-    }
-
     fun onNameChange(value: String) {
         _name.value = value
     }
 
     fun onEmailChange(value: String) {
         _email.value = value
+        if (_emailError.value != null) {
+            _emailError.value = null
+        }
     }
 
     fun onPasswordChange(value: String) {
         _password.value = value
         if (_passwordError.value != null) {
-            _passwordError.value = null
+            _passwordError.value = validatePasswordRequired(value)
         }
     }
 
@@ -87,42 +73,40 @@ class RegisterViewModel(
         _isTermsAccepted.value = checked
     }
 
-    private fun observePasswordInput() {
-        workScope.launch {
-            _password
-                .debounce(700)
-                .distinctUntilChanged()
-                .collectLatest { input ->
-                    _passwordError.value = if (input.isNotEmpty()) {
-                        validatePasswordRequired(input)
-                    } else {
-                        null
-                    }
-                }
+    fun onBack() {
+        when (_step.value) {
+            RegisterStep.Details -> {
+                _step.value = RegisterStep.Email
+                _passwordError.value = null
+            }
+            RegisterStep.Email, RegisterStep.Success -> Navigator.popBack()
         }
     }
 
-    private suspend fun checkEmailAvailability(email: String) {
-        val formatError = validateEmailRequired(email.trim())
+    fun onContinueEmail() {
+        val currentEmail = _email.value.trim()
+        val formatError = validateEmailRequired(currentEmail)
         if (formatError != null) {
             _emailError.value = formatError
             return
         }
-        try {
-            val isTaken = authRepository.isEmailTaken(email).getOrThrow()
-            _emailError.value = if (isTaken) {
-                getString(Res.string.email_no_exist)
-            } else {
-                null
+
+        launchRequest(
+            errorMessage = Res.string.maybe_later,
+        ) {
+            val isTaken = authRepository.isEmailTaken(currentEmail).getOrThrow()
+            if (isTaken) {
+                _emailError.value = getString(Res.string.email_no_exist)
+                return@launchRequest
             }
-        } catch (e: Exception) {
-            ErrorHandler.showError(e.message.toString())
+            _emailError.value = null
+            _step.value = RegisterStep.Details
         }
     }
 
     fun onRegisterClick() {
         launchRequest(
-            onSuccess = { Navigator.navigate(Navigator.Screen.Auth) },
+            onSuccess = { _step.value = RegisterStep.Success },
             errorMessage = Res.string.error_registr,
         ) {
             val currentName = _name.value.trim()
@@ -176,5 +160,9 @@ class RegisterViewModel(
         ) {
             authRepository.googleLogin(idToken).getOrThrow()
         }
+    }
+
+    fun goToLogin() {
+        Navigator.navigate(Navigator.Screen.Auth)
     }
 }

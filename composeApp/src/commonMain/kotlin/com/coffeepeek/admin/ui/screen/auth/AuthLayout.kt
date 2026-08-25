@@ -1,0 +1,405 @@
+package com.coffeepeek.admin.ui.screen.auth
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coffeepeek.composeapp.generated.resources.Res
+import coffeepeek.composeapp.generated.resources.app_name
+import coffeepeek.composeapp.generated.resources.maskot_happy
+import coffeepeek.composeapp.generated.resources.maskot_with_laptop
+import com.coffeepeek.admin.theme.CpColor
+import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.theme.ThemeManager
+import com.coffeepeek.admin.theme.ThemeMode
+import com.coffeepeek.admin.ui.icons.CpIcons
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
+
+enum class AuthMascot {
+    Laptop,
+    Happy,
+}
+
+@Composable
+fun AuthScreenScaffold(
+    mascot: AuthMascot = AuthMascot.Laptop,
+    showMascot: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val bg = if (isDark) CpColor.DarkBackground else CpColor.AuthLightBackground
+    val cardBg = if (isDark) CpColor.AuthCardDark else CpColor.LightSurface
+    val cardBorder = if (isDark) CpColor.DarkBorder else CpColor.LightBorder
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bg),
+    ) {
+        AuthAmbientBackground(isDark = isDark)
+
+        AuthThemeToggle(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(top = 20.dp, end = 20.dp),
+            isDark = isDark,
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing5),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(modifier = Modifier.height(CpDimens.spacing4))
+
+            AuthWordmark()
+
+            Box(
+                modifier = Modifier
+                    .widthIn(max = 460.dp)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                if (showMascot) {
+                    val mascotRes: DrawableResource = when (mascot) {
+                        AuthMascot.Laptop -> Res.drawable.maskot_with_laptop
+                        AuthMascot.Happy -> Res.drawable.maskot_happy
+                    }
+                    Image(
+                        painter = painterResource(mascotRes),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .padding(top = if (mascot == AuthMascot.Happy) 0.dp else 28.dp)
+                            .size(CpDimens.authMascotSize)
+                            .align(Alignment.TopCenter),
+                    )
+                }
+
+                Column(
+                    modifier = Modifier
+                        .padding(
+                            top = when {
+                                !showMascot -> 0.dp
+                                mascot == AuthMascot.Happy -> CpDimens.authMascotSize - 24.dp
+                                else -> 88.dp
+                            },
+                        )
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(CpDimens.authCardRadius))
+                        .background(cardBg)
+                        .border(1.dp, cardBorder, RoundedCornerShape(CpDimens.authCardRadius))
+                        .padding(
+                            start = CpDimens.authCardPadding,
+                            end = CpDimens.authCardPadding,
+                            top = if (showMascot) 48.dp else CpDimens.authCardPadding,
+                            bottom = CpDimens.authCardPadding,
+                        ),
+                    content = content,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(CpDimens.spacing8))
+        }
+    }
+}
+
+@Composable
+private fun AuthAmbientBackground(isDark: Boolean) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (isDark) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(CpColor.DarkSurface.copy(alpha = 0.35f), Color.Transparent),
+                        ),
+                    ),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(480.dp)
+                .offset(x = (-120).dp, y = (-120).dp)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            if (isDark) Color(0x29EAB308) else Color(0x14EAB308),
+                            Color.Transparent,
+                        ),
+                    ),
+                    shape = CircleShape,
+                ),
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .size(520.dp)
+                .offset(x = 160.dp, y = 160.dp)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            if (isDark) Color(0x1AB48C4B) else Color(0x0FB48C4B),
+                            Color.Transparent,
+                        ),
+                    ),
+                    shape = CircleShape,
+                ),
+        )
+    }
+}
+
+@Composable
+fun AuthWordmark(modifier: Modifier = Modifier) {
+    val primary = MaterialTheme.colorScheme.onBackground
+    Text(
+        text = buildAnnotatedString {
+            withStyle(SpanStyle(color = primary, fontWeight = FontWeight.ExtraBold)) {
+                append("Coffee")
+            }
+            withStyle(SpanStyle(color = CpColor.Primary, fontWeight = FontWeight.ExtraBold)) {
+                append("Peek")
+            }
+        },
+        style = MaterialTheme.typography.headlineSmall.copy(
+            fontSize = 22.sp,
+            letterSpacing = (-0.77).sp,
+            fontWeight = FontWeight.ExtraBold,
+        ),
+        textAlign = TextAlign.Center,
+        modifier = modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
+fun AuthThemeToggle(
+    isDark: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val themeMode by ThemeManager.themeMode.collectAsState()
+    val isSystemDark = isSystemInDarkTheme()
+    val currentlyDark = when (themeMode) {
+        ThemeMode.SYSTEM -> isSystemDark
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
+
+    Box(
+        modifier = modifier
+            .size(CpDimens.authThemeToggleSize)
+            .clip(CircleShape)
+            .background(
+                if (isDark) CpColor.DarkSurface.copy(alpha = 0.75f)
+                else CpColor.LightSurface.copy(alpha = 0.9f),
+            )
+            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+            .clickable {
+                ThemeManager.setTheme(if (currentlyDark) ThemeMode.LIGHT else ThemeMode.DARK)
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = if (currentlyDark) CpIcons.ThemeLight else CpIcons.ThemeDark,
+            contentDescription = stringResource(Res.string.app_name),
+            tint = CpColor.Primary,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+@Composable
+fun AuthOrDivider(modifier: Modifier = Modifier) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.outline,
+        )
+        Text(
+            text = "  ИЛИ  ",
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.outline,
+        )
+    }
+}
+
+@Composable
+fun AuthFooterRow(
+    onBack: (() -> Unit)?,
+    onSecondary: () -> Unit,
+    secondaryText: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (onBack != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onBack)
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+            ) {
+                Icon(
+                    imageVector = CpIcons.Back,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp),
+                )
+                Spacer(modifier = Modifier.size(4.dp))
+                Text(
+                    text = "Назад",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            Spacer(modifier = Modifier.size(1.dp))
+        }
+
+        Text(
+            text = secondaryText,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            ),
+            color = CpColor.Primary,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onSecondary)
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+        )
+    }
+}
+
+@Composable
+fun AuthStepper(
+    activeIndex: Int,
+    steps: List<String>,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        steps.forEachIndexed { index, label ->
+            val active = index <= activeIndex
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(99.dp))
+                    .background(
+                        if (active) CpColor.Primary.copy(alpha = 0.12f)
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f),
+                    )
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(if (active) CpColor.Primary else Color.Transparent)
+                        .then(
+                            if (!active) Modifier.border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                            else Modifier,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (index < activeIndex) {
+                        Icon(
+                            imageVector = CpIcons.Check,
+                            contentDescription = null,
+                            tint = CpColor.DarkTextOnPrimary,
+                            modifier = Modifier.size(10.dp),
+                        )
+                    } else {
+                        Text(
+                            text = "${index + 1}",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            color = if (active) CpColor.DarkTextOnPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.size(6.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    color = if (active) CpColor.Primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (index < steps.lastIndex) {
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .size(width = 12.dp, height = 1.dp)
+                        .background(MaterialTheme.colorScheme.outline),
+                )
+            }
+        }
+    }
+}
