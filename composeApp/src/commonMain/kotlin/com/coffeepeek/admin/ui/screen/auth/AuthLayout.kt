@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,11 +42,14 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import coffeepeek.composeapp.generated.resources.Res
-import coffeepeek.composeapp.generated.resources.app_name
+import coffeepeek.composeapp.generated.resources.logo_app_dark
+import coffeepeek.composeapp.generated.resources.logo_app_light
 import coffeepeek.composeapp.generated.resources.maskot_happy
 import coffeepeek.composeapp.generated.resources.maskot_with_laptop
 import com.coffeepeek.admin.theme.CpColor
@@ -55,7 +59,6 @@ import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.icons.CpIcons
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
 
 enum class AuthMascot {
     Laptop,
@@ -73,20 +76,21 @@ fun AuthScreenScaffold(
     val cardBg = if (isDark) CpColor.AuthCardDark else CpColor.LightSurface
     val cardBorder = if (isDark) CpColor.DarkBorder else CpColor.LightBorder
 
+    // How much of the mascot sits above the card edge (rest overlaps the card).
+    val mascotOverlap = 40.dp
+    val mascotTopGap = 12.dp
+    val cardTopInset = if (showMascot) {
+        mascotTopGap + CpDimens.authMascotSize - mascotOverlap
+    } else {
+        0.dp
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(bg),
     ) {
         AuthAmbientBackground(isDark = isDark)
-
-        AuthThemeToggle(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .statusBarsPadding()
-                .padding(top = 20.dp, end = 20.dp),
-            isDark = isDark,
-        )
 
         Column(
             modifier = Modifier
@@ -98,39 +102,16 @@ fun AuthScreenScaffold(
         ) {
             Spacer(modifier = Modifier.height(CpDimens.spacing4))
 
-            AuthWordmark()
+            AuthBrandLogo(isDark = isDark)
 
             Box(
                 modifier = Modifier
                     .widthIn(max = 460.dp)
                     .fillMaxWidth(),
-                contentAlignment = Alignment.TopCenter,
             ) {
-                if (showMascot) {
-                    val mascotRes: DrawableResource = when (mascot) {
-                        AuthMascot.Laptop -> Res.drawable.maskot_with_laptop
-                        AuthMascot.Happy -> Res.drawable.maskot_happy
-                    }
-                    Image(
-                        painter = painterResource(mascotRes),
-                        contentDescription = null,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .padding(top = if (mascot == AuthMascot.Happy) 0.dp else 28.dp)
-                            .size(CpDimens.authMascotSize)
-                            .align(Alignment.TopCenter),
-                    )
-                }
-
                 Column(
                     modifier = Modifier
-                        .padding(
-                            top = when {
-                                !showMascot -> 0.dp
-                                mascot == AuthMascot.Happy -> CpDimens.authMascotSize - 24.dp
-                                else -> 88.dp
-                            },
-                        )
+                        .padding(top = cardTopInset)
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(CpDimens.authCardRadius))
                         .background(cardBg)
@@ -143,10 +124,37 @@ fun AuthScreenScaffold(
                         ),
                     content = content,
                 )
+
+                if (showMascot) {
+                    val mascotRes: DrawableResource = when (mascot) {
+                        AuthMascot.Laptop -> Res.drawable.maskot_with_laptop
+                        AuthMascot.Happy -> Res.drawable.maskot_happy
+                    }
+                    Image(
+                        painter = painterResource(mascotRes),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = mascotTopGap)
+                            .size(CpDimens.authMascotSize)
+                            .zIndex(1f),
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(CpDimens.spacing8))
         }
+
+        // Above the scroll column so clicks are not swallowed.
+        AuthThemeToggle(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(top = 20.dp, end = 20.dp)
+                .zIndex(2f),
+            isDark = isDark,
+        )
     }
 }
 
@@ -194,6 +202,20 @@ private fun AuthAmbientBackground(isDark: Boolean) {
                 ),
         )
     }
+}
+
+@Composable
+fun AuthBrandLogo(
+    isDark: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val logo = if (isDark) Res.drawable.logo_app_dark else Res.drawable.logo_app_light
+    Image(
+        painter = painterResource(logo),
+        contentDescription = "CoffeePeek",
+        contentScale = ContentScale.Fit,
+        modifier = modifier.size(CpDimens.authBrandLogoSize),
+    )
 }
 
 @Composable
@@ -247,7 +269,7 @@ fun AuthThemeToggle(
     ) {
         Icon(
             imageVector = if (currentlyDark) CpIcons.ThemeLight else CpIcons.ThemeDark,
-            contentDescription = stringResource(Res.string.app_name),
+            contentDescription = null,
             tint = CpColor.Primary,
             modifier = Modifier.size(20.dp),
         )
@@ -346,12 +368,13 @@ fun AuthStepper(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
+                    .wrapContentWidth()
                     .clip(RoundedCornerShape(99.dp))
                     .background(
                         if (active) CpColor.Primary.copy(alpha = 0.12f)
                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f),
                     )
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
             ) {
                 Box(
                     modifier = Modifier
@@ -390,13 +413,16 @@ fun AuthStepper(
                         fontWeight = FontWeight.SemiBold,
                     ),
                     color = if (active) CpColor.Primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Visible,
                 )
             }
             if (index < steps.lastIndex) {
                 Box(
                     modifier = Modifier
-                        .padding(horizontal = 8.dp)
-                        .size(width = 12.dp, height = 1.dp)
+                        .padding(horizontal = 6.dp)
+                        .size(width = 10.dp, height = 1.dp)
                         .background(MaterialTheme.colorScheme.outline),
                 )
             }
