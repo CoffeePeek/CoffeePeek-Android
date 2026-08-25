@@ -342,9 +342,13 @@ fun AuthStepper(
     steps: List<String>,
     modifier: Modifier = Modifier,
 ) {
+    // Card uses 40dp horizontal padding; pull the stepper wider so all labels fit.
+    val expandBy = CpDimens.authCardPadding - 16.dp
     Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = -expandBy),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         steps.forEachIndexed { index, label ->
@@ -389,7 +393,7 @@ fun AuthStepper(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.size(6.dp))
+                Spacer(modifier = Modifier.size(4.dp))
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall.copy(
@@ -405,8 +409,9 @@ fun AuthStepper(
             if (index < steps.lastIndex) {
                 Box(
                     modifier = Modifier
-                        .padding(horizontal = 6.dp)
-                        .size(width = 10.dp, height = 1.dp)
+                        .padding(horizontal = 4.dp)
+                        .weight(1f, fill = true)
+                        .height(1.dp)
                         .background(MaterialTheme.colorScheme.outline),
                 )
             }
