@@ -24,7 +24,6 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TextButton
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -172,20 +171,12 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                         }
                     }
                     if (state.shopTags.isNotEmpty()) {
-                        Spacer(Modifier.height(CpDimens.spacing2))
-                        CatalogFilterChips(
-                            items = state.shopTags,
+                        Spacer(modifier = Modifier.height(CpDimens.spacing2))
+                        ShopTagFilterRows(
+                            amenityTags = ShopTagGroups.amenityTags(state.shopTags),
+                            venueTypeTags = ShopTagGroups.venueTypeTags(state.shopTags),
                             selectedIds = state.filters.tagIds,
-                            type = "tag",
-                            onToggle = vm::toggleFilterCatalog,
-                        )
-                    }
-                    AnimatedVisibility(visible = state.showFilters) {
-                        FeedFiltersPanel(
-                            state = state,
-                            onPrice = vm::setPriceRange,
-                            onToggleCatalog = vm::toggleFilterCatalog,
-                            onClear = vm::clearFilters,
+                            onToggle = { id -> vm.toggleFilterCatalog("tag", id) },
                         )
                     }
                 }
@@ -193,6 +184,13 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
+        if (state.showFilters) {
+            ShopFiltersScreen(
+                state = state,
+                onDismiss = vm::closeFilters,
+                onApply = vm::applyFilters,
+            )
+        }
         val contentModifier = Modifier.fillMaxSize().padding(padding)
         val navClearance = LocalFloatingNavClearance.current
         val listContentPadding = PaddingValues(
@@ -510,74 +508,30 @@ private fun StatusBadge(text: String, color: Color) {
 }
 
 @Composable
-private fun FeedFiltersPanel(
-    state: FeedUiState,
-    onPrice: (Int?) -> Unit,
-    onToggleCatalog: (String, String) -> Unit,
-    onClear: () -> Unit,
+private fun ShopTagFilterRows(
+    amenityTags: List<CatalogItem>,
+    venueTypeTags: List<CatalogItem>,
+    selectedIds: Set<String>,
+    onToggle: (String) -> Unit,
 ) {
-    val filters = state.filters
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = CpDimens.spacing2),
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("Фильтры", style = MaterialTheme.typography.labelLarge)
-            if (state.activeFilterCount > 0) {
-                TextButton(onClick = onClear) { Text("Сбросить") }
-            }
-        }
-        FilterSection("Цена") {
-            CatalogChips(
-                items = listOf("₽" to 1, "₽₽" to 2, "₽₽₽" to 3, "₽₽₽₽" to 4),
-                selectedIds = filters.priceRange?.toString()?.let { setOf(it) } ?: emptySet(),
-                onToggle = { id ->
-                    val value = id.toIntOrNull()
-                    onPrice(if (filters.priceRange == value) null else value)
-                },
-                idSelector = { it.second.toString() },
-                labelSelector = { it.first },
+        if (amenityTags.isNotEmpty()) {
+            CatalogFilterChips(
+                items = amenityTags,
+                selectedIds = selectedIds,
+                onToggle = onToggle,
             )
         }
-        if (state.roasters.isNotEmpty()) {
-            FilterSection("Обжарщики") {
-                CatalogFilterChips(state.roasters, filters.roasterIds, "roaster", onToggleCatalog)
-            }
+        if (venueTypeTags.isNotEmpty()) {
+            CatalogFilterChips(
+                items = venueTypeTags,
+                selectedIds = selectedIds,
+                onToggle = onToggle,
+            )
         }
-        if (state.beans.isNotEmpty()) {
-            FilterSection("Зёрна") {
-                CatalogFilterChips(state.beans, filters.beanIds, "bean", onToggleCatalog)
-            }
-        }
-        if (state.equipment.isNotEmpty()) {
-            FilterSection("Оборудование") {
-                CatalogFilterChips(state.equipment, filters.equipmentIds, "equipment", onToggleCatalog)
-            }
-        }
-        if (state.brewMethods.isNotEmpty()) {
-            FilterSection("Заваривание") {
-                CatalogFilterChips(state.brewMethods, filters.brewMethodIds, "brew", onToggleCatalog)
-            }
-        }
-        if (state.shopTags.isNotEmpty()) {
-            FilterSection("Теги") {
-                CatalogFilterChips(state.shopTags, filters.tagIds, "tag", onToggleCatalog)
-            }
-        }
-    }
-}
-
-@Composable
-private fun FilterSection(title: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        content()
     }
 }
 
@@ -585,8 +539,7 @@ private fun FilterSection(title: String, content: @Composable () -> Unit) {
 private fun CatalogFilterChips(
     items: List<CatalogItem>,
     selectedIds: Set<String>,
-    type: String,
-    onToggle: (String, String) -> Unit,
+    onToggle: (String) -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -595,31 +548,8 @@ private fun CatalogFilterChips(
         items.forEach { item ->
             FilterChip(
                 selected = item.id in selectedIds,
-                onClick = { onToggle(type, item.id) },
+                onClick = { onToggle(item.id) },
                 label = { Text(item.name, style = MaterialTheme.typography.labelSmall) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun <T> CatalogChips(
-    items: List<T>,
-    selectedIds: Set<String>,
-    onToggle: (String) -> Unit,
-    idSelector: (T) -> String,
-    labelSelector: (T) -> String,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-    ) {
-        items.forEach { item ->
-            val id = idSelector(item)
-            FilterChip(
-                selected = id in selectedIds,
-                onClick = { onToggle(id) },
-                label = { Text(labelSelector(item), style = MaterialTheme.typography.labelSmall) },
             )
         }
     }

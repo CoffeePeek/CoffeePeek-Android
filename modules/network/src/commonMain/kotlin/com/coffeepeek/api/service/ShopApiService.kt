@@ -122,7 +122,7 @@ class ShopApiService(private val client: HttpClient) {
         val response = client.get("/api/Catalogs/shop-tags")
         val apiResponse = response.body<ApiResponse<GetShopTagsResponseDto>>()
         if (!apiResponse.isSuccess || apiResponse.data == null) throw ApiException(apiResponse.message)
-        apiResponse.data.tags.map { CatalogItemDto(id = it.id, name = it.name) }
+        apiResponse.data.tags.map { CatalogItemDto(id = it.id, name = it.name, slug = it.slug) }
     }
 
     suspend fun getShopsInBounds(
