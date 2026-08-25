@@ -8,11 +8,11 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -24,8 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,15 +41,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
 import com.coffeepeek.admin.ui.icons.CpIcons
+import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.domain.model.CatalogItem
 
 private const val COLLAPSED_COUNT = 3
@@ -140,7 +140,8 @@ fun ShopFiltersScreen(
                                     draft = draft.copy(priceRange = value)
                                 },
                             )
-                            CoffeeFocusSection(
+                            // Specialty / Кофейня / Кафе — чипы как типы в основном поиске
+                            CoffeeFocusChips(
                                 selectedId = draft.coffeeFocus,
                                 onSelect = { focusId ->
                                     draft = draft.copy(
@@ -148,7 +149,6 @@ fun ShopFiltersScreen(
                                     )
                                 },
                             )
-
                             ExpandableCheckboxSection(
                                 title = "Обжарщики",
                                 items = state.roasters,
@@ -183,7 +183,7 @@ fun ShopFiltersScreen(
                             )
                             ExpandableCheckboxSection(
                                 title = "Особенности",
-                                items = state.shopTags,
+                                items = ShopTagGroups.amenityTags(state.shopTags),
                                 selectedIds = draft.tagIds,
                                 onToggle = { id ->
                                     draft = draft.copy(tagIds = draft.tagIds.toggle(id))
@@ -237,22 +237,25 @@ private fun FilterPriceSection(
     )
 }
 
+/** Same chip row style as venue types on the main feed search. */
 @Composable
-private fun CoffeeFocusSection(
+private fun CoffeeFocusChips(
     selectedId: String?,
     onSelect: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1)) {
-        Text(
-            text = "Формат точки",
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+    ) {
         COFFEE_FOCUS_OPTIONS.forEach { option ->
-            FilterCheckboxRow(
-                label = option.label,
-                checked = selectedId == option.id,
+            FilterChip(
+                selected = selectedId == option.id,
                 onClick = { onSelect(option.id) },
+                label = {
+                    Text(option.label, style = MaterialTheme.typography.labelSmall)
+                },
             )
         }
     }
@@ -294,7 +297,7 @@ private fun ExpandableCheckboxSection(
             ) {
                 Text(
                     text = if (expanded) "Свернуть" else "Показать ещё ($hiddenCount)",
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelMedium,
                     color = CpColor.Primary,
                 )
             }
@@ -308,37 +311,16 @@ private fun FilterCheckboxRow(
     checked: Boolean,
     onClick: () -> Unit,
 ) {
-    val rowShape = RoundedCornerShape(CpDimens.radiusMd)
-    val rowBorderColor = if (checked) {
-        CpColor.Primary.copy(alpha = 0.5f)
-    } else {
-        MaterialTheme.colorScheme.outlineVariant
-    }
-    val rowBackgroundColor = if (checked) {
-        CpColor.Primary.copy(alpha = 0.12f)
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(rowShape)
-            .border(width = 1.dp, color = rowBorderColor, shape = rowShape)
-            .background(rowBackgroundColor)
             .clickable(onClick = onClick)
-            .padding(horizontal = CpDimens.spacing1, vertical = 4.dp),
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(
+        RoundedFilterCheckbox(
             checked = checked,
-            onCheckedChange = { onClick() },
-            colors = CheckboxDefaults.colors(
-                checkedColor = CpColor.Primary,
-                checkmarkColor = CpColor.DarkTextOnPrimary,
-                uncheckedColor = MaterialTheme.colorScheme.outline,
-            ),
-            modifier = Modifier.size(24.dp),
+            onClick = onClick,
         )
         Text(
             text = label,
@@ -348,6 +330,37 @@ private fun FilterCheckboxRow(
                 .weight(1f)
                 .padding(start = CpDimens.spacing2),
         )
+    }
+}
+
+@Composable
+private fun RoundedFilterCheckbox(
+    checked: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(6.dp)
+    Box(
+        modifier = modifier
+            .size(22.dp)
+            .clip(shape)
+            .background(if (checked) CpColor.Primary else Color.Transparent)
+            .border(
+                width = 1.5.dp,
+                color = if (checked) CpColor.Primary else MaterialTheme.colorScheme.outline,
+                shape = shape,
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (checked) {
+            Icon(
+                imageVector = CpIcons.Check,
+                contentDescription = null,
+                tint = CpColor.DarkTextOnPrimary,
+                modifier = Modifier.size(14.dp),
+            )
+        }
     }
 }
 

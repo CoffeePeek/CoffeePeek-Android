@@ -1,13 +1,23 @@
 package com.coffeepeek.admin.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
+/** Chip / small controls — matches web filter tags (~16dp). */
+private val CpShapes = Shapes(
+    extraSmall = RoundedCornerShape(CpDimens.radiusSm),
+    small = RoundedCornerShape(CpDimens.radiusLg),
+    medium = RoundedCornerShape(CpDimens.radiusMd),
+    large = RoundedCornerShape(CpDimens.radiusLg),
+    extraLarge = RoundedCornerShape(CpDimens.radius2xl),
+)
 private val DarkColorScheme: ColorScheme = darkColorScheme(
     primary              = CpColor.Primary,
     onPrimary            = CpColor.DarkTextOnPrimary,
@@ -68,6 +78,7 @@ fun CoffeePeekTheme(
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
         typography  = cpTypography(),
+        shapes      = CpShapes,
         content     = content,
     )
 }
