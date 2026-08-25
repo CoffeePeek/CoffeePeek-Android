@@ -3,6 +3,7 @@ package com.coffeepeek.admin
 import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
+import com.coffeepeek.admin.theme.applyPersistedNightModeEarly
 import com.coffeepeek.BuildConfig
 import com.coffeepeek.admin.di.initPlatformKoin
 import com.coffeepeek.domain.repository.SessionRepository
@@ -27,6 +28,8 @@ class CoffeePeekApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         _context = this
+        // Apply saved light/dark mode before any Activity/splash resolves resources.
+        applyPersistedNightModeEarly()
         MapKitFactory.setApiKey(BuildConfig.MAPKIT_API_KEY)
         MapKitFactory.initialize(this)
         initPlatformKoin()
