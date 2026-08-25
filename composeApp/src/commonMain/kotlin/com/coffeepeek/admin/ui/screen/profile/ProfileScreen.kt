@@ -476,6 +476,8 @@ private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
                                 } else {
                                     MaterialTheme.colorScheme.onSurface
                                 },
+                                maxLines = 1,
+                                softWrap = false,
                             )
                         },
                         onClick = {
