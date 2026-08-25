@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import com.coffeepeek.BuildConfig
+import com.coffeepeek.admin.auth.SessionRealtimeManager
+import com.coffeepeek.admin.config.AppConfig
 import com.coffeepeek.admin.di.initPlatformKoin
 import com.coffeepeek.domain.repository.SessionRepository
 import com.yandex.mapkit.MapKitFactory
@@ -23,6 +25,7 @@ class CoffeePeekApplication : Application() {
     }
 
     private val warmupScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var sessionRealtimeManager: SessionRealtimeManager? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -30,14 +33,23 @@ class CoffeePeekApplication : Application() {
         MapKitFactory.setApiKey(BuildConfig.MAPKIT_API_KEY)
         MapKitFactory.initialize(this)
         initPlatformKoin()
+
+        val koin = GlobalContext.get()
+        val sessionRepository = koin.get<SessionRepository>()
+        sessionRealtimeManager = SessionRealtimeManager(
+            sessionRepository = sessionRepository,
+            baseUrl = AppConfig.baseUrl,
+        ).also { manager -> manager.start() }
+
         warmupScope.launch {
-            val koin = GlobalContext.get()
-            runCatching { koin.get<SessionRepository>().warmCache() }
+            runCatching { sessionRepository.warmCache() }
             runCatching { koin.get<KamelConfig>() }
         }
     }
 
     override fun onTerminate() {
+        sessionRealtimeManager?.close()
+        sessionRealtimeManager = null
         _context = null
         super.onTerminate()
     }

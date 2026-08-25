@@ -26,6 +26,7 @@ kotlin {
             implementation("androidx.exifinterface:exifinterface:1.4.1")
             implementation(libs.yandex.mapkit)
             implementation("com.google.android.gms:play-services-auth:21.3.0")
+            implementation("com.microsoft.signalr:signalr:10.0.9")
             implementation("org.slf4j:slf4j-nop:2.0.16")
         }
         commonMain.dependencies {
