@@ -2,6 +2,7 @@ package com.coffeepeek.admin.ui.screen.shop
 
 import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.utils.ClipboardHelper
 import com.coffeepeek.admin.utils.FavoriteSync
 import com.coffeepeek.admin.utils.ReviewSync
 import com.coffeepeek.admin.utils.currentUtcIsoDateTime
@@ -214,6 +215,11 @@ class ShopDetailViewModel(
     fun shareShop() {
         val shareUrl = "https://coffeepeek.by/shops/$shopId"
         _uiState.update { it.copy(actionMessage = "Ссылка на кофейню: $shareUrl") }
+    }
+
+    fun copyPhone(phone: String) {
+        ClipboardHelper.copyText(phone)
+        _uiState.update { it.copy(actionMessage = "Номер скопирован") }
     }
 
     fun clearActionMessage() {
