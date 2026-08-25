@@ -542,6 +542,7 @@ private fun CatalogFilterChips(
     selectedIds: Set<String>,
     onToggle: (String) -> Unit,
 ) {
+    val chipShape = RoundedCornerShape(CpDimens.radiusLg)
     Row(
         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
@@ -551,6 +552,7 @@ private fun CatalogFilterChips(
                 selected = item.id in selectedIds,
                 onClick = { onToggle(item.id) },
                 label = { Text(item.name, style = MaterialTheme.typography.labelSmall) },
+                shape = chipShape,
             )
         }
     }
