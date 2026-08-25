@@ -2,6 +2,7 @@ package com.coffeepeek.admin.ui.screen.feed
 
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +22,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.lazy.items
@@ -47,11 +49,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -69,7 +74,7 @@ import com.coffeepeek.admin.ui.component.PriceBeansRow
 import com.coffeepeek.admin.ui.component.priceRangeLevel
 import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import androidx.compose.foundation.lazy.LazyColumn
-import com.coffeepeek.domain.model.CatalogItem
+import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CoffeeShop
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
@@ -174,10 +179,12 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                         }
                     }
                     Spacer(modifier = Modifier.height(CpDimens.spacing2))
-                    FeedQuickFilterRows(
-                        amenityTags = ShopTagGroups.amenityTags(state.shopTags),
-                        selectedTagIds = state.filters.tagIds,
-                        onToggleTag = { id -> vm.toggleFilterCatalog("tag", id) },
+                    FeedQuickFilterBar(
+                        cities = state.cities,
+                        selectedCityId = state.filters.cityId,
+                        onCitySelect = vm::setCity,
+                        quickMode = state.filters.quickMode,
+                        onQuickMode = vm::setQuickMode,
                         coffeeFocusId = state.filters.coffeeFocus,
                         onCoffeeFocusChange = { id ->
                             vm.setCoffeeFocus(
@@ -248,7 +255,7 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                     }
                 }
             }
-            state.shops.isEmpty() && !state.isLoading && !state.isRefreshing -> {
+            state.visibleShops.isEmpty() && !state.isLoading && !state.isRefreshing -> {
                 CoffeePeekPullToRefresh(
                     listState = listState,
                     isRefreshing = state.isRefreshing,
@@ -295,7 +302,7 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                         contentPadding = listContentPadding,
                         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
                     ) {
-                        items(state.shops, key = { it.id }) { shop ->
+                        items(state.visibleShops, key = { it.id }) { shop ->
                             ShopCard(
                                 shop = shop,
                                 onClick = { Navigator.navigate(Navigator.Screen.ShopDetail(shop.id)) },
@@ -513,60 +520,159 @@ private fun StatusBadge(text: String, color: Color) {
 }
 
 @Composable
-private fun FeedQuickFilterRows(
-    amenityTags: List<CatalogItem>,
-    selectedTagIds: Set<String>,
-    onToggleTag: (String) -> Unit,
+private fun FeedQuickFilterBar(
+    cities: List<City>,
+    selectedCityId: String?,
+    onCitySelect: (String?) -> Unit,
+    quickMode: FeedQuickMode,
+    onQuickMode: (FeedQuickMode) -> Unit,
     coffeeFocusId: String?,
     onCoffeeFocusChange: (String) -> Unit,
 ) {
-    val chipShape = RoundedCornerShape(CpDimens.radiusLg)
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+    val selectedCity = cities.firstOrNull { it.id == selectedCityId }
+        ?: cities.firstOrNull()
+    var cityMenuOpen by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {
-        if (amenityTags.isNotEmpty()) {
-            CatalogFilterChips(
-                items = amenityTags,
-                selectedIds = selectedTagIds,
-                onToggle = onToggleTag,
-                chipShape = chipShape,
+        Box {
+            DesignFilterChip(
+                label = selectedCity?.name ?: "Город",
+                selected = false,
+                onClick = { if (cities.isNotEmpty()) cityMenuOpen = true },
+                leadingIcon = CpIcons.Location,
+                trailingIcon = CpIcons.ChevronDown,
             )
-        }
-        // Specialty / Кофейня / Кафе — на ленте, не в экране фильтров
-        Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-        ) {
-            COFFEE_FOCUS_OPTIONS.forEach { option ->
-                FilterChip(
-                    selected = coffeeFocusId == option.id,
-                    onClick = { onCoffeeFocusChange(option.id) },
-                    label = { Text(option.label, style = MaterialTheme.typography.labelSmall) },
-                    shape = chipShape,
-                )
+            DropdownMenu(
+                expanded = cityMenuOpen,
+                onDismissRequest = { cityMenuOpen = false },
+            ) {
+                cities.forEach { city ->
+                    DropdownMenuItem(
+                        text = { Text(city.name) },
+                        onClick = {
+                            onCitySelect(if (selectedCityId == city.id) null else city.id)
+                            cityMenuOpen = false
+                        },
+                        trailingIcon = if (selectedCityId == city.id) {
+                            { Icon(CpIcons.Check, contentDescription = null, tint = CpColor.Primary) }
+                        } else {
+                            null
+                        },
+                    )
+                }
             }
+        }
+
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 2.dp)
+                .width(1.dp)
+                .height(20.dp)
+                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+        )
+
+        DesignFilterChip(
+            label = "Все",
+            selected = quickMode == FeedQuickMode.ALL,
+            onClick = { onQuickMode(FeedQuickMode.ALL) },
+            leadingIcon = CpIcons.Grid,
+        )
+        DesignFilterChip(
+            label = "Открыто",
+            selected = quickMode == FeedQuickMode.OPEN,
+            onClick = { onQuickMode(FeedQuickMode.OPEN) },
+            leadingIcon = CpIcons.Time,
+        )
+        DesignFilterChip(
+            label = "Новые",
+            selected = quickMode == FeedQuickMode.NEW,
+            onClick = { onQuickMode(FeedQuickMode.NEW) },
+            leadingIcon = CpIcons.Sparkle,
+        )
+        DesignFilterChip(
+            label = "Уже был",
+            selected = quickMode == FeedQuickMode.VISITED,
+            onClick = { onQuickMode(FeedQuickMode.VISITED) },
+            leadingIcon = CpIcons.CheckCircle,
+        )
+        DesignFilterChip(
+            label = "Избранное",
+            selected = quickMode == FeedQuickMode.FAVORITES,
+            onClick = { onQuickMode(FeedQuickMode.FAVORITES) },
+            leadingIcon = CpIcons.Favorite,
+        )
+
+        COFFEE_FOCUS_OPTIONS.forEach { option ->
+            DesignFilterChip(
+                label = option.label,
+                selected = coffeeFocusId == option.id,
+                onClick = { onCoffeeFocusChange(option.id) },
+            )
         }
     }
 }
 
 @Composable
-private fun CatalogFilterChips(
-    items: List<CatalogItem>,
-    selectedIds: Set<String>,
-    onToggle: (String) -> Unit,
-    chipShape: RoundedCornerShape = RoundedCornerShape(CpDimens.radiusLg),
+private fun DesignFilterChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    leadingIcon: ImageVector? = null,
+    trailingIcon: ImageVector? = null,
 ) {
+    val shape = RoundedCornerShape(999.dp)
+    val bg = if (selected) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    val fg = if (selected) {
+        MaterialTheme.colorScheme.surface
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val borderColor = if (selected) {
+        Color.Transparent
+    } else {
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
+    }
+
     Row(
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+        modifier = Modifier
+            .clip(shape)
+            .background(bg)
+            .border(width = 1.dp, color = borderColor, shape = shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        items.forEach { item ->
-            FilterChip(
-                selected = item.id in selectedIds,
-                onClick = { onToggle(item.id) },
-                label = { Text(item.name, style = MaterialTheme.typography.labelSmall) },
-                shape = chipShape,
+        if (leadingIcon != null) {
+            Icon(
+                imageVector = leadingIcon,
+                contentDescription = null,
+                tint = CpColor.Primary,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = fg,
+            maxLines = 1,
+        )
+        if (trailingIcon != null) {
+            Icon(
+                imageVector = trailingIcon,
+                contentDescription = null,
+                tint = fg.copy(alpha = 0.7f),
+                modifier = Modifier.size(14.dp),
             )
         }
     }

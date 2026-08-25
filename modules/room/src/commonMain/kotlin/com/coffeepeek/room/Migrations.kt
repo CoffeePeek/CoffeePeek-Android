@@ -4,6 +4,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 
+/** Legacy: brew journal tables (removed in v3). Kept so installs on v1 can step 1→2→3. */
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(connection: SQLiteConnection) {
         connection.execSQL(
@@ -46,5 +47,13 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         connection.execSQL("CREATE INDEX IF NOT EXISTS `index_brew_session_bean_id` ON `brew_session` (`bean_id`)")
         connection.execSQL("CREATE INDEX IF NOT EXISTS `index_brew_session_created_at` ON `brew_session` (`created_at`)")
         connection.execSQL("CREATE INDEX IF NOT EXISTS `index_brew_session_method` ON `brew_session` (`method`)")
+    }
+}
+
+/** Drop brew journal tables — feature removed. */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("DROP TABLE IF EXISTS `brew_session`")
+        connection.execSQL("DROP TABLE IF EXISTS `bean_bag`")
     }
 }
