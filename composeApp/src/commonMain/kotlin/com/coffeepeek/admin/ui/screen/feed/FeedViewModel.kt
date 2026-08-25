@@ -23,9 +23,18 @@ import kotlinx.coroutines.launch
 
 private const val PAGE_SIZE = 20
 
+enum class FeedQuickMode {
+    ALL,
+    OPEN,
+    NEW,
+    VISITED,
+    FAVORITES,
+}
+
 data class FeedFiltersUi(
     val cityId: String? = null,
     val coffeeFocus: String? = null,
+    val quickMode: FeedQuickMode = FeedQuickMode.ALL,
     val priceRange: Int? = null,
     val minRating: Double? = null,
     val roasterIds: Set<String> = emptySet(),
@@ -59,11 +68,21 @@ data class FeedUiState(
             var count = 0
             if (filters.cityId != null) count++
             if (filters.coffeeFocus != null) count++
+            if (filters.quickMode != FeedQuickMode.ALL) count++
             if (filters.priceRange != null) count++
             if (filters.minRating != null) count++
             count += filters.roasterIds.size + filters.beanIds.size +
                 filters.equipmentIds.size + filters.brewMethodIds.size + filters.tagIds.size
             return count
+        }
+
+    val visibleShops: List<CoffeeShop>
+        get() = when (filters.quickMode) {
+            FeedQuickMode.ALL -> shops
+            FeedQuickMode.OPEN -> shops.filter { it.isOpen }
+            FeedQuickMode.NEW -> shops.filter { it.isNew }
+            FeedQuickMode.VISITED -> shops.filter { it.isVisited }
+            FeedQuickMode.FAVORITES -> shops.filter { it.isFavorite }
         }
 }
 
@@ -157,6 +176,10 @@ class FeedViewModel(
     fun setCoffeeFocus(coffeeFocus: String?) {
         _uiState.update { it.copy(filters = it.filters.copy(coffeeFocus = coffeeFocus)) }
         loadShops(reset = true)
+    }
+
+    fun setQuickMode(mode: FeedQuickMode) {
+        _uiState.update { it.copy(filters = it.filters.copy(quickMode = mode)) }
     }
 
     fun setPriceRange(priceRange: Int?) {
