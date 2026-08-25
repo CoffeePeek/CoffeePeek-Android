@@ -35,12 +35,14 @@ object ThemeManager {
                 if (_themeMode.value != mode) {
                     _themeMode.value = mode
                 }
+                applyPlatformNightMode(mode)
             }
         }
     }
 
     fun setTheme(mode: ThemeMode) {
         _themeMode.value = mode
+        applyPlatformNightMode(mode)
         settingRepository?.let { repository ->
             scope.launch {
                 repository.save(Setting(THEME_MODE_KEY, mode.name))
