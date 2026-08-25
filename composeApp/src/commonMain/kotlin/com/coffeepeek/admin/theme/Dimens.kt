@@ -44,6 +44,7 @@ object CpDimens {
     val authPrimaryBtnHeight = 48.dp
     val authMascotSize      = 128.dp
     val authThemeToggleSize = 40.dp
+    val authBrandLogoSize   = 96.dp
 
     // ── Select ────────────────────────────────────────────────────────────────
     val selectMinHeight = 56.dp
