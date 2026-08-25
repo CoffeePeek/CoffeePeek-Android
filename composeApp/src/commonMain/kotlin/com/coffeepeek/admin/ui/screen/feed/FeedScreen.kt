@@ -67,6 +67,7 @@ import com.coffeepeek.admin.ui.component.CoffeePeekPullToRefresh
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
 import com.coffeepeek.admin.ui.component.PriceBeansRow
 import com.coffeepeek.admin.ui.component.priceRangeLevel
+import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import androidx.compose.foundation.lazy.LazyColumn
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CoffeeShop
@@ -172,15 +173,18 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                             }
                         }
                     }
-                    if (state.shopTags.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(CpDimens.spacing2))
-                        ShopTagFilterRows(
-                            amenityTags = ShopTagGroups.amenityTags(state.shopTags),
-                            venueTypeTags = ShopTagGroups.venueTypeTags(state.shopTags),
-                            selectedIds = state.filters.tagIds,
-                            onToggle = { id -> vm.toggleFilterCatalog("tag", id) },
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(CpDimens.spacing2))
+                    FeedQuickFilterRows(
+                        amenityTags = ShopTagGroups.amenityTags(state.shopTags),
+                        selectedTagIds = state.filters.tagIds,
+                        onToggleTag = { id -> vm.toggleFilterCatalog("tag", id) },
+                        coffeeFocusId = state.filters.coffeeFocus,
+                        onCoffeeFocusChange = { id ->
+                            vm.setCoffeeFocus(
+                                if (state.filters.coffeeFocus == id) null else id,
+                            )
+                        },
+                    )
                 }
             }
         },
@@ -509,12 +513,14 @@ private fun StatusBadge(text: String, color: Color) {
 }
 
 @Composable
-private fun ShopTagFilterRows(
+private fun FeedQuickFilterRows(
     amenityTags: List<CatalogItem>,
-    venueTypeTags: List<CatalogItem>,
-    selectedIds: Set<String>,
-    onToggle: (String) -> Unit,
+    selectedTagIds: Set<String>,
+    onToggleTag: (String) -> Unit,
+    coffeeFocusId: String?,
+    onCoffeeFocusChange: (String) -> Unit,
 ) {
+    val chipShape = RoundedCornerShape(CpDimens.radiusLg)
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
@@ -522,16 +528,24 @@ private fun ShopTagFilterRows(
         if (amenityTags.isNotEmpty()) {
             CatalogFilterChips(
                 items = amenityTags,
-                selectedIds = selectedIds,
-                onToggle = onToggle,
+                selectedIds = selectedTagIds,
+                onToggle = onToggleTag,
+                chipShape = chipShape,
             )
         }
-        if (venueTypeTags.isNotEmpty()) {
-            CatalogFilterChips(
-                items = venueTypeTags,
-                selectedIds = selectedIds,
-                onToggle = onToggle,
-            )
+        // Specialty / Кофейня / Кафе — на ленте, не в экране фильтров
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+        ) {
+            COFFEE_FOCUS_OPTIONS.forEach { option ->
+                FilterChip(
+                    selected = coffeeFocusId == option.id,
+                    onClick = { onCoffeeFocusChange(option.id) },
+                    label = { Text(option.label, style = MaterialTheme.typography.labelSmall) },
+                    shape = chipShape,
+                )
+            }
         }
     }
 }
@@ -541,8 +555,8 @@ private fun CatalogFilterChips(
     items: List<CatalogItem>,
     selectedIds: Set<String>,
     onToggle: (String) -> Unit,
+    chipShape: RoundedCornerShape = RoundedCornerShape(CpDimens.radiusLg),
 ) {
-    val chipShape = RoundedCornerShape(CpDimens.radiusLg)
     Row(
         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
