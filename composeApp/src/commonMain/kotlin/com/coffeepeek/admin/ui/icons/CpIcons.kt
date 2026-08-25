@@ -14,6 +14,7 @@ import com.adamglin.phosphoricons.regular.CaretRight
 import com.adamglin.phosphoricons.regular.CaretUp
 import com.adamglin.phosphoricons.regular.ChatCenteredText
 import com.adamglin.phosphoricons.regular.Check
+import com.adamglin.phosphoricons.regular.CheckCircle
 import com.adamglin.phosphoricons.regular.Clock
 import com.adamglin.phosphoricons.regular.Coffee
 import com.adamglin.phosphoricons.regular.CoffeeBean
@@ -43,6 +44,8 @@ import com.adamglin.phosphoricons.regular.Phone
 import com.adamglin.phosphoricons.regular.Plus
 import com.adamglin.phosphoricons.regular.ShareNetwork
 import com.adamglin.phosphoricons.regular.SignOut
+import com.adamglin.phosphoricons.regular.Sparkle
+import com.adamglin.phosphoricons.regular.SquaresFour
 import com.adamglin.phosphoricons.regular.Star
 import com.adamglin.phosphoricons.regular.Sun
 import com.adamglin.phosphoricons.regular.Trash
@@ -55,6 +58,7 @@ object CpIcons {
     val Back: ImageVector get() = PhosphorIcons.Regular.ArrowLeft
     val Camera: ImageVector get() = PhosphorIcons.Regular.Camera
     val Check: ImageVector get() = PhosphorIcons.Regular.Check
+    val CheckCircle: ImageVector get() = PhosphorIcons.Regular.CheckCircle
     val ChevronDown: ImageVector get() = PhosphorIcons.Regular.CaretDown
     val ChevronLeft: ImageVector get() = PhosphorIcons.Regular.CaretLeft
     val ChevronRight: ImageVector get() = PhosphorIcons.Regular.CaretRight
@@ -71,6 +75,7 @@ object CpIcons {
     val Filter: ImageVector get() = PhosphorIcons.Regular.Funnel
     val Gallery: ImageVector get() = PhosphorIcons.Regular.Images
     val Globe: ImageVector get() = PhosphorIcons.Regular.Globe
+    val Grid: ImageVector get() = PhosphorIcons.Regular.SquaresFour
     val Info: ImageVector get() = PhosphorIcons.Regular.Info
     val Instagram: ImageVector get() = PhosphorIcons.Regular.InstagramLogo
     val Location: ImageVector get() = PhosphorIcons.Regular.MapPin
@@ -86,6 +91,7 @@ object CpIcons {
     val Review: ImageVector get() = PhosphorIcons.Regular.ChatCenteredText
     val Share: ImageVector get() = PhosphorIcons.Regular.ShareNetwork
     val Search: ImageVector get() = PhosphorIcons.Regular.MagnifyingGlass
+    val Sparkle: ImageVector get() = PhosphorIcons.Regular.Sparkle
     val Star: ImageVector get() = PhosphorIcons.Regular.Star
     val StarOutline: ImageVector get() = Star
     val StarFilled: ImageVector get() = PhosphorIcons.Fill.FillStar

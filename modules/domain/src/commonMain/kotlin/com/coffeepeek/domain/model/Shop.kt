@@ -11,6 +11,8 @@ data class CoffeeShop(
     val address: String? = null,
     val isOpen: Boolean = false,
     val isFavorite: Boolean = false,
+    val isNew: Boolean = false,
+    val isVisited: Boolean = false,
     val tags: List<String> = emptyList(),
 )
 

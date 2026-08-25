@@ -25,6 +25,8 @@ internal object ShopMapper {
         isFavorite = isFavorite,
         address = location?.address,
         isOpen = isOpen,
+        isNew = isNew,
+        isVisited = isVisited,
         reviewCount = reviewCount,
         tags = extractBackendTags(tags, shopTags)
             .ifEmpty { (brewMethods + roasters + beans).map { it.name } }
@@ -42,6 +44,8 @@ internal object ShopMapper {
             isFavorite = isFavorite,
             address = location?.address,
             isOpen = isOpen,
+            isNew = isNew,
+            isVisited = isVisited,
             reviewCount = reviewCount,
             tags = extractBackendTags(tags, shopTags)
                 .ifEmpty { (brewMethods + roasters + coffeeBeans).map { it.name } }
