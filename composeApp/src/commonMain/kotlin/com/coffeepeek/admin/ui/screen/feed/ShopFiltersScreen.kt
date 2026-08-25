@@ -8,7 +8,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,7 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,7 +48,6 @@ import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
 import com.coffeepeek.admin.ui.icons.CpIcons
-import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.domain.model.CatalogItem
 
 private const val COLLAPSED_COUNT = 3
@@ -118,8 +115,11 @@ fun ShopFiltersScreen(
                                 modifier = Modifier.weight(1f),
                             )
                             TextButton(
-                                onClick = { draft = FeedFiltersUi() },
-                                enabled = draft != FeedFiltersUi(),
+                                onClick = {
+                                    // Specialty / Кофейня / Кафе живут на ленте — не сбрасываем отсюда
+                                    draft = FeedFiltersUi(coffeeFocus = state.filters.coffeeFocus)
+                                },
+                                enabled = draft.copy(coffeeFocus = null) != FeedFiltersUi(),
                             ) {
                                 Text("Сбросить")
                             }
@@ -138,15 +138,6 @@ fun ShopFiltersScreen(
                                 selected = draft.priceRange,
                                 onSelect = { value ->
                                     draft = draft.copy(priceRange = value)
-                                },
-                            )
-                            // Specialty / Кофейня / Кафе — чипы как типы в основном поиске
-                            CoffeeFocusChips(
-                                selectedId = draft.coffeeFocus,
-                                onSelect = { focusId ->
-                                    draft = draft.copy(
-                                        coffeeFocus = if (draft.coffeeFocus == focusId) null else focusId,
-                                    )
                                 },
                             )
                             ExpandableCheckboxSection(
@@ -194,7 +185,8 @@ fun ShopFiltersScreen(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         Button(
                             onClick = {
-                                onApply(draft)
+                                // Preserve feed coffee-focus selection when applying panel filters
+                                onApply(draft.copy(coffeeFocus = state.filters.coffeeFocus))
                                 dismissAnimated()
                             },
                             modifier = Modifier
@@ -226,6 +218,7 @@ fun ShopFiltersScreen(
     }
 }
 
+/** Price section only — Specialty / Кофейня / Кафе live on the feed, not here. */
 @Composable
 private fun FilterPriceSection(
     selected: Int?,
@@ -235,30 +228,6 @@ private fun FilterPriceSection(
         selected = selected,
         onSelect = onSelect,
     )
-}
-
-/** Same chip row style as venue types on the main feed search. */
-@Composable
-private fun CoffeeFocusChips(
-    selectedId: String?,
-    onSelect: (String) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-    ) {
-        COFFEE_FOCUS_OPTIONS.forEach { option ->
-            FilterChip(
-                selected = selectedId == option.id,
-                onClick = { onSelect(option.id) },
-                label = {
-                    Text(option.label, style = MaterialTheme.typography.labelSmall)
-                },
-            )
-        }
-    }
 }
 
 @Composable
