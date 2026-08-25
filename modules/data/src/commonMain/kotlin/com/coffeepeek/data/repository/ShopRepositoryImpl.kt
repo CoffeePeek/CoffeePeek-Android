@@ -62,7 +62,7 @@ class ShopRepositoryImpl(
                 equipment   = equipment.await().map { CatalogItem(it.id, it.name) },
                 roasters    = roasters.await().map { CatalogItem(it.id, it.name) },
                 brewMethods = brewMethods.await().map { CatalogItem(it.id, it.name) },
-                shopTags    = shopTags.await().map { CatalogItem(it.id, it.name) },
+                shopTags    = shopTags.await().map { CatalogItem(it.id, it.name, it.slug) },
             ).also { cachedCatalogs = it }
         }
     }

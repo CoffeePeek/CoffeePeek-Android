@@ -7,4 +7,5 @@ import kotlinx.serialization.Serializable
 data class CatalogItemDto(
     @SerialName("id") val id: String,
     @SerialName("name") val name: String,
+    @SerialName("slug") val slug: String = "",
 )
