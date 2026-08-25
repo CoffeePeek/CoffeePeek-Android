@@ -29,11 +29,13 @@ import com.adamglin.phosphoricons.regular.ImageSquare
 import com.adamglin.phosphoricons.regular.Images
 import com.adamglin.phosphoricons.regular.Info
 import com.adamglin.phosphoricons.regular.Lock
+import com.adamglin.phosphoricons.regular.ForkKnife
 import com.adamglin.phosphoricons.regular.MagnifyingGlass
 import com.adamglin.phosphoricons.regular.MapPin
 import com.adamglin.phosphoricons.regular.MapTrifold
 import com.adamglin.phosphoricons.regular.Moon
 import com.adamglin.phosphoricons.regular.Monitor
+import com.adamglin.phosphoricons.regular.NavigationArrow
 import com.adamglin.phosphoricons.regular.NotePencil
 import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Phone
@@ -75,7 +77,9 @@ object CpIcons {
     val Lock: ImageVector get() = PhosphorIcons.Regular.Lock
     val Logout: ImageVector get() = PhosphorIcons.Regular.SignOut
     val Map: ImageVector get() = PhosphorIcons.Regular.MapTrifold
+    val Menu: ImageVector get() = PhosphorIcons.Regular.ForkKnife
     val MyLocation: ImageVector get() = Location
+    val Navigation: ImageVector get() = PhosphorIcons.Regular.NavigationArrow
     val Photo: ImageVector get() = PhosphorIcons.Regular.ImageSquare
     val Profile: ImageVector get() = PhosphorIcons.Regular.User
     val Review: ImageVector get() = PhosphorIcons.Regular.ChatCenteredText
