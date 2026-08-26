@@ -14,6 +14,7 @@ data class CoffeeShop(
     val isNew: Boolean = false,
     val isVisited: Boolean = false,
     val tags: List<String> = emptyList(),
+    val type: String = CoffeeShopType.COFFEE_BAR,
 )
 
 data class CoffeeShopDetails(
@@ -33,6 +34,39 @@ data class CoffeeShopDetails(
     val roasters: List<String> = emptyList(),
     val equipment: List<String> = emptyList(),
     val schedules: List<ShopSchedule> = emptyList(),
+    val menu: ShopMenu? = null,
+)
+
+data class ShopMenu(
+    val capturedAtUtc: String? = null,
+    val updatedAtUtc: String? = null,
+    val currency: String = "BYN",
+    val items: List<ShopMenuItem> = emptyList(),
+    val photos: List<ShopMenuPhoto> = emptyList(),
+)
+
+data class ShopMenuItem(
+    val slug: String,
+    val nameRu: String,
+    val nameEn: String = "",
+    val category: String,
+    val availability: String,
+    val price: Double? = null,
+    val currency: String = "BYN",
+)
+
+data class ShopMenuPhoto(
+    val id: String,
+    val fullUrl: String,
+    val sortIndex: Int = 0,
+)
+
+data class CoffeeDrinkDefinition(
+    val slug: String,
+    val nameRu: String,
+    val nameEn: String = "",
+    val category: String,
+    val sortOrder: Int,
 )
 
 data class ShopLocation(
@@ -105,7 +139,26 @@ data class MapShop(
     val title: String,
     val latitude: Double,
     val longitude: Double,
+    val type: String = CoffeeShopType.COFFEE_BAR,
 )
+
+object CoffeeShopType {
+    const val SPECIALTY = "specialty"
+    const val COFFEE_BAR = "coffee_bar"
+    const val CAFE = "cafe"
+
+    fun fromApi(raw: String?): String = when (raw?.trim()?.lowercase()) {
+        "1", "specialty" -> SPECIALTY
+        "3", "cafe" -> CAFE
+        else -> COFFEE_BAR
+    }
+
+    fun toApi(id: String): String = when (id) {
+        SPECIALTY -> "Specialty"
+        CAFE -> "Cafe"
+        else -> "CoffeeBar"
+    }
+}
 
 data class PagedResult<T>(
     val items: List<T>,

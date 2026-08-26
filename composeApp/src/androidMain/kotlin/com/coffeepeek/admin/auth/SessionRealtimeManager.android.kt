@@ -1,8 +1,8 @@
 package com.coffeepeek.admin.auth
 
 import androidx.annotation.Keep
-import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.ErrorHandler
+import com.coffeepeek.data.session.UserSessionCleaner
 import com.coffeepeek.domain.model.Session
 import com.coffeepeek.domain.repository.SessionRepository
 import com.microsoft.signalr.HubConnection
@@ -27,6 +27,7 @@ private const val FORCE_LOGOUT_METHOD = "ForceLogout"
 
 class SessionRealtimeManager(
     private val sessionRepository: SessionRepository,
+    private val userSessionCleaner: UserSessionCleaner,
     private val baseUrl: String,
 ) : AutoCloseable {
 
@@ -133,9 +134,8 @@ class SessionRealtimeManager(
 
     private suspend fun handleForceLogout(payload: ForceLogoutPayload?) {
         disconnect()
-        sessionRepository.saveSession(null)
+        userSessionCleaner.clearLocalUserData()
         ErrorHandler.showError(forceLogoutMessage(payload?.reason))
-        Navigator.navigate(Navigator.Screen.Auth)
     }
 
     private fun forceLogoutMessage(reason: String?): String = when (reason?.trim()) {

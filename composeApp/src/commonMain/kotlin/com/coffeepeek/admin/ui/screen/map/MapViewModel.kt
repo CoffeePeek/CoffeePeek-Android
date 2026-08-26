@@ -276,7 +276,7 @@ class MapViewModel(
             )
                 .onSuccess { shops ->
                     _state.update { current ->
-                        val merged = mergeShops(current.shops, shops, current.selectedShop)
+                        val merged = mergeShops(shops, current.selectedShop)
                         current.copy(
                             shops = merged,
                             isLoading = false,
@@ -352,16 +352,9 @@ class MapViewModel(
     }
 
     private fun mergeShops(
-        current: List<MapShop>,
         loaded: List<MapShop>,
         pinned: MapShop?,
-    ): List<MapShop> {
-        val merged = (current + loaded).toMutableList()
-        pinned?.let { shop ->
-            if (merged.none { it.id == shop.id }) merged.add(shop)
-        }
-        return merged.distinctBy { it.id }
-    }
+    ): List<MapShop> = (loaded + listOfNotNull(pinned)).distinctBy { it.id }
 
     private fun Set<String>.toggle(id: String): Set<String> =
         if (contains(id)) this - id else this + id

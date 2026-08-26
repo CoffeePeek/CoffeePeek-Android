@@ -9,4 +9,5 @@ data class UploadedPhotoDto(
     @SerialName("contentType") val contentType: String = "",
     @SerialName("storageKey") val storageKey: String = "",
     @SerialName("size") val size: Long = 0,
+    @SerialName("fullUrl") val fullUrl: String? = null,
 )

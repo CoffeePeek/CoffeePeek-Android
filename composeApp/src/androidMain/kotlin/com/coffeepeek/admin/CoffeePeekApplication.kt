@@ -41,6 +41,7 @@ class CoffeePeekApplication : Application() {
         val sessionRepository = koin.get<SessionRepository>()
         sessionRealtimeManager = SessionRealtimeManager(
             sessionRepository = sessionRepository,
+            userSessionCleaner = koin.get(),
             baseUrl = AppConfig.baseUrl,
         ).also { manager -> manager.start() }
 

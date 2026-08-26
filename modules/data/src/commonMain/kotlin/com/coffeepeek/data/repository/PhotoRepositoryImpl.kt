@@ -2,6 +2,7 @@ package com.coffeepeek.data.repository
 
 import com.coffeepeek.api.model.request.PhotoRequestDto
 import com.coffeepeek.api.model.request.UploadedPhotoReq
+import com.coffeepeek.api.model.response.GenerateUploadUrlDto
 import com.coffeepeek.api.service.PhotoApiService
 import com.coffeepeek.domain.model.PendingPhotoUpload
 import com.coffeepeek.domain.model.UploadedPhotoMeta
@@ -20,39 +21,47 @@ class PhotoRepositoryImpl(
         )
 
     override suspend fun uploadShopPhotos(photos: List<PendingPhotoUpload>): Result<List<UploadedPhotoMeta>> =
-        runCatching {
-            if (photos.isEmpty()) return@runCatching emptyList()
+        uploadPhotos(photos) { photoApiService.requestShopPhotoUploadUrls(it).getOrThrow() }
 
-            val requests = photos.map { photo ->
-                PhotoRequestDto(
-                    sizeBytes = photo.bytes.size,
-                    fileName = photo.fileName,
-                    contentType = photo.contentType,
-                )
-            }
+    override suspend fun uploadMenuPhotos(photos: List<PendingPhotoUpload>): Result<List<UploadedPhotoMeta>> =
+        uploadPhotos(photos) { photoApiService.requestMenuPhotoUploadUrls(it).getOrThrow() }
 
-            val uploadUrls = photoApiService.requestShopPhotoUploadUrls(requests).getOrThrow()
-            if (uploadUrls.size != photos.size) {
-                error("Несовпадение числа URL для загрузки фото")
-            }
+    private suspend fun uploadPhotos(
+        photos: List<PendingPhotoUpload>,
+        requestUrls: suspend (List<PhotoRequestDto>) -> List<GenerateUploadUrlDto>,
+    ): Result<List<UploadedPhotoMeta>> = runCatching {
+        if (photos.isEmpty()) return@runCatching emptyList()
 
-            uploadUrls.zip(photos).forEach { (urlDto, photo) ->
-                photoApiService.uploadToPresignedUrl(
-                    uploadUrl = urlDto.uploadUrl,
-                    bytes = photo.bytes,
-                    contentType = photo.contentType,
-                ).getOrThrow()
-            }
-
-            uploadUrls.zip(photos).map { (urlDto, photo) ->
-                UploadedPhotoMeta(
-                    fileName = photo.fileName,
-                    contentType = photo.contentType,
-                    storageKey = urlDto.storageKey,
-                    size = photo.bytes.size.toLong(),
-                )
-            }
+        val requests = photos.map { photo ->
+            PhotoRequestDto(
+                sizeBytes = photo.bytes.size,
+                fileName = photo.fileName,
+                contentType = photo.contentType,
+            )
         }
+
+        val uploadUrls = requestUrls(requests)
+        if (uploadUrls.size != photos.size) {
+            error("Несовпадение числа URL для загрузки фото")
+        }
+
+        uploadUrls.zip(photos).forEach { (urlDto, photo) ->
+            photoApiService.uploadToPresignedUrl(
+                uploadUrl = urlDto.uploadUrl,
+                bytes = photo.bytes,
+                contentType = photo.contentType,
+            ).getOrThrow()
+        }
+
+        uploadUrls.zip(photos).map { (urlDto, photo) ->
+            UploadedPhotoMeta(
+                fileName = photo.fileName,
+                contentType = photo.contentType,
+                storageKey = urlDto.storageKey,
+                size = photo.bytes.size.toLong(),
+            )
+        }
+    }
 
     private suspend fun uploadSinglePhoto(
         requestUploadUrl: suspend (PhotoRequestDto) -> com.coffeepeek.api.model.response.GenerateUploadUrlDto,

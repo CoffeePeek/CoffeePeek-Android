@@ -18,6 +18,7 @@ data class ShortShopDto(
     @SerialName("isNew") val isNew: Boolean = false,
     @SerialName("isOpen") val isOpen: Boolean = false,
     @SerialName("priceRange") val priceRange: JsonElement? = null,
+    @SerialName("type") val type: JsonElement? = null,
     @SerialName("coffeeFocus") val coffeeFocus: JsonElement? = null,
     @SerialName("location") val location: LocationDto? = null,
     @SerialName("beans") val beans: List<CatalogItemDto> = emptyList(),

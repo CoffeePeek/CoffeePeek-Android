@@ -43,6 +43,7 @@ private data class PlacemarkEntry(
     var latitude: Double,
     var longitude: Double,
     var shop: MapShop,
+    var type: String,
 )
 
 @Composable
@@ -99,8 +100,6 @@ actual fun CoffeeMap(
 
     val mapView = remember { MapView(appContext) }
     val placemarks = remember { mutableMapOf<String, PlacemarkEntry>() }
-    val defaultIcon = remember { MapMarkerIcons.provider(appContext, selected = false) }
-    val selectedIcon = remember { MapMarkerIcons.provider(appContext, selected = true) }
     val iconStyle = remember {
         IconStyle()
             .setAnchor(MapMarkerIcons.anchor())
@@ -210,12 +209,11 @@ actual fun CoffeeMap(
     LaunchedEffect(shops, selectedShopId, mapView) {
         val map = mapView.mapWindow.map
         syncPlacemarks(
+            context = appContext,
             map = map,
             shops = shops,
             selectedShopId = selectedShopId,
             placemarks = placemarks,
-            defaultIcon = defaultIcon,
-            selectedIcon = selectedIcon,
             iconStyle = iconStyle,
             onShopClick = { shop -> onShopClickState.value(shop) },
         )
@@ -271,12 +269,11 @@ private fun Context.lastKnownLocation(): Location? {
 }
 
 private fun syncPlacemarks(
+    context: Context,
     map: Map,
     shops: List<MapShop>,
     selectedShopId: String?,
     placemarks: MutableMap<String, PlacemarkEntry>,
-    defaultIcon: com.yandex.runtime.image.ImageProvider,
-    selectedIcon: com.yandex.runtime.image.ImageProvider,
     iconStyle: IconStyle,
     onShopClick: (MapShop) -> Unit,
 ) {
@@ -294,12 +291,11 @@ private fun syncPlacemarks(
 
         if (entry == null) {
             placemarks[shop.id] = createPlacemark(
+                context = context,
                 map = map,
                 shop = shop,
                 point = point,
                 isSelected = isSelected,
-                defaultIcon = defaultIcon,
-                selectedIcon = selectedIcon,
                 iconStyle = iconStyle,
                 onShopClick = onShopClick,
             )
@@ -314,36 +310,28 @@ private fun syncPlacemarks(
             entry.longitude = shop.longitude
         }
 
-        if (entry.isSelected != isSelected) {
-            map.mapObjects.remove(entry.placemark)
-            val recreated = createPlacemark(
-                map = map,
-                shop = shop,
-                point = point,
-                isSelected = isSelected,
-                defaultIcon = defaultIcon,
-                selectedIcon = selectedIcon,
-                iconStyle = iconStyle,
-                onShopClick = onShopClick,
-            )
-            placemarks[shop.id] = recreated
+        if (entry.isSelected != isSelected || entry.type != shop.type) {
+            entry.placemark.setIcon(MapMarkerIcons.provider(context, shop.type, isSelected))
+            entry.placemark.setIconStyle(iconStyle)
+            entry.placemark.zIndex = if (isSelected) 2f else 1f
+            entry.isSelected = isSelected
+            entry.type = shop.type
         }
     }
 }
 
 private fun createPlacemark(
+    context: Context,
     map: Map,
     shop: MapShop,
     point: Point,
     isSelected: Boolean,
-    defaultIcon: com.yandex.runtime.image.ImageProvider,
-    selectedIcon: com.yandex.runtime.image.ImageProvider,
     iconStyle: IconStyle,
     onShopClick: (MapShop) -> Unit,
 ): PlacemarkEntry {
     lateinit var entry: PlacemarkEntry
     val placemark = map.mapObjects.addPlacemark(point).apply {
-        setIcon(if (isSelected) selectedIcon else defaultIcon)
+        setIcon(MapMarkerIcons.provider(context, shop.type, isSelected))
         setIconStyle(iconStyle)
         zIndex = if (isSelected) 2f else 1f
         isDraggable = false
@@ -358,6 +346,7 @@ private fun createPlacemark(
         latitude = shop.latitude,
         longitude = shop.longitude,
         shop = shop,
+        type = shop.type,
     )
     return entry
 }

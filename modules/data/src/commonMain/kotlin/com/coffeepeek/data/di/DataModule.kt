@@ -11,6 +11,8 @@ import com.coffeepeek.data.repository.ReviewRepositoryImpl
 import com.coffeepeek.data.repository.SessionRepositoryImpl
 import com.coffeepeek.data.repository.ShopRepositoryImpl
 import com.coffeepeek.data.repository.UserRepositoryImpl
+import com.coffeepeek.data.session.UserSessionCleaner
+import com.coffeepeek.data.util.FileUrlResolver
 import com.coffeepeek.data.util.JwtUtils
 import com.coffeepeek.domain.repository.AuthRepository
 import com.coffeepeek.domain.repository.CheckInRepository
@@ -39,6 +41,15 @@ fun dataModule(
 
     single<SessionRepository> { SessionRepositoryImpl(database) }
     single { SessionTokenProvider(get(), get()) }
+    single { FileUrlResolver(baseUrl) }
+    single {
+        UserSessionCleaner(
+            sessionRepository = get(),
+            favoriteRepository = get(),
+            httpCacheFolder = cacheFolder,
+            appCacheRoot = cacheFolder.parentFile ?: cacheFolder,
+        )
+    }
 
     single {
         val scope = get<CoroutineScope>()
@@ -74,10 +85,10 @@ fun dataModule(
     single { get<CoffeePeekRepo>().reviewApiService }
     single { get<CoffeePeekRepo>().checkInApiService }
     single<PhotoRepository> { PhotoRepositoryImpl(get()) }
-    single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
+    single<AuthRepository> { AuthRepositoryImpl(get(), get(), get()) }
     single<FavoriteRepository> { FavoriteRepositoryImpl(database) }
-    single<ShopRepository> { ShopRepositoryImpl(get(), get(), get()) }
+    single<ShopRepository> { ShopRepositoryImpl(get(), get(), get(), get()) }
     single<UserRepository> { UserRepositoryImpl(get(), get(), get(), get()) }
-    single<ReviewRepository> { ReviewRepositoryImpl(get(), get()) }
+    single<ReviewRepository> { ReviewRepositoryImpl(get(), get(), get()) }
     single<CheckInRepository> { CheckInRepositoryImpl(get()) }
 }

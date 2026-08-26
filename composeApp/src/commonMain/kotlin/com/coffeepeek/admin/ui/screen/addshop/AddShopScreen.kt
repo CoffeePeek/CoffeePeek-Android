@@ -66,12 +66,15 @@ import com.coffeepeek.admin.ui.component.PriceBeanSlider
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.component.PhotoAttachmentsSection
+import com.coffeepeek.admin.utils.MAX_MENU_PHOTOS
+import com.coffeepeek.admin.utils.MAX_SHOP_PHOTOS
+import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.admin.location.LocationPermissionEffect
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.layout.ContentScale
 import com.coffeepeek.admin.utils.CpImage
-import com.coffeepeek.admin.utils.MAX_SHOP_PHOTOS
 import com.coffeepeek.admin.utils.PhotoPickerController
 import com.coffeepeek.admin.utils.rememberPhotoPicker
 import com.coffeepeek.domain.model.CatalogItem
@@ -501,6 +504,16 @@ private fun StepPhotos(
             }
         }
     }
+
+    Spacer(Modifier.height(CpDimens.spacing6))
+    PhotoAttachmentsSection(
+        photos = state.menuPhotos.map { PickedImage(it.bytes, it.fileName, it.contentType) },
+        maxPhotos = MAX_MENU_PHOTOS,
+        onPhotosAdded = vm::addMenuPhotos,
+        onRemovePhoto = vm::removeMenuPhoto,
+        title = "Фото меню",
+        hint = "До $MAX_MENU_PHOTOS фото меню (необязательно). Не попадут в галерею кофейни.",
+    )
 }
 
 // ── Шаг 3: Расписание ─────────────────────────────────────────────────────────

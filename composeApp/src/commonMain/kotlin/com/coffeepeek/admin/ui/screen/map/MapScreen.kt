@@ -277,6 +277,7 @@ private fun MapFiltersDialog(
                     PriceBeanSlider(
                         selected = filters.priceRange,
                         onSelect = onPrice,
+                        showTitle = false,
                     )
                 }
                 FilterSection("Формат точки") {

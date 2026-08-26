@@ -2,7 +2,7 @@ package com.coffeepeek.admin.auth
 
 import com.coffeepeek.admin.utils.ErrorHandler
 
-private const val GOOGLE_SIGN_IN_CANCELLED = "Вход через Google отменён"
+internal const val GOOGLE_SIGN_IN_CANCELLED = "Вход через Google отменён"
 
 fun handleGoogleSignInResult(
     result: Result<String>,

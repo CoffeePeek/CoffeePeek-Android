@@ -5,17 +5,22 @@ import com.coffeepeek.api.model.request.CreateShopReq
 import com.coffeepeek.api.model.request.ScheduleIntervalReq
 import com.coffeepeek.api.model.request.ScheduleReq
 import com.coffeepeek.api.service.ShopApiService
+import com.coffeepeek.data.mapper.ShopMapper.parseShopType
 import com.coffeepeek.data.mapper.ShopMapper.toDomain
+import com.coffeepeek.data.util.FileUrlResolver
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
+import com.coffeepeek.domain.model.CoffeeDrinkDefinition
 import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.CoffeeShopDetails
+import com.coffeepeek.domain.model.CoffeeShopType
 import com.coffeepeek.domain.model.CreateShopInput
 import com.coffeepeek.domain.model.MapBounds
 import com.coffeepeek.domain.model.MapShop
 import com.coffeepeek.domain.model.PagedResult
 import com.coffeepeek.domain.model.ShopCatalogs
 import com.coffeepeek.domain.model.ShopFilters
+import com.coffeepeek.domain.model.ShopMenu
 import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.PhotoRepository
 import com.coffeepeek.domain.repository.ShopRepository
@@ -29,11 +34,14 @@ class ShopRepositoryImpl(
     private val shopApiService: ShopApiService,
     private val photoRepository: PhotoRepository,
     private val favoriteRepository: FavoriteRepository,
+    private val fileUrlResolver: FileUrlResolver,
 ) : ShopRepository {
 
     private var cachedCatalogs: ShopCatalogs? = null
     private val catalogsMutex = Mutex()
     private var catalogsLoad: Deferred<Result<ShopCatalogs>>? = null
+    private var cachedMenuDrinks: List<CoffeeDrinkDefinition>? = null
+    private val menuDrinksMutex = Mutex()
 
     override suspend fun getCatalogs(): Result<ShopCatalogs> = coroutineScope {
         cachedCatalogs?.let { return@coroutineScope Result.success(it) }
@@ -71,7 +79,7 @@ class ShopRepositoryImpl(
         shopApiService.searchShops(
             query = filters.query,
             cityId = filters.cityId,
-            coffeeFocus = filters.coffeeFocus,
+            type = filters.coffeeFocus?.let(CoffeeShopType::toApi),
             roasterIds = filters.roasterIds.takeIf { it.isNotEmpty() },
             equipmentIds = filters.equipmentIds.takeIf { it.isNotEmpty() },
             beanIds = filters.beanIds.takeIf { it.isNotEmpty() },
@@ -93,13 +101,36 @@ class ShopRepositoryImpl(
             )
         }
 
-    override suspend fun getShopDetails(id: String): Result<CoffeeShopDetails> =
-        shopApiService.getShopDetails(id).map { details ->
-            val domain = details.toDomain()
+    override suspend fun getMenuDrinks(): Result<List<CoffeeDrinkDefinition>> {
+        cachedMenuDrinks?.let { return Result.success(it) }
+        return menuDrinksMutex.withLock {
+            cachedMenuDrinks?.let { return@withLock Result.success(it) }
+            shopApiService.getMenuDrinks().map { drinks ->
+                drinks.map {
+                    CoffeeDrinkDefinition(
+                        slug = it.slug,
+                        nameRu = it.nameRu,
+                        nameEn = it.nameEn,
+                        category = it.category,
+                        sortOrder = it.sortOrder,
+                    )
+                }.sortedBy { it.sortOrder }.also { cachedMenuDrinks = it }
+            }
+        }
+    }
+
+    override suspend fun getShopDetails(id: String): Result<CoffeeShopDetails> = runCatching {
+        coroutineScope {
+            val detailsDeferred = async { shopApiService.getShopDetails(id).getOrThrow() }
+            val drinksDeferred = async { getMenuDrinks().getOrNull() }
+            val domain = detailsDeferred.await().toDomain(fileUrlResolver)
+            val drinks = drinksDeferred.await()
             domain.copy(
                 shop = domain.shop.copy(isFavorite = favoriteRepository.isFavorite(id)),
+                menu = domain.menu?.alignedWithCatalog(drinks),
             )
         }
+    }
 
     override suspend fun getShopsInBounds(bounds: MapBounds, filters: ShopFilters): Result<List<MapShop>> =
         shopApiService.getShopsInBounds(
@@ -109,7 +140,7 @@ class ShopRepositoryImpl(
             maxLon = bounds.maxLon,
             query = filters.query,
             cityId = filters.cityId,
-            coffeeFocus = filters.coffeeFocus,
+            type = filters.coffeeFocus?.let(CoffeeShopType::toApi),
             roasterIds = filters.roasterIds.takeIf { it.isNotEmpty() },
             equipmentIds = filters.equipmentIds.takeIf { it.isNotEmpty() },
             beanIds = filters.beanIds.takeIf { it.isNotEmpty() },
@@ -118,18 +149,25 @@ class ShopRepositoryImpl(
             priceRange = filters.priceRange.toApiPriceRange(),
             minRating = filters.minRating,
         ).map { shops ->
-            shops.map { dto ->
+            val mapped = shops.map { dto ->
                 MapShop(
                     id = dto.id,
                     title = dto.title?.takeIf { it.isNotBlank() } ?: "Кофейня",
                     latitude = dto.latitude,
                     longitude = dto.longitude,
+                    type = parseShopType(dto.type),
                 )
             }
+            val focus = filters.coffeeFocus
+            if (focus.isNullOrBlank()) mapped else mapped.filter { it.type == focus }
         }
 
     override suspend fun createShop(input: CreateShopInput): Result<Unit> = runCatching {
-        val uploadedPhotos = photoRepository.uploadShopPhotos(input.photos).getOrThrow()
+        val (uploadedPhotos, uploadedMenuPhotos) = coroutineScope {
+            val shopPhotos = async { photoRepository.uploadShopPhotos(input.photos).getOrThrow() }
+            val menuPhotos = async { photoRepository.uploadMenuPhotos(input.menuPhotos.take(4)).getOrThrow() }
+            shopPhotos.await() to menuPhotos.await()
+        }
 
         shopApiService.createShop(
             CreateShopReq(
@@ -158,6 +196,7 @@ class ShopRepositoryImpl(
                     )
                 },
                 shopPhotos = uploadedPhotos.toUploadedPhotoReqs().takeIf { it.isNotEmpty() },
+                menuPhotos = uploadedMenuPhotos.toUploadedPhotoReqs().takeIf { it.isNotEmpty() },
                 priceRange = input.priceRange.toApiPriceRange(),
                 equipmentIds  = input.equipmentIds.takeIf { it.isNotEmpty() },
                 coffeeBeanIds = input.coffeeBeanIds.takeIf { it.isNotEmpty() },
@@ -166,6 +205,24 @@ class ShopRepositoryImpl(
             )
         ).getOrThrow()
     }
+}
+
+private fun ShopMenu.alignedWithCatalog(drinks: List<CoffeeDrinkDefinition>?): ShopMenu {
+    if (drinks.isNullOrEmpty()) return this
+    val bySlug = drinks.associateBy { it.slug }
+    val order = drinks.mapIndexed { index, drink -> drink.slug to index }.toMap()
+    return copy(
+        items = items
+            .map { item ->
+                val def = bySlug[item.slug] ?: return@map item
+                item.copy(
+                    nameRu = item.nameRu.ifBlank { def.nameRu },
+                    nameEn = item.nameEn.ifBlank { def.nameEn },
+                    category = item.category.ifBlank { def.category },
+                )
+            }
+            .sortedBy { order[it.slug] ?: Int.MAX_VALUE },
+    )
 }
 
 private fun Int?.toApiPriceRange(): String? = when (this) {

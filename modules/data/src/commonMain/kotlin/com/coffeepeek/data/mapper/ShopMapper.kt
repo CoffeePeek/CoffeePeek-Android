@@ -2,16 +2,25 @@ package com.coffeepeek.data.mapper
 
 import com.coffeepeek.api.model.response.shop.CoffeeShopDetailsDto
 import com.coffeepeek.api.model.response.shop.ReviewDto
+import com.coffeepeek.api.model.response.shop.ShopMenuDto
+import com.coffeepeek.api.model.response.shop.ShopMenuItemDto
 import com.coffeepeek.api.model.response.shop.ShortShopDto
+import com.coffeepeek.data.util.FileUrlResolver
 import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.CoffeeShopDetails
+import com.coffeepeek.domain.model.CoffeeShopType
 import com.coffeepeek.domain.model.Review
 import com.coffeepeek.domain.model.ReviewRating
+import com.coffeepeek.domain.model.ShopMenu
+import com.coffeepeek.domain.model.ShopMenuItem
+import com.coffeepeek.domain.model.ShopMenuPhoto
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
 
 internal object ShopMapper {
 
@@ -31,9 +40,10 @@ internal object ShopMapper {
         tags = extractBackendTags(tags, shopTags)
             .ifEmpty { (brewMethods + roasters + beans).map { it.name } }
             .take(3),
+        type = parseShopType(type, coffeeFocus),
     )
 
-    fun CoffeeShopDetailsDto.toDomain() = CoffeeShopDetails(
+    fun CoffeeShopDetailsDto.toDomain(fileUrls: FileUrlResolver) = CoffeeShopDetails(
         shop = CoffeeShop(
             id = id,
             title = name,
@@ -50,6 +60,7 @@ internal object ShopMapper {
             tags = extractBackendTags(tags, shopTags)
                 .ifEmpty { (brewMethods + roasters + coffeeBeans).map { it.name } }
                 .take(3),
+            type = parseShopType(type, coffeeFocus),
         ),
         cityId = cityId,
         description = description,
@@ -65,7 +76,7 @@ internal object ShopMapper {
         canCreateReview = canCreateReview,
         existingReviewId = existingReviewId,
         photos = photos.mapNotNull { it.fullUrl },
-        reviews = reviews.map { it.toDomain() },
+        reviews = reviews.map { it.toDomain(fileUrls) },
         contact = shopContact?.let { c ->
             com.coffeepeek.domain.model.ShopContact(
                 instagram = c.instagramLink,
@@ -90,9 +101,10 @@ internal object ShopMapper {
                 },
             )
         },
+        menu = menu?.toDomain(),
     )
 
-    fun ReviewDto.toDomain() = Review(
+    fun ReviewDto.toDomain(fileUrls: FileUrlResolver) = Review(
         id = id,
         shopId = coffeeShopId,
         username = username,
@@ -105,11 +117,50 @@ internal object ShopMapper {
         ),
         createdAt = createdAtUtc,
         photoUrls = photos.mapNotNull { photo ->
-            photo.storageKey.takeIf { it.isNotBlank() }?.let { key ->
-                "https://bucket-dev-771f.up.railway.app/coffee.shops/$key"
-            }
+            fileUrls.resolve(photo.storageKey, photo.fullUrl)
         },
     )
+
+    fun ShopMenuDto.toDomain() = ShopMenu(
+        capturedAtUtc = capturedAtUtc,
+        updatedAtUtc = updatedAtUtc,
+        currency = currency.ifBlank { "BYN" },
+        items = items.map { it.toDomain() },
+        photos = photos
+            .mapNotNull { photo ->
+                val url = photo.fullUrl?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                ShopMenuPhoto(
+                    id = photo.id,
+                    fullUrl = url,
+                    sortIndex = photo.sortIndex,
+                )
+            }
+            .sortedBy { it.sortIndex },
+    )
+
+    private fun ShopMenuItemDto.toDomain() = ShopMenuItem(
+        slug = slug,
+        nameRu = nameRu,
+        nameEn = nameEn,
+        category = category,
+        availability = availability,
+        price = price.toDoubleOrNull(),
+        currency = currency.ifBlank { "BYN" },
+    )
+
+    fun parseShopType(type: JsonElement?, coffeeFocus: JsonElement? = null): String {
+        val raw = type.takeUnless { it == null || it is JsonNull } ?: coffeeFocus
+        return CoffeeShopType.fromApi((raw as? JsonPrimitive)?.contentOrNull)
+    }
+
+    private fun JsonElement?.toDoubleOrNull(): Double? {
+        val primitive = this as? JsonPrimitive ?: return null
+        primitive.doubleOrNull?.let { return it }
+        return primitive.contentOrNull
+            ?.trim()
+            ?.replace(',', '.')
+            ?.toDoubleOrNull()
+    }
 
     private fun priceRangeLabel(range: JsonElement?): String? {
         val value = (range as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()

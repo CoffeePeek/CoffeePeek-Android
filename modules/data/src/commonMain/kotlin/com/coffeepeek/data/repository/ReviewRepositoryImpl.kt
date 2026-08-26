@@ -5,6 +5,7 @@ import com.coffeepeek.api.model.request.UpdateReviewReq
 import com.coffeepeek.api.model.response.shop.RatingDto
 import com.coffeepeek.api.service.ReviewApiService
 import com.coffeepeek.data.mapper.ShopMapper.toDomain
+import com.coffeepeek.data.util.FileUrlResolver
 import com.coffeepeek.domain.model.CreateReviewInput
 import com.coffeepeek.domain.model.PagedResult
 import com.coffeepeek.domain.model.Review
@@ -15,6 +16,7 @@ import com.coffeepeek.domain.repository.ReviewRepository
 class ReviewRepositoryImpl(
     private val reviewApiService: ReviewApiService,
     private val photoRepository: PhotoRepository,
+    private val fileUrlResolver: FileUrlResolver,
 ) : ReviewRepository {
 
     override suspend fun canCreateReview(shopId: String): Result<Pair<Boolean, String?>> =
@@ -61,7 +63,7 @@ class ReviewRepositoryImpl(
     ): Result<PagedResult<Review>> =
         reviewApiService.getUserReviews(userId, page, pageSize).map { response ->
             PagedResult(
-                items = response.reviewDtos.map { it.toDomain() },
+                items = response.reviewDtos.map { it.toDomain(fileUrlResolver) },
                 totalCount = response.totalItems,
                 totalPages = response.totalPages,
                 currentPage = response.currentPage,

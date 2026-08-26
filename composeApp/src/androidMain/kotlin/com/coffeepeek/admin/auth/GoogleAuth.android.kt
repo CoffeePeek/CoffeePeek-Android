@@ -6,15 +6,31 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import android.util.Log
+import com.coffeepeek.admin.CoffeePeekApplication
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 
 actual object GoogleAuth {
     actual fun isSupported(): Boolean = true
 
     actual suspend fun signIn(): Result<String> =
         Result.failure(UnsupportedOperationException("Используйте rememberGoogleSignInLauncher()"))
+
+    actual suspend fun signOut() {
+        runCatching {
+            val context = CoffeePeekApplication.context
+            val client = GoogleSignIn.getClient(
+                context,
+                GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    .build(),
+            )
+            client.signOut()
+        }
+    }
 
     @Composable
     fun rememberGoogleSignInLauncher(
@@ -39,10 +55,6 @@ actual object GoogleAuth {
         val launcher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.StartActivityForResult(),
         ) { result ->
-            if (result.resultCode != Activity.RESULT_OK) {
-                onResult(Result.failure(Exception("Вход через Google отменён")))
-                return@rememberLauncherForActivityResult
-            }
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
                 val account = task.getResult(ApiException::class.java)
@@ -52,7 +64,21 @@ actual object GoogleAuth {
                 } else {
                     onResult(Result.success(token))
                 }
+            } catch (e: ApiException) {
+                Log.w("CoffeePeek-GoogleAuth", "signIn failed: status=${e.statusCode}", e)
+                val message = when (e.statusCode) {
+                    GoogleSignInStatusCodes.SIGN_IN_CANCELLED ->
+                        GOOGLE_SIGN_IN_CANCELLED
+                    CommonStatusCodes.DEVELOPER_ERROR ->
+                        "Google Sign-In: неверная конфигурация. Добавьте SHA-1 debug/release keystore и Android OAuth client (com.coffeepeek) в Google Cloud Console."
+                    GoogleSignInStatusCodes.SIGN_IN_FAILED ->
+                        "Google Sign-In отклонён. Проверьте GOOGLE_WEB_CLIENT_ID и OAuth-клиенты в Google Cloud Console."
+                    else ->
+                        "Google Sign-In ошибка ${e.statusCode}: ${e.message ?: "неизвестная"}"
+                }
+                onResult(Result.failure(Exception(message)))
             } catch (e: Exception) {
+                Log.w("CoffeePeek-GoogleAuth", "signIn failed", e)
                 onResult(Result.failure(e))
             }
         }

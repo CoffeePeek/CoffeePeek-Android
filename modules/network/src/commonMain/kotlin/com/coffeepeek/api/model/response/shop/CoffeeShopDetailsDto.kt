@@ -22,6 +22,7 @@ data class CoffeeShopDetailsDto(
     @SerialName("isOpen") val isOpen: Boolean = false,
     @SerialName("isNew") val isNew: Boolean = false,
     @SerialName("priceRange") val priceRange: JsonElement? = null,
+    @SerialName("type") val type: JsonElement? = null,
     @SerialName("coffeeFocus") val coffeeFocus: JsonElement? = null,
     @SerialName("location") val location: LocationDto? = null,
     @SerialName("coffeeBeans") val coffeeBeans: List<CatalogItemDto> = emptyList(),
@@ -32,6 +33,7 @@ data class CoffeeShopDetailsDto(
     @SerialName("shopTags") val shopTags: JsonElement? = null,
     @SerialName("shopContact") val shopContact: ShopContactDto? = null,
     @SerialName("schedules") val schedules: List<ScheduleDto>? = null,
+    @SerialName("menu") val menu: ShopMenuDto? = null,
 )
 
 @Serializable
@@ -45,4 +47,5 @@ data class ShopContactDto(
 @Serializable
 data class GetShopDetailsResponseDto(
     @SerialName("shopDto") val shopDto: CoffeeShopDetailsDto,
+    @SerialName("menu") val menu: ShopMenuDto? = null,
 ) : DataResponse()

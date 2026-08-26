@@ -8,6 +8,7 @@ import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CreateShopInput
 import com.coffeepeek.domain.model.PendingPhotoUpload
+import com.coffeepeek.admin.utils.MAX_MENU_PHOTOS
 import com.coffeepeek.admin.utils.MAX_SHOP_PHOTOS
 import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.domain.model.ScheduleInterval
@@ -68,6 +69,7 @@ data class AddShopUiState(
     val description: String = "",
     val priceRange: Int? = null,
     val photos: List<PendingPhotoUi> = emptyList(),
+    val menuPhotos: List<PendingPhotoUi> = emptyList(),
     val unifiedOpenTime: String = "09:00",
     val unifiedCloseTime: String = "21:00",
     val closedDays: Set<Int> = emptySet(),
@@ -294,6 +296,22 @@ class AddShopViewModel(
         _state.update { s -> s.copy(photos = s.photos.filterIndexed { i, _ -> i != index }) }
     }
 
+    fun addMenuPhotos(images: List<PickedImage>) {
+        if (images.isEmpty()) return
+        _state.update { s ->
+            val remaining = MAX_MENU_PHOTOS - s.menuPhotos.size
+            if (remaining <= 0) return@update s
+            val toAdd = images.take(remaining).map { image ->
+                PendingPhotoUi(image.fileName, image.contentType, image.bytes)
+            }
+            s.copy(menuPhotos = s.menuPhotos + toAdd)
+        }
+    }
+
+    fun removeMenuPhoto(index: Int) {
+        _state.update { s -> s.copy(menuPhotos = s.menuPhotos.filterIndexed { i, _ -> i != index }) }
+    }
+
     fun updateSchedule(dayOfWeek: Int, transform: (DayScheduleUi) -> DayScheduleUi) {
         _state.update { s ->
             s.copy(schedules = s.schedules.map { if (it.dayOfWeek == dayOfWeek) transform(it) else it })
@@ -434,6 +452,7 @@ class AddShopViewModel(
                     roasterIds    = s.selectedRoasterIds.toList(),
                     brewMethodIds = s.selectedBrewMethodIds.toList(),
                     photos = s.photos.map { PendingPhotoUpload(it.fileName, it.contentType, it.bytes) },
+                    menuPhotos = s.menuPhotos.map { PendingPhotoUpload(it.fileName, it.contentType, it.bytes) },
                     schedules = buildSchedulesForSubmit(s),
                 )
             ).onSuccess {

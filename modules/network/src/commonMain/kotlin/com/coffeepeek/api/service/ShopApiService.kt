@@ -11,7 +11,9 @@ import com.coffeepeek.api.model.response.shop.GetCitiesResponseDto
 import com.coffeepeek.api.model.response.shop.GetEquipmentResponseDto
 import com.coffeepeek.api.model.response.shop.GetRoastersResponseDto
 import com.coffeepeek.api.model.response.shop.GetShopTagsResponseDto
+import com.coffeepeek.api.model.response.shop.GetDrinksResponseDto
 import com.coffeepeek.api.model.response.shop.GetShopDetailsResponseDto
+import com.coffeepeek.api.model.response.shop.CoffeeDrinkDefinitionDto
 import com.coffeepeek.api.model.response.shop.GetShopsInBoundsResponseDto
 import com.coffeepeek.api.model.response.shop.MapShopDto
 import com.coffeepeek.api.model.response.shop.GetShopsResponseDto
@@ -33,7 +35,7 @@ class ShopApiService(private val client: HttpClient) {
     suspend fun searchShops(
         query: String? = null,
         cityId: String? = null,
-        coffeeFocus: String? = null,
+        type: String? = null,
         roasterIds: List<String>? = null,
         equipmentIds: List<String>? = null,
         beanIds: List<String>? = null,
@@ -47,7 +49,7 @@ class ShopApiService(private val client: HttpClient) {
         val response = client.get("/api/CoffeeShops") {
             query?.let { parameter("q", it) }
             cityId?.let { parameter("cityId", it) }
-            coffeeFocus?.let { parameter("coffeeFocus", it) }
+            type?.let { parameter("type", it) }
             roasterIds?.forEach { parameter("roasters", it) }
             equipmentIds?.forEach { parameter("equipments", it) }
             beanIds?.forEach { parameter("beans", it) }
@@ -67,7 +69,19 @@ class ShopApiService(private val client: HttpClient) {
         val response = client.get("/api/CoffeeShops/$id")
         val apiResponse = response.body<ApiResponse<GetShopDetailsResponseDto>>()
         if (!apiResponse.isSuccess || apiResponse.data == null) throw ApiException(apiResponse.message)
-        apiResponse.data.shopDto
+        val data = apiResponse.data
+        if (data.shopDto.menu == null && data.menu != null) {
+            data.shopDto.copy(menu = data.menu)
+        } else {
+            data.shopDto
+        }
+    }
+
+    suspend fun getMenuDrinks(): Result<List<CoffeeDrinkDefinitionDto>> = runCatching {
+        val response = client.get("/api/menu/drinks")
+        val apiResponse = response.body<ApiResponse<GetDrinksResponseDto>>()
+        if (!apiResponse.isSuccess || apiResponse.data == null) throw ApiException(apiResponse.message)
+        apiResponse.data.drinks
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -134,7 +148,7 @@ class ShopApiService(private val client: HttpClient) {
         maxLon: Double,
         query: String? = null,
         cityId: String? = null,
-        coffeeFocus: String? = null,
+        type: String? = null,
         roasterIds: List<String>? = null,
         equipmentIds: List<String>? = null,
         beanIds: List<String>? = null,
@@ -150,7 +164,7 @@ class ShopApiService(private val client: HttpClient) {
             parameter("maxLon", maxLon)
             query?.let { parameter("q", it) }
             cityId?.let { parameter("cityId", it) }
-            coffeeFocus?.let { parameter("coffeeFocus", it) }
+            type?.let { parameter("type", it) }
             roasterIds?.forEach { parameter("roasters", it) }
             equipmentIds?.forEach { parameter("equipments", it) }
             beanIds?.forEach { parameter("beans", it) }

@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
@@ -111,7 +112,7 @@ private fun FavoriteShopCard(details: CoffeeShopDetails, onClick: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(top = 4.dp),
                 ) {
-                    Icon(CpIcons.Location, null, modifier = Modifier.padding(end = 4.dp).then(Modifier), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(CpIcons.Location, null, modifier = Modifier.padding(end = 4.dp).then(Modifier), tint = CpColor.Primary)
                     Text(address, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                 }
             }

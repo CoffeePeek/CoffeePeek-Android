@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.ui.screen.feed
 
 import com.coffeepeek.admin.ui.icons.CpIcons
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,8 +23,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.lazy.items
@@ -31,7 +30,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -49,9 +47,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,14 +66,16 @@ import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CoffeePeekPullToRefresh
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
-import com.coffeepeek.admin.ui.component.PriceBeansRow
+import com.coffeepeek.admin.ui.component.PriceBynRow
 import com.coffeepeek.admin.ui.component.priceRangeLevel
 import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import androidx.compose.foundation.lazy.LazyColumn
-import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CoffeeShop
+import coffeepeek.composeapp.generated.resources.Res
+import coffeepeek.composeapp.generated.resources.maskot_with_magnifying_glass
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -180,9 +178,6 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                     }
                     Spacer(modifier = Modifier.height(CpDimens.spacing2))
                     FeedQuickFilterBar(
-                        cities = state.cities,
-                        selectedCityId = state.filters.cityId,
-                        onCitySelect = vm::setCity,
                         quickMode = state.filters.quickMode,
                         onQuickMode = vm::setQuickMode,
                         coffeeFocusId = state.filters.coffeeFocus,
@@ -269,20 +264,26 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                     ) {
                         item {
                             Column(
-                                modifier = Modifier.fillParentMaxSize(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = CpDimens.spacing8),
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
                             ) {
+                                Image(
+                                    painter = painterResource(Res.drawable.maskot_with_magnifying_glass),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.size(132.dp),
+                                )
+                                Spacer(Modifier.height(CpDimens.spacing3))
                                 Text(
                                     "Ничего не найдено",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                if (state.activeFilterCount > 0) {
-                                    Spacer(Modifier.height(CpDimens.spacing2))
-                                    TextButton(onClick = vm::clearFilters) {
-                                        Text("Сбросить фильтры")
-                                    }
+                                Spacer(Modifier.height(CpDimens.spacing2))
+                                TextButton(onClick = vm::clearFilters) {
+                                    Text("Сбросить фильтры")
                                 }
                             }
                         }
@@ -366,31 +367,25 @@ private fun ShopCard(
                     )
                 }
                 Row(
-                    modifier = Modifier.align(Alignment.TopStart).padding(CpDimens.spacing2),
-                    horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .fillMaxWidth()
+                        .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing2),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (shop.isOpen) StatusBadge("Открыто", CpColor.Success)
-                }
-                FavoriteIconBadge(
-                    isFavorite = shop.isFavorite,
-                    onClick = onToggleFavorite,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(CpDimens.spacing2),
-                )
-                priceRangeLevel(shop.priceRange)?.let { level ->
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(top = 46.dp, end = CpDimens.spacing2)
-                            .clip(RoundedCornerShape(CpDimens.radiusSm))
-                            .background(Color.Black.copy(alpha = 0.55f))
-                            .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
-                    ) {
-                        PriceBeansRow(
+                    priceRangeLevel(shop.priceRange)?.let { level ->
+                        PriceBynRow(
                             level = level,
-                            iconSize = 12.dp,
-                            activeTint = Color.White,
+                            iconSize = 16.dp,
+                            activeTint = CpColor.Primary,
                         )
                     }
+                    FavoriteIconBadge(
+                        isFavorite = shop.isFavorite,
+                        onClick = onToggleFavorite,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
                 }
             }
 
@@ -403,34 +398,39 @@ private fun ShopCard(
                 ) {
                     Text(
                         text = shop.title,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                     )
-                    val rating = shop.rating
-                    if (rating != null && rating > 0) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp),
-                        ) {
-                            Icon(
-                                CpIcons.StarFilled,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(14.dp),
-                            )
+                    if (shop.isOpen) {
+                        OpenStatusBadge()
+                    }
+                }
+
+                val rating = shop.rating
+                if (rating != null && rating > 0) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                        Icon(
+                            CpIcons.StarFilled,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(
+                            text = "%.1f".format(rating),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        if (shop.reviewCount > 0) {
                             Text(
-                                text = "%.1f".format(rating),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                text = "(${shop.reviewCount})",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            if (shop.reviewCount > 0) {
-                                Text(
-                                    text = "(${shop.reviewCount})",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
                         }
                     }
                 }
@@ -442,8 +442,8 @@ private fun ShopCard(
                         Icon(
                             CpIcons.Location,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(13.dp),
+                            tint = CpColor.Primary,
+                            modifier = Modifier.size(14.dp),
                         )
                         Spacer(Modifier.width(2.dp))
                         Text(
@@ -485,54 +485,40 @@ private fun FavoriteIconBadge(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
+    Icon(
+        imageVector = if (isFavorite) CpIcons.FavoriteFilled else CpIcons.Favorite,
+        contentDescription = if (isFavorite) "Убрать из избранного" else "Добавить в избранное",
+        tint = if (isFavorite) CpColor.Error else Color.White,
         modifier = modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.92f))
+            .size(22.dp)
             .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = if (isFavorite) CpIcons.FavoriteFilled else CpIcons.Favorite,
-            contentDescription = if (isFavorite) "Убрать из избранного" else "Добавить в избранное",
-            tint = if (isFavorite) CpColor.Error else Color.Black,
-            modifier = Modifier.size(21.dp),
-        )
-    }
+    )
 }
 
 @Composable
-private fun StatusBadge(text: String, color: Color) {
+private fun OpenStatusBadge() {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(CpDimens.radiusSm))
-            .background(color.copy(alpha = 0.9f))
+            .background(CpColor.Success.copy(alpha = 0.18f))
             .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
     ) {
         Text(
-            text = text,
+            text = "ОТКРЫТО",
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
-            fontWeight = FontWeight.SemiBold,
+            color = CpColor.Success,
+            fontWeight = FontWeight.Bold,
         )
     }
 }
 
 @Composable
 private fun FeedQuickFilterBar(
-    cities: List<City>,
-    selectedCityId: String?,
-    onCitySelect: (String?) -> Unit,
     quickMode: FeedQuickMode,
     onQuickMode: (FeedQuickMode) -> Unit,
     coffeeFocusId: String?,
     onCoffeeFocusChange: (String) -> Unit,
 ) {
-    val selectedCity = cities.firstOrNull { it.id == selectedCityId }
-        ?: cities.firstOrNull()
-    var cityMenuOpen by remember { mutableStateOf(false) }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -540,43 +526,6 @@ private fun FeedQuickFilterBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {
-        Box {
-            DesignFilterChip(
-                label = selectedCity?.name ?: "Город",
-                selected = false,
-                onClick = { if (cities.isNotEmpty()) cityMenuOpen = true },
-                leadingIcon = CpIcons.Location,
-                trailingIcon = CpIcons.ChevronDown,
-            )
-            DropdownMenu(
-                expanded = cityMenuOpen,
-                onDismissRequest = { cityMenuOpen = false },
-            ) {
-                cities.forEach { city ->
-                    DropdownMenuItem(
-                        text = { Text(city.name) },
-                        onClick = {
-                            onCitySelect(if (selectedCityId == city.id) null else city.id)
-                            cityMenuOpen = false
-                        },
-                        trailingIcon = if (selectedCityId == city.id) {
-                            { Icon(CpIcons.Check, contentDescription = null, tint = CpColor.Primary) }
-                        } else {
-                            null
-                        },
-                    )
-                }
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .padding(horizontal = 2.dp)
-                .width(1.dp)
-                .height(20.dp)
-                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-        )
-
         DesignFilterChip(
             label = "Все",
             selected = quickMode == FeedQuickMode.ALL,

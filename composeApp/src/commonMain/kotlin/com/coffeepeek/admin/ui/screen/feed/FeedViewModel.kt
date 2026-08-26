@@ -221,7 +221,8 @@ class FeedViewModel(
     }
 
     fun clearFilters() {
-        _uiState.update { it.copy(filters = FeedFiltersUi()) }
+        queryFlow.value = ""
+        _uiState.update { it.copy(query = "", filters = FeedFiltersUi()) }
         loadShops(reset = true)
     }
 

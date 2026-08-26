@@ -36,6 +36,7 @@ data class CreateShopInput(
     val brewMethodIds: List<String> = emptyList(),
     val schedules: List<ShopSchedule> = emptyList(),
     val photos: List<PendingPhotoUpload> = emptyList(),
+    val menuPhotos: List<PendingPhotoUpload> = emptyList(),
 )
 
 data class PendingPhotoUpload(

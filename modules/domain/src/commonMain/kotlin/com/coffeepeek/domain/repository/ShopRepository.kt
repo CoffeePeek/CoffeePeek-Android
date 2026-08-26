@@ -1,5 +1,6 @@
 package com.coffeepeek.domain.repository
 
+import com.coffeepeek.domain.model.CoffeeDrinkDefinition
 import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.CreateShopInput
@@ -14,5 +15,6 @@ interface ShopRepository {
     suspend fun getShopDetails(id: String): Result<CoffeeShopDetails>
     suspend fun getShopsInBounds(bounds: MapBounds, filters: ShopFilters = ShopFilters()): Result<List<MapShop>>
     suspend fun getCatalogs(): Result<ShopCatalogs>
+    suspend fun getMenuDrinks(): Result<List<CoffeeDrinkDefinition>>
     suspend fun createShop(input: CreateShopInput): Result<Unit>
 }

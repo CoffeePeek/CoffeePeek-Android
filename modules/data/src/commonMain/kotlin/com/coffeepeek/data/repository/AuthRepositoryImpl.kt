@@ -2,6 +2,7 @@ package com.coffeepeek.data.repository
 
 import com.coffeepeek.api.model.response.AuthResp
 import com.coffeepeek.api.service.AuthService
+import com.coffeepeek.data.session.UserSessionCleaner
 import com.coffeepeek.data.util.JwtUtils
 import com.coffeepeek.domain.model.Session
 import com.coffeepeek.domain.repository.AuthRepository
@@ -10,6 +11,7 @@ import com.coffeepeek.domain.repository.SessionRepository
 class AuthRepositoryImpl(
     private val authService: AuthService,
     private val sessionRepository: SessionRepository,
+    private val userSessionCleaner: UserSessionCleaner,
 ) : AuthRepository {
 
     private fun AuthResp.toSession(): Session = Session(
@@ -35,8 +37,8 @@ class AuthRepositoryImpl(
 
     override suspend fun logout(): Result<Unit> {
         val refreshToken = sessionRepository.getSession()?.refreshToken
+        userSessionCleaner.clearLocalUserData()
         runCatching { authService.logout(refreshToken) }
-        sessionRepository.saveSession(null)
         return Result.success(Unit)
     }
 }

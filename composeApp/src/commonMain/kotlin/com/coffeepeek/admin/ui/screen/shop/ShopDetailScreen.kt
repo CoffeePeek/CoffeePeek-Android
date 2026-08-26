@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
@@ -78,7 +79,7 @@ import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
-import com.coffeepeek.admin.ui.component.PriceBeansRow
+import com.coffeepeek.admin.ui.component.PriceBynRow
 import com.coffeepeek.admin.ui.component.priceRangeLevel
 import com.coffeepeek.admin.ui.component.FullScreenImageDialog
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
@@ -87,6 +88,8 @@ import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.Review
 import com.coffeepeek.domain.model.ReviewRating
 import com.coffeepeek.domain.model.ShopContact
+import com.coffeepeek.domain.model.ShopMenu
+import com.coffeepeek.domain.model.ShopMenuItem
 import com.coffeepeek.domain.model.ShopSchedule
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
@@ -263,7 +266,10 @@ private fun ShopDetailContent(
         }
 
         item {
-            MenuSection()
+            MenuSection(
+                menu = details.menu,
+                onPhotoClick = onReviewPhotoClick,
+            )
         }
 
         if (details.schedules.isNotEmpty()) {
@@ -481,7 +487,7 @@ private fun ShopMetaRow(
             )
         }
         priceRangeLevel(priceRange)?.let { level ->
-            PriceBeansRow(level = level)
+            PriceBynRow(level = level)
         }
     }
 }
@@ -793,12 +799,98 @@ private fun DescriptionSection(description: String?) {
 }
 
 @Composable
-private fun MenuSection() {
+private fun MenuSection(
+    menu: ShopMenu?,
+    onPhotoClick: (String) -> Unit,
+) {
     SectionCard(title = "Меню") {
-        EmptyMascotState(
-            mascot = Res.drawable.maskot_with_book,
-            message = "Меню пока недоступно",
+        if (menu == null) {
+            EmptyMascotState(
+                mascot = Res.drawable.maskot_with_book,
+                message = "Меню пока нет",
+            )
+            return@SectionCard
+        }
+
+        val capturedLabel = menu.capturedAtUtc?.let(::formatMenuDate)
+        val updatedLabel = menu.updatedAtUtc?.let(::formatMenuDate)
+        if (!capturedLabel.isNullOrBlank()) {
+            Text(
+                text = "Актуально на $capturedLabel",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (!updatedLabel.isNullOrBlank() && updatedLabel != capturedLabel) {
+                Text(
+                    text = "Обновлено $updatedLabel",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.height(CpDimens.spacing3))
+        }
+
+        val groups = groupedPresentItems(menu.items)
+        groups.forEachIndexed { index, (title, drinks) ->
+            if (index > 0) Spacer(Modifier.height(CpDimens.spacing3))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(CpDimens.spacing2))
+            drinks.forEach { drink ->
+                MenuDrinkRow(drink)
+            }
+        }
+
+        if (menu.photos.isNotEmpty()) {
+            Spacer(Modifier.height(CpDimens.spacing4))
+            Text(
+                text = "Фото меню",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(CpDimens.spacing2))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
+                itemsIndexed(menu.photos, key = { index, photo -> photo.id.ifBlank { photo.fullUrl + index } }) { _, photo ->
+                    KamelImage(
+                        resource = asyncPainterResource(photo.fullUrl),
+                        contentDescription = "Фото меню",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(96.dp)
+                            .clip(RoundedCornerShape(CpDimens.radiusMd))
+                            .clickable { onPhotoClick(photo.fullUrl) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MenuDrinkRow(item: ShopMenuItem) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = CpDimens.spacing1),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = item.nameRu.ifBlank { item.nameEn.ifBlank { item.slug } },
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f).padding(end = CpDimens.spacing3),
         )
+        item.price?.let { price ->
+            Text(
+                text = formatMenuPrice(price, item.currency),
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
     }
 }
 
@@ -1520,4 +1612,33 @@ private fun formatReviewDate(raw: String): String {
     val parts = datePart.split('-')
     if (parts.size != 3) return datePart
     return "${parts[2]}.${parts[1]}.${parts[0]}"
+}
+
+private fun formatMenuDate(raw: String): String = formatReviewDate(raw)
+
+private fun formatMenuPrice(price: Double, currency: String): String {
+    val cents = kotlin.math.round(price * 100.0).toLong()
+    val whole = cents / 100
+    val frac = kotlin.math.abs(cents % 100)
+    val amount = "$whole,${frac.toString().padStart(2, '0')}"
+    return "$amount ${currency.ifBlank { "BYN" }}"
+}
+
+private fun groupedPresentItems(items: List<ShopMenuItem>): List<Pair<String, List<ShopMenuItem>>> {
+    val present = items.filter { it.availability.equals("Present", ignoreCase = true) }
+    val grouped = present.groupBy { it.category }
+    val order = listOf("Espresso", "Filter")
+    val known = order.mapNotNull { category ->
+        grouped[category]?.takeIf { it.isNotEmpty() }?.let { menuCategoryTitle(category) to it }
+    }
+    val rest = grouped
+        .filterKeys { it !in order }
+        .map { (category, drinks) -> menuCategoryTitle(category) to drinks }
+    return known + rest
+}
+
+private fun menuCategoryTitle(category: String): String = when (category) {
+    "Espresso" -> "Эспрессо"
+    "Filter" -> "Фильтр"
+    else -> category
 }

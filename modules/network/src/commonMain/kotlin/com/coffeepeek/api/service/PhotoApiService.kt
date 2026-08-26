@@ -39,8 +39,17 @@ class PhotoApiService(
 
     suspend fun requestShopPhotoUploadUrls(
         requests: List<PhotoRequestDto>,
+    ): Result<List<GenerateUploadUrlDto>> = requestPhotoUploadUrls("/api/Photos/shop", requests)
+
+    suspend fun requestMenuPhotoUploadUrls(
+        requests: List<PhotoRequestDto>,
+    ): Result<List<GenerateUploadUrlDto>> = requestPhotoUploadUrls("/api/Photos/menu", requests)
+
+    private suspend fun requestPhotoUploadUrls(
+        path: String,
+        requests: List<PhotoRequestDto>,
     ): Result<List<GenerateUploadUrlDto>> = runCatching {
-        val response = client.postResult("/api/Photos/shop") {
+        val response = client.postResult(path) {
             setJsonBody(requests)
         }.getOrThrow()
         if (!response.status.isSuccess()) {

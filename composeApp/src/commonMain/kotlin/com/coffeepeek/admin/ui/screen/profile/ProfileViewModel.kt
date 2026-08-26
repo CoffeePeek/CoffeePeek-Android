@@ -1,8 +1,8 @@
 package com.coffeepeek.admin.ui.screen.profile
 
+import com.coffeepeek.admin.auth.GoogleAuth
 import com.coffeepeek.admin.theme.ThemeManager
 import com.coffeepeek.admin.theme.ThemeMode
-import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.domain.model.UserProfile
 import com.coffeepeek.domain.repository.AuthRepository
 import com.coffeepeek.domain.repository.SessionRepository
@@ -95,10 +95,10 @@ class ProfileViewModel(
     }
 
     fun logout() {
+        resetProfileState()
         workScope.launch {
             authRepository.logout()
-            resetProfileState()
-            Navigator.navigate(Navigator.Screen.Auth)
+            GoogleAuth.signOut()
         }
     }
 

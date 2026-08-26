@@ -40,6 +40,12 @@ class FavoriteRepositoryImpl(
         }
     }
 
+    override suspend fun clearAll() {
+        mutex.withLock {
+            writeAll(emptyList())
+        }
+    }
+
     private suspend fun readAll(): List<LocalFavoriteShopDto> =
         settings.readSerializable<List<LocalFavoriteShopDto>>(KEY).orEmpty()
 
