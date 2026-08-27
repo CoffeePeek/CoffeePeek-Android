@@ -5,10 +5,11 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.ClipboardHelper
 import com.coffeepeek.admin.utils.FavoriteSync
 import com.coffeepeek.admin.utils.OpenInBrowser
+import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.admin.utils.ReviewSync
-import com.coffeepeek.admin.utils.currentUtcIsoDateTime
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.CreateCheckInInput
+import com.coffeepeek.domain.model.PendingPhotoUpload
 import com.coffeepeek.domain.repository.CheckInRepository
 import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.ReviewRepository
@@ -144,6 +145,8 @@ class ShopDetailViewModel(
         placeRating: Int,
         serviceRating: Int,
         coffeeRating: Int,
+        visitedAtIso: String,
+        photos: List<PickedImage>,
     ) {
         if (isPublic && note.isNullOrBlank()) {
             _uiState.update { it.copy(actionMessage = "Для публичного чек-ина нужен комментарий") }
@@ -155,11 +158,12 @@ class ShopDetailViewModel(
                 CreateCheckInInput(
                     shopId = shopId,
                     note = note,
-                    visitedAtIso = currentUtcIsoDateTime(),
+                    visitedAtIso = visitedAtIso,
                     isPublic = isPublic,
                     placeRating = placeRating,
                     serviceRating = serviceRating,
                     coffeeRating = coffeeRating,
+                    photos = photos.map { it.toPendingUpload() },
                 ),
             ).onSuccess {
                 _uiState.update { state ->
@@ -255,3 +259,9 @@ class ShopDetailViewModel(
         _uiState.update { it.copy(actionMessage = null) }
     }
 }
+
+private fun PickedImage.toPendingUpload() = PendingPhotoUpload(
+    fileName = fileName,
+    contentType = contentType,
+    bytes = bytes,
+)

@@ -120,6 +120,7 @@ fun ShopDetailScreen(shopId: String) {
             isLoading = state.isCheckInLoading,
             onDismiss = vm::dismissCheckInSheet,
             onSubmit = vm::checkIn,
+            placeName = state.details?.shop?.title,
         )
     }
 

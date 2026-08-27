@@ -7,6 +7,7 @@ import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.fill.Heart as FillHeart
 import com.adamglin.phosphoricons.fill.Star as FillStar
 import com.adamglin.phosphoricons.regular.ArrowLeft
+import com.adamglin.phosphoricons.regular.CalendarBlank
 import com.adamglin.phosphoricons.regular.Camera
 import com.adamglin.phosphoricons.regular.CaretDown
 import com.adamglin.phosphoricons.regular.CaretLeft
@@ -56,6 +57,7 @@ import com.adamglin.phosphoricons.regular.X
 object CpIcons {
     val Add: ImageVector get() = PhosphorIcons.Regular.Plus
     val Back: ImageVector get() = PhosphorIcons.Regular.ArrowLeft
+    val Calendar: ImageVector get() = PhosphorIcons.Regular.CalendarBlank
     val Camera: ImageVector get() = PhosphorIcons.Regular.Camera
     val Check: ImageVector get() = PhosphorIcons.Regular.Check
     val CheckCircle: ImageVector get() = PhosphorIcons.Regular.CheckCircle
