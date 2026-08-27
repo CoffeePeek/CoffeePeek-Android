@@ -7,9 +7,11 @@ import com.coffeepeek.domain.model.CheckIn
 import com.coffeepeek.domain.model.CreateCheckInInput
 import com.coffeepeek.domain.model.PagedResult
 import com.coffeepeek.domain.repository.CheckInRepository
+import com.coffeepeek.domain.repository.PhotoRepository
 
 class CheckInRepositoryImpl(
     private val checkInApiService: CheckInApiService,
+    private val photoRepository: PhotoRepository,
 ) : CheckInRepository {
 
     override suspend fun createCheckIn(input: CreateCheckInInput): Result<Unit> = runCatching {
@@ -26,12 +28,18 @@ class CheckInRepositoryImpl(
             null
         }
 
+        val uploadedPhotos = photoRepository.uploadShopPhotos(input.photos)
+            .getOrThrow()
+            .toUploadedPhotoReqs()
+            .takeIf { it.isNotEmpty() }
+
         checkInApiService.createCheckIn(
             CreateCheckInReq(
                 coffeeShopId = input.shopId,
                 isPublic = input.isPublic,
                 visitedAt = input.visitedAtIso,
                 note = input.note?.takeIf { it.isNotBlank() },
+                photos = uploadedPhotos,
                 rating = rating,
             )
         ).getOrThrow()

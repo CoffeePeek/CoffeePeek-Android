@@ -92,6 +92,7 @@ data class CreateCheckInInput(
     val placeRating: Int? = null,
     val serviceRating: Int? = null,
     val coffeeRating: Int? = null,
+    val photos: List<PendingPhotoUpload> = emptyList(),
 )
 
 data class CheckIn(
