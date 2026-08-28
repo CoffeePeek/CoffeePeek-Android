@@ -7,7 +7,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Switch
@@ -36,9 +36,10 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -48,7 +49,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,9 +58,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
 import com.coffeepeek.admin.ui.Navigator
@@ -71,7 +71,6 @@ import com.coffeepeek.admin.utils.MAX_MENU_PHOTOS
 import com.coffeepeek.admin.utils.MAX_SHOP_PHOTOS
 import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.admin.location.LocationPermissionEffect
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.layout.ContentScale
 import com.coffeepeek.admin.utils.CpImage
@@ -85,19 +84,11 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
     val state by vm.state.collectAsState()
-    var locationPermissionRequestKey by remember { mutableStateOf(1) }
-    var forceMyLocation by remember { mutableStateOf(false) }
 
     LocationPermissionEffect(
-        requestKey = locationPermissionRequestKey,
-        onGranted = {
-            vm.fillAddressFromCurrentLocation(force = forceMyLocation)
-            forceMyLocation = false
-        },
-        onDenied = {
-            forceMyLocation = false
-            vm.onLocationPermissionDenied()
-        },
+        requestKey = 1,
+        onGranted = { vm.fillAddressFromCurrentLocation(force = false) },
+        onDenied = vm::onLocationPermissionDenied,
     )
 
     if (state.showLocationPicker) {
@@ -153,11 +144,11 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
                     title = {
                         Text(
                             text = when (state.currentStep) {
-                                AddShopStep.BASIC    -> "Основное"
-                                AddShopStep.PHOTOS   -> "Фото"
-                                AddShopStep.SCHEDULE -> "Расписание"
+                                AddShopStep.BASIC    -> "Основная информация"
                                 AddShopStep.CONTACTS -> "Контакты"
-                                AddShopStep.FEATURES -> "Особенности"
+                                AddShopStep.PHOTOS   -> "Фотографии"
+                                AddShopStep.FEATURES -> "Оборудование"
+                                AddShopStep.SCHEDULE -> "Расписание"
                             },
                             style = MaterialTheme.typography.titleLarge,
                         )
@@ -176,19 +167,9 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
                         navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
                     ),
                 )
-                // Прогресс-бар
-                val progress = when (state.currentStep) {
-                    AddShopStep.BASIC    -> 0.2f
-                    AddShopStep.PHOTOS   -> 0.4f
-                    AddShopStep.SCHEDULE -> 0.6f
-                    AddShopStep.CONTACTS -> 0.8f
-                    AddShopStep.FEATURES -> 1.0f
-                }
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                AddShopStepDots(
+                    currentIndex = state.currentStep.ordinal,
+                    total = AddShopStep.entries.size,
                 )
             }
         },
@@ -237,35 +218,31 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
                     .padding(CpDimens.spacing4),
             ) {
                 when (step) {
-                    AddShopStep.BASIC    -> StepBasic(
-                        state = state,
-                        vm = vm,
-                        onUseMyLocation = {
-                            forceMyLocation = true
-                            locationPermissionRequestKey += 1
-                        },
-                    )
+                    AddShopStep.BASIC    -> StepBasic(state = state, vm = vm)
+                    AddShopStep.CONTACTS -> StepContacts(state, vm)
                     AddShopStep.PHOTOS   -> StepPhotos(
                         state = state,
                         vm = vm,
                         photoPicker = photoPicker,
                         isPhotoLoading = isPhotoLoading,
                     )
-                    AddShopStep.SCHEDULE -> StepSchedule(state, vm)
-                    AddShopStep.CONTACTS -> StepContacts(state, vm)
                     AddShopStep.FEATURES -> StepFeatures(state, vm)
+                    AddShopStep.SCHEDULE -> StepSchedule(state, vm)
                 }
 
                 Spacer(Modifier.height(CpDimens.spacing6))
 
                 AppButton(
                     text = when (step) {
-                        AddShopStep.FEATURES -> "Отправить на модерацию"
-                        else -> "Продолжить"
+                        AddShopStep.SCHEDULE -> "Отправить на модерацию"
+                        else -> "Далее"
                     },
                     onClick = vm::nextStep,
-                    enabled = !state.isSubmitting &&
-                        (step != AddShopStep.BASIC || state.step1Valid),
+                    enabled = !state.isSubmitting && when (step) {
+                        AddShopStep.BASIC -> state.step1Valid
+                        AddShopStep.CONTACTS -> state.contactsStepValid
+                        else -> true
+                    },
                 )
 
                 if (state.isSubmitting) {
@@ -284,24 +261,64 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
     }
 }
 
+@Composable
+private fun AddShopStepDots(
+    currentIndex: Int,
+    total: Int,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = CpDimens.spacing3),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(total) { index ->
+            val active = index == currentIndex
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 2.dp)
+                    .height(8.dp)
+                    .width(if (active) 24.dp else 8.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (active) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant,
+                    ),
+            )
+        }
+    }
+}
+
 // ── Шаг 1: Основное ───────────────────────────────────────────────────────────
 
 @Composable
 private fun StepBasic(
     state: AddShopUiState,
     vm: AddShopViewModel,
-    onUseMyLocation: () -> Unit,
 ) {
     StepLegend(requiredHint = "Поля со * обязательны для заполнения")
     Spacer(Modifier.height(CpDimens.spacing3))
 
-    FormField(label = "Название", required = true) {
+    FormField(label = "Название кофейни", required = true) {
         AppOutlinedField(
             value = state.name,
             onValueChange = vm::onNameChange,
-            placeholder = "Например: Rocket Coffee",
+            placeholder = "Например, Surf Coffee",
             errorText = if (state.name.isNotEmpty()) state.nameError else null,
             counter = "${state.name.length}/55",
+        )
+    }
+
+    Spacer(Modifier.height(CpDimens.spacing4))
+
+    FormField(label = "Описание", optional = true) {
+        AppOutlinedField(
+            value = state.description,
+            onValueChange = vm::onDescriptionChange,
+            placeholder = "Расскажите о концепции, атмосфере и фишках кофейни…",
+            minLines = 3,
+            maxLines = 6,
         )
     }
 
@@ -324,54 +341,46 @@ private fun StepBasic(
     Spacer(Modifier.height(CpDimens.spacing4))
 
     FormField(label = "Адрес", required = true) {
-        AppOutlinedField(
-            value = state.address,
-            onValueChange = vm::onAddressChange,
-            placeholder = "пр. Независимости, 15",
-            errorText = if (state.address.isNotEmpty()) state.addressError else null,
-            minLines = 2,
-            maxLines = 4,
-            trailingContent = {
-                if (state.isResolvingAddress) {
-                    CoffeePeekLoader(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                    )
-                }
-            },
-        )
-        Spacer(Modifier.height(CpDimens.spacing2))
         Row(
             modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
         ) {
-            OutlinedButton(
-                onClick = onUseMyLocation,
-                enabled = !state.isResolvingAddress,
+            AppOutlinedField(
+                value = state.address,
+                onValueChange = vm::onAddressChange,
+                placeholder = "Улица, дом, корпус",
+                errorText = if (state.address.isNotEmpty()) state.addressError else null,
+                minLines = 1,
+                maxLines = 3,
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(CpDimens.buttonRadius),
-            ) {
-                Icon(
-                    CpIcons.MyLocation,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text("Моё место", style = MaterialTheme.typography.labelLarge)
-            }
-            OutlinedButton(
+                leadingIcon = CpIcons.Navigation,
+                trailingContent = {
+                    if (state.isResolvingAddress) {
+                        CoffeePeekLoader(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    }
+                },
+            )
+            FilledIconButton(
                 onClick = vm::openLocationPicker,
                 enabled = !state.isResolvingAddress,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(CpDimens.buttonRadius),
+                modifier = Modifier.size(CpDimens.inputMinHeight),
+                shape = RoundedCornerShape(CpDimens.radiusMd),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                    disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+                ),
             ) {
                 Icon(
-                    CpIcons.Map,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    imageVector = CpIcons.Map,
+                    contentDescription = "Выбрать на карте",
+                    modifier = Modifier.size(22.dp),
                 )
-                Spacer(Modifier.width(6.dp))
-                Text("На карте", style = MaterialTheme.typography.labelLarge)
             }
         }
         state.locationHint?.let { hint ->
@@ -382,18 +391,6 @@ private fun StepBasic(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-    }
-
-    Spacer(Modifier.height(CpDimens.spacing4))
-
-    FormField(label = "Описание", optional = true) {
-        AppOutlinedField(
-            value = state.description,
-            onValueChange = vm::onDescriptionChange,
-            placeholder = "Расскажите о заведении…",
-            minLines = 3,
-            maxLines = 6,
-        )
     }
 
     Spacer(Modifier.height(CpDimens.spacing4))
@@ -754,13 +751,35 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
         modifier = Modifier.padding(bottom = CpDimens.spacing4),
     )
 
-    FormField(label = "Телефон", optional = true) {
+    FormField(label = "Номер телефона", optional = true) {
         AppOutlinedField(
             value = state.phone,
             onValueChange = vm::onPhoneChange,
-            placeholder = "+375 29 000 00 00",
+            placeholder = "+375",
             keyboardType = KeyboardType.Phone,
             errorText = if (state.phone.isNotEmpty()) state.phoneError else null,
+            leadingIcon = CpIcons.Phone,
+        )
+    }
+    Spacer(Modifier.height(CpDimens.spacing3))
+    FormField(label = "Instagram профиль", optional = true) {
+        AppOutlinedField(
+            value = state.instagram,
+            onValueChange = vm::onInstagramChange,
+            placeholder = "@",
+            errorText = if (state.instagram.isNotEmpty()) state.instagramError else null,
+            leadingIcon = CpIcons.Instagram,
+        )
+    }
+    Spacer(Modifier.height(CpDimens.spacing3))
+    FormField(label = "Веб-сайт", optional = true) {
+        AppOutlinedField(
+            value = state.website,
+            onValueChange = vm::onWebsiteChange,
+            placeholder = "https://mycoffee.by",
+            keyboardType = KeyboardType.Uri,
+            errorText = if (state.website.isNotEmpty()) state.websiteError else null,
+            leadingIcon = CpIcons.Globe,
         )
     }
     Spacer(Modifier.height(CpDimens.spacing3))
@@ -771,25 +790,7 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
             placeholder = "info@coffee.by",
             keyboardType = KeyboardType.Email,
             errorText = if (state.email.isNotEmpty()) state.emailError else null,
-        )
-    }
-    Spacer(Modifier.height(CpDimens.spacing3))
-    FormField(label = "Сайт", optional = true) {
-        AppOutlinedField(
-            value = state.website,
-            onValueChange = vm::onWebsiteChange,
-            placeholder = "https://coffee.by",
-            keyboardType = KeyboardType.Uri,
-            errorText = if (state.website.isNotEmpty()) state.websiteError else null,
-        )
-    }
-    Spacer(Modifier.height(CpDimens.spacing3))
-    FormField(label = "Instagram", optional = true) {
-        AppOutlinedField(
-            value = state.instagram,
-            onValueChange = vm::onInstagramChange,
-            placeholder = "@coffee_minsk",
-            errorText = if (state.instagram.isNotEmpty()) state.instagramError else null,
+            leadingIcon = CpIcons.Email,
         )
     }
 }
@@ -824,6 +825,8 @@ private fun StepFeatures(state: AddShopUiState, vm: AddShopViewModel) {
     }
 }
 
+private const val CATALOG_VISIBLE_LIMIT = 4
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CatalogGroup(
@@ -831,7 +834,12 @@ private fun CatalogGroup(
     items: List<CatalogItem>,
     selected: Set<String>,
     onToggle: (String) -> Unit,
+    visibleLimit: Int = CATALOG_VISIBLE_LIMIT,
 ) {
+    var expanded by remember { mutableStateOf(false) }
+    val hiddenCount = (items.size - visibleLimit).coerceAtLeast(0)
+    val visibleItems = if (expanded || hiddenCount == 0) items else items.take(visibleLimit)
+
     Text(
         text = title,
         style = MaterialTheme.typography.titleSmall,
@@ -839,7 +847,7 @@ private fun CatalogGroup(
         modifier = Modifier.padding(bottom = CpDimens.spacing2),
     )
     FlowRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-        items.forEach { item ->
+        visibleItems.forEach { item ->
             val isSelected = item.id in selected
             FilterChip(
                 selected = isSelected,
@@ -862,6 +870,20 @@ private fun CatalogGroup(
                     selectedBorderColor = Color.Transparent,
                 ),
                 shape = RoundedCornerShape(CpDimens.buttonRadius),
+            )
+        }
+    }
+    if (hiddenCount > 0) {
+        TextButton(onClick = { expanded = !expanded }) {
+            Icon(
+                imageVector = if (expanded) CpIcons.ChevronUp else CpIcons.ChevronDown,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(CpDimens.spacing1))
+            Text(
+                text = if (expanded) "Скрыть" else "Ещё $hiddenCount",
+                style = MaterialTheme.typography.labelLarge,
             )
         }
     }
@@ -908,13 +930,14 @@ private fun AppOutlinedField(
     minLines: Int = 1,
     maxLines: Int = 1,
     keyboardType: KeyboardType = KeyboardType.Text,
+    leadingIcon: ImageVector? = null,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
-    Column {
+    Column(modifier = modifier) {
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(CpDimens.radiusMd),
             placeholder = {
                 Text(
@@ -928,6 +951,15 @@ private fun AppOutlinedField(
             singleLine = maxLines <= 1,
             minLines = minLines,
             maxLines = maxLines,
+            leadingIcon = leadingIcon?.let { icon ->
+                {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
             trailingIcon = trailingContent?.let { content ->
                 { content() }
             },
