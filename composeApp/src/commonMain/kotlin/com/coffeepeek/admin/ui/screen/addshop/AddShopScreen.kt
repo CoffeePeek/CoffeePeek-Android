@@ -364,48 +364,41 @@ private fun StepBasic(
     Spacer(Modifier.height(CpDimens.spacing4))
 
     FormField(label = "Адрес", required = true) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-        ) {
-            AppOutlinedField(
-                value = state.address,
-                onValueChange = vm::onAddressChange,
-                placeholder = "Улица, дом, корпус",
-                errorText = if (state.address.isNotEmpty()) state.addressError else null,
-                minLines = 1,
-                maxLines = 3,
-                modifier = Modifier.weight(1f),
-                leadingIcon = CpIcons.Navigation,
-                trailingContent = {
+        AppOutlinedField(
+            value = state.address,
+            onValueChange = vm::onAddressChange,
+            placeholder = "Улица, дом, корпус",
+            errorText = if (state.address.isNotEmpty()) state.addressError else null,
+            leadingIcon = CpIcons.Navigation,
+            trailingContent = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     if (state.isResolvingAddress) {
                         CoffeePeekLoader(
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(18.dp).padding(end = CpDimens.spacing1),
                             strokeWidth = 2.dp,
                         )
                     }
-                },
-            )
-            FilledIconButton(
-                onClick = vm::openLocationPicker,
-                enabled = !state.isResolvingAddress,
-                modifier = Modifier.size(CpDimens.inputMinHeight),
-                shape = RoundedCornerShape(CpDimens.radiusMd),
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                    disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
-                ),
-            ) {
-                Icon(
-                    imageVector = CpIcons.Map,
-                    contentDescription = "Выбрать на карте",
-                    modifier = Modifier.size(22.dp),
-                )
-            }
-        }
+                    FilledIconButton(
+                        onClick = vm::openLocationPicker,
+                        enabled = !state.isResolvingAddress,
+                        modifier = Modifier.size(36.dp),
+                        shape = RoundedCornerShape(CpDimens.radiusSm),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+                        ),
+                    ) {
+                        Icon(
+                            imageVector = CpIcons.Map,
+                            contentDescription = "Выбрать на карте",
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+            },
+        )
         state.locationHint?.let { hint ->
             Spacer(Modifier.height(CpDimens.spacing2))
             Text(
