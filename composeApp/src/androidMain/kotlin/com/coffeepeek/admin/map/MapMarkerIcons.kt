@@ -2,106 +2,358 @@ package com.coffeepeek.admin.map
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PointF
-import androidx.core.content.ContextCompat
+import android.graphics.Rect
+import android.graphics.RectF
+import android.graphics.Typeface
+import androidx.core.graphics.ColorUtils
 import com.coffeepeek.R
 import com.coffeepeek.domain.model.CoffeeShopType
 import com.yandex.runtime.image.ImageProvider
+import java.util.ArrayDeque
+import kotlin.math.roundToInt
+
+internal enum class MapPinVisual {
+    Default,
+    Selected,
+    Detail,
+}
 
 internal object MapMarkerIcons {
 
-    private const val PIN_W = 34f * 1.1f
-    private const val PIN_H = 44f * 1.1f
+    private const val RENDER_SCALE = 2f
+    const val DISPLAY_SCALE = 1f / RENDER_SCALE
+
+    const val PIN_DEFAULT_DP = 31f
+    const val PIN_SELECTED_DP = 41f
+    const val PIN_DETAIL_DP = 43f
+
+    private const val WHITE_STROKE_DP = 2.5f
+    private const val RING_DEFAULT_DP = 1.1f
+    private const val RING_SELECTED_DP = 1.6f
+    private const val SELECTED_HALO_STROKE_DP = 2f
+    private const val SELECTED_HALO_GAP_DP = 1.5f
+    private const val PULSE_INSET_DP = 4f
+    private const val PULSE_STROKE_DP = 2f
+    private const val CLUSTER_STROKE_DP = 2f
+    private const val CLUSTER_TEXT_SP = 13f
+
+    private const val BRAND_PRIMARY = 0xFFEAB308.toInt()
+    private const val BRAND_PRIMARY_DARK = 0xFFCA8A04.toInt()
+    private const val DARK_BACKGROUND = 0xFF1A1412.toInt()
+    private const val DARK_BORDER = 0xFF3D2F28.toInt()
+    private const val LIGHT_TEXT_SECONDARY = 0xFF78716C.toInt()
+    private const val DARK_BORDER_HOVER = 0xFF4A3D35.toInt()
+    private const val TEXT_ON_PRIMARY = 0xFF1A1412.toInt()
+    private const val WHITE = 0xFFFFFFFF.toInt()
+    private const val SHADOW = 0xFF1A1412.toInt()
 
     private val cache = mutableMapOf<String, ImageProvider>()
+    private val knockoutCache = mutableMapOf<Int, Bitmap>()
+    private var cachedClusterTypeface: Typeface? = null
 
-    fun provider(context: Context, type: String, selected: Boolean): ImageProvider {
-        val key = "$type-$selected"
+    fun pinSizeDp(visual: MapPinVisual): Float = when (visual) {
+        MapPinVisual.Default -> PIN_DEFAULT_DP
+        MapPinVisual.Selected -> PIN_SELECTED_DP
+        MapPinVisual.Detail -> PIN_DETAIL_DP
+    }
+
+    fun anchor(): PointF = PointF(0.5f, 0.5f)
+
+    fun pinProvider(
+        context: Context,
+        type: String,
+        visual: MapPinVisual,
+    ): ImageProvider {
+        val key = "pin-$type-${visual.name}"
         return cache.getOrPut(key) {
-            ImageProvider.fromBitmap(createBitmap(context.applicationContext, type, selected))
+            ImageProvider.fromBitmap(createPinBitmap(context.applicationContext, type, visual))
         }
     }
 
-    fun anchor(): PointF {
-        val pad = 3f
-        return PointF(
-            (pad + PIN_W / 2f) / (PIN_W + pad * 2f),
-            (pad + PIN_H - 2f) / (PIN_H + pad * 2f),
+    fun clusterProvider(context: Context, count: Int): ImageProvider {
+        val label = clusterCountLabel(count)
+        val diameter = clusterDiameterDp(count)
+        val key = "cluster-$label-${diameter.toInt()}"
+        return cache.getOrPut(key) {
+            ImageProvider.fromBitmap(createClusterBitmap(context.applicationContext, label, diameter))
+        }
+    }
+
+    fun pulseProvider(context: Context, frame: Int): ImageProvider {
+        val clamped = frame.coerceIn(0, PULSE_FRAMES)
+        val key = "pulse-$clamped"
+        return cache.getOrPut(key) {
+            ImageProvider.fromBitmap(createPulseBitmap(context.applicationContext, clamped / PULSE_FRAMES.toFloat()))
+        }
+    }
+
+    const val PULSE_FRAMES = 12
+
+    private fun pinStyle(type: String): PinStyle = when (type) {
+        CoffeeShopType.SPECIALTY -> PinStyle(
+            fill = BRAND_PRIMARY,
+            ring = BRAND_PRIMARY_DARK,
+            mascotRes = R.drawable.maskot_with_bean,
+        )
+        CoffeeShopType.CAFE -> PinStyle(
+            fill = LIGHT_TEXT_SECONDARY,
+            ring = DARK_BORDER_HOVER,
+            mascotRes = R.drawable.maskot_with_dessert,
+        )
+        else -> PinStyle(
+            fill = DARK_BACKGROUND,
+            ring = DARK_BORDER,
+            mascotRes = R.drawable.maskot_with_cup,
         )
     }
 
-    private fun createBitmap(context: Context, type: String, selected: Boolean): Bitmap {
+    private fun createPinBitmap(context: Context, type: String, visual: MapPinVisual): Bitmap {
         val density = context.resources.displayMetrics.density
-        val pad = 3f * density
-        val pinW = PIN_W * density
-        val pinH = PIN_H * density
-        val width = (pinW + pad * 2f).toInt().coerceAtLeast(1)
-        val height = (pinH + pad * 2f).toInt().coerceAtLeast(1)
+        val px = density * RENDER_SCALE
+        val size = pinSizeDp(visual) * px
+        val selected = visual != MapPinVisual.Default
+        val haloExtra = if (selected) (SELECTED_HALO_GAP_DP + SELECTED_HALO_STROKE_DP) * px else 0f
+        val shadowPad = (if (selected) 10f else 4f) * px
+        val pad = shadowPad + haloExtra
+        val width = (size + pad * 2f).roundToInt().coerceAtLeast(1)
+        val height = width
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
+        val cx = width / 2f
+        val cy = height / 2f
+        val radius = size / 2f
+        val pinColors = pinStyle(type)
 
-        val path = pinPath(pinW, pinH).apply { offset(pad, pad) }
         val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            color = pinColor(type, selected)
-            setShadowLayer(2.4f * density, 0f, 1.2f * density, 0x511A1412)
+            this.style = Paint.Style.FILL
+            color = pinColors.fill
+            if (selected) {
+                setShadowLayer(8f * px, 0f, 2f * px, ColorUtils.setAlphaComponent(SHADOW, (0.35f * 255).toInt()))
+            } else {
+                setShadowLayer(3f * px, 0f, 1f * px, ColorUtils.setAlphaComponent(SHADOW, (0.32f * 255).toInt()))
+            }
         }
-        val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeJoin = Paint.Join.ROUND
-            strokeWidth = (if (selected) 1.5f else 1.15f) * density
-            color = pinStrokeColor(selected)
-        }
+        canvas.drawCircle(cx, cy, radius, fillPaint)
 
-        canvas.drawPath(path, fillPaint)
-
-        ContextCompat.getDrawable(context, mascotRes(type))?.let { mascot ->
+        val mascot = knockoutMascot(context, pinColors.mascotRes)
+        if (mascot != null) {
+            val drawSize = size * 1.72f
+            val offsetY = size * 0.08f
+            val left = cx - drawSize / 2f
+            val top = cy - drawSize * 0.58f + offsetY
             canvas.save()
-            canvas.clipPath(path)
-            val sx = pinW / 40f
-            val sy = pinH / 52f
-            val left = (pad - 2f * sx).toInt()
-            val top = (pad - 5f * sy).toInt()
-            mascot.setBounds(left, top, (left + 44f * sx).toInt(), (top + 48f * sy).toInt())
-            mascot.draw(canvas)
+            val clip = Path().apply { addCircle(cx, cy, radius, Path.Direction.CW) }
+            canvas.clipPath(clip)
+            canvas.drawBitmap(
+                mascot,
+                Rect(0, 0, mascot.width, mascot.height),
+                RectF(left, top, left + drawSize, top + drawSize),
+                Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG),
+            )
             canvas.restore()
         }
 
-        canvas.drawPath(path, strokePaint)
+        val whiteStroke = WHITE_STROKE_DP * px
+        val whitePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.style = Paint.Style.STROKE
+            strokeWidth = whiteStroke
+            color = WHITE
+        }
+        canvas.drawCircle(cx, cy, radius - whiteStroke / 2f, whitePaint)
+
+        val ringStroke = (if (selected) RING_SELECTED_DP else RING_DEFAULT_DP) * px
+        val ringAlpha = if (selected) 0.95f else 0.70f
+        val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.style = Paint.Style.STROKE
+            strokeWidth = ringStroke
+            color = ColorUtils.setAlphaComponent(pinColors.ring, (ringAlpha * 255).toInt())
+        }
+        canvas.drawCircle(cx, cy, radius - ringStroke / 2f, ringPaint)
+
+        if (selected) {
+            val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                this.style = Paint.Style.STROKE
+                strokeWidth = SELECTED_HALO_STROKE_DP * px
+                color = ColorUtils.setAlphaComponent(BRAND_PRIMARY, 0x99)
+            }
+            canvas.drawCircle(
+                cx,
+                cy,
+                radius + SELECTED_HALO_GAP_DP * px + (SELECTED_HALO_STROKE_DP * px) / 2f,
+                haloPaint,
+            )
+        }
+
         return bitmap
     }
 
-    private fun pinPath(width: Float, height: Float): Path {
-        val sx = width / 40f
-        val sy = height / 52f
-        return Path().apply {
-            moveTo(20f * sx, 1.6f * sy)
-            cubicTo(29.2f * sx, 1.6f * sy, 36.8f * sx, 9.3f * sy, 36.8f * sx, 18.8f * sy)
-            cubicTo(36.8f * sx, 29.8f * sy, 20f * sx, 50.4f * sy, 20f * sx, 50.4f * sy)
-            cubicTo(20f * sx, 50.4f * sy, 3.2f * sx, 29.8f * sy, 3.2f * sx, 18.8f * sy)
-            cubicTo(3.2f * sx, 9.3f * sy, 10.8f * sx, 1.6f * sy, 20f * sx, 1.6f * sy)
-            close()
+    private fun createClusterBitmap(context: Context, label: String, diameterDp: Float): Bitmap {
+        val density = context.resources.displayMetrics.density
+        val px = density * RENDER_SCALE
+        val size = diameterDp * px
+        val pad = 12f * px
+        val width = (size + pad * 2f).roundToInt().coerceAtLeast(1)
+        val bitmap = Bitmap.createBitmap(width, width, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val cx = width / 2f
+        val cy = width / 2f
+        val radius = size / 2f
+
+        val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = ColorUtils.setAlphaComponent(BRAND_PRIMARY, (0.92f * 255).toInt())
+            setShadowLayer(10f * px, 0f, 2f * px, ColorUtils.setAlphaComponent(SHADOW, (0.35f * 255).toInt()))
         }
-    }
+        canvas.drawCircle(cx, cy, radius, fillPaint)
 
-    private fun mascotRes(type: String): Int = when (type) {
-        CoffeeShopType.SPECIALTY -> R.drawable.maskot_with_bean
-        CoffeeShopType.CAFE -> R.drawable.maskot_with_dessert
-        else -> R.drawable.maskot_with_cup
-    }
-
-    private fun pinColor(type: String, selected: Boolean): Int {
-        if (selected) return 0xFFFEF3C7.toInt() // PrimaryLight — как подсветка в nav
-        return when (type) {
-            CoffeeShopType.SPECIALTY -> 0xFFF8F1DD.toInt() // GoldWarmSoft
-            CoffeeShopType.CAFE -> 0xFFF3F4F6.toInt() // LightBadge — нейтральный серый
-            else -> 0xFFFEF3C7.toInt() // PrimaryLight
+        val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 1f * px
+            color = ColorUtils.setAlphaComponent(SHADOW, (0.10f * 255).toInt())
         }
+        canvas.drawCircle(cx, cy, radius, outlinePaint)
+
+        val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = CLUSTER_STROKE_DP * px
+            color = WHITE
+        }
+        canvas.drawCircle(cx, cy, radius - CLUSTER_STROKE_DP * px / 2f, strokePaint)
+
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = TEXT_ON_PRIMARY
+            textAlign = Paint.Align.CENTER
+            textSize = CLUSTER_TEXT_SP * px
+            typeface = clusterTypeface(context)
+            letterSpacing = -0.02f
+        }
+        val textY = cy - (textPaint.descent() + textPaint.ascent()) / 2f
+        canvas.drawText(label, cx, textY, textPaint)
+        return bitmap
     }
 
-    private fun pinStrokeColor(selected: Boolean): Int =
-        if (selected) 0xFFCA8A04.toInt() else 0xFF78716C.toInt() // PrimaryDark / LightTextSecondary
+    private fun createPulseBitmap(context: Context, progress: Float): Bitmap {
+        val density = context.resources.displayMetrics.density
+        val px = density * RENDER_SCALE
+        val pin = PIN_SELECTED_DP * px
+        val pulseSize = pin + PULSE_INSET_DP * 2f * px
+        val t = progress.coerceIn(0f, 1f)
+        val scale = if (t <= 0.70f) {
+            0.85f + (1.45f - 0.85f) * (t / 0.70f)
+        } else {
+            1.45f
+        }
+        val alpha = if (t <= 0.70f) {
+            0.7f * (1f - t / 0.70f)
+        } else {
+            0f
+        }
+        val drawn = pulseSize * 1.45f
+        val pad = 8f * px
+        val width = (drawn + pad * 2f).roundToInt().coerceAtLeast(1)
+        val bitmap = Bitmap.createBitmap(width, width, Bitmap.Config.ARGB_8888)
+        if (alpha <= 0.01f) return bitmap
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = PULSE_STROKE_DP * px
+            color = ColorUtils.setAlphaComponent(BRAND_PRIMARY, (0.65f * alpha / 0.7f * 255).toInt())
+        }
+        canvas.drawCircle(width / 2f, width / 2f, (pulseSize * scale) / 2f, paint)
+        return bitmap
+    }
+
+    private fun knockoutMascot(context: Context, resId: Int): Bitmap? {
+        knockoutCache[resId]?.let { return it }
+        val source = BitmapFactory.decodeResource(context.resources, resId) ?: return null
+        val knocked = knockoutBlackBackground(source)
+        if (knocked !== source) source.recycle()
+        knockoutCache[resId] = knocked
+        return knocked
+    }
+
+    internal fun knockoutBlackBackground(source: Bitmap): Bitmap {
+        val bmp = if (source.isMutable && source.config == Bitmap.Config.ARGB_8888) {
+            source
+        } else {
+            source.copy(Bitmap.Config.ARGB_8888, true)
+        }
+        val width = bmp.width
+        val height = bmp.height
+        val pixels = IntArray(width * height)
+        bmp.getPixels(pixels, 0, width, 0, 0, width, height)
+        val visited = BooleanArray(width * height)
+        val queue = ArrayDeque<Int>()
+
+        fun enqueue(index: Int) {
+            if (visited[index]) return
+            visited[index] = true
+            queue.add(index)
+        }
+
+        fun isBackground(color: Int): Boolean {
+            val alpha = Color.alpha(color)
+            if (alpha <= 8) return false
+            val luma = 0.2126f * Color.red(color) + 0.7152f * Color.green(color) + 0.0722f * Color.blue(color)
+            return luma < 40f
+        }
+
+        for (x in 0 until width) {
+            enqueue(x)
+            enqueue((height - 1) * width + x)
+        }
+        for (y in 0 until height) {
+            enqueue(y * width)
+            enqueue(y * width + (width - 1))
+        }
+
+        while (queue.isNotEmpty()) {
+            val index = queue.removeFirst()
+            if (!isBackground(pixels[index])) continue
+            pixels[index] = Color.TRANSPARENT
+            val x = index % width
+            val y = index / width
+            if (x > 0) enqueue(index - 1)
+            if (x < width - 1) enqueue(index + 1)
+            if (y > 0) enqueue(index - width)
+            if (y < height - 1) enqueue(index + width)
+        }
+
+        bmp.setPixels(pixels, 0, width, 0, 0, width, height)
+        return bmp
+    }
+
+    private fun clusterTypeface(context: Context): Typeface {
+        cachedClusterTypeface?.let { return it }
+        val loaded = runCatching {
+            val cacheFile = java.io.File(context.cacheDir, "rf_dewi_expanded_ultrabold.otf")
+            if (!cacheFile.exists() || cacheFile.length() == 0L) {
+                val stream = sequenceOf(
+                    "fonts/rf_dewi_expanded_ultrabold.otf",
+                    "composeResources/coffeepeek.composeapp.generated.resources/font/rf_dewi_expanded_ultrabold.otf",
+                    "font/rf_dewi_expanded_ultrabold.otf",
+                ).mapNotNull { path ->
+                    runCatching { context.assets.open(path) }.getOrNull()
+                        ?: MapMarkerIcons::class.java.getResourceAsStream("/$path")
+                }.firstOrNull()
+                stream?.use { input -> cacheFile.outputStream().use { input.copyTo(it) } }
+            }
+            if (cacheFile.exists() && cacheFile.length() > 0L) Typeface.createFromFile(cacheFile) else null
+        }.getOrNull()
+        val typeface = loaded ?: Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        cachedClusterTypeface = typeface
+        return typeface
+    }
+
+    private data class PinStyle(
+        val fill: Int,
+        val ring: Int,
+        val mascotRes: Int,
+    )
 }

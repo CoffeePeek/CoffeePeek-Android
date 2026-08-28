@@ -1,17 +1,26 @@
 package com.coffeepeek.admin.map
 
 import android.Manifest
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.PathInterpolator
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -22,7 +31,11 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.coffeepeek.domain.model.MapBounds
 import com.coffeepeek.domain.model.MapShop
 import com.yandex.mapkit.Animation
+import com.yandex.mapkit.ScreenPoint
+import com.yandex.mapkit.ScreenRect
 import com.yandex.mapkit.MapKitFactory
+import com.yandex.mapkit.geometry.BoundingBox
+import com.yandex.mapkit.geometry.Geometry
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraListener
 import com.yandex.mapkit.map.CameraPosition
@@ -36,8 +49,12 @@ import com.yandex.mapkit.mapview.MapView
 private const val DEFAULT_LAT = 53.9045
 private const val DEFAULT_LON = 27.5615
 private const val DEFAULT_ZOOM = 12f
+private const val Z_PIN = 0f
+private const val Z_CLUSTER = 400f
+private const val Z_PULSE = 999f
+private const val Z_SELECTED = 1000f
 
-private data class PlacemarkEntry(
+private data class ShopMark(
     var placemark: PlacemarkMapObject,
     var isSelected: Boolean,
     var latitude: Double,
@@ -45,6 +62,27 @@ private data class PlacemarkEntry(
     var shop: MapShop,
     var type: String,
 )
+
+private data class ClusterMark(
+    var placemark: PlacemarkMapObject,
+    var latitude: Double,
+    var longitude: Double,
+    var count: Int,
+    var shops: List<MapShop>,
+)
+
+private class MarkerAnimations {
+    var pop: ValueAnimator? = null
+    var pulse: ValueAnimator? = null
+    var pulseMark: PlacemarkMapObject? = null
+
+    fun cancel() {
+        pop?.cancel()
+        pop = null
+        pulse?.cancel()
+        pulse = null
+    }
+}
 
 @Composable
 actual fun CoffeeMap(
@@ -99,15 +137,15 @@ actual fun CoffeeMap(
     }
 
     val mapView = remember { MapView(appContext) }
-    val placemarks = remember { mutableMapOf<String, PlacemarkEntry>() }
-    val iconStyle = remember {
-        IconStyle()
-            .setAnchor(MapMarkerIcons.anchor())
-            .setScale(1f)
-    }
+    val shopMarks = remember { mutableMapOf<String, ShopMark>() }
+    val clusterMarks = remember { mutableMapOf<String, ClusterMark>() }
+    val animations = remember { MarkerAnimations() }
+    val handler = remember { Handler(Looper.getMainLooper()) }
+    var clusterGeneration by remember { mutableIntStateOf(0) }
 
     DisposableEffect(lifecycleOwner, mapView) {
         val map = mapView.mapWindow.map
+        val recluster = Runnable { clusterGeneration += 1 }
         val cameraListener = object : CameraListener {
             override fun onCameraPositionChanged(
                 map: Map,
@@ -115,8 +153,12 @@ actual fun CoffeeMap(
                 cameraUpdateReason: CameraUpdateReason,
                 finished: Boolean,
             ) {
+                handler.removeCallbacks(recluster)
                 if (finished) {
+                    clusterGeneration += 1
                     onBoundsChangedState.value(map.visibleRegion.toMapBounds())
+                } else {
+                    handler.postDelayed(recluster, CLUSTER_MOVE_DEBOUNCE_MS)
                 }
             }
         }
@@ -145,12 +187,22 @@ actual fun CoffeeMap(
         }
 
         onDispose {
+            handler.removeCallbacksAndMessages(null)
+            animations.cancel()
+            animations.pulseMark?.let { mark ->
+                runCatching { map.mapObjects.remove(mark) }
+            }
+            animations.pulseMark = null
             lifecycleOwner.lifecycle.removeObserver(observer)
             map.removeCameraListener(cameraListener)
-            placemarks.values.forEach { entry ->
-                map.mapObjects.remove(entry.placemark)
+            shopMarks.values.forEach { entry ->
+                runCatching { map.mapObjects.remove(entry.placemark) }
             }
-            placemarks.clear()
+            clusterMarks.values.forEach { entry ->
+                runCatching { map.mapObjects.remove(entry.placemark) }
+            }
+            shopMarks.clear()
+            clusterMarks.clear()
             stopMap()
         }
     }
@@ -206,16 +258,27 @@ actual fun CoffeeMap(
         }
     }
 
-    LaunchedEffect(shops, selectedShopId, mapView) {
+    LaunchedEffect(shops, selectedShopId, clusterGeneration, mapView) {
         val map = mapView.mapWindow.map
-        syncPlacemarks(
+        val mapWindow = mapView.mapWindow
+        syncMapMarkers(
             context = appContext,
             map = map,
             shops = shops,
             selectedShopId = selectedShopId,
-            placemarks = placemarks,
-            iconStyle = iconStyle,
+            zoom = map.cameraPosition.zoom,
+            project = { shop ->
+                mapWindow.worldToScreen(Point(shop.latitude, shop.longitude))
+                    ?.let { ScreenXy(it.x, it.y) }
+            },
+            shopMarks = shopMarks,
+            clusterMarks = clusterMarks,
+            animations = animations,
+            reduceMotion = appContext.prefersReducedMotion(),
             onShopClick = { shop -> onShopClickState.value(shop) },
+            onClusterClick = { clusterShops ->
+                zoomToCluster(map, mapView.width, mapView.height, clusterShops)
+            },
         )
     }
 
@@ -268,87 +331,243 @@ private fun Context.lastKnownLocation(): Location? {
         .maxByOrNull { it.time }
 }
 
-private fun syncPlacemarks(
+private fun Context.prefersReducedMotion(): Boolean {
+    val duration = Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+    val transition = Settings.Global.getFloat(contentResolver, Settings.Global.TRANSITION_ANIMATION_SCALE, 1f)
+    return duration == 0f || transition == 0f
+}
+
+private fun pinStyle(scale: Float = 1f): IconStyle =
+    IconStyle()
+        .setAnchor(MapMarkerIcons.anchor())
+        .setScale(MapMarkerIcons.DISPLAY_SCALE * scale)
+
+private fun syncMapMarkers(
     context: Context,
     map: Map,
     shops: List<MapShop>,
     selectedShopId: String?,
-    placemarks: MutableMap<String, PlacemarkEntry>,
-    iconStyle: IconStyle,
+    zoom: Float,
+    project: (MapShop) -> ScreenXy?,
+    shopMarks: MutableMap<String, ShopMark>,
+    clusterMarks: MutableMap<String, ClusterMark>,
+    animations: MarkerAnimations,
+    reduceMotion: Boolean,
     onShopClick: (MapShop) -> Unit,
+    onClusterClick: (List<MapShop>) -> Unit,
 ) {
-    val shopIds = shops.map { it.id }.toSet()
-    placemarks.keys.filter { it !in shopIds }.toList().forEach { id ->
-        placemarks.remove(id)?.let { entry ->
-            map.mapObjects.remove(entry.placemark)
-        }
+    val selected = shops.firstOrNull { it.id == selectedShopId }
+    val clusterable = if (selected == null) shops else shops.filter { it.id != selected.id }
+    val clustered = clusterMapShops(clusterable, zoom, project)
+    val shopItems = buildList {
+        clustered.filterIsInstance<MapMarkerItem.Shop>().forEach { add(it.shop) }
+        if (selected != null) add(selected)
+    }.distinctBy { it.id }
+    val clusterItems = clustered.filterIsInstance<MapMarkerItem.Cluster>()
+
+    val shopIds = shopItems.map { it.id }.toSet()
+    shopMarks.keys.filter { it !in shopIds }.toList().forEach { id ->
+        shopMarks.remove(id)?.let { entry -> map.mapObjects.remove(entry.placemark) }
+    }
+    val clusterKeys = clusterItems.map { it.key }.toSet()
+    clusterMarks.keys.filter { it !in clusterKeys }.toList().forEach { key ->
+        clusterMarks.remove(key)?.let { entry -> map.mapObjects.remove(entry.placemark) }
     }
 
-    shops.forEach { shop ->
+    shopItems.forEach { shop ->
         val point = Point(shop.latitude, shop.longitude)
         val isSelected = shop.id == selectedShopId
-        val entry = placemarks[shop.id]
-
-        if (entry == null) {
-            placemarks[shop.id] = createPlacemark(
-                context = context,
-                map = map,
-                shop = shop,
-                point = point,
+        val visual = if (isSelected) MapPinVisual.Selected else MapPinVisual.Default
+        val existing = shopMarks[shop.id]
+        if (existing == null) {
+            lateinit var entry: ShopMark
+            val placemark = map.mapObjects.addPlacemark(point).apply {
+                setIcon(MapMarkerIcons.pinProvider(context, shop.type, visual))
+                setIconStyle(pinStyle(if (isSelected && reduceMotion) 1.08f else 1f))
+                zIndex = if (isSelected) Z_SELECTED else Z_PIN
+                isDraggable = false
+                addTapListener { _, _ ->
+                    onShopClick(entry.shop)
+                    true
+                }
+            }
+            entry = ShopMark(
+                placemark = placemark,
                 isSelected = isSelected,
-                iconStyle = iconStyle,
-                onShopClick = onShopClick,
+                latitude = shop.latitude,
+                longitude = shop.longitude,
+                shop = shop,
+                type = shop.type,
             )
+            shopMarks[shop.id] = entry
+            if (isSelected) {
+                playSelectedAnimations(context, map, entry, animations, reduceMotion)
+            }
             return@forEach
         }
 
-        entry.shop = shop
-
-        if (entry.latitude != shop.latitude || entry.longitude != shop.longitude) {
-            entry.placemark.geometry = point
-            entry.latitude = shop.latitude
-            entry.longitude = shop.longitude
+        existing.shop = shop
+        if (existing.latitude != shop.latitude || existing.longitude != shop.longitude) {
+            existing.placemark.geometry = point
+            existing.latitude = shop.latitude
+            existing.longitude = shop.longitude
         }
-
-        if (entry.isSelected != isSelected || entry.type != shop.type) {
-            entry.placemark.setIcon(MapMarkerIcons.provider(context, shop.type, isSelected))
-            entry.placemark.setIconStyle(iconStyle)
-            entry.placemark.zIndex = if (isSelected) 2f else 1f
-            entry.isSelected = isSelected
-            entry.type = shop.type
+        if (existing.isSelected != isSelected || existing.type != shop.type) {
+            existing.placemark.setIcon(MapMarkerIcons.pinProvider(context, shop.type, visual))
+            existing.placemark.zIndex = if (isSelected) Z_SELECTED else Z_PIN
+            existing.isSelected = isSelected
+            existing.type = shop.type
+            if (isSelected) {
+                playSelectedAnimations(context, map, existing, animations, reduceMotion)
+            } else if (selectedShopId == null || shop.id != selectedShopId) {
+                existing.placemark.setIconStyle(pinStyle(1f))
+            }
         }
+    }
+
+    clusterItems.forEach { cluster ->
+        val point = Point(cluster.latitude, cluster.longitude)
+        val existing = clusterMarks[cluster.key]
+        if (existing == null) {
+            lateinit var entry: ClusterMark
+            val placemark = map.mapObjects.addPlacemark(point).apply {
+                setIcon(MapMarkerIcons.clusterProvider(context, cluster.count))
+                setIconStyle(pinStyle(1f))
+                zIndex = Z_CLUSTER
+                isDraggable = false
+                addTapListener { _, _ ->
+                    onClusterClick(entry.shops)
+                    true
+                }
+            }
+            entry = ClusterMark(
+                placemark = placemark,
+                latitude = cluster.latitude,
+                longitude = cluster.longitude,
+                count = cluster.count,
+                shops = cluster.shops,
+            )
+            clusterMarks[cluster.key] = entry
+            return@forEach
+        }
+        existing.shops = cluster.shops
+        if (existing.latitude != cluster.latitude || existing.longitude != cluster.longitude) {
+            existing.placemark.geometry = point
+            existing.latitude = cluster.latitude
+            existing.longitude = cluster.longitude
+        }
+        if (existing.count != cluster.count) {
+            existing.placemark.setIcon(MapMarkerIcons.clusterProvider(context, cluster.count))
+            existing.count = cluster.count
+        }
+    }
+
+    if (selected == null) {
+        animations.cancel()
+        animations.pulseMark?.let { map.mapObjects.remove(it) }
+        animations.pulseMark = null
     }
 }
 
-private fun createPlacemark(
+private fun playSelectedAnimations(
     context: Context,
     map: Map,
-    shop: MapShop,
-    point: Point,
-    isSelected: Boolean,
-    iconStyle: IconStyle,
-    onShopClick: (MapShop) -> Unit,
-): PlacemarkEntry {
-    lateinit var entry: PlacemarkEntry
-    val placemark = map.mapObjects.addPlacemark(point).apply {
-        setIcon(MapMarkerIcons.provider(context, shop.type, isSelected))
-        setIconStyle(iconStyle)
-        zIndex = if (isSelected) 2f else 1f
-        isDraggable = false
-        addTapListener { _, _ ->
-            onShopClick(entry.shop)
-            true
+    mark: ShopMark,
+    animations: MarkerAnimations,
+    reduceMotion: Boolean,
+) {
+    animations.cancel()
+    animations.pulseMark?.let { runCatching { map.mapObjects.remove(it) } }
+    animations.pulseMark = null
+
+    if (reduceMotion) {
+        mark.placemark.setIconStyle(pinStyle(1.08f))
+        return
+    }
+
+    val pop = ValueAnimator.ofFloat(1f, 1.18f, 1.10f).apply {
+        duration = 350L
+        interpolator = PathInterpolator(0.34f, 1.4f, 0.64f, 1f)
+        addUpdateListener { animator ->
+            val scale = animator.animatedValue as Float
+            mark.placemark.setIconStyle(pinStyle(scale))
         }
     }
-    entry = PlacemarkEntry(
-        placemark = placemark,
-        isSelected = isSelected,
-        latitude = shop.latitude,
-        longitude = shop.longitude,
-        shop = shop,
-        type = shop.type,
+    animations.pop = pop
+    pop.start()
+
+    val pulseMark = map.mapObjects.addPlacemark(Point(mark.latitude, mark.longitude)).apply {
+        setIcon(MapMarkerIcons.pulseProvider(context, 0))
+        setIconStyle(pinStyle(1f))
+        zIndex = Z_PULSE
+        isDraggable = false
+    }
+    animations.pulseMark = pulseMark
+    val pulse = ValueAnimator.ofInt(0, MapMarkerIcons.PULSE_FRAMES).apply {
+        duration = 1800L
+        interpolator = DecelerateInterpolator()
+        repeatCount = ValueAnimator.INFINITE
+        addUpdateListener { animator ->
+            val frame = animator.animatedValue as Int
+            pulseMark.setIcon(MapMarkerIcons.pulseProvider(context, frame))
+            pulseMark.geometry = mark.placemark.geometry
+        }
+    }
+    animations.pulse = pulse
+    pulse.start()
+}
+
+private fun zoomToCluster(
+    map: Map,
+    viewWidth: Int,
+    viewHeight: Int,
+    shops: List<MapShop>,
+) {
+    if (shops.isEmpty()) return
+    val minLat = shops.minOf { it.latitude }
+    val maxLat = shops.maxOf { it.latitude }
+    val minLon = shops.minOf { it.longitude }
+    val maxLon = shops.maxOf { it.longitude }
+    val currentZoom = map.cameraPosition.zoom
+    val animation = Animation(Animation.Type.SMOOTH, CLUSTER_TAP_ANIMATION_MS / 1000f)
+
+    if (minLat == maxLat && minLon == maxLon) {
+        map.move(
+            CameraPosition(Point(minLat, minLon), clusterFitZoom(currentZoom, currentZoom + 2f), 0f, 0f),
+            animation,
+            null,
+        )
+        return
+    }
+
+    val box = BoundingBox(Point(minLat, minLon), Point(maxLat, maxLon))
+    val geometry = Geometry.fromBoundingBox(box)
+    val insetX = (viewWidth.coerceAtLeast(1) * clusterPaddingFraction() / 2f)
+    val insetY = (viewHeight.coerceAtLeast(1) * clusterPaddingFraction() / 2f)
+    val fitted = runCatching {
+        if (viewWidth > 0 && viewHeight > 0) {
+            map.cameraPosition(
+                geometry,
+                ScreenRect(
+                    ScreenPoint(insetX, insetY),
+                    ScreenPoint(viewWidth - insetX, viewHeight - insetY),
+                ),
+            )
+        } else {
+            map.cameraPosition(geometry)
+        }
+    }.getOrElse { map.cameraPosition(geometry) }
+
+    map.move(
+        CameraPosition(
+            fitted.target,
+            clusterFitZoom(currentZoom, fitted.zoom),
+            0f,
+            0f,
+        ),
+        animation,
+        null,
     )
-    return entry
 }
 
 private fun VisibleRegion.toMapBounds(): MapBounds {
