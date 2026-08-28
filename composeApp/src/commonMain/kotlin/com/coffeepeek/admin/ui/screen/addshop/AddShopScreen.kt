@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -45,8 +46,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,6 +58,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
@@ -125,39 +126,21 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
 
     Scaffold(
         topBar = {
-            Column {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = when (state.currentStep) {
-                                AddShopStep.BASIC    -> "Основная информация"
-                                AddShopStep.CONTACTS -> "Контакты"
-                                AddShopStep.PHOTOS   -> "Фотографии"
-                                AddShopStep.FEATURES -> "Оборудование"
-                                AddShopStep.SCHEDULE -> "Расписание"
-                            },
-                            style = MaterialTheme.typography.titleLarge,
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = {
-                            if (state.currentStep == AddShopStep.BASIC) Navigator.popBack()
-                            else vm.prevStep()
-                        }) {
-                            Icon(CpIcons.Back, contentDescription = "Назад")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                    ),
-                )
-                AddShopStepDots(
-                    currentIndex = state.currentStep.ordinal,
-                    total = AddShopStep.entries.size,
-                )
-            }
+            AddShopHeader(
+                title = when (state.currentStep) {
+                    AddShopStep.BASIC    -> "Основная информация"
+                    AddShopStep.CONTACTS -> "Контакты"
+                    AddShopStep.PHOTOS   -> "Фотографии"
+                    AddShopStep.FEATURES -> "Оборудование"
+                    AddShopStep.SCHEDULE -> "Расписание"
+                },
+                currentIndex = state.currentStep.ordinal,
+                total = AddShopStep.entries.size,
+                onBack = {
+                    if (state.currentStep == AddShopStep.BASIC) Navigator.popBack()
+                    else vm.prevStep()
+                },
+            )
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -248,14 +231,68 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
 }
 
 @Composable
+private fun AddShopHeader(
+    title: String,
+    currentIndex: Int,
+    total: Int,
+    onBack: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
+            .padding(horizontal = CpDimens.spacing5, vertical = CpDimens.spacing4),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(36.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .clickable(onClick = onBack),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = CpIcons.ChevronLeft,
+                    contentDescription = "Назад",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(horizontal = 44.dp),
+            )
+        }
+        Spacer(Modifier.height(CpDimens.spacing4))
+        AddShopStepDots(
+            currentIndex = currentIndex,
+            total = total,
+        )
+    }
+}
+
+@Composable
 private fun AddShopStepDots(
     currentIndex: Int,
     total: Int,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = CpDimens.spacing3),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -269,7 +306,7 @@ private fun AddShopStepDots(
                     .clip(CircleShape)
                     .background(
                         if (active) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.outlineVariant,
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f),
                     ),
             )
         }
