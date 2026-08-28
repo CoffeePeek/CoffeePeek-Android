@@ -28,7 +28,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Switch
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -85,6 +84,17 @@ import org.koin.compose.viewmodel.koinViewModel
 fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
     val state by vm.state.collectAsState()
 
+    if (state.isSuccess) {
+        AddShopSuccessScreen(
+            name = state.name.trim().ifBlank { "Кофейня" },
+            cityName = state.selectedCity?.name,
+            address = state.address.trim(),
+            coverPhoto = state.photos.firstOrNull()?.bytes,
+            onGoHome = vm::onSuccessDismiss,
+        )
+        return
+    }
+
     LocationPermissionEffect(
         requestKey = 1,
         onGranted = { vm.fillAddressFromCurrentLocation(force = false) },
@@ -96,30 +106,6 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
             initialPoint = state.selectedGeoPoint,
             onConfirm = vm::onLocationPicked,
             onDismiss = vm::dismissLocationPicker,
-        )
-    }
-
-    // Диалог успеха
-    if (state.isSuccess) {
-        AlertDialog(
-            onDismissRequest = vm::onSuccessDismiss,
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text("Заявка отправлена!", style = MaterialTheme.typography.headlineSmall) },
-            text = {
-                Text(
-                    "Кофейня отправлена на модерацию. После проверки она появится в ленте.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = vm::onSuccessDismiss,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(CpDimens.buttonRadius),
-                ) { Text("Отлично!") }
-            },
-            shape = RoundedCornerShape(CpDimens.radius2xl),
         )
     }
 
