@@ -548,8 +548,6 @@ private fun zoomToCluster(
         if (viewWidth > 0 && viewHeight > 0) {
             map.cameraPosition(
                 geometry,
-                0f,
-                0f,
                 ScreenRect(
                     ScreenPoint(insetX, insetY),
                     ScreenPoint(viewWidth - insetX, viewHeight - insetY),

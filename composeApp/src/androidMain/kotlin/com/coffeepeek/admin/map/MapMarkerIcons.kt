@@ -128,11 +128,11 @@ internal object MapMarkerIcons {
         val cx = width / 2f
         val cy = height / 2f
         val radius = size / 2f
-        val style = pinStyle(type)
+        val pinColors = pinStyle(type)
 
         val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            color = style.fill
+            this.style = Paint.Style.FILL
+            color = pinColors.fill
             if (selected) {
                 setShadowLayer(8f * px, 0f, 2f * px, ColorUtils.setAlphaComponent(SHADOW, (0.35f * 255).toInt()))
             } else {
@@ -141,7 +141,7 @@ internal object MapMarkerIcons {
         }
         canvas.drawCircle(cx, cy, radius, fillPaint)
 
-        val mascot = knockoutMascot(context, style.mascotRes)
+        val mascot = knockoutMascot(context, pinColors.mascotRes)
         if (mascot != null) {
             val drawSize = size * 1.72f
             val offsetY = size * 0.08f
@@ -161,7 +161,7 @@ internal object MapMarkerIcons {
 
         val whiteStroke = WHITE_STROKE_DP * px
         val whitePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
+            this.style = Paint.Style.STROKE
             strokeWidth = whiteStroke
             color = WHITE
         }
@@ -170,15 +170,15 @@ internal object MapMarkerIcons {
         val ringStroke = (if (selected) RING_SELECTED_DP else RING_DEFAULT_DP) * px
         val ringAlpha = if (selected) 0.95f else 0.70f
         val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
+            this.style = Paint.Style.STROKE
             strokeWidth = ringStroke
-            color = ColorUtils.setAlphaComponent(style.ring, (ringAlpha * 255).toInt())
+            color = ColorUtils.setAlphaComponent(pinColors.ring, (ringAlpha * 255).toInt())
         }
         canvas.drawCircle(cx, cy, radius - ringStroke / 2f, ringPaint)
 
         if (selected) {
             val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
+                this.style = Paint.Style.STROKE
                 strokeWidth = SELECTED_HALO_STROKE_DP * px
                 color = ColorUtils.setAlphaComponent(BRAND_PRIMARY, 0x99)
             }
