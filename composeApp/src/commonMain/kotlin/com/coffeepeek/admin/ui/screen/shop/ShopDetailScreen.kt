@@ -116,12 +116,16 @@ fun ShopDetailScreen(shopId: String) {
     }
 
     if (state.showCheckInSheet) {
-        CheckInBottomSheet(
-            isLoading = state.isCheckInLoading,
-            onDismiss = vm::dismissCheckInSheet,
-            onSubmit = vm::checkIn,
-            placeName = state.details?.shop?.title,
-        )
+        state.checkInDraft?.let { draft ->
+            CheckInBottomSheet(
+                draft = draft,
+                isLoading = state.isCheckInLoading,
+                onDismiss = vm::dismissCheckInSheet,
+                onDraftChange = vm::updateCheckInDraft,
+                onSubmit = vm::checkIn,
+                placeName = state.details?.shop?.title,
+            )
+        }
     }
 
     val details = state.details
@@ -185,7 +189,7 @@ fun ShopDetailScreen(shopId: String) {
                 isVisited = details.isVisited,
                 canOpenRoute = details.location?.latitude != null &&
                     details.location?.longitude != null,
-                onRoute = vm::openRouteInYandexMaps,
+                onRoute = vm::openRoute,
                 onReview = vm::openReviewAction,
                 onCheckIn = vm::openCheckInSheet,
                 modifier = Modifier.align(Alignment.BottomCenter),

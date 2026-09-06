@@ -32,7 +32,6 @@ cd CoffeePeek-Android
 2. Заполните `local.properties`:
    - `sdk.dir` — путь к Android SDK (Studio часто добавляет сама)
    - `API_BASE_URL` — URL backend (уточните у команды)
-   - `MAPKIT_API_KEY` — ключ Yandex MapKit
    - `GOOGLE_WEB_CLIENT_ID` — опционально, для Google Sign-In
 
 3. Получите у команды:
@@ -74,7 +73,7 @@ modules/room/         SQLite (сессия, настройки)
 **Исходники приложения:**
 
 - `composeApp/src/commonMain/` — UI и логика
-- `composeApp/src/androidMain/` — MapKit, Google Auth, manifest, ресурсы
+- `composeApp/src/androidMain/` — MapLibre, Google Auth, manifest, ресурсы
 
 ---
 
@@ -91,7 +90,7 @@ modules/room/         SQLite (сессия, настройки)
 - UI: Compose Material 3, цвета из `CpColor` / `MaterialTheme`, отступы `CpDimens`.
 - Строки для UI — в `composeApp/src/commonMain/composeResources/values/strings.xml`.
 - Новый API: DTO в `network`, интерфейс в `domain`, реализация в `data`, регистрация в `DataModule` + `KoinApp`.
-- Платформенный код (MapKit, Intent, permissions) — только в `androidMain`.
+- Платформенный код (MapLibre, Intent, permissions) — только в `androidMain`.
 - Минимальный diff: не рефакторить несвязанный код в том же PR.
 
 ### Коммиты

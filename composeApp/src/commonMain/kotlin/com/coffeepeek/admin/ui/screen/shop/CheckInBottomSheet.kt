@@ -29,14 +29,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,7 +52,9 @@ import coffeepeek.composeapp.generated.resources.checkin_action
 import coffeepeek.composeapp.generated.resources.checkin_date_label
 import coffeepeek.composeapp.generated.resources.checkin_date_picker_confirm
 import coffeepeek.composeapp.generated.resources.checkin_date_picker_dismiss
-import coffeepeek.composeapp.generated.resources.checkin_error_note_required
+import coffeepeek.composeapp.generated.resources.checkin_description_label
+import coffeepeek.composeapp.generated.resources.checkin_header_label
+import coffeepeek.composeapp.generated.resources.checkin_header_placeholder
 import coffeepeek.composeapp.generated.resources.checkin_note_label
 import coffeepeek.composeapp.generated.resources.checkin_note_placeholder
 import coffeepeek.composeapp.generated.resources.checkin_photos_label
@@ -71,55 +72,54 @@ import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.PhotoAttachmentsSection
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.utils.MAX_REVIEW_PHOTOS
-import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.admin.utils.currentEpochMillis
-import com.coffeepeek.admin.utils.epochMillisToIsoInstant
 import com.coffeepeek.admin.utils.formatVisitDate
+import com.coffeepeek.admin.utils.validatePublicCheckInDescription
+import com.coffeepeek.admin.utils.validatePublicCheckInHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CheckInBottomSheet(
+    draft: CheckInDraft,
     isLoading: Boolean,
     onDismiss: () -> Unit,
-    onSubmit: (
-        isPublic: Boolean,
-        note: String?,
-        placeRating: Int,
-        serviceRating: Int,
-        coffeeRating: Int,
-        visitedAtIso: String,
-        photos: List<PickedImage>,
-    ) -> Unit,
+    onDraftChange: (CheckInDraft) -> Unit,
+    onSubmit: (CheckInDraft) -> Unit,
     placeName: String? = null,
 ) {
-    var isPublic by remember { mutableStateOf(false) }
-    var note by remember { mutableStateOf("") }
+    var headerError by remember { mutableStateOf<String?>(null) }
     var noteError by remember { mutableStateOf<String?>(null) }
-    var coffeeRating by remember { mutableIntStateOf(5) }
-    var serviceRating by remember { mutableIntStateOf(5) }
-    var placeRating by remember { mutableIntStateOf(5) }
-    var visitMillis by remember { mutableLongStateOf(currentEpochMillis()) }
     var showDatePicker by remember { mutableStateOf(false) }
-    var photos by remember { mutableStateOf<List<PickedImage>>(emptyList()) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val noteRequiredError = stringResource(Res.string.checkin_error_note_required)
 
     fun onPublicChange(value: Boolean) {
-        isPublic = value
-        if (!value) noteError = null
+        onDraftChange(draft.copy(isPublic = value))
+        if (!value) {
+            headerError = null
+            noteError = null
+        }
+    }
+
+    fun onHeaderChange(value: String) {
+        val updated = value.take(120)
+        onDraftChange(draft.copy(header = updated))
+        if (headerError != null && validatePublicCheckInHeader(updated) == null) {
+            headerError = null
+        }
     }
 
     fun onNoteChange(value: String) {
-        note = value.take(500)
-        if (noteError != null && (!isPublic || note.trim().isNotEmpty())) {
+        val updated = value.take(2000)
+        onDraftChange(draft.copy(note = updated))
+        if (noteError != null && (!draft.isPublic || validatePublicCheckInDescription(updated) == null)) {
             noteError = null
         }
     }
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = visitMillis,
+            initialSelectedDateMillis = draft.visitMillis,
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean =
                     utcTimeMillis <= currentEpochMillis()
@@ -129,7 +129,9 @@ fun CheckInBottomSheet(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { visitMillis = it }
+                    datePickerState.selectedDateMillis?.let {
+                        onDraftChange(draft.copy(visitMillis = it))
+                    }
                     showDatePicker = false
                 }) {
                     Text(stringResource(Res.string.checkin_date_picker_confirm))
@@ -197,22 +199,22 @@ fun CheckInBottomSheet(
                     modifier = Modifier.weight(1f),
                     image = Res.drawable.checkin_rating_coffee,
                     label = stringResource(Res.string.checkin_rating_coffee),
-                    rating = coffeeRating,
-                    onRatingChange = { coffeeRating = it },
+                    rating = draft.coffeeRating,
+                    onRatingChange = { onDraftChange(draft.copy(coffeeRating = it)) },
                 )
                 RatingCard(
                     modifier = Modifier.weight(1f),
                     image = Res.drawable.checkin_rating_service,
                     label = stringResource(Res.string.checkin_rating_service),
-                    rating = serviceRating,
-                    onRatingChange = { serviceRating = it },
+                    rating = draft.serviceRating,
+                    onRatingChange = { onDraftChange(draft.copy(serviceRating = it)) },
                 )
                 RatingCard(
                     modifier = Modifier.weight(1f),
                     image = Res.drawable.checkin_rating_atmosphere,
                     label = stringResource(Res.string.checkin_rating_atmosphere),
-                    rating = placeRating,
-                    onRatingChange = { placeRating = it },
+                    rating = draft.placeRating,
+                    onRatingChange = { onDraftChange(draft.copy(placeRating = it)) },
                 )
             }
 
@@ -240,7 +242,7 @@ fun CheckInBottomSheet(
                         modifier = Modifier.size(18.dp),
                     )
                     Text(
-                        text = formatVisitDate(visitMillis),
+                        text = formatVisitDate(draft.visitMillis),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
@@ -253,37 +255,6 @@ fun CheckInBottomSheet(
                     )
                 }
             }
-
-            // ── Note ──────────────────────────────────────────────────────────
-            LabeledField(label = stringResource(Res.string.checkin_note_label)) {
-                CheckInNoteField(
-                    value = note,
-                    onValueChange = ::onNoteChange,
-                    placeholder = stringResource(Res.string.checkin_note_placeholder),
-                    isError = noteError != null,
-                )
-                noteError?.let { error ->
-                    Text(
-                        text = error,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = CpDimens.spacing1),
-                    )
-                }
-            }
-
-            // ── Photos (optional) ─────────────────────────────────────────────
-            PhotoAttachmentsSection(
-                photos = photos,
-                maxPhotos = MAX_REVIEW_PHOTOS,
-                onPhotosAdded = { added ->
-                    val remaining = MAX_REVIEW_PHOTOS - photos.size
-                    if (remaining > 0) photos = photos + added.take(remaining)
-                },
-                onRemovePhoto = { index -> photos = photos.filterIndexed { i, _ -> i != index } },
-                title = stringResource(Res.string.checkin_photos_label),
-                hint = "Добавьте до $MAX_REVIEW_PHOTOS фото вашего визита.",
-            )
 
             // ── Public toggle ─────────────────────────────────────────────────
             Row(
@@ -308,27 +279,93 @@ fun CheckInBottomSheet(
                     )
                 }
                 Spacer(Modifier.width(CpDimens.spacing3))
-                Switch(checked = isPublic, onCheckedChange = ::onPublicChange)
+                Switch(
+                    checked = draft.isPublic,
+                    onCheckedChange = ::onPublicChange,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        checkedBorderColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        uncheckedBorderColor = MaterialTheme.colorScheme.outline,
+                    ),
+                )
             }
+
+            // ── Public review fields / private note ───────────────────────────
+            if (draft.isPublic) {
+                LabeledField(label = stringResource(Res.string.checkin_header_label)) {
+                    CheckInTextField(
+                        value = draft.header,
+                        onValueChange = ::onHeaderChange,
+                        placeholder = stringResource(Res.string.checkin_header_placeholder),
+                        isError = headerError != null,
+                        singleLine = true,
+                    )
+                    headerError?.let { error ->
+                        FieldError(error)
+                    }
+                }
+            }
+
+            LabeledField(
+                label = stringResource(
+                    if (draft.isPublic) {
+                        Res.string.checkin_description_label
+                    } else {
+                        Res.string.checkin_note_label
+                    }
+                )
+            ) {
+                CheckInNoteField(
+                    value = draft.note,
+                    onValueChange = ::onNoteChange,
+                    placeholder = stringResource(Res.string.checkin_note_placeholder),
+                    isError = noteError != null,
+                )
+                noteError?.let { error ->
+                    FieldError(error)
+                }
+            }
+
+            // ── Photos (optional) ─────────────────────────────────────────────
+            PhotoAttachmentsSection(
+                photos = draft.photos,
+                maxPhotos = MAX_REVIEW_PHOTOS,
+                onPhotosAdded = { added ->
+                    val remaining = MAX_REVIEW_PHOTOS - draft.photos.size
+                    if (remaining > 0) {
+                        onDraftChange(draft.copy(photos = draft.photos + added.take(remaining)))
+                    }
+                },
+                onRemovePhoto = { index ->
+                    onDraftChange(
+                        draft.copy(photos = draft.photos.filterIndexed { i, _ -> i != index })
+                    )
+                },
+                title = stringResource(Res.string.checkin_photos_label),
+                hint = "Добавьте до $MAX_REVIEW_PHOTOS фото вашего визита.",
+            )
 
             // ── Submit ────────────────────────────────────────────────────────
             AppButton(
                 text = stringResource(Res.string.checkin_action),
                 onClick = {
-                    val trimmedNote = note.trim()
-                    if (isPublic && trimmedNote.isEmpty()) {
-                        noteError = noteRequiredError
+                    headerError = if (draft.isPublic) {
+                        validatePublicCheckInHeader(draft.header)
+                    } else {
+                        null
+                    }
+                    noteError = if (draft.isPublic) {
+                        validatePublicCheckInDescription(draft.note)
+                    } else {
+                        null
+                    }
+                    if (headerError != null || noteError != null) {
                         return@AppButton
                     }
-                    onSubmit(
-                        isPublic,
-                        trimmedNote.takeIf { it.isNotEmpty() },
-                        placeRating,
-                        serviceRating,
-                        coffeeRating,
-                        epochMillisToIsoInstant(visitMillis),
-                        photos,
-                    )
+                    onSubmit(draft)
                 },
                 enabled = !isLoading,
             )
@@ -455,5 +492,59 @@ private fun CheckInNoteField(
             }
             innerTextField()
         },
+    )
+}
+
+@Composable
+private fun CheckInTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    isError: Boolean,
+    singleLine: Boolean,
+) {
+    val borderColor = if (isError) {
+        MaterialTheme.colorScheme.error
+    } else {
+        MaterialTheme.colorScheme.outline
+    }
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        singleLine = singleLine,
+        textStyle = MaterialTheme.typography.bodyMedium.copy(
+            color = MaterialTheme.colorScheme.onSurface,
+        ),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(CpDimens.radiusMd))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f))
+            .border(
+                width = 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(CpDimens.radiusMd),
+            )
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        decorationBox = { innerTextField ->
+            if (value.isEmpty()) {
+                Text(
+                    text = placeholder,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
+            }
+            innerTextField()
+        },
+    )
+}
+
+@Composable
+private fun FieldError(message: String) {
+    Text(
+        text = message,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.error,
+        modifier = Modifier.padding(top = CpDimens.spacing1),
     )
 }

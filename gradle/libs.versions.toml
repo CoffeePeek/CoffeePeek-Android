@@ -15,7 +15,7 @@ kotlinx-coroutines = "1.10.2"
 koin = "4.0.1"
 ktor = "3.3.1"
 kamel = "1.0.8"
-yandex-mapkit = "4.38.1-lite"
+maplibre = "13.6.0"
 phosphor-icon = "1.0.0"
 
 room = "2.8.3"
@@ -55,7 +55,7 @@ androidx-sqlite-ktx = { module = "androidx.sqlite:sqlite-ktx", version.ref = "sq
 
 
 kamel = { module = "media.kamel:kamel-image-default", version.ref = "kamel" }
-yandex-mapkit = { module = "com.yandex.android:maps.mobile", version.ref = "yandex-mapkit" }
+maplibre-android = { module = "org.maplibre.gl:android-sdk-opengl", version.ref = "maplibre" }
 phosphor-icon = { module = "com.adamglin:phosphor-icon", version.ref = "phosphor-icon" }
 
 [plugins]

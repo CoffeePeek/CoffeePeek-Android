@@ -59,7 +59,10 @@
     <string name="checkin_note_placeholder">Расскажите о вашем визите…</string>
     <string name="checkin_photos_label">Фото (необязательно)</string>
     <string name="checkin_public_switch_title">Сделать публичным</string>
-    <string name="checkin_public_switch_hint">Ваш чекин станет отзывом</string>
+    <string name="checkin_public_switch_hint">Ваш чекин станет отзывом — нужны заголовок и описание</string>
+    <string name="checkin_header_label">Заголовок</string>
+    <string name="checkin_header_placeholder">Кратко опишите впечатление</string>
+    <string name="checkin_description_label">Описание</string>
     <string name="checkin_action">Чекин</string>
     <string name="checkin_date_picker_confirm">Готово</string>
     <string name="checkin_date_picker_dismiss">Отмена</string>

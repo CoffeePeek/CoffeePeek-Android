@@ -38,6 +38,7 @@ class CheckInRepositoryImpl(
                 coffeeShopId = input.shopId,
                 isPublic = input.isPublic,
                 visitedAt = input.visitedAtIso,
+                header = input.header?.takeIf { it.isNotBlank() },
                 note = input.note?.takeIf { it.isNotBlank() },
                 photos = uploadedPhotos,
                 rating = rating,

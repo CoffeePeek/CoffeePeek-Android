@@ -7,14 +7,12 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.PointF
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import androidx.core.graphics.ColorUtils
 import com.coffeepeek.R
 import com.coffeepeek.domain.model.CoffeeShopType
-import com.yandex.runtime.image.ImageProvider
 import java.util.ArrayDeque
 import kotlin.math.roundToInt
 
@@ -26,8 +24,7 @@ internal enum class MapPinVisual {
 
 internal object MapMarkerIcons {
 
-    private const val RENDER_SCALE = 2f
-    const val DISPLAY_SCALE = 1f / RENDER_SCALE
+    private const val RENDER_SCALE = 1f
 
     const val PIN_DEFAULT_DP = 31f
     const val PIN_SELECTED_DP = 41f
@@ -53,7 +50,7 @@ internal object MapMarkerIcons {
     private const val WHITE = 0xFFFFFFFF.toInt()
     private const val SHADOW = 0xFF1A1412.toInt()
 
-    private val cache = mutableMapOf<String, ImageProvider>()
+    private val cache = mutableMapOf<String, Bitmap>()
     private val knockoutCache = mutableMapOf<Int, Bitmap>()
     private var cachedClusterTypeface: Typeface? = null
 
@@ -63,33 +60,31 @@ internal object MapMarkerIcons {
         MapPinVisual.Detail -> PIN_DETAIL_DP
     }
 
-    fun anchor(): PointF = PointF(0.5f, 0.5f)
-
-    fun pinProvider(
+    fun pinBitmap(
         context: Context,
         type: String,
         visual: MapPinVisual,
-    ): ImageProvider {
+    ): Bitmap {
         val key = "pin-$type-${visual.name}"
         return cache.getOrPut(key) {
-            ImageProvider.fromBitmap(createPinBitmap(context.applicationContext, type, visual))
+            createPinBitmap(context.applicationContext, type, visual)
         }
     }
 
-    fun clusterProvider(context: Context, count: Int): ImageProvider {
+    fun clusterBitmap(context: Context, count: Int): Bitmap {
         val label = clusterCountLabel(count)
         val diameter = clusterDiameterDp(count)
         val key = "cluster-$label-${diameter.toInt()}"
         return cache.getOrPut(key) {
-            ImageProvider.fromBitmap(createClusterBitmap(context.applicationContext, label, diameter))
+            createClusterBitmap(context.applicationContext, label, diameter)
         }
     }
 
-    fun pulseProvider(context: Context, frame: Int): ImageProvider {
+    fun pulseBitmap(context: Context, frame: Int): Bitmap {
         val clamped = frame.coerceIn(0, PULSE_FRAMES)
         val key = "pulse-$clamped"
         return cache.getOrPut(key) {
-            ImageProvider.fromBitmap(createPulseBitmap(context.applicationContext, clamped / PULSE_FRAMES.toFloat()))
+            createPulseBitmap(context.applicationContext, clamped / PULSE_FRAMES.toFloat())
         }
     }
 

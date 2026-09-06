@@ -4,12 +4,11 @@ import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import com.coffeepeek.admin.theme.applyPersistedNightModeEarly
-import com.coffeepeek.BuildConfig
 import com.coffeepeek.admin.auth.SessionRealtimeManager
 import com.coffeepeek.admin.config.AppConfig
 import com.coffeepeek.admin.di.initPlatformKoin
 import com.coffeepeek.domain.repository.SessionRepository
-import com.yandex.mapkit.MapKitFactory
+import org.maplibre.android.MapLibre
 import io.kamel.core.config.KamelConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,8 +32,7 @@ class CoffeePeekApplication : Application() {
         _context = this
         // Apply saved light/dark mode before any Activity/splash resolves resources.
         applyPersistedNightModeEarly()
-        MapKitFactory.setApiKey(BuildConfig.MAPKIT_API_KEY)
-        MapKitFactory.initialize(this)
+        MapLibre.getInstance(this)
         initPlatformKoin()
 
         val koin = GlobalContext.get()

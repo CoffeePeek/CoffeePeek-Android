@@ -7,6 +7,9 @@ import com.coffeepeek.admin.utils.FavoriteSync
 import com.coffeepeek.admin.utils.OpenInBrowser
 import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.admin.utils.ReviewSync
+import com.coffeepeek.admin.utils.epochMillisToIsoInstant
+import com.coffeepeek.admin.utils.validatePublicCheckInDescription
+import com.coffeepeek.admin.utils.validatePublicCheckInHeader
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.CreateCheckInInput
 import com.coffeepeek.domain.model.PendingPhotoUpload
@@ -29,6 +32,7 @@ data class ShopDetailUiState(
     val isFavoriteLoading: Boolean = false,
     val isCheckInLoading: Boolean = false,
     val showCheckInSheet: Boolean = false,
+    val checkInDraft: CheckInDraft? = null,
     val actionMessage: String? = null,
     val error: String? = null,
 )
@@ -40,6 +44,7 @@ class ShopDetailViewModel(
     private val checkInRepository: CheckInRepository,
     private val reviewRepository: ReviewRepository,
     private val sessionRepository: SessionRepository,
+    private val checkInDraftStore: CheckInDraftStore,
 ) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(ShopDetailUiState())
@@ -132,24 +137,30 @@ class ShopDetailViewModel(
             _uiState.update { it.copy(actionMessage = "Вы уже отмечали это место") }
             return
         }
-        _uiState.update { it.copy(showCheckInSheet = true) }
+        val draft = checkInDraftStore.open(shopId)
+        _uiState.update { it.copy(showCheckInSheet = true, checkInDraft = draft) }
     }
 
     fun dismissCheckInSheet() {
         _uiState.update { it.copy(showCheckInSheet = false) }
     }
 
-    fun checkIn(
-        isPublic: Boolean,
-        note: String?,
-        placeRating: Int,
-        serviceRating: Int,
-        coffeeRating: Int,
-        visitedAtIso: String,
-        photos: List<PickedImage>,
-    ) {
-        if (isPublic && note.isNullOrBlank()) {
-            _uiState.update { it.copy(actionMessage = "Для публичного чек-ина нужен комментарий") }
+    fun updateCheckInDraft(draft: CheckInDraft) {
+        if (draft.shopId != shopId) return
+        checkInDraftStore.save(draft)
+        _uiState.update { it.copy(checkInDraft = draft) }
+    }
+
+    fun checkIn(draft: CheckInDraft) {
+        if (draft.shopId != shopId) return
+        if (draft.isPublic && (
+                validatePublicCheckInHeader(draft.header) != null ||
+                    validatePublicCheckInDescription(draft.note) != null
+                )
+        ) {
+            _uiState.update {
+                it.copy(actionMessage = "Для публичного чек-ина нужны заголовок и описание")
+            }
             return
         }
         workScope.launch {
@@ -157,21 +168,24 @@ class ShopDetailViewModel(
             checkInRepository.createCheckIn(
                 CreateCheckInInput(
                     shopId = shopId,
-                    note = note,
-                    visitedAtIso = visitedAtIso,
-                    isPublic = isPublic,
-                    placeRating = placeRating,
-                    serviceRating = serviceRating,
-                    coffeeRating = coffeeRating,
-                    photos = photos.map { it.toPendingUpload() },
+                    header = draft.header.trim().takeIf { draft.isPublic },
+                    note = draft.note.trim().takeIf { it.isNotEmpty() },
+                    visitedAtIso = epochMillisToIsoInstant(draft.visitMillis),
+                    isPublic = draft.isPublic,
+                    placeRating = draft.placeRating,
+                    serviceRating = draft.serviceRating,
+                    coffeeRating = draft.coffeeRating,
+                    photos = draft.photos.map { it.toPendingUpload() },
                 ),
             ).onSuccess {
+                checkInDraftStore.clear(shopId)
                 _uiState.update { state ->
                     val current = state.details
                     state.copy(
                         details = current?.copy(isVisited = true),
                         isCheckInLoading = false,
                         showCheckInSheet = false,
+                        checkInDraft = null,
                     )
                 }
                 refreshDetails(showLoading = false)
@@ -232,7 +246,7 @@ class ShopDetailViewModel(
         )
     }
 
-    fun openRouteInYandexMaps() {
+    fun openRoute() {
         val details = _uiState.value.details ?: return
         val location = details.location
         val lat = location?.latitude
@@ -241,8 +255,9 @@ class ShopDetailViewModel(
             _uiState.update { it.copy(actionMessage = "Координаты кофейни недоступны") }
             return
         }
-        // Empty "from" → Yandex builds the route from the user's current location.
-        OpenInBrowser.openInBrowser("https://yandex.ru/maps/?rtext=~$lat,$lon&rtt=auto")
+        OpenInBrowser.openInBrowser(
+            "https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&to=$lat,$lon"
+        )
     }
 
     fun shareShop() {

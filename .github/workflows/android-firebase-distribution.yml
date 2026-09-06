@@ -46,7 +46,6 @@ jobs:
           fi
           cat > local.properties <<EOF
           API_BASE_URL=$API_BASE_URL
-          MAPKIT_API_KEY=${{ secrets.MAPKIT_API_KEY }}
           GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}
           EOF
 

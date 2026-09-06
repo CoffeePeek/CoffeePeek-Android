@@ -33,6 +33,18 @@ fun validateReviewComment(comment: String): String? {
     }
 }
 
+fun validatePublicCheckInHeader(header: String): String? = validateReviewHeader(header)
+
+fun validatePublicCheckInDescription(description: String): String? {
+    val value = description.trim()
+    return when {
+        value.isBlank() -> "Введите описание"
+        value.length < MIN_REVIEW_COMMENT_LENGTH ->
+            "Минимум $MIN_REVIEW_COMMENT_LENGTH символов в описании"
+        else -> null
+    }
+}
+
 fun validateEmailRequired(email: String): String? = when {
     email.isBlank() -> MSG_EMAIL_REQUIRED
     !EMAIL_REGEX.matches(email.trim()) -> MSG_EMAIL_INVALID

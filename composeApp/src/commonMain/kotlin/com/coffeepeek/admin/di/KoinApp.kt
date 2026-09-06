@@ -20,6 +20,7 @@ import com.coffeepeek.admin.ui.screen.review.CreateReviewViewModel
 import com.coffeepeek.admin.ui.screen.review.EditReviewViewModel
 import com.coffeepeek.admin.ui.screen.reviews.MyReviewsViewModel
 import com.coffeepeek.admin.ui.screen.shop.ShopDetailViewModel
+import com.coffeepeek.admin.ui.screen.shop.CheckInDraftStore
 import com.coffeepeek.admin.di.imageModule
 import com.coffeepeek.data.di.dataModule
 import org.koin.core.context.startKoin
@@ -48,12 +49,13 @@ fun initKoin() {
 
 private fun appModule() = module {
     single<CustomUrlFetcher> { createImageUrlFetcher(get<CoffeePeekClient>().client) }
+    single { CheckInDraftStore() }
     factory { AuthViewModel(get()) }
     factory { RegisterViewModel(get()) }
     factory { NavigatorViewModel(get()) }
     factory { FeedViewModel(get(), get()) }
     factory { MapViewModel(get()) }
-    factory { (shopId: String) -> ShopDetailViewModel(shopId, get(), get(), get(), get(), get()) }
+    factory { (shopId: String) -> ShopDetailViewModel(shopId, get(), get(), get(), get(), get(), get()) }
     single { ProfileViewModel(get(), get(), get()) }
     factory { AddShopViewModel(get()) }
     factory { EditProfileViewModel(get()) }

@@ -86,6 +86,7 @@ data class UpdateReviewInput(
 
 data class CreateCheckInInput(
     val shopId: String,
+    val header: String? = null,
     val note: String? = null,
     val isPublic: Boolean = true,
     val visitedAtIso: String,

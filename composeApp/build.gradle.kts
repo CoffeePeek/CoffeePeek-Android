@@ -25,7 +25,7 @@ kotlin {
             implementation(libs.androidx.appcompat)
             implementation("androidx.core:core-splashscreen:1.0.1")
             implementation("androidx.exifinterface:exifinterface:1.4.1")
-            implementation(libs.yandex.mapkit)
+            implementation(libs.maplibre.android)
             implementation("com.google.android.gms:play-services-auth:21.3.0")
             implementation("com.microsoft.signalr:signalr:10.0.9")
             implementation("org.slf4j:slf4j-nop:2.0.16")
@@ -66,18 +66,6 @@ val gitCommitCount: Provider<Int> = providers.exec {
 val appVersionCode: Provider<Int> = gitCommitCount
 val appVersionName: Provider<String> = gitCommitCount.map { "1.0.$it" }
 
-val mapkitApiKey: String = run {
-    val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.exists()) {
-        val props = Properties()
-        localPropertiesFile.inputStream().use { props.load(it) }
-        props.getProperty("MAPKIT_API_KEY")
-            ?: props.getProperty("YANDEX_MAP_API_KEY", "")
-    } else {
-        ""
-    }
-}
-
 val googleWebClientId: String = run {
     val localPropertiesFile = rootProject.file("local.properties")
     if (localPropertiesFile.exists()) {
@@ -114,7 +102,6 @@ android {
         targetSdk = Config.TARGET_SDK
         versionCode = appVersionCode.get()
         versionName = appVersionName.get()
-        buildConfigField("String", "MAPKIT_API_KEY", "\"$mapkitApiKey\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
