@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.utils
 
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -8,6 +9,8 @@ import java.util.Locale
 internal actual fun currentUtcIsoDateTime(): String = Instant.now().toString()
 
 internal actual fun currentEpochMillis(): Long = System.currentTimeMillis()
+
+internal actual fun currentLocalDayOfWeek(): Int = LocalDate.now().dayOfWeek.value % 7
 
 internal actual fun epochMillisToIsoInstant(millis: Long): String =
     Instant.ofEpochMilli(millis).toString()

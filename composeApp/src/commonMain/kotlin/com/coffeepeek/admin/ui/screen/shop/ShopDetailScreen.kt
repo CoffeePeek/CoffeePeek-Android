@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -81,6 +80,8 @@ import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
+import com.coffeepeek.admin.utils.CpImage
+import com.coffeepeek.admin.utils.currentLocalDayOfWeek
 import com.coffeepeek.admin.ui.component.PriceBynRow
 import com.coffeepeek.admin.ui.component.priceRangeLevel
 import com.coffeepeek.admin.ui.component.FullScreenImageDialog
@@ -287,10 +288,21 @@ private fun ShopDetailContent(
             }
         }
 
-        catalogSection(title = "Способы заваривания", items = details.brewMethods)
-        catalogSection(title = "Кофейные зёрна", items = details.coffeeBeans)
-        catalogSection(title = "Обжарщики", items = details.roasters)
-        catalogSection(title = "Оборудование", items = details.equipment)
+        if (
+            details.brewMethods.isNotEmpty() ||
+            details.coffeeBeans.isNotEmpty() ||
+            details.roasters.isNotEmpty() ||
+            details.equipment.isNotEmpty()
+        ) {
+            item {
+                CoffeeDetailsSection(
+                    brewMethods = details.brewMethods,
+                    coffeeBeans = details.coffeeBeans,
+                    roasters = details.roasters,
+                    equipment = details.equipment,
+                )
+            }
+        }
 
         details.contact?.let { contact ->
             if (contact.hasAny()) {
@@ -347,8 +359,8 @@ private fun ShopHeroImage(
         if (photos.size <= 1) {
             val coverUrl = photos.firstOrNull()
             if (!coverUrl.isNullOrBlank()) {
-                KamelImage(
-                    resource = asyncPainterResource(coverUrl),
+                CpImage(
+                    data = coverUrl,
                     contentDescription = title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
@@ -605,45 +617,73 @@ private fun HeroIconButton(
 @Composable
 private fun CollapsibleScheduleSection(schedules: List<ShopSchedule>) {
     var expanded by remember { mutableStateOf(false) }
-    val preview = schedules.firstOrNull()?.let { schedule ->
-        "${dayOfWeekLabel(schedule.dayOfWeek)}: ${scheduleSummary(schedule)}"
-    } ?: "Раскрыть расписание"
+    val currentDay = remember { currentLocalDayOfWeek() }
+    val orderedSchedules = remember(schedules) {
+        schedules.sortedBy { schedule ->
+            if (schedule.dayOfWeek == 0) 7 else schedule.dayOfWeek
+        }
+    }
 
-    SectionCard(title = "Режим работы") {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = !expanded },
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                if (!expanded) {
-                    Text(
-                        text = preview,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CpDimens.spacing4, vertical = 6.dp),
+        shape = RoundedCornerShape(CpDimens.radius2xl),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    ) {
+        Column(modifier = Modifier.padding(CpDimens.spacing4)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(CpDimens.radiusMd))
+                        .background(CpColor.PrimaryTint10),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = CpIcons.Time,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
+                Spacer(Modifier.width(CpDimens.spacing3))
+                Text(
+                    text = "Часы работы",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    imageVector = if (expanded) CpIcons.ChevronUp else CpIcons.ChevronDown,
+                    contentDescription = if (expanded) "Скрыть часы работы" else "Показать часы работы",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
             }
-            Icon(
-                imageVector = if (expanded) CpIcons.ChevronUp else CpIcons.ChevronDown,
-                contentDescription = if (expanded) "Скрыть" else "Показать",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
 
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(animationSpec = tween(200)),
-            exit = shrinkVertically(animationSpec = tween(200)),
-        ) {
-            Column(
-                modifier = Modifier.padding(top = CpDimens.spacing2),
-                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(animationSpec = tween(200)),
+                exit = shrinkVertically(animationSpec = tween(200)),
             ) {
-                schedules.forEach { schedule ->
-                    ScheduleRow(schedule)
+                Column(
+                    modifier = Modifier.padding(start = 56.dp, top = CpDimens.spacing2),
+                    verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                ) {
+                    orderedSchedules.forEach { schedule ->
+                        ScheduleRow(
+                            schedule = schedule,
+                            isCurrentDay = schedule.dayOfWeek == currentDay,
+                        )
+                    }
                 }
             }
         }
@@ -1111,19 +1151,18 @@ private fun scheduleSummary(schedule: ShopSchedule): String = when {
 @Composable
 private fun PhotoGallery(photos: List<String>, title: String) {
     val pagerState = rememberPagerState(pageCount = { photos.size })
+
     Box(modifier = Modifier.fillMaxSize()) {
         HorizontalPager(
-            state = pagerState,
             modifier = Modifier.fillMaxSize(),
+            state = pagerState,
         ) { page ->
-            photos.getOrNull(page)?.let { url ->
-                KamelImage(
-                    resource = asyncPainterResource(url),
-                    contentDescription = title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+            CpImage(
+                data = photos[page],
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
         Surface(
             shape = RoundedCornerShape(999.dp),
@@ -1210,47 +1249,79 @@ private fun LocationRow(address: String) {
 }
 
 @Composable
-private fun ScheduleRow(schedule: ShopSchedule) {
+private fun ScheduleRow(
+    schedule: ShopSchedule,
+    isCurrentDay: Boolean,
+) {
+    val contentColor = if (isCurrentDay) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                CpIcons.Time,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(14.dp),
-            )
-            Spacer(Modifier.width(CpDimens.spacing1))
-            Text(
-                text = dayOfWeekLabel(schedule.dayOfWeek),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.width(120.dp),
-            )
-        }
         Text(
-            text = when {
-                schedule.isClosed -> "Выходной"
-                schedule.intervals.isEmpty() -> "—"
-                else -> schedule.intervals.joinToString(", ") { interval ->
-                    "${formatTime(interval.openTime)}–${formatTime(interval.closeTime)}"
-                }
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = shortDayOfWeekLabel(schedule.dayOfWeek),
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = if (isCurrentDay) FontWeight.SemiBold else FontWeight.Normal,
+            ),
+            color = contentColor,
+            modifier = Modifier.width(40.dp),
+        )
+        Text(
+            text = scheduleSummary(schedule),
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = if (isCurrentDay) FontWeight.SemiBold else FontWeight.Normal,
+            ),
+            color = contentColor,
         )
     }
 }
 
-private fun LazyListScope.catalogSection(title: String, items: List<String>) {
-    if (items.isEmpty()) return
-    item {
-        SectionCard(title = title) {
-            TagFlow(items = items)
+@Composable
+private fun CoffeeDetailsSection(
+    brewMethods: List<String>,
+    coffeeBeans: List<String>,
+    roasters: List<String>,
+    equipment: List<String>,
+) {
+    SectionCard(title = "Детали кофе") {
+        Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing5)) {
+            CatalogDetailGroup(CpIcons.CoffeeBean, "Обжарщики", roasters)
+            CatalogDetailGroup(CpIcons.Coffee, "Методы заваривания", brewMethods)
+            CatalogDetailGroup(CpIcons.CoffeeBean, "Кофейные зёрна", coffeeBeans)
+            CatalogDetailGroup(CpIcons.Settings, "Оборудование", equipment)
         }
+    }
+}
+
+@Composable
+private fun CatalogDetailGroup(
+    icon: ImageVector,
+    title: String,
+    items: List<String>,
+) {
+    if (items.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        TagFlow(items = items)
     }
 }
 
@@ -1289,8 +1360,8 @@ private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Un
 @Composable
 private fun InfoChip(
     text: String,
-    containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    textColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    containerColor: Color = CpColor.GoldWarmSoft,
+    textColor: Color = CpColor.GoldWarmHover,
 ) {
     Box(
         modifier = Modifier
@@ -1605,15 +1676,15 @@ private fun prettyLinkText(value: String): String {
         .ifBlank { value }
 }
 
-private fun dayOfWeekLabel(day: Int): String = when (day) {
-    0 -> "Воскресенье"
-    1 -> "Понедельник"
-    2 -> "Вторник"
-    3 -> "Среда"
-    4 -> "Четверг"
-    5 -> "Пятница"
-    6 -> "Суббота"
-    else -> "День $day"
+private fun shortDayOfWeekLabel(day: Int): String = when (day) {
+    0 -> "Вс"
+    1 -> "Пн"
+    2 -> "Вт"
+    3 -> "Ср"
+    4 -> "Чт"
+    5 -> "Пт"
+    6 -> "Сб"
+    else -> "—"
 }
 
 private fun formatTime(raw: String): String {

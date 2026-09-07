@@ -5,6 +5,9 @@ internal expect fun currentUtcIsoDateTime(): String
 /** Current wall-clock time in epoch milliseconds. */
 internal expect fun currentEpochMillis(): Long
 
+/** Current local day of week using the API convention: Sunday = 0, Monday = 1. */
+internal expect fun currentLocalDayOfWeek(): Int
+
 /** Convert epoch milliseconds to an ISO-8601 UTC instant string (e.g. for `visitedAt`). */
 internal expect fun epochMillisToIsoInstant(millis: Long): String
 
