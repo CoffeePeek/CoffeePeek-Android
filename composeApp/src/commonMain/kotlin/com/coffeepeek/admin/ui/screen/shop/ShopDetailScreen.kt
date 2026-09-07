@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,6 +32,8 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
@@ -71,7 +74,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coffeepeek.composeapp.generated.resources.Res
-import coffeepeek.composeapp.generated.resources.maskot_happy
 import coffeepeek.composeapp.generated.resources.maskot_with_book
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -266,8 +268,10 @@ private fun ShopDetailContent(
             }
         }
 
-        item {
-            DescriptionSection(description = details.description)
+        details.description?.trim()?.takeIf { it.isNotBlank() }?.let { description ->
+            item {
+                DescriptionSection(description = description)
+            }
         }
 
         item {
@@ -302,6 +306,7 @@ private fun ShopDetailContent(
         item {
             ReviewsSection(
                 reviews = details.reviews,
+                shopTitle = shop.title,
                 onReviewPhotoClick = onReviewPhotoClick,
             )
         }
@@ -752,6 +757,7 @@ private fun PhoneContactPill(
 @Composable
 private fun ReviewsSection(
     reviews: List<Review>,
+    shopTitle: String,
     onReviewPhotoClick: (String) -> Unit,
 ) {
     Column(
@@ -766,7 +772,7 @@ private fun ReviewsSection(
         if (reviews.isEmpty()) {
             EmptyMascotState(
                 mascot = Res.drawable.maskot_with_book,
-                message = "Пока нет отзывов",
+                message = "Станьте первым, кто оценит и оставит отзыв о своём посещении $shopTitle",
             )
         } else {
             Column(
@@ -785,21 +791,13 @@ private fun ReviewsSection(
 }
 
 @Composable
-private fun DescriptionSection(description: String?) {
+private fun DescriptionSection(description: String) {
     SectionCard(title = "Описание") {
-        val text = description?.trim().orEmpty()
-        if (text.isNotBlank()) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        } else {
-            EmptyMascotState(
-                mascot = Res.drawable.maskot_happy,
-                message = "Пока нет описания",
-            )
-        }
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
@@ -1109,20 +1107,16 @@ private fun scheduleSummary(schedule: ShopSchedule): String = when {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PhotoGallery(photos: List<String>, title: String) {
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(0.dp),
-        horizontalArrangement = Arrangement.spacedBy(0.dp),
-    ) {
-        items(photos) { url ->
-            Box(
-                modifier = Modifier
-                    .width(320.dp)
-                    .height(240.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-            ) {
+    val pagerState = rememberPagerState(pageCount = { photos.size })
+    Box(modifier = Modifier.fillMaxSize()) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+        ) { page ->
+            photos.getOrNull(page)?.let { url ->
                 KamelImage(
                     resource = asyncPainterResource(url),
                     contentDescription = title,
@@ -1130,6 +1124,21 @@ private fun PhotoGallery(photos: List<String>, title: String) {
                     modifier = Modifier.fillMaxSize(),
                 )
             }
+        }
+        Surface(
+            shape = RoundedCornerShape(999.dp),
+            color = Color.Black.copy(alpha = 0.48f),
+            tonalElevation = 0.dp,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(CpDimens.spacing3),
+        ) {
+            Text(
+                text = "${pagerState.currentPage + 1} / ${photos.size}",
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = Color.White,
+                modifier = Modifier.padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing1),
+            )
         }
     }
 }
