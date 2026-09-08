@@ -256,7 +256,7 @@ class ShopDetailViewModel(
             return
         }
         OpenInBrowser.openInBrowser(
-            "https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&to=$lat,$lon"
+            buildYandexMapsRouteUrl(latitude = lat, longitude = lon)
         )
     }
 
@@ -274,6 +274,9 @@ class ShopDetailViewModel(
         _uiState.update { it.copy(actionMessage = null) }
     }
 }
+
+internal fun buildYandexMapsRouteUrl(latitude: Double, longitude: Double): String =
+    "https://yandex.ru/maps/?mode=routes&rtext=~$latitude,$longitude&rtt=auto"
 
 private fun PickedImage.toPendingUpload() = PendingPhotoUpload(
     fileName = fileName,
