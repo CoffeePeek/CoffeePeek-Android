@@ -159,7 +159,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: coffeepeek-apk-${{ github.run_id }}-${{ github.run_attempt }}
+          name: coffeepeek-apk-${{ github.run_id }}
           path: coffeepeek.apk
           if-no-files-found: error
           retention-days: 30
@@ -191,7 +191,7 @@ jobs:
       - name: Download APK artifact
         uses: actions/download-artifact@v4
         with:
-          name: coffeepeek-apk-${{ github.run_id }}-${{ github.run_attempt }}
+          name: coffeepeek-apk-${{ github.run_id }}
           path: artifacts
 
       - name: Upload APK to VPS staging directory
