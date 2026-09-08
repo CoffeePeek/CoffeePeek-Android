@@ -1,7 +1,6 @@
 package com.coffeepeek.admin.ui.screen.map
 
 import com.coffeepeek.admin.ui.icons.CpIcons
-import com.coffeepeek.admin.ui.component.PriceBeanSlider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -31,10 +31,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,6 +46,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -272,43 +278,45 @@ private fun MapFiltersDialog(
                     singleLine = true,
                     label = { Text("Поиск") },
                     leadingIcon = { Icon(CpIcons.Search, contentDescription = null) },
+                    shape = RoundedCornerShape(CpDimens.radiusMd),
                 )
                 FilterSection("Цена") {
-                    PriceBeanSlider(
+                    CompactPriceFilter(
                         selected = filters.priceRange,
                         onSelect = onPrice,
-                        showTitle = false,
                     )
                 }
                 FilterSection("Формат точки") {
-                    CoffeeFocusFilterChips(
+                    SingleSelectMenu(
+                        placeholder = "Любой формат",
+                        items = COFFEE_FOCUS_OPTIONS.map { it.id to it.label },
                         selectedId = filters.coffeeFocus,
                         onSelect = onCoffeeFocusChange,
                     )
                 }
                 if (state.roasters.isNotEmpty()) {
-                    FilterSection("Обжарщики") {
-                        CatalogFilterChips(state.roasters, filters.roasterIds, "roaster", onToggleCatalog)
+                    CatalogMultiSelectMenu("Обжарщики", state.roasters, filters.roasterIds) {
+                        onToggleCatalog("roaster", it)
                     }
                 }
                 if (state.beans.isNotEmpty()) {
-                    FilterSection("Зёрна") {
-                        CatalogFilterChips(state.beans, filters.beanIds, "bean", onToggleCatalog)
+                    CatalogMultiSelectMenu("Зёрна", state.beans, filters.beanIds) {
+                        onToggleCatalog("bean", it)
                     }
                 }
                 if (state.equipment.isNotEmpty()) {
-                    FilterSection("Оборудование") {
-                        CatalogFilterChips(state.equipment, filters.equipmentIds, "equipment", onToggleCatalog)
+                    CatalogMultiSelectMenu("Оборудование", state.equipment, filters.equipmentIds) {
+                        onToggleCatalog("equipment", it)
                     }
                 }
                 if (state.brewMethods.isNotEmpty()) {
-                    FilterSection("Заваривание") {
-                        CatalogFilterChips(state.brewMethods, filters.brewMethodIds, "brew", onToggleCatalog)
+                    CatalogMultiSelectMenu("Заваривание", state.brewMethods, filters.brewMethodIds) {
+                        onToggleCatalog("brew", it)
                     }
                 }
                 if (state.shopTags.isNotEmpty()) {
-                    FilterSection("Особенности") {
-                        CatalogFilterChips(state.shopTags, filters.tagIds, "tag", onToggleCatalog)
+                    CatalogMultiSelectMenu("Особенности", state.shopTags, filters.tagIds) {
+                        onToggleCatalog("tag", it)
                     }
                 }
             }
@@ -338,72 +346,121 @@ private fun FilterSection(title: String, content: @Composable () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CoffeeFocusFilterChips(
+private fun SingleSelectMenu(
+    placeholder: String,
+    items: List<Pair<String, String>>,
     selectedId: String?,
     onSelect: (String?) -> Unit,
 ) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-    ) {
-        COFFEE_FOCUS_OPTIONS.forEach { option ->
-            FilterChip(
-                selected = selectedId == option.id,
-                onClick = {
-                    onSelect(if (selectedId == option.id) null else option.id)
-                },
-                label = { Text(option.label, style = MaterialTheme.typography.labelSmall) },
+    var expanded by remember { mutableStateOf(false) }
+    val selectedLabel = items.firstOrNull { it.first == selectedId }?.second
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(CpDimens.radiusMd),
+        ) {
+            Text(
+                text = selectedLabel ?: placeholder,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+            Icon(CpIcons.ChevronDown, contentDescription = null, modifier = Modifier.size(18.dp))
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth(0.82f),
+        ) {
+            DropdownMenuItem(
+                text = { Text(placeholder) },
+                onClick = {
+                    onSelect(null)
+                    expanded = false
+                },
+                trailingIcon = if (selectedId == null) {
+                    { Icon(CpIcons.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                } else null,
+            )
+            items.forEach { (id, label) ->
+                DropdownMenuItem(
+                    text = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    onClick = {
+                        onSelect(id)
+                        expanded = false
+                    },
+                    trailingIcon = if (id == selectedId) {
+                        { Icon(CpIcons.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else null,
+                )
+            }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CatalogFilterChips(
+private fun CatalogMultiSelectMenu(
+    title: String,
     items: List<CatalogItem>,
     selectedIds: Set<String>,
-    type: String,
-    onToggle: (String, String) -> Unit,
+    onToggle: (String) -> Unit,
 ) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-    ) {
-        items.forEach { item ->
-            FilterChip(
-                selected = item.id in selectedIds,
-                onClick = { onToggle(type, item.id) },
-                label = { Text(item.name, style = MaterialTheme.typography.labelSmall) },
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(CpDimens.radiusMd),
+        ) {
+            Text(
+                text = if (selectedIds.isEmpty()) title else "$title · ${selectedIds.size}",
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+            Icon(CpIcons.ChevronDown, contentDescription = null, modifier = Modifier.size(18.dp))
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .fillMaxWidth(0.82f)
+                .heightIn(max = 320.dp),
+        ) {
+            items.forEach { item ->
+                val selected = item.id in selectedIds
+                DropdownMenuItem(
+                    text = {
+                        Text(item.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    },
+                    onClick = { onToggle(item.id) },
+                    trailingIcon = if (selected) {
+                        { Icon(CpIcons.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else null,
+                )
+            }
         }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun <T> CatalogChips(
-    items: List<T>,
-    selectedIds: Set<String>,
-    onToggle: (String) -> Unit,
-    idSelector: (T) -> String,
-    labelSelector: (T) -> String,
+private fun CompactPriceFilter(
+    selected: Int?,
+    onSelect: (Int?) -> Unit,
 ) {
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {
-        items.forEach { item ->
-            val id = idSelector(item)
+        listOf(null to "Любая", 1 to "до 8", 2 to "≈ 8", 3 to "> 8").forEach { (value, label) ->
             FilterChip(
-                selected = id in selectedIds,
-                onClick = { onToggle(id) },
-                label = { Text(labelSelector(item), style = MaterialTheme.typography.labelSmall) },
+                selected = selected == value,
+                onClick = { onSelect(value) },
+                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
             )
         }
     }
