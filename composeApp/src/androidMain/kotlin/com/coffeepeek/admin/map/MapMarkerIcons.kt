@@ -366,12 +366,12 @@ internal object MapMarkerIcons {
     private fun clusterTypeface(context: Context): Typeface {
         cachedClusterTypeface?.let { return it }
         val loaded = runCatching {
-            val cacheFile = java.io.File(context.cacheDir, "rf_dewi_expanded_ultrabold.otf")
+            val cacheFile = java.io.File(context.cacheDir, "inter_extrabold.ttf")
             if (!cacheFile.exists() || cacheFile.length() == 0L) {
                 val stream = sequenceOf(
-                    "fonts/rf_dewi_expanded_ultrabold.otf",
-                    "composeResources/coffeepeek.composeapp.generated.resources/font/rf_dewi_expanded_ultrabold.otf",
-                    "font/rf_dewi_expanded_ultrabold.otf",
+                    "fonts/inter_extrabold.ttf",
+                    "composeResources/coffeepeek.composeapp.generated.resources/font/inter_extrabold.ttf",
+                    "font/inter_extrabold.ttf",
                 ).mapNotNull { path ->
                     runCatching { context.assets.open(path) }.getOrNull()
                         ?: MapMarkerIcons::class.java.getResourceAsStream("/$path")
