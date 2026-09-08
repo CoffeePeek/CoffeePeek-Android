@@ -120,7 +120,12 @@ jobs:
           fi
 
           APK_PATH="${files[0]}"
-          apksigner verify --verbose --print-certs "$APK_PATH"
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          if [[ ! -x "$APKSIGNER" ]]; then
+            echo "apksigner was not found at $APKSIGNER."
+            exit 1
+          fi
+          "$APKSIGNER" verify --verbose --print-certs "$APK_PATH"
 
           VERSION_NAME=$(./gradlew -q :composeApp:printVersionName)
           VERSION_CODE=$(./gradlew -q :composeApp:printVersionCode)
