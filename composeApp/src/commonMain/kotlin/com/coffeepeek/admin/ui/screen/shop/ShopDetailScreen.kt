@@ -1,10 +1,8 @@
 package com.coffeepeek.admin.ui.screen.shop
 
 import com.coffeepeek.admin.ui.icons.CpIcons
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -636,7 +634,8 @@ private fun CollapsibleScheduleSection(schedules: List<ShopSchedule>) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = CpDimens.spacing4, vertical = 6.dp),
+            .padding(horizontal = CpDimens.spacing4, vertical = 6.dp)
+            .animateContentSize(animationSpec = tween(durationMillis = 220)),
         shape = RoundedCornerShape(CpDimens.radius2xl),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -678,11 +677,7 @@ private fun CollapsibleScheduleSection(schedules: List<ShopSchedule>) {
                 )
             }
 
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically(animationSpec = tween(200)),
-                exit = shrinkVertically(animationSpec = tween(200)),
-            ) {
+            if (expanded) {
                 Column(
                     modifier = Modifier.padding(start = 56.dp, top = CpDimens.spacing2),
                     verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
