@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.ui.screen.feed
 
 import com.coffeepeek.admin.base.BaseViewModel
+import com.coffeepeek.admin.settings.CityPreference
 import com.coffeepeek.admin.utils.FavoriteSync
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
@@ -61,7 +62,6 @@ data class FeedUiState(
     val activeFilterCount: Int
         get() {
             var count = 0
-            if (filters.cityId != null) count++
             if (filters.coffeeFocus != null) count++
             if (filters.openOnly) count++
             if (filters.newOnly) count++
@@ -87,6 +87,7 @@ data class FeedUiState(
 class FeedViewModel(
     private val shopRepository: ShopRepository,
     private val favoriteRepository: FavoriteRepository,
+    private val cityPreference: CityPreference,
 ) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
@@ -94,10 +95,19 @@ class FeedViewModel(
 
     private val queryFlow = MutableStateFlow("")
     private var shopsLoadJob: Job? = null
+    private var isCityReady = false
 
     init {
-        loadShops(reset = true)
         loadCatalogs()
+        cityPreference.selectedCityId
+            .onEach { cityId ->
+                if (!isCityReady || cityId == null || cityId == _uiState.value.filters.cityId) {
+                    return@onEach
+                }
+                _uiState.update { it.copy(filters = it.filters.copy(cityId = cityId)) }
+                loadShops(reset = true)
+            }
+            .launchIn(workScope)
         queryFlow
             .debounce(400)
             .distinctUntilChanged()
@@ -129,8 +139,10 @@ class FeedViewModel(
         workScope.launch {
             shopRepository.getCatalogs()
                 .onSuccess { catalogs ->
+                    val cityId = cityPreference.resolve(catalogs.cities)
                     _uiState.update {
                         it.copy(
+                            filters = it.filters.copy(cityId = cityId),
                             cities = catalogs.cities,
                             beans = catalogs.beans,
                             equipment = catalogs.equipment,
@@ -139,6 +151,12 @@ class FeedViewModel(
                             shopTags = catalogs.shopTags,
                         )
                     }
+                    isCityReady = true
+                    loadShops(reset = true)
+                }
+                .onFailure {
+                    isCityReady = true
+                    loadShops(reset = true)
                 }
         }
     }
@@ -165,27 +183,9 @@ class FeedViewModel(
         loadShops(reset = true)
     }
 
-    fun setCity(cityId: String?) {
-        _uiState.update { it.copy(filters = it.filters.copy(cityId = cityId)) }
-        loadShops(reset = true)
-    }
-
     fun setCoffeeFocus(coffeeFocus: String?) {
         _uiState.update { it.copy(filters = it.filters.copy(coffeeFocus = coffeeFocus)) }
         loadShops(reset = true)
-    }
-
-    fun clearQuickFilters() {
-        _uiState.update {
-            it.copy(
-                filters = it.filters.copy(
-                    openOnly = false,
-                    newOnly = false,
-                    visitedOnly = false,
-                    favoritesOnly = false,
-                ),
-            )
-        }
     }
 
     fun toggleOpenOnly() {
@@ -244,7 +244,9 @@ class FeedViewModel(
 
     fun clearFilters() {
         queryFlow.value = ""
-        _uiState.update { it.copy(query = "", filters = FeedFiltersUi()) }
+        _uiState.update {
+            it.copy(query = "", filters = FeedFiltersUi(cityId = it.filters.cityId))
+        }
         loadShops(reset = true)
     }
 

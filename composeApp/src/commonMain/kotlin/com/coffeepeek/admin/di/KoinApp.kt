@@ -4,6 +4,7 @@ import com.coffeepeek.admin.config.AppConfig
 import com.coffeepeek.admin.locator.Constants
 import com.coffeepeek.admin.locator.Locator
 import com.coffeepeek.admin.theme.ThemeManager
+import com.coffeepeek.admin.settings.CityPreference
 import com.coffeepeek.admin.utils.CustomUrlFetcher
 import com.coffeepeek.api.CoffeePeekClient
 import com.coffeepeek.admin.ui.NavigatorViewModel
@@ -41,22 +42,23 @@ fun initKoin() {
                 database = database,
                 debug = AppConfig.isDebug,
             ),
-            appModule(),
+            appModule(database.settingRepository),
             imageModule(),
         )
     }
 }
 
-private fun appModule() = module {
+private fun appModule(settingRepository: com.coffeepeek.room.repository.SettingRepository) = module {
     single<CustomUrlFetcher> { createImageUrlFetcher(get<CoffeePeekClient>().client) }
     single { CheckInDraftStore() }
+    single { CityPreference(settingRepository) }
     factory { AuthViewModel(get()) }
     factory { RegisterViewModel(get()) }
     factory { NavigatorViewModel(get()) }
-    factory { FeedViewModel(get(), get()) }
-    factory { MapViewModel(get()) }
+    factory { FeedViewModel(get(), get(), get()) }
+    factory { MapViewModel(get(), get()) }
     factory { (shopId: String) -> ShopDetailViewModel(shopId, get(), get(), get(), get(), get(), get()) }
-    single { ProfileViewModel(get(), get(), get()) }
+    single { ProfileViewModel(get(), get(), get(), get(), get()) }
     factory { AddShopViewModel(get()) }
     factory { EditProfileViewModel(get()) }
     factory { FavoritesViewModel(get()) }

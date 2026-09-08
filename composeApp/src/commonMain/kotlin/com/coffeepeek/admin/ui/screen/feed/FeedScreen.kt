@@ -182,7 +182,6 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                         newOnly = state.filters.newOnly,
                         visitedOnly = state.filters.visitedOnly,
                         favoritesOnly = state.filters.favoritesOnly,
-                        onClearQuickFilters = vm::clearQuickFilters,
                         onToggleOpen = vm::toggleOpenOnly,
                         onToggleNew = vm::toggleNewOnly,
                         onToggleVisited = vm::toggleVisitedOnly,
@@ -525,7 +524,6 @@ private fun FeedQuickFilterBar(
     newOnly: Boolean,
     visitedOnly: Boolean,
     favoritesOnly: Boolean,
-    onClearQuickFilters: () -> Unit,
     onToggleOpen: () -> Unit,
     onToggleNew: () -> Unit,
     onToggleVisited: () -> Unit,
@@ -533,8 +531,6 @@ private fun FeedQuickFilterBar(
     coffeeFocusId: String?,
     onCoffeeFocusChange: (String) -> Unit,
 ) {
-    val hasQuickFilters = openOnly || newOnly || visitedOnly || favoritesOnly
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -542,12 +538,6 @@ private fun FeedQuickFilterBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {
-        DesignFilterChip(
-            label = "Все",
-            selected = !hasQuickFilters,
-            onClick = onClearQuickFilters,
-            leadingIcon = CpIcons.Grid,
-        )
         DesignFilterChip(
             label = "Открыто",
             selected = openOnly,

@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.ui.screen.map
 
 import com.coffeepeek.admin.base.BaseViewModel
+import com.coffeepeek.admin.settings.CityPreference
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CoffeeShopDetails
@@ -14,6 +15,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -56,7 +59,6 @@ data class MapUiState(
         get() {
             var count = 0
             if (query.isNotBlank()) count++
-            if (filters.cityId != null) count++
             if (filters.coffeeFocus != null) count++
             if (filters.priceRange != null) count++
             if (filters.minRating != null) count++
@@ -68,6 +70,7 @@ data class MapUiState(
 
 class MapViewModel(
     private val shopRepository: ShopRepository,
+    private val cityPreference: CityPreference,
 ) : BaseViewModel() {
 
     private val _state = MutableStateFlow(MapUiState())
@@ -79,9 +82,19 @@ class MapViewModel(
     private var selectionVersion = 0
     private val detailsCache = mutableMapOf<String, CoffeeShopDetails>()
     private var suppressBoundsUpdates = false
+    private var isCityReady = false
 
     init {
         loadCatalogs()
+        cityPreference.selectedCityId
+            .onEach { cityId ->
+                if (!isCityReady || cityId == null || cityId == _state.value.filters.cityId) {
+                    return@onEach
+                }
+                _state.update { it.copy(filters = it.filters.copy(cityId = cityId)) }
+                searchCurrentArea()
+            }
+            .launchIn(workScope)
     }
 
     fun onBoundsChanged(bounds: MapBounds) {
@@ -136,10 +149,6 @@ class MapViewModel(
         _state.update { it.copy(query = query) }
     }
 
-    fun setCity(cityId: String?) {
-        _state.update { it.copy(filters = it.filters.copy(cityId = cityId)) }
-    }
-
     fun setCoffeeFocus(coffeeFocus: String?) {
         _state.update { it.copy(filters = it.filters.copy(coffeeFocus = coffeeFocus)) }
     }
@@ -172,7 +181,9 @@ class MapViewModel(
     }
 
     fun clearFilters() {
-        _state.update { it.copy(query = "", filters = MapFiltersUi()) }
+        _state.update {
+            it.copy(query = "", filters = MapFiltersUi(cityId = it.filters.cityId))
+        }
         searchCurrentArea()
     }
 
@@ -224,8 +235,10 @@ class MapViewModel(
         workScope.launch {
             shopRepository.getCatalogs()
                 .onSuccess { catalogs ->
+                    val cityId = cityPreference.resolve(catalogs.cities)
                     _state.update {
                         it.copy(
+                            filters = it.filters.copy(cityId = cityId),
                             cities = catalogs.cities,
                             beans = catalogs.beans,
                             equipment = catalogs.equipment,
@@ -234,16 +247,21 @@ class MapViewModel(
                             shopTags = catalogs.shopTags,
                         )
                     }
+                    isCityReady = true
+                    _state.value.pendingBounds?.let(::loadBounds)
                 }
                 .onFailure { err ->
+                    isCityReady = true
                     _state.update {
                         it.copy(error = err.message ?: "Ошибка загрузки каталогов")
                     }
+                    _state.value.pendingBounds?.let(::loadBounds)
                 }
         }
     }
 
     private fun loadBounds(bounds: MapBounds) {
+        if (!isCityReady) return
         boundsJob?.cancel()
         boundsJob = workScope.launch {
             delay(250)

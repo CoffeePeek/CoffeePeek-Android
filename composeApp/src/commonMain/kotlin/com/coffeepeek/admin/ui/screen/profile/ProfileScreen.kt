@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -50,6 +51,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -61,6 +63,7 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
 import com.coffeepeek.admin.utils.CpImage
+import com.coffeepeek.domain.model.City
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.profile_version
 import org.jetbrains.compose.resources.stringResource
@@ -70,6 +73,8 @@ import org.koin.compose.koinInject
 fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
     val state by vm.uiState.collectAsState()
     val themeMode by vm.themeMode.collectAsState()
+    val cities by vm.cities.collectAsState()
+    val selectedCityId by vm.selectedCityId.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     if (showLogoutDialog) {
@@ -185,6 +190,12 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
 
             // ── Настройки ─────────────────────────────────────────────────────
             SettingsSection(title = "Настройки") {
+                CityRow(
+                    cities = cities,
+                    selectedCityId = selectedCityId,
+                    onSelect = vm::setCity,
+                )
+                SettingsDivider()
                 ThemeRow(current = themeMode, onSelect = vm::setTheme)
                 SettingsDivider()
                 SettingsRow(
@@ -380,6 +391,87 @@ private fun ThemeMode.icon() = when (this) {
     ThemeMode.SYSTEM -> CpIcons.ThemeSystem
     ThemeMode.LIGHT  -> CpIcons.ThemeLight
     ThemeMode.DARK   -> CpIcons.ThemeDark
+}
+
+@Composable
+private fun CityRow(
+    cities: List<City>,
+    selectedCityId: String?,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedCity = cities.firstOrNull { it.id == selectedCityId }
+
+    SettingsRow(
+        icon = CpIcons.Location,
+        label = "Город",
+        trailing = {
+            Box {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+                ) {
+                    Text(
+                        text = selectedCity?.name ?: "Выберите",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 140.dp),
+                    )
+                    Icon(
+                        imageVector = CpIcons.ChevronDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.widthIn(min = 208.dp),
+                    shape = RoundedCornerShape(CpDimens.selectRadius),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 4.dp,
+                ) {
+                    cities.forEach { city ->
+                        val isSelected = city.id == selectedCityId
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = city.name,
+                                    color = if (isSelected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                                )
+                            },
+                            onClick = {
+                                onSelect(city.id)
+                                expanded = false
+                            },
+                            trailingIcon = if (isSelected) {
+                                {
+                                    Icon(
+                                        imageVector = CpIcons.Check,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                }
+                            } else {
+                                null
+                            },
+                        )
+                    }
+                }
+            }
+        },
+        onClick = { if (cities.isNotEmpty()) expanded = true },
+        showArrow = false,
+    )
 }
 
 @Composable
