@@ -132,11 +132,6 @@ class ShopDetailViewModel(
     }
 
     fun openCheckInSheet() {
-        val details = _uiState.value.details
-        if (details?.isVisited == true) {
-            _uiState.update { it.copy(actionMessage = "Вы уже отмечали это место") }
-            return
-        }
         val draft = checkInDraftStore.open(shopId)
         _uiState.update { it.copy(showCheckInSheet = true, checkInDraft = draft) }
     }

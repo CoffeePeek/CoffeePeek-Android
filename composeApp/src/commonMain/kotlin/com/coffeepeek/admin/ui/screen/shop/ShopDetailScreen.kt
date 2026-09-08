@@ -189,7 +189,6 @@ fun ShopDetailScreen(shopId: String) {
         if (details != null) {
             ShopDetailBottomBar(
                 isCheckInLoading = state.isCheckInLoading,
-                isVisited = details.isVisited,
                 canOpenRoute = details.location?.latitude != null &&
                     details.location?.longitude != null,
                 onRoute = vm::openRoute,
@@ -1028,7 +1027,6 @@ private fun AddressCard(
 @Composable
 private fun ShopDetailBottomBar(
     isCheckInLoading: Boolean,
-    isVisited: Boolean,
     canOpenRoute: Boolean,
     onRoute: () -> Unit,
     onReview: () -> Unit,
@@ -1056,7 +1054,7 @@ private fun ShopDetailBottomBar(
         BottomBarAction(
             icon = CpIcons.Check,
             label = "Чекин",
-            enabled = !isCheckInLoading && !isVisited,
+            enabled = !isCheckInLoading,
             isLoading = isCheckInLoading,
             onClick = onCheckIn,
             modifier = Modifier.weight(1f),
