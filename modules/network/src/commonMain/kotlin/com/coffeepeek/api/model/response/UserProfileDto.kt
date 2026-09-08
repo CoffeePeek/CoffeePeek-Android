@@ -14,3 +14,14 @@ data class UserProfileDto(
     @SerialName("checkInCount")   val checkInCount: Int = 0,
     @SerialName("addedShopsCount") val addedShopsCount: Int = 0,
 ) : DataResponse()
+
+@Serializable
+data class PublicUserProfileDto(
+    @SerialName("userName") val userName: String = "",
+    @SerialName("createdAtUtc") val createdAtUtc: String = "",
+    @SerialName("about") val about: String? = null,
+    @SerialName("avatarUrl") val avatarUrl: String? = null,
+    @SerialName("reviewCount") val reviewCount: Int = 0,
+    @SerialName("checkInCount") val checkInCount: Int = 0,
+    @SerialName("addedShopsCount") val addedShopsCount: Int = 0,
+) : DataResponse()

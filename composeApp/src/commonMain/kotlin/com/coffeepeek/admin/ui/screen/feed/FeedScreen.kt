@@ -116,7 +116,7 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                         .padding(top = CpDimens.spacing3, bottom = CpDimens.spacing2),
                 ) {
                     Text(
-                        text = "Кофейни",
+                        text = "Кофейни рядом",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
