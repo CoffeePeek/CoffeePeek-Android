@@ -9,6 +9,7 @@ import com.coffeepeek.data.util.FileUrlResolver
 import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.CoffeeShopType
+import com.coffeepeek.domain.model.CheckIn
 import com.coffeepeek.domain.model.Review
 import com.coffeepeek.domain.model.ReviewRating
 import com.coffeepeek.domain.model.ShopMenu
@@ -77,6 +78,20 @@ internal object ShopMapper {
         existingReviewId = existingReviewId,
         photos = photos.mapNotNull { it.fullUrl },
         reviews = reviews.map { it.toDomain(fileUrls) },
+        userCheckIns = userCheckIns.map { checkIn ->
+            CheckIn(
+                id = checkIn.id,
+                shopId = checkIn.shopId,
+                shopName = checkIn.shopName.ifBlank { name },
+                note = checkIn.note,
+                createdAt = checkIn.createdAt,
+                reviewId = checkIn.reviewId,
+                visitedAt = checkIn.visitedAt,
+                photoUrls = checkIn.photos.mapNotNull { photo ->
+                    fileUrls.resolve(photo.storageKey, photo.fullUrl)
+                },
+            )
+        },
         contact = shopContact?.let { c ->
             com.coffeepeek.domain.model.ShopContact(
                 instagram = c.instagramLink,

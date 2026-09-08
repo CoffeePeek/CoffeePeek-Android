@@ -1,6 +1,7 @@
 package com.coffeepeek.api.model.response.shop
 
 import com.coffeepeek.api.model.DataResponse
+import com.coffeepeek.api.model.response.CheckInDto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -15,6 +16,7 @@ data class CoffeeShopDetailsDto(
     @SerialName("rating") val rating: Double = 0.0,
     @SerialName("reviewCount") val reviewCount: Int = 0,
     @SerialName("reviews") val reviews: List<ReviewDto> = emptyList(),
+    @SerialName("userCheckIns") val userCheckIns: List<CheckInDto> = emptyList(),
     @SerialName("isFavorite") val isFavorite: Boolean = false,
     @SerialName("isVisited") val isVisited: Boolean = false,
     @SerialName("canCreateReview") val canCreateReview: Boolean? = null,

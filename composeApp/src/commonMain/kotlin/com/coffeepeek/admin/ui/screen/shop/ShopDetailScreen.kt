@@ -87,6 +87,7 @@ import com.coffeepeek.admin.ui.component.priceRangeLevel
 import com.coffeepeek.admin.ui.component.FullScreenImageDialog
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.utils.OpenInBrowser
+import com.coffeepeek.domain.model.CheckIn
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.Review
 import com.coffeepeek.domain.model.ReviewRating
@@ -311,6 +312,15 @@ private fun ShopDetailContent(
                         onCopyPhone = onCopyPhone,
                     )
                 }
+            }
+        }
+
+        if (details.userCheckIns.isNotEmpty()) {
+            item {
+                CheckInsSection(
+                    checkIns = details.userCheckIns,
+                    onPhotoClick = onReviewPhotoClick,
+                )
             }
         }
 
@@ -823,6 +833,70 @@ private fun ReviewsSection(
                     if (index < reviews.lastIndex) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CheckInsSection(
+    checkIns: List<CheckIn>,
+    onPhotoClick: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CpDimens.spacing4)
+            .padding(top = CpDimens.spacing6, bottom = CpDimens.spacing3),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+    ) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        SectionTitle("Мои посещения", barColor = CpColor.Primary)
+        checkIns.forEachIndexed { index, checkIn ->
+            CheckInCard(checkIn = checkIn, onPhotoClick = onPhotoClick)
+            if (index < checkIns.lastIndex) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CheckInCard(
+    checkIn: CheckIn,
+    onPhotoClick: (String) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        val date = checkIn.visitedAt.ifBlank { checkIn.createdAt }
+        if (date.isNotBlank()) {
+            Text(
+                text = formatReviewDate(date),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (checkIn.note.isNotBlank()) {
+            Text(
+                text = checkIn.note,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = CpDimens.spacing1),
+            )
+        }
+        if (checkIn.photoUrls.isNotEmpty()) {
+            Spacer(Modifier.height(CpDimens.spacing2))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
+                items(checkIn.photoUrls) { url ->
+                    CpImage(
+                        data = url,
+                        contentDescription = "Фото посещения",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(RoundedCornerShape(CpDimens.radiusSm))
+                            .clickable { onPhotoClick(url) },
+                    )
                 }
             }
         }

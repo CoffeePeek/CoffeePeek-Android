@@ -57,6 +57,8 @@ class CheckInRepositoryImpl(
                         note = dto.note,
                         createdAt = dto.createdAt,
                         reviewId = dto.reviewId,
+                        visitedAt = dto.visitedAt,
+                        photoUrls = dto.photos.mapNotNull { it.fullUrl },
                     )
                 },
                 totalCount = response.totalItems,

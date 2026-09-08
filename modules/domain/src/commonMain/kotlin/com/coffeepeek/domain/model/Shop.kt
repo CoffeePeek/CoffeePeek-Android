@@ -28,6 +28,7 @@ data class CoffeeShopDetails(
     val existingReviewId: String? = null,
     val photos: List<String> = emptyList(),
     val reviews: List<Review> = emptyList(),
+    val userCheckIns: List<CheckIn> = emptyList(),
     val contact: ShopContact? = null,
     val brewMethods: List<String> = emptyList(),
     val coffeeBeans: List<String> = emptyList(),
