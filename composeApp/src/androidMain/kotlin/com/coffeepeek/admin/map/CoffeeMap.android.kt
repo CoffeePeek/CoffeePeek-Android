@@ -140,6 +140,8 @@ actual fun CoffeeMap(
     var styleGeneration by remember { mutableIntStateOf(0) }
     var clusterGeneration by remember { mutableIntStateOf(0) }
     var initialCameraApplied by remember { mutableStateOf(false) }
+    var currentLocation by remember { mutableStateOf<LatLng?>(null) }
+    var currentLocationMarker by remember { mutableStateOf<Marker?>(null) }
 
     DisposableEffect(lifecycleOwner, mapView) {
         var started = false
@@ -246,12 +248,14 @@ actual fun CoffeeMap(
         activeMap.removeAnnotations()
         shopMarks.clear()
         clusterMarks.clear()
+        currentLocationMarker = null
         activeMap.setStyle(Style.Builder().fromJson(openStreetMapStyle(isDarkTheme))) {
             styleGeneration += 1
             if (!initialCameraApplied) {
                 val location = context.lastKnownLocation()
+                currentLocation = location?.let { LatLng(it.latitude, it.longitude) }
                 val initialTarget = cameraTarget?.let { LatLng(it.first, it.second) }
-                    ?: location?.let { LatLng(it.latitude, it.longitude) }
+                    ?: currentLocation
                     ?: LatLng(DEFAULT_LAT, DEFAULT_LON)
                 val initialZoom = cameraZoom ?: when {
                     cameraTarget != null -> TARGET_ZOOM
@@ -290,6 +294,7 @@ actual fun CoffeeMap(
         }
 
         context.lastKnownLocation()?.let { location ->
+            currentLocation = LatLng(location.latitude, location.longitude)
             activeMap.animateCamera(
                 CameraUpdateFactory.newLatLngZoom(
                     LatLng(location.latitude, location.longitude),
@@ -298,6 +303,27 @@ actual fun CoffeeMap(
                 450,
             )
             onMyLocationFoundState.value(location.latitude, location.longitude)
+        }
+    }
+
+    LaunchedEffect(currentLocation, map, styleGeneration) {
+        val activeMap = map ?: return@LaunchedEffect
+        val position = currentLocation ?: return@LaunchedEffect
+        if (styleGeneration == 0) return@LaunchedEffect
+
+        val marker = currentLocationMarker
+        if (marker == null) {
+            currentLocationMarker = activeMap.addMarker(
+                MarkerOptions()
+                    .position(position)
+                    .icon(
+                        IconFactory.getInstance(appContext)
+                            .fromBitmap(MapMarkerIcons.myLocationBitmap(appContext)),
+                    ),
+            )
+        } else {
+            marker.position = position
+            activeMap.updateMarker(marker)
         }
     }
 

@@ -47,6 +47,7 @@ internal object MapMarkerIcons {
     private const val LIGHT_TEXT_SECONDARY = 0xFF78716C.toInt()
     private const val DARK_BORDER_HOVER = 0xFF4A3D35.toInt()
     private const val TEXT_ON_PRIMARY = 0xFF1A1412.toInt()
+    private const val MY_LOCATION = 0xFF2563EB.toInt()
     private const val WHITE = 0xFFFFFFFF.toInt()
     private const val SHADOW = 0xFF1A1412.toInt()
 
@@ -86,6 +87,44 @@ internal object MapMarkerIcons {
         return cache.getOrPut(key) {
             createPulseBitmap(context.applicationContext, clamped / PULSE_FRAMES.toFloat())
         }
+    }
+
+    fun myLocationBitmap(context: Context): Bitmap = cache.getOrPut("my-location") {
+        val density = context.resources.displayMetrics.density
+        val size = (26f * density).roundToInt().coerceAtLeast(1)
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val center = size / 2f
+
+        canvas.drawCircle(
+            center,
+            center,
+            11f * density,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = ColorUtils.setAlphaComponent(MY_LOCATION, 0x33)
+            },
+        )
+        canvas.drawCircle(
+            center,
+            center,
+            7f * density,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = MY_LOCATION
+            },
+        )
+        canvas.drawCircle(
+            center,
+            center,
+            7f * density - 1.5f * density,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 3f * density
+                color = WHITE
+            },
+        )
+        bitmap
     }
 
     const val PULSE_FRAMES = 12
