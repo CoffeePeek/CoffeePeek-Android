@@ -23,18 +23,13 @@ import kotlinx.coroutines.launch
 
 private const val PAGE_SIZE = 20
 
-enum class FeedQuickMode {
-    ALL,
-    OPEN,
-    NEW,
-    VISITED,
-    FAVORITES,
-}
-
 data class FeedFiltersUi(
     val cityId: String? = null,
     val coffeeFocus: String? = null,
-    val quickMode: FeedQuickMode = FeedQuickMode.ALL,
+    val openOnly: Boolean = false,
+    val newOnly: Boolean = false,
+    val visitedOnly: Boolean = false,
+    val favoritesOnly: Boolean = false,
     val priceRange: Int? = null,
     val minRating: Double? = null,
     val roasterIds: Set<String> = emptySet(),
@@ -68,7 +63,10 @@ data class FeedUiState(
             var count = 0
             if (filters.cityId != null) count++
             if (filters.coffeeFocus != null) count++
-            if (filters.quickMode != FeedQuickMode.ALL) count++
+            if (filters.openOnly) count++
+            if (filters.newOnly) count++
+            if (filters.visitedOnly) count++
+            if (filters.favoritesOnly) count++
             if (filters.priceRange != null) count++
             if (filters.minRating != null) count++
             count += filters.roasterIds.size + filters.beanIds.size +
@@ -77,12 +75,11 @@ data class FeedUiState(
         }
 
     val visibleShops: List<CoffeeShop>
-        get() = when (filters.quickMode) {
-            FeedQuickMode.ALL -> shops
-            FeedQuickMode.OPEN -> shops.filter { it.isOpen }
-            FeedQuickMode.NEW -> shops.filter { it.isNew }
-            FeedQuickMode.VISITED -> shops.filter { it.isVisited }
-            FeedQuickMode.FAVORITES -> shops.filter { it.isFavorite }
+        get() = shops.filter { shop ->
+            (!filters.openOnly || shop.isOpen) &&
+                (!filters.newOnly || shop.isNew) &&
+                (!filters.visitedOnly || shop.isVisited) &&
+                (!filters.favoritesOnly || shop.isFavorite)
         }
 }
 
@@ -178,8 +175,33 @@ class FeedViewModel(
         loadShops(reset = true)
     }
 
-    fun setQuickMode(mode: FeedQuickMode) {
-        _uiState.update { it.copy(filters = it.filters.copy(quickMode = mode)) }
+    fun clearQuickFilters() {
+        _uiState.update {
+            it.copy(
+                filters = it.filters.copy(
+                    openOnly = false,
+                    newOnly = false,
+                    visitedOnly = false,
+                    favoritesOnly = false,
+                ),
+            )
+        }
+    }
+
+    fun toggleOpenOnly() {
+        _uiState.update { it.copy(filters = it.filters.copy(openOnly = !it.filters.openOnly)) }
+    }
+
+    fun toggleNewOnly() {
+        _uiState.update { it.copy(filters = it.filters.copy(newOnly = !it.filters.newOnly)) }
+    }
+
+    fun toggleVisitedOnly() {
+        _uiState.update { it.copy(filters = it.filters.copy(visitedOnly = !it.filters.visitedOnly)) }
+    }
+
+    fun toggleFavoritesOnly() {
+        _uiState.update { it.copy(filters = it.filters.copy(favoritesOnly = !it.filters.favoritesOnly)) }
     }
 
     fun setPriceRange(priceRange: Int?) {

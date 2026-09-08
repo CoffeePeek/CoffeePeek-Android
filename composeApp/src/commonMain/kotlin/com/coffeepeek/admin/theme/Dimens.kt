@@ -69,9 +69,9 @@ object CpDimens {
     val loaderButton  = 20.dp
 
     // ── Floating bottom nav ───────────────────────────────────────────────────
-    val floatingNavBarHeight = 64.dp
+    val floatingNavBarHeight = 56.dp
     val floatingNavHorizontalMargin = 28.dp
-    val floatingNavBottomMargin = 14.dp
+    val floatingNavBottomMargin = 12.dp
     /** Approximate clearance: bar + bottom margin (+ caller adds nav-bar inset). */
     val floatingNavContentClearance = floatingNavBarHeight + floatingNavBottomMargin + spacing2
 }

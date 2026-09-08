@@ -178,8 +178,15 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                     }
                     Spacer(modifier = Modifier.height(CpDimens.spacing2))
                     FeedQuickFilterBar(
-                        quickMode = state.filters.quickMode,
-                        onQuickMode = vm::setQuickMode,
+                        openOnly = state.filters.openOnly,
+                        newOnly = state.filters.newOnly,
+                        visitedOnly = state.filters.visitedOnly,
+                        favoritesOnly = state.filters.favoritesOnly,
+                        onClearQuickFilters = vm::clearQuickFilters,
+                        onToggleOpen = vm::toggleOpenOnly,
+                        onToggleNew = vm::toggleNewOnly,
+                        onToggleVisited = vm::toggleVisitedOnly,
+                        onToggleFavorites = vm::toggleFavoritesOnly,
                         coffeeFocusId = state.filters.coffeeFocus,
                         onCoffeeFocusChange = { id ->
                             vm.setCoffeeFocus(
@@ -514,11 +521,20 @@ private fun OpenStatusBadge() {
 
 @Composable
 private fun FeedQuickFilterBar(
-    quickMode: FeedQuickMode,
-    onQuickMode: (FeedQuickMode) -> Unit,
+    openOnly: Boolean,
+    newOnly: Boolean,
+    visitedOnly: Boolean,
+    favoritesOnly: Boolean,
+    onClearQuickFilters: () -> Unit,
+    onToggleOpen: () -> Unit,
+    onToggleNew: () -> Unit,
+    onToggleVisited: () -> Unit,
+    onToggleFavorites: () -> Unit,
     coffeeFocusId: String?,
     onCoffeeFocusChange: (String) -> Unit,
 ) {
+    val hasQuickFilters = openOnly || newOnly || visitedOnly || favoritesOnly
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -528,32 +544,32 @@ private fun FeedQuickFilterBar(
     ) {
         DesignFilterChip(
             label = "Все",
-            selected = quickMode == FeedQuickMode.ALL,
-            onClick = { onQuickMode(FeedQuickMode.ALL) },
+            selected = !hasQuickFilters,
+            onClick = onClearQuickFilters,
             leadingIcon = CpIcons.Grid,
         )
         DesignFilterChip(
             label = "Открыто",
-            selected = quickMode == FeedQuickMode.OPEN,
-            onClick = { onQuickMode(FeedQuickMode.OPEN) },
+            selected = openOnly,
+            onClick = onToggleOpen,
             leadingIcon = CpIcons.Time,
         )
         DesignFilterChip(
             label = "Новые",
-            selected = quickMode == FeedQuickMode.NEW,
-            onClick = { onQuickMode(FeedQuickMode.NEW) },
+            selected = newOnly,
+            onClick = onToggleNew,
             leadingIcon = CpIcons.Sparkle,
         )
         DesignFilterChip(
             label = "Уже был",
-            selected = quickMode == FeedQuickMode.VISITED,
-            onClick = { onQuickMode(FeedQuickMode.VISITED) },
+            selected = visitedOnly,
+            onClick = onToggleVisited,
             leadingIcon = CpIcons.CheckCircle,
         )
         DesignFilterChip(
             label = "Избранное",
-            selected = quickMode == FeedQuickMode.FAVORITES,
-            onClick = { onQuickMode(FeedQuickMode.FAVORITES) },
+            selected = favoritesOnly,
+            onClick = onToggleFavorites,
             leadingIcon = CpIcons.Favorite,
         )
 

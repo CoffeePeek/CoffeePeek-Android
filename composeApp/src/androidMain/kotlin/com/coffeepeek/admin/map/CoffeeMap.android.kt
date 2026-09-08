@@ -260,7 +260,7 @@ actual fun CoffeeMap(
                 }
                 activeMap.moveCamera(CameraUpdateFactory.newLatLngZoom(initialTarget, initialZoom.toDouble()))
                 initialCameraApplied = true
-                location?.let {
+                location?.takeIf { cameraTarget == null }?.let {
                     onMyLocationFoundState.value(it.latitude, it.longitude)
                 }
             }

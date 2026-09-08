@@ -1,4 +1,5 @@
 import com.coffeepeek.config.Config
+import com.coffeepeek.config.PrintValueTask
 import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
@@ -66,6 +67,29 @@ val gitCommitCount: Provider<Int> = providers.exec {
 val appVersionCode: Provider<Int> = gitCommitCount
 val appVersionName: Provider<String> = gitCommitCount.map { "1.0.$it" }
 
+tasks.register<PrintValueTask>("printVersionName") {
+    group = "versioning"
+    description = "Prints the Android version name."
+    value.set(appVersionName)
+}
+
+tasks.register<PrintValueTask>("printVersionCode") {
+    group = "versioning"
+    description = "Prints the Android version code."
+    value.set(appVersionCode.map(Int::toString))
+}
+
+val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
+val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD")
+val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS")
+val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD")
+val releaseSigningConfigured = listOf(
+    releaseKeystorePath,
+    releaseKeystorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).all { !it.orNull.isNullOrBlank() }
+
 val googleWebClientId: String = run {
     val localPropertiesFile = rootProject.file("local.properties")
     if (localPropertiesFile.exists()) {
@@ -110,10 +134,21 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            create("release") {
+                storeFile = file(releaseKeystorePath.get())
+                storePassword = releaseKeystorePassword.get()
+                keyAlias = releaseKeyAlias.get()
+                keyPassword = releaseKeyPassword.get()
+            }
+        }
+    }
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.findByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

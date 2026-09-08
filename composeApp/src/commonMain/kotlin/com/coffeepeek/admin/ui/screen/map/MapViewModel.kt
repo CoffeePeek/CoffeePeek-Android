@@ -82,7 +82,6 @@ class MapViewModel(
 
     init {
         loadCatalogs()
-        requestMyLocation()
     }
 
     fun onBoundsChanged(bounds: MapBounds) {

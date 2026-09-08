@@ -72,9 +72,9 @@ fun FloatingBottomNavBar(
         MaterialTheme.colorScheme.surface
     }
     val borderColor = if (isDark) {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.85f)
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.72f)
     } else {
-        MaterialTheme.colorScheme.outline
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.65f)
     }
     val shape = RoundedCornerShape(percent = 50)
 
@@ -93,15 +93,15 @@ fun FloatingBottomNavBar(
                 .fillMaxWidth()
                 .height(CpDimens.floatingNavBarHeight)
                 .shadow(
-                    elevation = 20.dp,
+                    elevation = 24.dp,
                     shape = shape,
-                    ambientColor = Color.Black.copy(alpha = if (isDark) 0.45f else 0.16f),
-                    spotColor = Color.Black.copy(alpha = if (isDark) 0.55f else 0.22f),
+                    ambientColor = Color.Black.copy(alpha = if (isDark) 0.52f else 0.20f),
+                    spotColor = Color.Black.copy(alpha = if (isDark) 0.62f else 0.30f),
                 )
                 .clip(shape)
                 .background(barColor)
-                .border(width = 1.5.dp, color = borderColor, shape = shape)
-                .padding(horizontal = CpDimens.spacing2),
+                .border(width = 1.dp, color = borderColor, shape = shape)
+                .padding(horizontal = CpDimens.spacing1),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -142,13 +142,13 @@ private fun RowScope.FloatingNavBarItem(item: FloatingNavItem) {
                 indication = null,
                 onClick = item.onClick,
             )
-            .padding(vertical = CpDimens.spacing1),
+            .padding(vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(width = 52.dp, height = 30.dp)
+                .size(width = 46.dp, height = 26.dp)
                 .clip(CircleShape)
                 .background(indicatorColor),
             contentAlignment = Alignment.Center,
@@ -157,7 +157,7 @@ private fun RowScope.FloatingNavBarItem(item: FloatingNavItem) {
                 imageVector = item.icon,
                 contentDescription = item.title,
                 tint = contentColor,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(20.dp),
             )
         }
         Text(

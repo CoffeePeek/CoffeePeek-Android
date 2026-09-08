@@ -119,11 +119,19 @@ fun ShopFiltersScreen(
                                     // Quick chips живут на ленте — не сбрасываем отсюда
                                     draft = FeedFiltersUi(
                                         coffeeFocus = state.filters.coffeeFocus,
-                                        quickMode = state.filters.quickMode,
+                                        openOnly = state.filters.openOnly,
+                                        newOnly = state.filters.newOnly,
+                                        visitedOnly = state.filters.visitedOnly,
+                                        favoritesOnly = state.filters.favoritesOnly,
                                     )
                                 },
-                                enabled = draft.copy(coffeeFocus = null, quickMode = FeedQuickMode.ALL) !=
-                                    FeedFiltersUi(),
+                                enabled = draft.copy(
+                                    coffeeFocus = null,
+                                    openOnly = false,
+                                    newOnly = false,
+                                    visitedOnly = false,
+                                    favoritesOnly = false,
+                                ) != FeedFiltersUi(),
                             ) {
                                 Text("Сбросить")
                             }
@@ -193,7 +201,10 @@ fun ShopFiltersScreen(
                                 onApply(
                                     draft.copy(
                                         coffeeFocus = state.filters.coffeeFocus,
-                                        quickMode = state.filters.quickMode,
+                                        openOnly = state.filters.openOnly,
+                                        newOnly = state.filters.newOnly,
+                                        visitedOnly = state.filters.visitedOnly,
+                                        favoritesOnly = state.filters.favoritesOnly,
                                     ),
                                 )
                                 dismissAnimated()
