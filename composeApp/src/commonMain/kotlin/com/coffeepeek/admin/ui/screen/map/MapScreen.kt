@@ -448,6 +448,7 @@ private fun SingleSelectMenu(
     var expanded by remember { mutableStateOf(false) }
     var anchorWidth by remember { mutableStateOf(0.dp) }
     val density = LocalDensity.current
+    val menuShape = RoundedCornerShape(CpDimens.selectRadius)
     val selectedLabel = items.firstOrNull { it.first == selectedId }?.second
     Box(modifier = Modifier.fillMaxWidth()) {
         OutlinedButton(
@@ -490,24 +491,23 @@ private fun SingleSelectMenu(
             onDismissRequest = { expanded = false },
             modifier = Modifier
                 .width(anchorWidth.coerceAtLeast(280.dp))
+                .clip(menuShape)
                 .border(
                     width = 1.dp,
                     color = MaterialTheme.colorScheme.outlineVariant,
-                    shape = RoundedCornerShape(CpDimens.selectRadius),
+                    shape = menuShape,
                 ),
-            shape = RoundedCornerShape(CpDimens.selectRadius),
+            shape = menuShape,
             containerColor = MaterialTheme.colorScheme.surface,
-            tonalElevation = 4.dp,
+            tonalElevation = 0.dp,
         ) {
             val defaultSelected = selectedId == null
             DropdownMenuItem(
-                modifier = Modifier.background(
-                    if (defaultSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
-                    else MaterialTheme.colorScheme.surface,
-                ),
                 text = {
                     Text(
                         text = placeholder,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Normal,
                         color = if (defaultSelected) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurface,
                     )
@@ -530,13 +530,11 @@ private fun SingleSelectMenu(
             items.forEach { (id, label) ->
                 val selected = id == selectedId
                 DropdownMenuItem(
-                    modifier = Modifier.background(
-                        if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
-                        else MaterialTheme.colorScheme.surface,
-                    ),
                     text = {
                         Text(
                             label,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Normal,
                             color = if (selected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
@@ -573,6 +571,7 @@ private fun CatalogMultiSelectMenu(
     var expanded by remember { mutableStateOf(false) }
     var anchorWidth by remember { mutableStateOf(0.dp) }
     val density = LocalDensity.current
+    val menuShape = RoundedCornerShape(CpDimens.selectRadius)
     Box(modifier = Modifier.fillMaxWidth()) {
         OutlinedButton(
             onClick = { expanded = true },
@@ -615,25 +614,24 @@ private fun CatalogMultiSelectMenu(
             modifier = Modifier
                 .width(anchorWidth.coerceAtLeast(280.dp))
                 .heightIn(max = 320.dp)
+                .clip(menuShape)
                 .border(
                     width = 1.dp,
                     color = MaterialTheme.colorScheme.outlineVariant,
-                    shape = RoundedCornerShape(CpDimens.selectRadius),
+                    shape = menuShape,
                 ),
-            shape = RoundedCornerShape(CpDimens.selectRadius),
+            shape = menuShape,
             containerColor = MaterialTheme.colorScheme.surface,
-            tonalElevation = 4.dp,
+            tonalElevation = 0.dp,
         ) {
             items.forEach { item ->
                 val selected = item.id in selectedIds
                 DropdownMenuItem(
-                    modifier = Modifier.background(
-                        if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
-                        else MaterialTheme.colorScheme.surface,
-                    ),
                     text = {
                         Text(
                             item.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Normal,
                             color = if (selected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,

@@ -409,6 +409,7 @@ private fun CityRow(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedCity = cities.firstOrNull { it.id == selectedCityId }
+    val menuShape = RoundedCornerShape(CpDimens.selectRadius)
 
     SettingsRow(
         icon = CpIcons.Location,
@@ -438,10 +439,13 @@ private fun CityRow(
                 DropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false },
-                    modifier = Modifier.widthIn(min = 208.dp),
-                    shape = RoundedCornerShape(CpDimens.selectRadius),
+                    modifier = Modifier
+                        .widthIn(min = 208.dp)
+                        .clip(menuShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, menuShape),
+                    shape = menuShape,
                     containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 4.dp,
+                    tonalElevation = 0.dp,
                 ) {
                     cities.forEach { city ->
                         val isSelected = city.id == selectedCityId
@@ -449,6 +453,8 @@ private fun CityRow(
                             text = {
                                 Text(
                                     text = city.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Normal,
                                     color = if (isSelected) {
                                         MaterialTheme.colorScheme.primary
                                     } else {
@@ -553,10 +559,13 @@ private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
                 offset = DpOffset(x = anchorWidth - menuWidth, y = 0.dp),
-                modifier = Modifier.width(menuWidth),
+                modifier = Modifier
+                    .width(menuWidth)
+                    .clip(selectShape)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, selectShape),
                 shape = selectShape,
                 containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 4.dp,
+                tonalElevation = 0.dp,
             ) {
                 ThemeMode.entries.forEach { mode ->
                     val isSelected = mode == current
@@ -565,6 +574,7 @@ private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
                             Text(
                                 text = mode.label(),
                                 style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Normal,
                                 color = if (isSelected) {
                                     MaterialTheme.colorScheme.primary
                                 } else {

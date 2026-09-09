@@ -48,9 +48,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,7 +68,6 @@ import com.coffeepeek.admin.ui.component.CoffeeShopImage
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CoffeePeekPullToRefresh
-import com.coffeepeek.admin.ui.component.FullScreenImageDialog
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
 import com.coffeepeek.admin.ui.component.PriceBynRow
 import com.coffeepeek.admin.ui.component.priceRangeLevel
@@ -88,14 +85,6 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
     val state by vm.uiState.collectAsState()
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
-    var previewImageUrl by remember { mutableStateOf<String?>(null) }
-
-    previewImageUrl?.let { imageUrl ->
-        FullScreenImageDialog(
-            imageUrl = imageUrl,
-            onDismiss = { previewImageUrl = null },
-        )
-    }
 
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -325,7 +314,6 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                             ShopCard(
                                 shop = shop,
                                 onClick = { Navigator.navigate(Navigator.Screen.ShopDetail(shop.id)) },
-                                onPhotoClick = { previewImageUrl = it },
                                 onToggleFavorite = { vm.toggleFavorite(shop) },
                             )
                         }
@@ -353,7 +341,6 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
 private fun ShopCard(
     shop: CoffeeShop,
     onClick: () -> Unit,
-    onPhotoClick: (String) -> Unit,
     onToggleFavorite: () -> Unit,
 ) {
     Card(
@@ -379,9 +366,7 @@ private fun ShopCard(
                         contentDescription = shop.title,
                         contentScale = ContentScale.Crop,
                         placeholderLabelSize = 18.sp,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable { onPhotoClick(photoUrl) },
+                        modifier = Modifier.fillMaxSize(),
                     )
                 } else {
                     CoffeeShopPlaceholderImage(

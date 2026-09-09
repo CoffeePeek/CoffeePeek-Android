@@ -861,11 +861,8 @@ private fun ReviewsSection(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
             ) {
-                reviews.forEachIndexed { index, review ->
+                reviews.forEach { review ->
                     ReviewCard(review, onReviewPhotoClick)
-                    if (index < reviews.lastIndex) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    }
                 }
             }
         }
@@ -886,12 +883,25 @@ private fun CheckInsSection(
     ) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         SectionTitle("Мои чекины", barColor = CpColor.Primary)
-        checkIns.forEachIndexed { index, checkIn ->
+        checkIns.forEach { checkIn ->
             CheckInCard(checkIn = checkIn, onPhotoClick = onPhotoClick)
-            if (index < checkIns.lastIndex) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            }
         }
+    }
+}
+
+@Composable
+private fun OutlinedContentCard(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(CpDimens.radius2xl),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    ) {
+        Column(
+            modifier = Modifier.padding(CpDimens.spacing4),
+            content = content,
+        )
     }
 }
 
@@ -900,7 +910,7 @@ private fun CheckInCard(
     checkIn: CheckIn,
     onPhotoClick: (String) -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+    OutlinedContentCard {
         val date = checkIn.visitedAt.ifBlank { checkIn.createdAt }
         if (date.isNotBlank()) {
             Text(
@@ -921,10 +931,11 @@ private fun CheckInCard(
             Spacer(Modifier.height(CpDimens.spacing2))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
                 items(checkIn.photoUrls) { url ->
-                    CpImage(
-                        data = url,
+                    CoffeeShopImage(
+                        imageUrl = url,
                         contentDescription = "Фото посещения",
                         contentScale = ContentScale.Crop,
+                        placeholderLabelSize = 12.sp,
                         modifier = Modifier
                             .size(72.dp)
                             .clip(RoundedCornerShape(CpDimens.radiusSm))
@@ -1387,13 +1398,17 @@ private fun CoffeeDetailsSection(
     equipment: List<String>,
     onRoasterClick: (String) -> Unit,
 ) {
-    SectionCard(title = "Детали кофе") {
-        Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing5)) {
-            RoasterDetailGroup(roasters, onRoasterClick)
-            CatalogDetailGroup(CpIcons.Coffee, "Методы заваривания", brewMethods)
-            CatalogDetailGroup(CpIcons.CoffeeBean, "Кофейные зёрна", coffeeBeans)
-            CatalogDetailGroup(CpIcons.Settings, "Оборудование", equipment)
-        }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CpDimens.spacing4, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+    ) {
+        SectionTitle("Детали кофе")
+        RoasterDetailGroup(roasters, onRoasterClick)
+        CatalogDetailGroup(CpIcons.Coffee, "Методы заваривания", brewMethods)
+        CatalogDetailGroup(CpIcons.CoffeeBean, "Кофейные зёрна", coffeeBeans)
+        CatalogDetailGroup(CpIcons.Settings, "Оборудование", equipment)
     }
 }
 
@@ -1404,34 +1419,36 @@ private fun RoasterDetailGroup(
     onRoasterClick: (String) -> Unit,
 ) {
     if (items.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-        ) {
-            Icon(
-                imageVector = CpIcons.CoffeeBean,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                text = "Обжарщики",
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-        ) {
-            items.forEach { item ->
-                InfoChip(
-                    text = item.name,
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                    textColor = MaterialTheme.colorScheme.primary,
-                    onClick = { onRoasterClick(item.id) },
+    OutlinedContentCard {
+        Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            ) {
+                Icon(
+                    imageVector = CpIcons.CoffeeBean,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
                 )
+                Text(
+                    text = "Обжарщики",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            ) {
+                items.forEach { item ->
+                    InfoChip(
+                        text = item.name,
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                        textColor = MaterialTheme.colorScheme.primary,
+                        onClick = { onRoasterClick(item.id) },
+                    )
+                }
             }
         }
     }
@@ -1444,24 +1461,26 @@ private fun CatalogDetailGroup(
     items: List<String>,
 ) {
     if (items.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+    OutlinedContentCard {
+        Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            TagFlow(items = items)
         }
-        TagFlow(items = items)
     }
 }
 
@@ -1639,7 +1658,7 @@ private fun ContactRow(
 
 @Composable
 private fun ReviewCard(review: Review, onPhotoClick: (String) -> Unit) {
-    Column {
+    OutlinedContentCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1705,10 +1724,11 @@ private fun ReviewCard(review: Review, onPhotoClick: (String) -> Unit) {
             Spacer(Modifier.height(CpDimens.spacing2))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
                 items(review.photoUrls) { url ->
-                    KamelImage(
-                        resource = asyncPainterResource(url),
-                        contentDescription = null,
+                    CoffeeShopImage(
+                        imageUrl = url,
+                        contentDescription = "Фото отзыва",
                         contentScale = ContentScale.Crop,
+                        placeholderLabelSize = 12.sp,
                         modifier = Modifier
                             .size(72.dp)
                             .clip(RoundedCornerShape(CpDimens.radiusSm))
@@ -1718,10 +1738,6 @@ private fun ReviewCard(review: Review, onPhotoClick: (String) -> Unit) {
             }
         }
 
-        HorizontalDivider(
-            modifier = Modifier.padding(top = CpDimens.spacing2),
-            color = MaterialTheme.colorScheme.outlineVariant,
-        )
     }
 }
 
