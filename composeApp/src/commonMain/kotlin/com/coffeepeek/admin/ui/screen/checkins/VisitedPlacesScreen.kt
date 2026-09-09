@@ -58,7 +58,7 @@ fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = koinViewModel()) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Посещённые места") },
+                title = { Text("Чекины") },
                 navigationIcon = {
                     IconButton(onClick = { Navigator.popBack() }) {
                         Icon(CpIcons.Back, contentDescription = "Назад")

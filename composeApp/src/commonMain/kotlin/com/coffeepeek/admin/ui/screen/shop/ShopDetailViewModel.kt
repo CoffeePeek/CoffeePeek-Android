@@ -13,11 +13,13 @@ import com.coffeepeek.admin.utils.validatePublicCheckInHeader
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.CreateCheckInInput
 import com.coffeepeek.domain.model.PendingPhotoUpload
+import com.coffeepeek.domain.model.Review
 import com.coffeepeek.domain.repository.CheckInRepository
 import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.ReviewRepository
 import com.coffeepeek.domain.repository.SessionRepository
 import com.coffeepeek.domain.repository.ShopRepository
+import com.coffeepeek.domain.repository.UserRepository
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,6 +46,7 @@ class ShopDetailViewModel(
     private val checkInRepository: CheckInRepository,
     private val reviewRepository: ReviewRepository,
     private val sessionRepository: SessionRepository,
+    private val userRepository: UserRepository,
     private val checkInDraftStore: CheckInDraftStore,
 ) : BaseViewModel() {
 
@@ -72,7 +75,7 @@ class ShopDetailViewModel(
     private suspend fun refreshDetails(showLoading: Boolean) {
         val isLoggedIn = sessionRepository.isLoggedIn()
         shopRepository.getShopDetails(shopId)
-            .mapCatching { enrichWithReviewAccess(it) }
+            .mapCatching { enrichDetails(it) }
             .onSuccess { details ->
                 _uiState.update {
                     it.copy(details = details, isLoggedIn = isLoggedIn, isLoading = false)
@@ -86,6 +89,26 @@ class ShopDetailViewModel(
                     )
                 }
             }
+    }
+
+    private suspend fun enrichDetails(details: CoffeeShopDetails): CoffeeShopDetails {
+        val avatarUrls = buildMap {
+            details.reviews
+                .map(Review::userId)
+                .filter(String::isNotBlank)
+                .distinct()
+                .forEach { userId ->
+                    put(userId, userRepository.getPublicAvatarUrl(userId).getOrNull())
+                }
+        }
+
+        return enrichWithReviewAccess(
+            details.copy(
+                reviews = details.reviews.map { review ->
+                    review.copy(avatarUrl = avatarUrls[review.userId])
+                },
+            ),
+        )
     }
 
     private suspend fun enrichWithReviewAccess(details: CoffeeShopDetails): CoffeeShopDetails {
@@ -226,6 +249,11 @@ class ShopDetailViewModel(
 
     fun openEditReview(reviewId: String) {
         Navigator.navigate(Navigator.Screen.ReviewEdit(reviewId))
+    }
+
+    fun openReportIncorrectData() {
+        val shopTitle = _uiState.value.details?.shop?.title.orEmpty()
+        Navigator.navigate(Navigator.Screen.ReportShop(shopId = shopId, shopTitle = shopTitle))
     }
 
     fun openOnMap() {

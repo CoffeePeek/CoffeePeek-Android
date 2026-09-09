@@ -26,6 +26,7 @@ import com.coffeepeek.admin.ui.screen.main.MainScreen
 import com.coffeepeek.admin.ui.screen.review.CreateReviewScreen
 import com.coffeepeek.admin.ui.screen.review.EditReviewScreen
 import com.coffeepeek.admin.ui.screen.shop.ShopDetailScreen
+import com.coffeepeek.admin.ui.screen.shop.ShopReportScreen
 import com.coffeepeek.admin.utils.ErrorHandler
 import com.coffeepeek.admin.utils.LoadingHandler
 import kotlinx.coroutines.CoroutineScope
@@ -73,6 +74,7 @@ object Navigator {
 
         // Inner screens (add here + in the graph in MainScreen)
         @Serializable data class ShopDetail(val shopId: String) : Screen
+        @Serializable data class ReportShop(val shopId: String, val shopTitle: String) : Screen
         @Serializable data object AddShop : Screen
         @Serializable data object EditProfile : Screen
         @Serializable data object Favorites : Screen
@@ -117,6 +119,7 @@ object Navigator {
         is Screen.Register,
         is Screen.Main,
         is Screen.ShopDetail,
+        is Screen.ReportShop,
         is Screen.AddShop,
         is Screen.EditProfile,
         is Screen.CreateReview,
@@ -207,6 +210,10 @@ object Navigator {
                 composable<Screen.ShopDetail> { backStack ->
                     val route = backStack.toRoute<Screen.ShopDetail>()
                     ShopDetailScreen(shopId = route.shopId)
+                }
+                composable<Screen.ReportShop> { backStack ->
+                    val route = backStack.toRoute<Screen.ReportShop>()
+                    ShopReportScreen(shopId = route.shopId, shopTitle = route.shopTitle)
                 }
                 composable<Screen.AddShop> { AddShopScreen() }
                 composable<Screen.EditProfile> { EditProfileScreen() }

@@ -181,7 +181,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 SettingsDivider()
                 SettingsRow(
                     icon = CpIcons.Location,
-                    label = "Посещённые места",
+                    label = "Чекины",
                     onClick = { Navigator.navigate(Navigator.Screen.VisitedPlaces) },
                 )
             }
@@ -235,7 +235,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 )
                 Spacer(Modifier.width(CpDimens.spacing2))
                 Text(
-                    text = "Выйти из аккаунта",
+                    text = "Выйти",
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
