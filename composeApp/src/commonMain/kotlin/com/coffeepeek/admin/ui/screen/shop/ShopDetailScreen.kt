@@ -847,7 +847,6 @@ private fun ReviewsSection(
             .padding(top = CpDimens.spacing6, bottom = CpDimens.spacing3),
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing6),
     ) {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         SectionTitle("Отзывы", barColor = CpColor.Primary)
         if (reviews.isEmpty()) {
             EmptyMascotState(
@@ -879,7 +878,6 @@ private fun CheckInsSection(
             .padding(top = CpDimens.spacing6, bottom = CpDimens.spacing3),
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         SectionTitle("Мои чекины", barColor = CpColor.Primary)
         checkIns.forEach { checkIn ->
             CheckInCard(checkIn = checkIn, onPhotoClick = onPhotoClick)
@@ -961,61 +959,69 @@ private fun MenuSection(
     menu: ShopMenu,
     onPhotoClick: (String) -> Unit,
 ) {
-    SectionCard(title = "Меню") {
-        val capturedLabel = menu.capturedAtUtc?.let(::formatMenuDate)
-        val updatedLabel = menu.updatedAtUtc?.let(::formatMenuDate)
-        val groups = groupedPresentItems(menu.items)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
-            verticalAlignment = Alignment.Top,
-        ) {
-            if (groups.isNotEmpty()) {
-                Column(modifier = Modifier.weight(1f)) {
-                    groups.forEachIndexed { index, (title, drinks) ->
-                        if (index > 0) Spacer(Modifier.height(CpDimens.spacing3))
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Spacer(Modifier.height(CpDimens.spacing2))
-                        drinks.forEach { drink -> MenuDrinkRow(drink) }
+    val capturedLabel = menu.capturedAtUtc?.let(::formatMenuDate)
+    val updatedLabel = menu.updatedAtUtc?.let(::formatMenuDate)
+    val groups = groupedPresentItems(menu.items)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CpDimens.spacing4, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+    ) {
+        SectionTitle("Меню")
+        OutlinedContentCard {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+                verticalAlignment = Alignment.Top,
+            ) {
+                if (groups.isNotEmpty()) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        groups.forEachIndexed { index, (_, drinks) ->
+                            if (index > 0) {
+                                Spacer(Modifier.height(CpDimens.spacing2))
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f),
+                                )
+                                Spacer(Modifier.height(CpDimens.spacing2))
+                            }
+                            drinks.forEach { drink -> MenuDrinkRow(drink) }
+                        }
+                    }
+                } else if (menu.photos.isNotEmpty()) {
+                    Spacer(Modifier.weight(1f))
+                }
+
+                if (menu.photos.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier.width(104.dp),
+                        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                    ) {
+                        menu.photos.forEach { photo ->
+                            CoffeeShopImage(
+                                imageUrl = photo.fullUrl,
+                                contentDescription = "Фотография меню",
+                                contentScale = ContentScale.Crop,
+                                placeholderLabelSize = 14.sp,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(104.dp)
+                                    .clip(RoundedCornerShape(CpDimens.radiusMd))
+                                    .clickable { onPhotoClick(photo.fullUrl) },
+                            )
+                        }
+                        MenuFreshness(capturedLabel, updatedLabel)
                     }
                 }
-            } else if (menu.photos.isNotEmpty()) {
-                Spacer(Modifier.weight(1f))
             }
 
-            if (menu.photos.isNotEmpty()) {
-                Column(
-                    modifier = Modifier.width(104.dp),
-                    verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-                ) {
-                    menu.photos.forEach { photo ->
-                        CoffeeShopImage(
-                            imageUrl = photo.fullUrl,
-                            contentDescription = "Фотография меню",
-                            contentScale = ContentScale.Crop,
-                            placeholderLabelSize = 14.sp,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(104.dp)
-                                .clip(RoundedCornerShape(CpDimens.radiusMd))
-                                .clickable { onPhotoClick(photo.fullUrl) },
-                        )
-                    }
-                    MenuFreshness(capturedLabel, updatedLabel)
-                }
+            if (menu.photos.isEmpty()) {
+                MenuFreshness(
+                    capturedLabel = capturedLabel,
+                    updatedLabel = updatedLabel,
+                    modifier = Modifier.padding(top = CpDimens.spacing3),
+                )
             }
-        }
-
-        if (menu.photos.isEmpty()) {
-            MenuFreshness(
-                capturedLabel = capturedLabel,
-                updatedLabel = updatedLabel,
-                modifier = Modifier.padding(top = CpDimens.spacing3),
-            )
         }
     }
 }
