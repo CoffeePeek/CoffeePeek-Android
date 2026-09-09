@@ -1,19 +1,20 @@
 package com.coffeepeek.admin.ui.screen.shop
 
 import com.coffeepeek.admin.base.BaseViewModel
-import kotlinx.coroutines.delay
+import com.coffeepeek.domain.model.ShopIssueCategory
+import com.coffeepeek.domain.repository.ShopIssueReportRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class ShopReportReason(val title: String, val apiValue: String) {
-    OUTDATED_MENU("Меню больше не актуально", "outdated_menu"),
-    SHOP_CLOSED("Кофейня закрылась", "shop_closed"),
-    INCORRECT_SCHEDULE("В расписании есть ошибка", "incorrect_schedule"),
-    INCORRECT_PHOTOS("Фотографии не соответствуют кофейне", "incorrect_photos"),
-    INCORRECT_ADDRESS("Указан неверный адрес", "incorrect_address"),
-    OTHER("Другая проблема", "other"),
+enum class ShopReportReason(val title: String, val category: ShopIssueCategory) {
+    OUTDATED_MENU("Меню больше не актуально", ShopIssueCategory.OutdatedMenu),
+    SHOP_CLOSED("Кофейня закрылась", ShopIssueCategory.ShopClosed),
+    INCORRECT_SCHEDULE("В расписании есть ошибка", ShopIssueCategory.WrongOpeningHours),
+    INCORRECT_PHOTOS("Фотографии не соответствуют кофейне", ShopIssueCategory.IncorrectPhotos),
+    INCORRECT_ADDRESS("Указан неверный адрес", ShopIssueCategory.IncorrectAddress),
+    OTHER("Другая проблема", ShopIssueCategory.Other),
 }
 
 data class ShopReportUiState(
@@ -26,6 +27,7 @@ data class ShopReportUiState(
 
 class ShopReportViewModel(
     private val shopId: String,
+    private val shopIssueReportRepository: ShopIssueReportRepository,
 ) : BaseViewModel() {
 
     private val _state = MutableStateFlow(ShopReportUiState())
@@ -53,22 +55,16 @@ class ShopReportViewModel(
         workScope.launch {
             _state.update { it.copy(isSubmitting = true, error = null) }
 
-            // В опубликованном API пока нет эндпоинта для таких обращений.
-            // Мок оставлен здесь, чтобы сетевой вызов можно было заменить в одном месте.
-            submitMock(
+            shopIssueReportRepository.submitReport(
                 shopId = shopId,
-                reason = current.selectedReason.apiValue,
-                comment = current.comment.trim().takeIf(String::isNotEmpty),
-            )
-
-            _state.update { it.copy(isSubmitting = false, isSubmitted = true) }
+                category = current.selectedReason.category,
+                description = current.comment.trim().takeIf(String::isNotEmpty),
+            ).onSuccess {
+                _state.update { it.copy(isSubmitting = false, isSubmitted = true) }
+            }.onFailure { e ->
+                _state.update { it.copy(isSubmitting = false, error = e.message) }
+            }
         }
-    }
-
-    private suspend fun submitMock(shopId: String, reason: String, comment: String?) {
-        @Suppress("UNUSED_VARIABLE")
-        val request = Triple(shopId, reason, comment)
-        delay(500)
     }
 
     private companion object {

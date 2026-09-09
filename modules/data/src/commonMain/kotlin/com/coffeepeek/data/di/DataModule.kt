@@ -9,6 +9,7 @@ import com.coffeepeek.data.repository.FavoriteRepositoryImpl
 import com.coffeepeek.data.repository.PhotoRepositoryImpl
 import com.coffeepeek.data.repository.ReviewRepositoryImpl
 import com.coffeepeek.data.repository.SessionRepositoryImpl
+import com.coffeepeek.data.repository.ShopIssueReportRepositoryImpl
 import com.coffeepeek.data.repository.ShopRepositoryImpl
 import com.coffeepeek.data.repository.UserRepositoryImpl
 import com.coffeepeek.data.session.UserSessionCleaner
@@ -20,6 +21,7 @@ import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.PhotoRepository
 import com.coffeepeek.domain.repository.ReviewRepository
 import com.coffeepeek.domain.repository.SessionRepository
+import com.coffeepeek.domain.repository.ShopIssueReportRepository
 import com.coffeepeek.domain.repository.ShopRepository
 import com.coffeepeek.domain.repository.UserRepository
 import kotlinx.coroutines.CoroutineScope
@@ -84,6 +86,7 @@ fun dataModule(
     single { get<CoffeePeekRepo>().photoApiService }
     single { get<CoffeePeekRepo>().reviewApiService }
     single { get<CoffeePeekRepo>().checkInApiService }
+    single { get<CoffeePeekRepo>().shopIssueReportApiService }
     single<PhotoRepository> { PhotoRepositoryImpl(get()) }
     single<AuthRepository> { AuthRepositoryImpl(get(), get(), get()) }
     single<FavoriteRepository> { FavoriteRepositoryImpl(database) }
@@ -91,4 +94,5 @@ fun dataModule(
     single<UserRepository> { UserRepositoryImpl(get(), get(), get(), get()) }
     single<ReviewRepository> { ReviewRepositoryImpl(get(), get(), get()) }
     single<CheckInRepository> { CheckInRepositoryImpl(get(), get()) }
+    single<ShopIssueReportRepository> { ShopIssueReportRepositoryImpl(get()) }
 }

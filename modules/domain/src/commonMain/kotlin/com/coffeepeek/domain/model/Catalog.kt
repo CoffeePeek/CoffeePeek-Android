@@ -84,6 +84,15 @@ data class UpdateReviewInput(
     val photos: List<PendingPhotoUpload> = emptyList(),
 )
 
+enum class ShopIssueCategory {
+    OutdatedMenu,
+    ShopClosed,
+    IncorrectAddress,
+    WrongOpeningHours,
+    IncorrectPhotos,
+    Other,
+}
+
 data class CreateCheckInInput(
     val shopId: String,
     val header: String? = null,
