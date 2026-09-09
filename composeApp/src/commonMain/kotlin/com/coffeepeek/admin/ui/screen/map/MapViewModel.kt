@@ -38,7 +38,6 @@ data class MapUiState(
     val selectedShopDetails: CoffeeShopDetails? = null,
     val isLoadingShopDetails: Boolean = false,
     val isLoading: Boolean = false,
-    val error: String? = null,
     val query: String = "",
     val filters: MapFiltersUi = MapFiltersUi(),
     val cities: List<City> = emptyList(),
@@ -133,10 +132,6 @@ class MapViewModel(
         }
     }
 
-    fun clearError() {
-        _state.update { it.copy(error = null) }
-    }
-
     fun toggleFilters() {
         _state.update { it.copy(showFilters = !it.showFilters) }
     }
@@ -225,12 +220,6 @@ class MapViewModel(
         pauseBoundsUpdates(700)
     }
 
-    fun onLocationPermissionDenied() {
-        _state.update {
-            it.copy(error = "Нет доступа к геолокации. Разрешите в настройках приложения.")
-        }
-    }
-
     private fun loadCatalogs() {
         workScope.launch {
             shopRepository.getCatalogs()
@@ -250,11 +239,8 @@ class MapViewModel(
                     isCityReady = true
                     _state.value.pendingBounds?.let(::loadBounds)
                 }
-                .onFailure { err ->
+                .onFailure {
                     isCityReady = true
-                    _state.update {
-                        it.copy(error = err.message ?: "Ошибка загрузки каталогов")
-                    }
                     _state.value.pendingBounds?.let(::loadBounds)
                 }
         }
@@ -268,7 +254,6 @@ class MapViewModel(
             _state.update {
                 it.copy(
                     isLoading = true,
-                    error = null,
                     activeBounds = bounds,
                     pendingBounds = bounds,
                     showSearchArea = false,
@@ -303,11 +288,10 @@ class MapViewModel(
                         )
                     }
                 }
-                .onFailure { err ->
+                .onFailure {
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            error = err.message ?: "Ошибка загрузки кофеен",
                             showSearchArea = true,
                         )
                     }
