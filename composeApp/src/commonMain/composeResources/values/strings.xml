@@ -41,7 +41,7 @@
     <string name="register_success_subtitle">Мы отправили ссылку на %1$s. Перейдите по ссылке чтобы активировать аккаунт. Ссылка действует 10 минут.</string>
     <string name="go_to_login">На страницу входа</string>
 
-    <string name="profile_version">Версия приложения</string>
+    <string name="profile_version">Версия</string>
     <string name="retry">Попробовать снова</string>
     <string name="checkin_title">Отметить посещение</string>
     <string name="checkin_note_hint_private">Заметка (необязательно)</string>

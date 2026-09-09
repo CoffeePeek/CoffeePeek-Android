@@ -836,7 +836,7 @@ private fun ReviewsSection(
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing6),
     ) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        SectionTitle("Отзывы клиентов", barColor = CpColor.Primary)
+        SectionTitle("Отзывы", barColor = CpColor.Primary)
         if (reviews.isEmpty()) {
             EmptyMascotState(
                 mascot = Res.drawable.maskot_with_book,
@@ -871,7 +871,7 @@ private fun CheckInsSection(
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        SectionTitle("Мои посещения", barColor = CpColor.Primary)
+        SectionTitle("Мои чекины", barColor = CpColor.Primary)
         checkIns.forEachIndexed { index, checkIn ->
             CheckInCard(checkIn = checkIn, onPhotoClick = onPhotoClick)
             if (index < checkIns.lastIndex) {

@@ -505,7 +505,7 @@ private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
         }
         Spacer(Modifier.width(CpDimens.spacing3))
         Text(
-            text = "Тема оформления",
+            text = "Тема",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
