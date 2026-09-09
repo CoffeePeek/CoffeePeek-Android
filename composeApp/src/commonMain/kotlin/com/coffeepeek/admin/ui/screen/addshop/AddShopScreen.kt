@@ -834,8 +834,17 @@ private fun StepFeatures(state: AddShopUiState, vm: AddShopViewModel) {
     }
     if (state.roasters.isNotEmpty()) {
         CatalogGroup("Обжарщики", state.roasters, state.selectedRoasterIds, vm::toggleRoaster)
-        Spacer(Modifier.height(CpDimens.spacing4))
     }
+    TextButton(onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) }) {
+        Icon(
+            imageVector = CpIcons.Add,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(CpDimens.spacing1))
+        Text("Нет нужного? Добавить обжарщика")
+    }
+    Spacer(Modifier.height(CpDimens.spacing4))
     if (state.equipment.isNotEmpty()) {
         CatalogGroup("Оборудование", state.equipment, state.selectedEquipmentIds, vm::toggleEquipment)
     }

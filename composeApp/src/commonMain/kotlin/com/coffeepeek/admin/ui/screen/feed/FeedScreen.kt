@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Badge
@@ -47,7 +48,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,14 +60,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.component.CoffeeShopImage
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CoffeePeekPullToRefresh
+import com.coffeepeek.admin.ui.component.FullScreenImageDialog
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
 import com.coffeepeek.admin.ui.component.PriceBynRow
 import com.coffeepeek.admin.ui.component.priceRangeLevel
@@ -73,8 +79,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import com.coffeepeek.domain.model.CoffeeShop
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.maskot_with_magnifying_glass
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -84,6 +88,14 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
     val state by vm.uiState.collectAsState()
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
+    var previewImageUrl by remember { mutableStateOf<String?>(null) }
+
+    previewImageUrl?.let { imageUrl ->
+        FullScreenImageDialog(
+            imageUrl = imageUrl,
+            onDismiss = { previewImageUrl = null },
+        )
+    }
 
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -313,6 +325,7 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                             ShopCard(
                                 shop = shop,
                                 onClick = { Navigator.navigate(Navigator.Screen.ShopDetail(shop.id)) },
+                                onPhotoClick = { previewImageUrl = it },
                                 onToggleFavorite = { vm.toggleFavorite(shop) },
                             )
                         }
@@ -340,6 +353,7 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
 private fun ShopCard(
     shop: CoffeeShop,
     onClick: () -> Unit,
+    onPhotoClick: (String) -> Unit,
     onToggleFavorite: () -> Unit,
 ) {
     Card(
@@ -360,11 +374,14 @@ private fun ShopCard(
             ) {
                 val photoUrl = shop.photoUrl
                 if (!photoUrl.isNullOrBlank()) {
-                    KamelImage(
-                        resource = asyncPainterResource(photoUrl),
+                    CoffeeShopImage(
+                        imageUrl = photoUrl,
                         contentDescription = shop.title,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
+                        placeholderLabelSize = 18.sp,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable { onPhotoClick(photoUrl) },
                     )
                 } else {
                     CoffeeShopPlaceholderImage(
@@ -392,6 +409,35 @@ private fun ShopCard(
                         onClick = onToggleFavorite,
                         modifier = Modifier.padding(start = 8.dp),
                     )
+                }
+
+                if (shop.tags.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .fillMaxWidth()
+                            .padding(CpDimens.spacing3),
+                        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+                    ) {
+                        shop.tags.take(3).forEach { tag ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(CpDimens.radiusSm))
+                                    .background(CpColor.Primary.copy(alpha = 0.82f))
+                                    .widthIn(max = 104.dp)
+                                    .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
+                            ) {
+                                Text(
+                                    text = tag,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = CpColor.DarkTextOnPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -458,26 +504,6 @@ private fun ShopCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                         )
-                    }
-                }
-
-                if (shop.tags.isNotEmpty()) {
-                    Spacer(Modifier.height(CpDimens.spacing2))
-                    Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1)) {
-                        shop.tags.take(3).forEach { tag ->
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(CpDimens.radiusSm))
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
-                                    .padding(horizontal = CpDimens.spacing2, vertical = 3.dp),
-                            ) {
-                                Text(
-                                    text = tag,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                )
-                            }
-                        }
                     }
                 }
             }

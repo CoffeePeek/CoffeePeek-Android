@@ -6,6 +6,7 @@ import com.coffeepeek.api.model.response.shop.ShopMenuDto
 import com.coffeepeek.api.model.response.shop.ShopMenuItemDto
 import com.coffeepeek.api.model.response.shop.ShortShopDto
 import com.coffeepeek.data.util.FileUrlResolver
+import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.CoffeeShopType
@@ -102,7 +103,7 @@ internal object ShopMapper {
         },
         brewMethods = brewMethods.map { it.name },
         coffeeBeans = coffeeBeans.map { it.name },
-        roasters = roasters.map { it.name },
+        roasters = roasters.map { CatalogItem(it.id, it.name, it.slug) },
         equipment = equipments.map { it.name },
         schedules = schedules.orEmpty().map { schedule ->
             com.coffeepeek.domain.model.ShopSchedule(

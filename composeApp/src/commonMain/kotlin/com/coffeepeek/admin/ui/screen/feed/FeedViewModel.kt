@@ -42,7 +42,10 @@ data class FeedFiltersUi(
 
 data class FeedUiState(
     val shops: List<CoffeeShop> = emptyList(),
-    val isLoading: Boolean = false,
+    // The first shops request starts after catalogs/city resolution. Keep the
+    // screen in a loading state during that preparation so the empty state
+    // cannot flash before the initial request is dispatched.
+    val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
     val error: String? = null,

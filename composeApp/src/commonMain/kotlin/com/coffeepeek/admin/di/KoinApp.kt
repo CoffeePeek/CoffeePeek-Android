@@ -20,6 +20,8 @@ import com.coffeepeek.admin.ui.screen.favorites.FavoritesViewModel
 import com.coffeepeek.admin.ui.screen.review.CreateReviewViewModel
 import com.coffeepeek.admin.ui.screen.review.EditReviewViewModel
 import com.coffeepeek.admin.ui.screen.reviews.MyReviewsViewModel
+import com.coffeepeek.admin.ui.screen.roaster.AddRoasterViewModel
+import com.coffeepeek.admin.ui.screen.roaster.RoasterDetailViewModel
 import com.coffeepeek.admin.ui.screen.shop.ShopDetailViewModel
 import com.coffeepeek.admin.ui.screen.shop.CheckInDraftStore
 import com.coffeepeek.admin.ui.screen.shop.ShopReportViewModel
@@ -66,6 +68,8 @@ private fun appModule(settingRepository: com.coffeepeek.room.repository.SettingR
     factory { FavoritesViewModel(get()) }
     factory { MyReviewsViewModel(get(), get()) }
     factory { VisitedPlacesViewModel(get()) }
+    factory { AddRoasterViewModel(get(), get()) }
+    factory { (roasterId: String) -> RoasterDetailViewModel(roasterId, get()) }
     factory { (shopId: String) -> CreateReviewViewModel(shopId, get()) }
     factory { (reviewId: String) -> EditReviewViewModel(reviewId, get(), get()) }
 }

@@ -107,9 +107,7 @@ fun MainScreen() {
     val systemNavBottom = with(density) {
         WindowInsets.navigationBars.getBottom(this).toDp()
     }
-    val floatingClearance = systemNavBottom +
-        CpDimens.floatingNavContentClearance +
-        CpDimens.floatingNavBottomMargin
+    val floatingClearance = systemNavBottom + CpDimens.floatingNavContentClearance
 
     ProvideFloatingNavClearance(clearance = floatingClearance) {
         Box(modifier = Modifier.fillMaxSize()) {

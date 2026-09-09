@@ -6,6 +6,8 @@ import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesScreen
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileScreen
 import com.coffeepeek.admin.ui.screen.favorites.FavoritesScreen
 import com.coffeepeek.admin.ui.screen.reviews.MyReviewsScreen
+import com.coffeepeek.admin.ui.screen.roaster.AddRoasterScreen
+import com.coffeepeek.admin.ui.screen.roaster.RoasterDetailScreen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -76,6 +78,8 @@ object Navigator {
         @Serializable data class ShopDetail(val shopId: String) : Screen
         @Serializable data class ReportShop(val shopId: String, val shopTitle: String) : Screen
         @Serializable data object AddShop : Screen
+        @Serializable data object AddRoaster : Screen
+        @Serializable data class RoasterDetail(val roasterId: String) : Screen
         @Serializable data object EditProfile : Screen
         @Serializable data object Favorites : Screen
         @Serializable data object MyReviews : Screen
@@ -121,6 +125,8 @@ object Navigator {
         is Screen.ShopDetail,
         is Screen.ReportShop,
         is Screen.AddShop,
+        is Screen.AddRoaster,
+        is Screen.RoasterDetail,
         is Screen.EditProfile,
         is Screen.CreateReview,
         is Screen.ReviewEdit,
@@ -216,6 +222,11 @@ object Navigator {
                     ShopReportScreen(shopId = route.shopId, shopTitle = route.shopTitle)
                 }
                 composable<Screen.AddShop> { AddShopScreen() }
+                composable<Screen.AddRoaster> { AddRoasterScreen() }
+                composable<Screen.RoasterDetail> { backStack ->
+                    val route = backStack.toRoute<Screen.RoasterDetail>()
+                    RoasterDetailScreen(roasterId = route.roasterId)
+                }
                 composable<Screen.EditProfile> { EditProfileScreen() }
                 composable<Screen.CreateReview> { backStack ->
                     val route = backStack.toRoute<Screen.CreateReview>()

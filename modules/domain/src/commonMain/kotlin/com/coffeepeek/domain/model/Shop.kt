@@ -32,7 +32,7 @@ data class CoffeeShopDetails(
     val contact: ShopContact? = null,
     val brewMethods: List<String> = emptyList(),
     val coffeeBeans: List<String> = emptyList(),
-    val roasters: List<String> = emptyList(),
+    val roasters: List<CatalogItem> = emptyList(),
     val equipment: List<String> = emptyList(),
     val schedules: List<ShopSchedule> = emptyList(),
     val menu: ShopMenu? = null,

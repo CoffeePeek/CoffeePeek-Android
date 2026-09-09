@@ -3,7 +3,6 @@ package com.coffeepeek.admin.ui.component
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,9 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,7 +37,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
 
-/** Extra bottom space so list content / FABs clear the floating nav. */
+/** Extra bottom space so list content / FABs clear the bottom navigation. */
 val LocalFloatingNavClearance = compositionLocalOf { 0.dp }
 
 @Composable
@@ -64,44 +62,21 @@ fun FloatingBottomNavBar(
     items: List<FloatingNavItem>,
     modifier: Modifier = Modifier,
 ) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    // Lift the bar above the near-identical screen background.
-    val barColor = if (isDark) {
-        MaterialTheme.colorScheme.surfaceVariant
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-    val borderColor = if (isDark) {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.72f)
-    } else {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.65f)
-    }
-    val shape = RoundedCornerShape(percent = 50)
-
-    Box(
+    Column(
         modifier = modifier
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
             .navigationBarsPadding()
-            .padding(
-                horizontal = CpDimens.floatingNavHorizontalMargin,
-                vertical = CpDimens.floatingNavBottomMargin,
-            ),
-        contentAlignment = Alignment.Center,
     ) {
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.outlineVariant,
+            thickness = 1.dp,
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(CpDimens.floatingNavBarHeight)
-                .shadow(
-                    elevation = 24.dp,
-                    shape = shape,
-                    ambientColor = Color.Black.copy(alpha = if (isDark) 0.52f else 0.20f),
-                    spotColor = Color.Black.copy(alpha = if (isDark) 0.62f else 0.30f),
-                )
-                .clip(shape)
-                .background(barColor)
-                .border(width = 1.dp, color = borderColor, shape = shape)
-                .padding(horizontal = CpDimens.spacing1),
+                .padding(horizontal = CpDimens.spacing2),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {

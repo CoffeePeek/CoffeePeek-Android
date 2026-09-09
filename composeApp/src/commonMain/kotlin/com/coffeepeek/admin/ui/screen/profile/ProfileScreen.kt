@@ -152,14 +152,22 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
 
             Spacer(Modifier.height(CpDimens.spacing4))
 
-            // ── Кофейни ───────────────────────────────────────────────────────
-            SettingsSection(title = "Кофейни") {
+            // ── Добавить ──────────────────────────────────────────────────────
+            SettingsSection(title = "Добавить") {
                 SettingsRow(
                     icon = CpIcons.Add,
                     label = "Добавить кофейню",
                     iconTint = MaterialTheme.colorScheme.primary,
                     iconBg = MaterialTheme.colorScheme.primaryContainer,
                     onClick = { Navigator.navigate(Navigator.Screen.AddShop) },
+                )
+                SettingsDivider()
+                SettingsRow(
+                    icon = CpIcons.CoffeeBean,
+                    label = "Добавить обжарщика",
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    iconBg = MaterialTheme.colorScheme.primaryContainer,
+                    onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
                 )
             }
 

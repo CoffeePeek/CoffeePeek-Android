@@ -77,6 +77,7 @@ import org.jetbrains.compose.resources.painterResource
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.component.CoffeeShopImage
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.currentLocalDayOfWeek
@@ -85,6 +86,7 @@ import com.coffeepeek.admin.ui.component.priceRangeLevel
 import com.coffeepeek.admin.ui.component.FullScreenImageDialog
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.utils.OpenInBrowser
+import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CheckIn
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.Review
@@ -233,6 +235,7 @@ private fun ShopDetailContent(
                 isFavoriteLoading = isFavoriteLoading,
                 onToggleFavorite = onToggleFavorite,
                 onShare = onShare,
+                onPhotoClick = onReviewPhotoClick,
             )
         }
 
@@ -304,6 +307,9 @@ private fun ShopDetailContent(
                     coffeeBeans = details.coffeeBeans,
                     roasters = details.roasters,
                     equipment = details.equipment,
+                    onRoasterClick = {
+                        Navigator.navigate(Navigator.Screen.RoasterDetail(it))
+                    },
                 )
             }
         }
@@ -366,6 +372,7 @@ private fun ShopHeroImage(
     isFavoriteLoading: Boolean,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
+    onPhotoClick: (String) -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -376,11 +383,14 @@ private fun ShopHeroImage(
         if (photos.size <= 1) {
             val coverUrl = photos.firstOrNull()
             if (!coverUrl.isNullOrBlank()) {
-                CpImage(
-                    data = coverUrl,
+                CoffeeShopImage(
+                    imageUrl = coverUrl,
                     contentDescription = title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
+                    placeholderLabelSize = 24.sp,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable { onPhotoClick(coverUrl) },
                 )
             } else {
                 CoffeeShopPlaceholderImage(
@@ -389,7 +399,11 @@ private fun ShopHeroImage(
                 )
             }
         } else {
-            PhotoGallery(photos = photos, title = title)
+            PhotoGallery(
+                photos = photos,
+                title = title,
+                onPhotoClick = onPhotoClick,
+            )
         }
 
         Box(
@@ -1226,7 +1240,11 @@ private fun scheduleSummary(schedule: ShopSchedule): String = when {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun PhotoGallery(photos: List<String>, title: String) {
+private fun PhotoGallery(
+    photos: List<String>,
+    title: String,
+    onPhotoClick: (String) -> Unit,
+) {
     val pagerState = rememberPagerState(pageCount = { photos.size })
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -1234,11 +1252,15 @@ private fun PhotoGallery(photos: List<String>, title: String) {
             modifier = Modifier.fillMaxSize(),
             state = pagerState,
         ) { page ->
-            CpImage(
-                data = photos[page],
+            val photoUrl = photos[page]
+            CoffeeShopImage(
+                imageUrl = photoUrl,
                 contentDescription = title,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
+                placeholderLabelSize = 24.sp,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { onPhotoClick(photoUrl) },
             )
         }
         Surface(
@@ -1361,15 +1383,56 @@ private fun ScheduleRow(
 private fun CoffeeDetailsSection(
     brewMethods: List<String>,
     coffeeBeans: List<String>,
-    roasters: List<String>,
+    roasters: List<CatalogItem>,
     equipment: List<String>,
+    onRoasterClick: (String) -> Unit,
 ) {
     SectionCard(title = "Детали кофе") {
         Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing5)) {
-            CatalogDetailGroup(CpIcons.CoffeeBean, "Обжарщики", roasters)
+            RoasterDetailGroup(roasters, onRoasterClick)
             CatalogDetailGroup(CpIcons.Coffee, "Методы заваривания", brewMethods)
             CatalogDetailGroup(CpIcons.CoffeeBean, "Кофейные зёрна", coffeeBeans)
             CatalogDetailGroup(CpIcons.Settings, "Оборудование", equipment)
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RoasterDetailGroup(
+    items: List<CatalogItem>,
+    onRoasterClick: (String) -> Unit,
+) {
+    if (items.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        ) {
+            Icon(
+                imageVector = CpIcons.CoffeeBean,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = "Обжарщики",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        ) {
+            items.forEach { item ->
+                InfoChip(
+                    text = item.name,
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                    textColor = MaterialTheme.colorScheme.primary,
+                    onClick = { onRoasterClick(item.id) },
+                )
+            }
         }
     }
 }
@@ -1439,11 +1502,14 @@ private fun InfoChip(
     text: String,
     containerColor: Color = CpColor.GoldWarmSoft,
     textColor: Color = CpColor.GoldWarmHover,
+    onClick: (() -> Unit)? = null,
 ) {
+    var modifier = Modifier
+        .clip(RoundedCornerShape(CpDimens.radiusSm))
+        .background(containerColor)
+    if (onClick != null) modifier = modifier.clickable(onClick = onClick)
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(CpDimens.radiusSm))
-            .background(containerColor)
+        modifier = modifier
             .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
     ) {
         Text(
