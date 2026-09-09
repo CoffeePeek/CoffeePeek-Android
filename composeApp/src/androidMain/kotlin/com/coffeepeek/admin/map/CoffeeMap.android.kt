@@ -54,6 +54,19 @@ import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.layers.BackgroundLayer
+import org.maplibre.android.style.layers.FillLayer
+import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.Property
+import org.maplibre.android.style.layers.PropertyFactory.backgroundColor
+import org.maplibre.android.style.layers.PropertyFactory.fillColor
+import org.maplibre.android.style.layers.PropertyFactory.fillOutlineColor
+import org.maplibre.android.style.layers.PropertyFactory.lineColor
+import org.maplibre.android.style.layers.PropertyFactory.textColor
+import org.maplibre.android.style.layers.PropertyFactory.textHaloColor
+import org.maplibre.android.style.layers.PropertyFactory.textHaloWidth
+import org.maplibre.android.style.layers.PropertyFactory.visibility
+import org.maplibre.android.style.layers.SymbolLayer
 
 private const val DEFAULT_LAT = 53.9045
 private const val DEFAULT_LON = 27.5615
@@ -61,6 +74,8 @@ private const val DEFAULT_ZOOM = 12f
 private const val LOCATION_ZOOM = 15f
 private const val TARGET_ZOOM = 16f
 private const val OSM_COPYRIGHT_URL = "https://www.openstreetmap.org/copyright"
+private const val OPEN_FREE_MAP_LIGHT_STYLE = "https://tiles.openfreemap.org/styles/positron"
+private const val OPEN_FREE_MAP_DARK_STYLE = "https://tiles.openfreemap.org/styles/dark"
 
 private data class ShopMark(
     var marker: Marker,
@@ -249,7 +264,8 @@ actual fun CoffeeMap(
         shopMarks.clear()
         clusterMarks.clear()
         currentLocationMarker = null
-        activeMap.setStyle(Style.Builder().fromJson(openStreetMapStyle(isDarkTheme))) {
+        activeMap.setStyle(Style.Builder().fromUri(coffeeMapStyleUri(isDarkTheme))) { style ->
+            applyCoffeePeekMapStyle(style, isDarkTheme)
             styleGeneration += 1
             if (!initialCameraApplied) {
                 val location = context.lastKnownLocation()
@@ -358,14 +374,14 @@ actual fun CoffeeMap(
                             isAttributionEnabled = false
                             isCompassEnabled = false
                         }
-                        readyMap.setPrefetchesTiles(false)
+                        readyMap.setPrefetchesTiles(true)
                         map = readyMap
                     }
                 }
             },
         )
         Text(
-            text = "© OpenStreetMap contributors",
+            text = "OpenFreeMap · OpenMapTiles · © OSM",
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(8.dp)
@@ -602,40 +618,122 @@ private fun LatLngBounds.toMapBounds(): MapBounds = MapBounds(
     maxLon = longitudeEast,
 )
 
-private fun openStreetMapStyle(isDarkTheme: Boolean): String {
-    val background = if (isDarkTheme) "#1A1412" else "#FAFAF9"
-    val brightness = if (isDarkTheme) "0.58" else "1.0"
-    val contrast = if (isDarkTheme) "0.18" else "0.0"
-    return """
-        {
-          "version": 8,
-          "name": "CoffeePeek OpenStreetMap",
-          "sources": {
-            "openstreetmap": {
-              "type": "raster",
-              "tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-              "tileSize": 256,
-              "minzoom": 0,
-              "maxzoom": 19,
-              "attribution": "© OpenStreetMap contributors"
-            }
-          },
-          "layers": [
-            {
-              "id": "background",
-              "type": "background",
-              "paint": { "background-color": "$background" }
-            },
-            {
-              "id": "openstreetmap",
-              "type": "raster",
-              "source": "openstreetmap",
-              "paint": {
-                "raster-brightness-max": $brightness,
-                "raster-contrast": $contrast
-              }
-            }
-          ]
+private fun coffeeMapStyleUri(isDarkTheme: Boolean): String =
+    if (isDarkTheme) OPEN_FREE_MAP_DARK_STYLE else OPEN_FREE_MAP_LIGHT_STYLE
+
+private data class CoffeeMapPalette(
+    val background: String,
+    val residential: String,
+    val park: String,
+    val building: String,
+    val water: String,
+    val waterLine: String,
+    val roadCasing: String,
+    val road: String,
+    val minorRoad: String,
+    val boundary: String,
+    val text: String,
+    val waterText: String,
+    val textHalo: String,
+)
+
+private fun applyCoffeePeekMapStyle(style: Style, isDarkTheme: Boolean) {
+    val palette = if (isDarkTheme) {
+        CoffeeMapPalette(
+            background = "#1A1412",
+            residential = "#211B18",
+            park = "#25231D",
+            building = "#302722",
+            water = "#26343A",
+            waterLine = "#42545B",
+            roadCasing = "#332A26",
+            road = "#4B403A",
+            minorRoad = "#3D342F",
+            boundary = "#66564D",
+            text = "#C8BEB7",
+            waterText = "#9AAFB5",
+            textHalo = "#1A1412",
+        )
+    } else {
+        CoffeeMapPalette(
+            background = "#F8F6F3",
+            residential = "#EFEAE5",
+            park = "#E4E8DF",
+            building = "#E3DDD7",
+            water = "#D3DEE1",
+            waterLine = "#B2C5CA",
+            roadCasing = "#D6CEC7",
+            road = "#FFFFFF",
+            minorRoad = "#E8E2DC",
+            boundary = "#AA9D94",
+            text = "#625A55",
+            waterText = "#687E84",
+            textHalo = "#FAF8F5",
+        )
+    }
+
+    style.layers.forEach { layer ->
+        val id = layer.id.lowercase()
+        if (mapNoiseLayerTokens.any(id::contains)) {
+            layer.setProperties(visibility(Property.NONE))
+            return@forEach
         }
-    """.trimIndent()
+
+        if (id.contains("highway_path")) {
+            layer.minZoom = maxOf(layer.minZoom, 15f)
+        }
+
+        when (layer) {
+            is BackgroundLayer -> layer.setProperties(backgroundColor(palette.background))
+            is FillLayer -> when {
+                id == "water" || id.startsWith("water_") -> layer.setProperties(
+                    fillColor(palette.water),
+                    fillOutlineColor(palette.waterLine),
+                )
+                id == "park" || id.contains("landcover_wood") || id.contains("landuse_park") -> {
+                    layer.setProperties(fillColor(palette.park))
+                }
+                id.contains("building") -> layer.setProperties(
+                    fillColor(palette.building),
+                    fillOutlineColor(palette.roadCasing),
+                )
+                id.contains("residential") -> layer.setProperties(fillColor(palette.residential))
+            }
+            is LineLayer -> when {
+                id.contains("waterway") -> layer.setProperties(lineColor(palette.waterLine))
+                id.contains("boundary") -> layer.setProperties(lineColor(palette.boundary))
+                id.contains("highway") || id.contains("road") || id.contains("bridge") || id.contains("tunnel") -> {
+                    val color = when {
+                        id.contains("casing") -> palette.roadCasing
+                        id.contains("inner") || id.contains("motorway") || id.contains("major") -> palette.road
+                        else -> palette.minorRoad
+                    }
+                    layer.setProperties(lineColor(color))
+                }
+            }
+            is SymbolLayer -> layer.setProperties(
+                textColor(if (id.contains("water")) palette.waterText else palette.text),
+                textHaloColor(palette.textHalo),
+                textHaloWidth(1.2f),
+            )
+        }
+    }
 }
+
+private val mapNoiseLayerTokens = listOf(
+    "poi",
+    "housenumber",
+    "house-number",
+    "house_number",
+    "road_oneway",
+    "transit_stop",
+    "transit-stop",
+    "bus_stop",
+    "bus-stop",
+    "ferry_terminal",
+    "ferry-terminal",
+    "aerodrome_label",
+    "aerodrome-label",
+    "airport_label",
+    "airport-label",
+)

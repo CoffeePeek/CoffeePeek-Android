@@ -155,7 +155,11 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
                 }
             }
             MapControlButton(onClick = vm::requestMyLocation) {
-                Icon(CpIcons.MyLocation, contentDescription = "Моё местоположение")
+                Icon(
+                    CpIcons.MyLocation,
+                    contentDescription = "Моё местоположение",
+                    modifier = Modifier.size(30.dp),
+                )
             }
         }
 

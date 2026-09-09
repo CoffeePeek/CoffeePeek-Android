@@ -91,7 +91,7 @@ internal object MapMarkerIcons {
 
     fun myLocationBitmap(context: Context): Bitmap = cache.getOrPut("my-location") {
         val density = context.resources.displayMetrics.density
-        val size = (26f * density).roundToInt().coerceAtLeast(1)
+        val size = (38f * density).roundToInt().coerceAtLeast(1)
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val center = size / 2f
@@ -99,7 +99,7 @@ internal object MapMarkerIcons {
         canvas.drawCircle(
             center,
             center,
-            11f * density,
+            17f * density,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.FILL
                 color = ColorUtils.setAlphaComponent(MY_LOCATION, 0x33)
@@ -108,7 +108,7 @@ internal object MapMarkerIcons {
         canvas.drawCircle(
             center,
             center,
-            7f * density,
+            10f * density,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.FILL
                 color = MY_LOCATION
@@ -117,10 +117,10 @@ internal object MapMarkerIcons {
         canvas.drawCircle(
             center,
             center,
-            7f * density - 1.5f * density,
+            10f * density - 1.8f * density,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
-                strokeWidth = 3f * density
+                strokeWidth = 3.6f * density
                 color = WHITE
             },
         )
