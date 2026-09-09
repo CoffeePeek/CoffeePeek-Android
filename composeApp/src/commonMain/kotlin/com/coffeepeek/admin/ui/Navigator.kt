@@ -6,6 +6,7 @@ import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesScreen
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileScreen
 import com.coffeepeek.admin.ui.screen.favorites.FavoritesScreen
 import com.coffeepeek.admin.ui.screen.reviews.MyReviewsScreen
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -162,8 +163,6 @@ object Navigator {
             message = errorMessage ?: "",
             onDismiss = { ErrorHandler.clearError() }
         )
-        LoadingDialog(show = loading)
-
         LaunchedEffect(isLoggedIn) {
             if (!isLoggedIn) {
                 ErrorHandler.clearError()
@@ -171,7 +170,10 @@ object Navigator {
             }
         }
 
-        BaseNavigator(isLoggedIn = isLoggedIn)
+        Box(modifier = Modifier.fillMaxSize()) {
+            BaseNavigator(isLoggedIn = isLoggedIn)
+            LoadingDialog(show = loading)
+        }
     }
 
     @Composable
