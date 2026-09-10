@@ -265,8 +265,8 @@ actual fun CoffeeMap(
         clusterMarks.clear()
         currentLocationMarker = null
         activeMap.setStyle(Style.Builder().fromUri(coffeeMapStyleUri(isDarkTheme))) { style ->
-            applyCoffeePeekMapStyle(style, isDarkTheme)
             styleGeneration += 1
+            applyCoffeePeekMapStyle(style, isDarkTheme)
             if (!initialCameraApplied) {
                 val location = context.lastKnownLocation()
                 currentLocation = location?.let { LatLng(it.latitude, it.longitude) }
@@ -673,59 +673,64 @@ private fun applyCoffeePeekMapStyle(style: Style, isDarkTheme: Boolean) {
     }
 
     style.layers.forEach { layer ->
-        val id = layer.id.lowercase()
-        if (mapNoiseLayerTokens.any(id::contains)) {
-            layer.setProperties(visibility(Property.NONE))
-            return@forEach
-        }
-
-        if (id.contains("highway_path")) {
-            layer.minZoom = maxOf(layer.minZoom, 15f)
-        }
-
-        when (layer) {
-            is BackgroundLayer -> layer.setProperties(backgroundColor(palette.background))
-            is FillLayer -> when {
-                id == "water" || id.startsWith("water_") -> layer.setProperties(
-                    fillColor(palette.water),
-                    fillOutlineColor(palette.waterLine),
-                )
-                id == "park" || id.contains("landcover_wood") || id.contains("landuse_park") -> {
-                    layer.setProperties(fillColor(palette.park))
-                }
-                id.contains("building") -> layer.setProperties(
-                    fillColor(palette.building),
-                    fillOutlineColor(palette.roadCasing),
-                )
-                id.contains("residential") -> layer.setProperties(fillColor(palette.residential))
+        runCatching {
+            val id = layer.id.lowercase()
+            if (isMapNoiseLayer(id)) {
+                layer.setProperties(visibility(Property.NONE))
+                return@runCatching
             }
-            is LineLayer -> when {
-                id.contains("waterway") -> layer.setProperties(lineColor(palette.waterLine))
-                id.contains("boundary") -> layer.setProperties(lineColor(palette.boundary))
-                id.contains("highway") || id.contains("road") || id.contains("bridge") || id.contains("tunnel") -> {
-                    val color = when {
-                        id.contains("casing") -> palette.roadCasing
-                        id.contains("inner") || id.contains("motorway") || id.contains("major") -> palette.road
-                        else -> palette.minorRoad
+
+            if (id.contains("highway_path")) {
+                layer.minZoom = maxOf(layer.minZoom, 15f)
+            }
+
+            when (layer) {
+                is BackgroundLayer -> layer.setProperties(backgroundColor(palette.background))
+                is FillLayer -> when {
+                    id == "water" || id.startsWith("water_") -> layer.setProperties(
+                        fillColor(palette.water),
+                        fillOutlineColor(palette.waterLine),
+                    )
+                    id == "park" || id.contains("landcover_wood") || id.contains("landuse_park") -> {
+                        layer.setProperties(fillColor(palette.park))
                     }
-                    layer.setProperties(lineColor(color))
+                    id.contains("building") -> layer.setProperties(
+                        fillColor(palette.building),
+                        fillOutlineColor(palette.roadCasing),
+                    )
+                    id.contains("residential") -> layer.setProperties(fillColor(palette.residential))
                 }
+                is LineLayer -> when {
+                    id.contains("waterway") -> layer.setProperties(lineColor(palette.waterLine))
+                    id.contains("boundary") -> layer.setProperties(lineColor(palette.boundary))
+                    id.contains("highway") || id.contains("road") || id.contains("bridge") || id.contains("tunnel") -> {
+                        val color = when {
+                            id.contains("casing") -> palette.roadCasing
+                            id.contains("inner") || id.contains("motorway") || id.contains("major") -> palette.road
+                            else -> palette.minorRoad
+                        }
+                        layer.setProperties(lineColor(color))
+                    }
+                }
+                is SymbolLayer -> layer.setProperties(
+                    textColor(if (id.contains("water")) palette.waterText else palette.text),
+                    textHaloColor(palette.textHalo),
+                    textHaloWidth(1.2f),
+                )
             }
-            is SymbolLayer -> layer.setProperties(
-                textColor(if (id.contains("water")) palette.waterText else palette.text),
-                textHaloColor(palette.textHalo),
-                textHaloWidth(1.2f),
-            )
         }
     }
 }
 
-private val mapNoiseLayerTokens = listOf(
-    "poi",
-    "housenumber",
+private fun isMapNoiseLayer(id: String): Boolean {
+    val segments = id.split('-', '_', '.')
+    if (segments.any { it == "poi" || it == "housenumber" || it == "oneway" }) return true
+    return mapNoiseLayerPhrases.any(id::contains)
+}
+
+private val mapNoiseLayerPhrases = listOf(
     "house-number",
     "house_number",
-    "road_oneway",
     "transit_stop",
     "transit-stop",
     "bus_stop",
