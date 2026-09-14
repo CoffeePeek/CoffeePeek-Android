@@ -419,6 +419,7 @@ private fun StepBasic(
         PriceBeanSlider(
             selected = state.priceRange,
             onSelect = vm::onPriceRangeSelect,
+            title = "Капучино (цена)",
         )
     }
 }

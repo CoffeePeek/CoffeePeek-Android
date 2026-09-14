@@ -251,7 +251,7 @@ private fun RoasterField(
             minLines = minLines,
             isError = error != null,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            shape = RoundedCornerShape(if (singleLine) CpDimens.inputRadius else CpDimens.radiusLg),
+            shape = RoundedCornerShape(CpDimens.radiusMd),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -286,7 +286,7 @@ private fun RoasterCityPicker(
                 .fillMaxWidth()
                 .heightIn(min = 52.dp)
                 .onGloballyPositioned { anchorWidth = with(density) { it.size.width.toDp() } },
-            shape = RoundedCornerShape(CpDimens.inputRadius),
+            shape = RoundedCornerShape(CpDimens.radiusMd),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             colors = ButtonDefaults.outlinedButtonColors(
                 containerColor = MaterialTheme.colorScheme.surface,
