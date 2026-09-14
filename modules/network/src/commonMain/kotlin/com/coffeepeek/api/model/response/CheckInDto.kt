@@ -2,6 +2,7 @@ package com.coffeepeek.api.model.response
 
 import com.coffeepeek.api.model.DataResponse
 import com.coffeepeek.api.model.response.shop.ShortPhotoDto
+import com.coffeepeek.api.model.response.shop.RatingDto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -16,6 +17,7 @@ data class CheckInDto(
     @SerialName("reviewId") val reviewId: String? = null,
     @SerialName("shopName") val shopName: String = "",
     @SerialName("photos") val photos: List<ShortPhotoDto> = emptyList(),
+    @SerialName("rating") val rating: RatingDto? = null,
 )
 
 @Serializable

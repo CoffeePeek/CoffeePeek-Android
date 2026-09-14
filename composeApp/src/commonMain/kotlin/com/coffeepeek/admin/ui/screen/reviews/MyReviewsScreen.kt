@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.component.ReviewPhotoStrip
+import com.coffeepeek.admin.ui.component.ReviewRatingSummary
 import com.coffeepeek.domain.model.Review
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
@@ -140,20 +142,11 @@ private fun ReviewListCard(review: Review, onClick: () -> Unit) {
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        CpIcons.StarFilled,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Text(
-                        "%.1f".format(review.rating.average),
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(start = 2.dp),
-                    )
-                }
             }
+            ReviewRatingSummary(
+                rating = review.rating,
+                modifier = Modifier.padding(top = CpDimens.spacing2),
+            )
             if (review.comment.isNotBlank()) {
                 Text(
                     text = review.comment,
@@ -163,29 +156,10 @@ private fun ReviewListCard(review: Review, onClick: () -> Unit) {
                     maxLines = 4,
                 )
             }
-            if (review.photoUrls.isNotEmpty()) {
-                Spacer(Modifier.height(CpDimens.spacing2))
-                Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1)) {
-                    review.photoUrls.take(3).forEach { url ->
-                        KamelImage(
-                            resource = asyncPainterResource(url),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(CpDimens.radiusSm)),
-                        )
-                    }
-                    if (review.photoUrls.size > 3) {
-                        Text(
-                            "+${review.photoUrls.size - 3}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.align(Alignment.CenterVertically),
-                        )
-                    }
-                }
-            }
+            ReviewPhotoStrip(
+                photoUrls = review.photoUrls,
+                modifier = Modifier.padding(top = CpDimens.spacing2),
+            )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

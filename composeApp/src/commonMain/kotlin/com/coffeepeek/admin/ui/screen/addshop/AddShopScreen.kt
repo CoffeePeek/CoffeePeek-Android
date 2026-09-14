@@ -63,6 +63,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
+import com.coffeepeek.admin.ui.component.priceLevelValue
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
@@ -415,13 +416,13 @@ private fun StepBasic(
 
     Spacer(Modifier.height(CpDimens.spacing4))
 
-    FormField(label = "Ценовой диапазон", optional = true) {
-        PriceBeanSlider(
-            selected = state.priceRange,
-            onSelect = vm::onPriceRangeSelect,
-            title = "Капучино (цена)",
-        )
-    }
+    val selectedPrice = priceLevelValue(state.priceRange)
+    PriceBeanSlider(
+        selected = state.priceRange,
+        onSelect = vm::onPriceRangeSelect,
+        title = selectedPrice?.let { "Цена (капучино за $it)" } ?: "Цена",
+        showHint = false,
+    )
 }
 
 // ── Шаг 2: Фото ───────────────────────────────────────────────────────────────

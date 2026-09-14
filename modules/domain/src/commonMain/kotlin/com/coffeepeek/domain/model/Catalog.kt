@@ -114,4 +114,5 @@ data class CheckIn(
     val reviewId: String?,
     val visitedAt: String = "",
     val photoUrls: List<String> = emptyList(),
+    val rating: ReviewRating? = null,
 )

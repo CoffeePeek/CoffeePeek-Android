@@ -31,6 +31,7 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.PhotoAttachmentsSection
+import com.coffeepeek.admin.ui.component.ReviewRatingCards
 import com.coffeepeek.admin.utils.MAX_REVIEW_PHOTOS
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -67,9 +68,14 @@ fun CreateReviewScreen(shopId: String) {
         ) {
             ReviewHeaderField(state.header, vm::onHeaderChange, error = state.headerError)
             ReviewCommentField(state.comment, vm::onCommentChange, error = state.commentError)
-            ReviewRatingRow("Атмосфера", state.placeRating, vm::onPlaceRating)
-            ReviewRatingRow("Сервис", state.serviceRating, vm::onServiceRating)
-            ReviewRatingRow("Кофе", state.coffeeRating, vm::onCoffeeRating)
+            ReviewRatingCards(
+                coffeeRating = state.coffeeRating,
+                serviceRating = state.serviceRating,
+                placeRating = state.placeRating,
+                onCoffeeRatingChange = vm::onCoffeeRating,
+                onServiceRatingChange = vm::onServiceRating,
+                onPlaceRatingChange = vm::onPlaceRating,
+            )
             PhotoAttachmentsSection(
                 photos = state.photos,
                 maxPhotos = MAX_REVIEW_PHOTOS,
@@ -145,9 +151,14 @@ fun EditReviewScreen(reviewId: String) {
             ) {
                 ReviewHeaderField(state.header, vm::onHeaderChange, error = state.headerError)
                 ReviewCommentField(state.comment, vm::onCommentChange, error = state.commentError)
-                ReviewRatingRow("Атмосфера", state.placeRating, vm::onPlaceRating)
-                ReviewRatingRow("Сервис", state.serviceRating, vm::onServiceRating)
-                ReviewRatingRow("Кофе", state.coffeeRating, vm::onCoffeeRating)
+                ReviewRatingCards(
+                    coffeeRating = state.coffeeRating,
+                    serviceRating = state.serviceRating,
+                    placeRating = state.placeRating,
+                    onCoffeeRatingChange = vm::onCoffeeRating,
+                    onServiceRatingChange = vm::onServiceRating,
+                    onPlaceRatingChange = vm::onPlaceRating,
+                )
                 ExistingReviewPhotos(state.existingPhotoUrls, onPhotoClick = {})
                 PhotoAttachmentsSection(
                     photos = state.newPhotos,

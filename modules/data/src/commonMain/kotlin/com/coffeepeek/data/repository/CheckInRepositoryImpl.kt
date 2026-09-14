@@ -8,10 +8,13 @@ import com.coffeepeek.domain.model.CreateCheckInInput
 import com.coffeepeek.domain.model.PagedResult
 import com.coffeepeek.domain.repository.CheckInRepository
 import com.coffeepeek.domain.repository.PhotoRepository
+import com.coffeepeek.data.util.FileUrlResolver
+import com.coffeepeek.domain.model.ReviewRating
 
 class CheckInRepositoryImpl(
     private val checkInApiService: CheckInApiService,
     private val photoRepository: PhotoRepository,
+    private val fileUrlResolver: FileUrlResolver,
 ) : CheckInRepository {
 
     override suspend fun createCheckIn(input: CreateCheckInInput): Result<Unit> = runCatching {
@@ -58,7 +61,16 @@ class CheckInRepositoryImpl(
                         createdAt = dto.createdAt,
                         reviewId = dto.reviewId,
                         visitedAt = dto.visitedAt,
-                        photoUrls = dto.photos.mapNotNull { it.fullUrl },
+                        photoUrls = dto.photos.mapNotNull { photo ->
+                            fileUrlResolver.resolve(photo.storageKey, photo.fullUrl)
+                        },
+                        rating = dto.rating?.let { rating ->
+                            ReviewRating(
+                                place = rating.place,
+                                service = rating.service,
+                                coffee = rating.coffee,
+                            )
+                        },
                     )
                 },
                 totalCount = response.totalItems,

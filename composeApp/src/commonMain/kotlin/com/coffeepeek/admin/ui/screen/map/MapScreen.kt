@@ -122,38 +122,43 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
             onLocationPermissionDenied = {},
         )
 
+        OutlinedTextField(
+            value = state.query,
+            onValueChange = vm::onQueryChange,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .fillMaxWidth()
+                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
+            placeholder = { Text("Поиск по карте") },
+            leadingIcon = {
+                Icon(CpIcons.Search, contentDescription = null)
+            },
+            trailingIcon = if (state.query.isNotEmpty()) {
+                {
+                    IconButton(onClick = { vm.onQueryChange("") }) {
+                        Icon(CpIcons.Close, contentDescription = "Очистить поиск")
+                    }
+                }
+            } else {
+                null
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(CpDimens.radiusMd),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            ),
+        )
+
         Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .statusBarsPadding()
-                .padding(CpDimens.spacing4),
+                .padding(top = 84.dp, end = CpDimens.spacing4),
             verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
             horizontalAlignment = Alignment.End,
         ) {
-            MapControlButton(onClick = vm::toggleFilters) {
-                BadgedBox(
-                    badge = {
-                        if (state.activeFilterCount > 0) {
-                            Badge(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                            ) {
-                                Text(state.activeFilterCount.toString())
-                            }
-                        }
-                    },
-                ) {
-                    Icon(
-                        CpIcons.Filter,
-                        contentDescription = "Фильтры",
-                        tint = if (state.showFilters || state.activeFilterCount > 0) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
-                    )
-                }
-            }
             MapControlButton(onClick = vm::requestMyLocation) {
                 Icon(
                     CpIcons.MyLocation,
@@ -208,18 +213,6 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
             )
         }
 
-        if (state.showFilters) {
-            MapFiltersDialog(
-                state = state,
-                onDismiss = vm::dismissFilters,
-                onQueryChange = vm::onQueryChange,
-                onPrice = vm::setPriceRange,
-                onCoffeeFocusChange = vm::setCoffeeFocus,
-                onToggleCatalog = vm::toggleFilterCatalog,
-                onClear = vm::clearFilters,
-                onApply = vm::applyFilters,
-            )
-        }
     }
 }
 

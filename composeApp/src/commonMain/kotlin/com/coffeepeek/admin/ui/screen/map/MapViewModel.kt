@@ -76,6 +76,7 @@ class MapViewModel(
     val state: StateFlow<MapUiState> = _state.asStateFlow()
 
     private var boundsJob: Job? = null
+    private var queryJob: Job? = null
     private var detailsJob: Job? = null
     private var boundsPauseJob: Job? = null
     private var selectionVersion = 0
@@ -142,6 +143,12 @@ class MapViewModel(
 
     fun onQueryChange(query: String) {
         _state.update { it.copy(query = query) }
+        queryJob?.cancel()
+        queryJob = workScope.launch {
+            delay(350)
+            val bounds = _state.value.activeBounds ?: _state.value.pendingBounds ?: return@launch
+            loadBounds(bounds)
+        }
     }
 
     fun setCoffeeFocus(coffeeFocus: String?) {

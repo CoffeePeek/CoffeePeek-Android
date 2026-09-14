@@ -120,6 +120,7 @@ fun PriceBeanSlider(
     modifier: Modifier = Modifier,
     title: String = "Цена",
     showTitle: Boolean = true,
+    showHint: Boolean = true,
 ) {
     val value = (selected ?: 0).coerceIn(0, MAX_PRICE_LEVEL).toFloat()
     val filled = (selected ?: 0).coerceIn(0, MAX_PRICE_LEVEL)
@@ -144,7 +145,7 @@ fun PriceBeanSlider(
             )
         }
 
-        if (hint != null) {
+        if (showHint && hint != null) {
             Text(
                 text = hint,
                 style = MaterialTheme.typography.bodySmall,
@@ -216,9 +217,16 @@ fun PriceBeanSlider(
     }
 }
 
-private fun priceLevelHint(selected: Int?): String? = when (selected) {
+fun priceLevelHint(selected: Int?): String? = when (selected) {
     1 -> "До 8 BYN"
     2 -> "Около 8 BYN"
     3 -> "Больше 8 BYN"
+    else -> null
+}
+
+fun priceLevelValue(selected: Int?): String? = when (selected) {
+    1 -> "< 8 BYN"
+    2 -> "8 BYN"
+    3 -> "> 8 BYN"
     else -> null
 }

@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.component.ReviewPhotoStrip
+import com.coffeepeek.admin.ui.component.ReviewRatingSummary
 import com.coffeepeek.domain.model.CheckIn
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -137,6 +139,16 @@ private fun CheckInCard(checkIn: CheckIn, onClick: () -> Unit) {
                     modifier = Modifier.padding(top = CpDimens.spacing1),
                 )
             }
+            checkIn.rating?.let { rating ->
+                ReviewRatingSummary(
+                    rating = rating,
+                    modifier = Modifier.padding(top = CpDimens.spacing2),
+                )
+            }
+            ReviewPhotoStrip(
+                photoUrls = checkIn.photoUrls,
+                modifier = Modifier.padding(top = CpDimens.spacing2),
+            )
             if (checkIn.createdAt.isNotBlank()) {
                 Text(
                     text = checkIn.createdAt.take(10),

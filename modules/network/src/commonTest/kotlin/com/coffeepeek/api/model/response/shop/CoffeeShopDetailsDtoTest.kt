@@ -21,7 +21,8 @@ class CoffeeShopDetailsDtoTest {
                       "note": "Отличный фильтр",
                       "createdAt": "2026-09-08T10:00:00Z",
                       "visitedAt": "2026-09-08T09:30:00Z",
-                      "photos": [{ "fullUrl": "https://cdn.example/check-in.jpg" }]
+                      "photos": [{ "fullUrl": "https://cdn.example/check-in.jpg" }],
+                      "rating": { "place": 4, "service": 5, "coffee": 3 }
                     }
                   ]
                 }
@@ -34,5 +35,8 @@ class CoffeeShopDetailsDtoTest {
             "https://cdn.example/check-in.jpg",
             details.userCheckIns.single().photos.single().fullUrl,
         )
+        assertEquals(4, details.userCheckIns.single().rating?.place)
+        assertEquals(5, details.userCheckIns.single().rating?.service)
+        assertEquals(3, details.userCheckIns.single().rating?.coffee)
     }
 }

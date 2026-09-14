@@ -70,6 +70,9 @@ import org.jetbrains.compose.resources.stringResource
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.PhotoAttachmentsSection
+import com.coffeepeek.admin.ui.component.ReviewRatingCards
+import com.coffeepeek.admin.ui.component.ReviewFormField
+import com.coffeepeek.admin.ui.component.ReviewTextInput
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.utils.MAX_REVIEW_PHOTOS
 import com.coffeepeek.admin.utils.currentEpochMillis
@@ -191,32 +194,14 @@ fun CheckInBottomSheet(
             }
 
             // ── Ratings ───────────────────────────────────────────────────────
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-            ) {
-                RatingCard(
-                    modifier = Modifier.weight(1f),
-                    image = Res.drawable.checkin_rating_coffee,
-                    label = stringResource(Res.string.checkin_rating_coffee),
-                    rating = draft.coffeeRating,
-                    onRatingChange = { onDraftChange(draft.copy(coffeeRating = it)) },
-                )
-                RatingCard(
-                    modifier = Modifier.weight(1f),
-                    image = Res.drawable.checkin_rating_service,
-                    label = stringResource(Res.string.checkin_rating_service),
-                    rating = draft.serviceRating,
-                    onRatingChange = { onDraftChange(draft.copy(serviceRating = it)) },
-                )
-                RatingCard(
-                    modifier = Modifier.weight(1f),
-                    image = Res.drawable.checkin_rating_atmosphere,
-                    label = stringResource(Res.string.checkin_rating_atmosphere),
-                    rating = draft.placeRating,
-                    onRatingChange = { onDraftChange(draft.copy(placeRating = it)) },
-                )
-            }
+            ReviewRatingCards(
+                coffeeRating = draft.coffeeRating,
+                serviceRating = draft.serviceRating,
+                placeRating = draft.placeRating,
+                onCoffeeRatingChange = { onDraftChange(draft.copy(coffeeRating = it)) },
+                onServiceRatingChange = { onDraftChange(draft.copy(serviceRating = it)) },
+                onPlaceRatingChange = { onDraftChange(draft.copy(placeRating = it)) },
+            )
 
             // ── Visit date ────────────────────────────────────────────────────
             LabeledField(label = stringResource(Res.string.checkin_date_label)) {
@@ -295,38 +280,34 @@ fun CheckInBottomSheet(
 
             // ── Public review fields / private note ───────────────────────────
             if (draft.isPublic) {
-                LabeledField(label = stringResource(Res.string.checkin_header_label)) {
-                    CheckInTextField(
+                ReviewFormField(label = stringResource(Res.string.checkin_header_label), error = headerError) {
+                    ReviewTextInput(
                         value = draft.header,
                         onValueChange = ::onHeaderChange,
                         placeholder = stringResource(Res.string.checkin_header_placeholder),
                         isError = headerError != null,
                         singleLine = true,
                     )
-                    headerError?.let { error ->
-                        FieldError(error)
-                    }
                 }
             }
 
-            LabeledField(
+            ReviewFormField(
                 label = stringResource(
                     if (draft.isPublic) {
                         Res.string.checkin_description_label
                     } else {
                         Res.string.checkin_note_label
                     }
-                )
+                ),
+                error = noteError,
             ) {
-                CheckInNoteField(
+                ReviewTextInput(
                     value = draft.note,
                     onValueChange = ::onNoteChange,
                     placeholder = stringResource(Res.string.checkin_note_placeholder),
                     isError = noteError != null,
+                    modifier = Modifier.heightIn(min = 80.dp),
                 )
-                noteError?.let { error ->
-                    FieldError(error)
-                }
             }
 
             // ── Photos (optional) ─────────────────────────────────────────────
@@ -372,7 +353,6 @@ fun CheckInBottomSheet(
         }
     }
 }
-
 @Composable
 private fun LabeledField(
     label: String,
@@ -386,165 +366,4 @@ private fun LabeledField(
         )
         content()
     }
-}
-
-@Composable
-private fun RatingCard(
-    image: DrawableResource,
-    label: String,
-    rating: Int,
-    onRatingChange: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(CpDimens.radiusMd))
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f))
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outline,
-                shape = RoundedCornerShape(CpDimens.radiusMd),
-            )
-            .padding(horizontal = CpDimens.spacing2, vertical = CpDimens.spacing3),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-    ) {
-        Image(
-            painter = painterResource(image),
-            contentDescription = label,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(CpDimens.radiusSm)),
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        CompactStarRow(rating = rating, onRatingChange = onRatingChange)
-    }
-}
-
-@Composable
-private fun CompactStarRow(
-    rating: Int,
-    onRatingChange: (Int) -> Unit,
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-        (1..5).forEach { star ->
-            val icon: ImageVector = if (star <= rating) CpIcons.StarFilled else CpIcons.StarOutline
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (star <= rating) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                },
-                modifier = Modifier
-                    .size(16.dp)
-                    .clickable { onRatingChange(star) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun CheckInNoteField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    isError: Boolean,
-) {
-    val borderColor = if (isError) {
-        MaterialTheme.colorScheme.error
-    } else {
-        MaterialTheme.colorScheme.outline
-    }
-    BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        textStyle = MaterialTheme.typography.bodyMedium.copy(
-            color = MaterialTheme.colorScheme.onSurface,
-        ),
-        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(CpDimens.radiusMd))
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f))
-            .border(
-                width = 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(CpDimens.radiusMd),
-            )
-            .heightIn(min = 80.dp)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        decorationBox = { innerTextField ->
-            if (value.isEmpty()) {
-                Text(
-                    text = placeholder,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                )
-            }
-            innerTextField()
-        },
-    )
-}
-
-@Composable
-private fun CheckInTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    isError: Boolean,
-    singleLine: Boolean,
-) {
-    val borderColor = if (isError) {
-        MaterialTheme.colorScheme.error
-    } else {
-        MaterialTheme.colorScheme.outline
-    }
-    BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        singleLine = singleLine,
-        textStyle = MaterialTheme.typography.bodyMedium.copy(
-            color = MaterialTheme.colorScheme.onSurface,
-        ),
-        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(CpDimens.radiusMd))
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f))
-            .border(
-                width = 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(CpDimens.radiusMd),
-            )
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        decorationBox = { innerTextField ->
-            if (value.isEmpty()) {
-                Text(
-                    text = placeholder,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                )
-            }
-            innerTextField()
-        },
-    )
-}
-
-@Composable
-private fun FieldError(message: String) {
-    Text(
-        text = message,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.error,
-        modifier = Modifier.padding(top = CpDimens.spacing1),
-    )
 }

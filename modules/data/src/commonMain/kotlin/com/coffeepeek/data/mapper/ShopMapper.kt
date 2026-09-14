@@ -91,6 +91,13 @@ internal object ShopMapper {
                 photoUrls = checkIn.photos.mapNotNull { photo ->
                     fileUrls.resolve(photo.storageKey, photo.fullUrl)
                 },
+                rating = checkIn.rating?.let { rating ->
+                    ReviewRating(
+                        place = rating.place,
+                        service = rating.service,
+                        coffee = rating.coffee,
+                    )
+                },
             )
         },
         contact = shopContact?.let { c ->

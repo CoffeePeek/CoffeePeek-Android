@@ -96,7 +96,7 @@ fun dataModule(
     single<ShopRepository> { ShopRepositoryImpl(get(), get(), get(), get()) }
     single<UserRepository> { UserRepositoryImpl(get(), get(), get(), get()) }
     single<ReviewRepository> { ReviewRepositoryImpl(get(), get(), get()) }
-    single<CheckInRepository> { CheckInRepositoryImpl(get(), get()) }
+    single<CheckInRepository> { CheckInRepositoryImpl(get(), get(), get()) }
     single<ShopIssueReportRepository> { ShopIssueReportRepositoryImpl(get()) }
     single<RoasterRepository> { RoasterRepositoryImpl(get(), get(), get()) }
 }
