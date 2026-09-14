@@ -54,6 +54,16 @@ object CpDimens {
     val cardRadius  = 16.dp
     val cardPadding = 24.dp
 
+    // ── Settings ─────────────────────────────────────────────────────────────
+    val settingsPagePadding      = 16.dp
+    val settingsSectionSpacing   = 16.dp
+    val settingsRowPaddingH      = 16.dp
+    val settingsRowPaddingV      = 12.dp
+    val settingsIconContainer    = 40.dp
+    val settingsIconSize         = 22.dp
+    val settingsIconRadius       = 12.dp
+    val settingsDividerStart     = 68.dp
+
     // ── Header ────────────────────────────────────────────────────────────────
     val headerHeight   = 64.dp
     val headerLogoSize = 40.dp

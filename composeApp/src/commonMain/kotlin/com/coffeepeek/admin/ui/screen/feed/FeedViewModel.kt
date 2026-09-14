@@ -38,7 +38,24 @@ data class FeedFiltersUi(
     val equipmentIds: Set<String> = emptySet(),
     val brewMethodIds: Set<String> = emptySet(),
     val tagIds: Set<String> = emptySet(),
-)
+) {
+    val activeFilterCount: Int
+        get() {
+            var count = 0
+            if (coffeeFocus != null) count++
+            if (openOnly) count++
+            if (newOnly) count++
+            if (visitedOnly) count++
+            if (favoritesOnly) count++
+            if (priceRange != null) count++
+            if (minRating != null) count++
+            count += roasterIds.size + beanIds.size + equipmentIds.size +
+                brewMethodIds.size + tagIds.size
+            return count
+        }
+
+    fun clearSelections(): FeedFiltersUi = FeedFiltersUi(cityId = cityId)
+}
 
 data class FeedUiState(
     val shops: List<CoffeeShop> = emptyList(),
@@ -63,19 +80,7 @@ data class FeedUiState(
     val hasMore: Boolean = false,
 ) {
     val activeFilterCount: Int
-        get() {
-            var count = 0
-            if (filters.coffeeFocus != null) count++
-            if (filters.openOnly) count++
-            if (filters.newOnly) count++
-            if (filters.visitedOnly) count++
-            if (filters.favoritesOnly) count++
-            if (filters.priceRange != null) count++
-            if (filters.minRating != null) count++
-            count += filters.roasterIds.size + filters.beanIds.size +
-                filters.equipmentIds.size + filters.brewMethodIds.size + filters.tagIds.size
-            return count
-        }
+        get() = filters.activeFilterCount
 
     val visibleShops: List<CoffeeShop>
         get() = shops.filter { shop ->
@@ -248,7 +253,7 @@ class FeedViewModel(
     fun clearFilters() {
         queryFlow.value = ""
         _uiState.update {
-            it.copy(query = "", filters = FeedFiltersUi(cityId = it.filters.cityId))
+            it.copy(query = "", filters = it.filters.clearSelections())
         }
         loadShops(reset = true)
     }

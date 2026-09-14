@@ -20,7 +20,7 @@
     <string name="error_enter_name">Введите имя!</string>
     <string name="error_enter_email">Введите email!</string>
     <string name="error_enter_password">Введите пароль!</string>
-    <string name="error_enter_password_length">Минимум 6 символов в пароле!</string>
+    <string name="error_enter_password_length">Пароль должен содержать как минимум 8 символов</string>
     <string name="error_term_of_user">Для завершения регистрации необходимо принять условия соглашения и политику конфиденциальности!</string>
     <string name="error_email_name">Введите email!</string>
     <string name="error_valid_email">Некорректный формат email!</string>

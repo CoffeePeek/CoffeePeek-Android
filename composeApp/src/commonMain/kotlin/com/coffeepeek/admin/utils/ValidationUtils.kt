@@ -14,6 +14,7 @@ private const val MSG_INSTAGRAM_INVALID = "Некорректный Instagram"
 
 const val MIN_REVIEW_HEADER_LENGTH = 3
 const val MIN_REVIEW_COMMENT_LENGTH = 10
+const val MIN_REGISTRATION_PASSWORD_LENGTH = 8
 
 fun validateReviewHeader(header: String): String? {
     val value = header.trim()
@@ -53,7 +54,7 @@ fun validateEmailRequired(email: String): String? = when {
 
 fun validatePasswordRequired(password: String, minLength: Int = 6): String? = when {
     password.isBlank() -> MSG_PASSWORD_REQUIRED
-    password.length < minLength -> "Минимум $minLength символов в пароле!"
+    password.length < minLength -> "Пароль должен содержать как минимум $minLength символов"
     else -> null
 }
 

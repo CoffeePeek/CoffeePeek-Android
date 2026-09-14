@@ -71,6 +71,7 @@ import com.coffeepeek.admin.ui.screen.auth.AuthPrimaryButton
 import com.coffeepeek.admin.ui.screen.auth.AuthScreenScaffold
 import com.coffeepeek.admin.ui.screen.auth.AuthStepper
 import com.coffeepeek.admin.ui.screen.auth.AuthTextField
+import com.coffeepeek.admin.utils.MIN_REGISTRATION_PASSWORD_LENGTH
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -265,7 +266,7 @@ object RegisterScreen {
                         text = stringResource(Res.string.create_account),
                         onClick = { vm.onRegisterClick() },
                         enabled = name.trim().length >= 2 &&
-                            password.length >= 6 &&
+                            password.length >= MIN_REGISTRATION_PASSWORD_LENGTH &&
                             isTermsAccepted,
                     )
 

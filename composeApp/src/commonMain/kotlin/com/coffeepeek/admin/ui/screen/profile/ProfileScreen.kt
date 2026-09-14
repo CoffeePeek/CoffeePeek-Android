@@ -157,7 +157,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 SettingsRow(
                     icon = CpIcons.Add,
                     label = "Добавить кофейню",
-                    iconTint = MaterialTheme.colorScheme.primary,
+                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                     iconBg = MaterialTheme.colorScheme.primaryContainer,
                     onClick = { Navigator.navigate(Navigator.Screen.AddShop) },
                 )
@@ -165,13 +165,13 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 SettingsRow(
                     icon = CpIcons.CoffeeBean,
                     label = "Добавить обжарщика",
-                    iconTint = MaterialTheme.colorScheme.primary,
+                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                     iconBg = MaterialTheme.colorScheme.primaryContainer,
                     onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
                 )
             }
 
-            Spacer(Modifier.height(CpDimens.spacing3))
+            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
 
             // ── Моя активность ─────────────────────────────────────────────────
             SettingsSection(title = "Моя активность") {
@@ -194,7 +194,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 )
             }
 
-            Spacer(Modifier.height(CpDimens.spacing3))
+            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
 
             // ── Настройки ─────────────────────────────────────────────────────
             SettingsSection(title = "Настройки") {
@@ -221,14 +221,14 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 )
             }
 
-            Spacer(Modifier.height(CpDimens.spacing6))
+            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
 
             // ── Выход ─────────────────────────────────────────────────────────
             Button(
                 onClick = { showLogoutDialog = true },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = CpDimens.spacing4)
+                    .padding(horizontal = CpDimens.settingsPagePadding)
                     .height(CpDimens.buttonHeight),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = CpColor.Error.copy(alpha = 0.1f),
@@ -500,21 +500,24 @@ private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
+            .padding(
+                horizontal = CpDimens.settingsRowPaddingH,
+                vertical = CpDimens.settingsRowPaddingV,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(CpDimens.radiusSm))
+                .size(CpDimens.settingsIconContainer)
+                .clip(RoundedCornerShape(CpDimens.settingsIconRadius))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = current.icon(),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(CpDimens.settingsIconSize),
             )
         }
         Spacer(Modifier.width(CpDimens.spacing3))
@@ -623,19 +626,18 @@ private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
 
 @Composable
 private fun SettingsSection(title: String, content: @Composable () -> Unit) {
-    Column(modifier = Modifier.padding(horizontal = CpDimens.spacing4)) {
+    Column(modifier = Modifier.padding(horizontal = CpDimens.settingsPagePadding)) {
         Text(
             text = title.uppercase(),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             letterSpacing = androidx.compose.ui.unit.TextUnit(0.08f, androidx.compose.ui.unit.TextUnitType.Em),
-            modifier = Modifier.padding(start = CpDimens.spacing1, bottom = CpDimens.spacing2),
+            modifier = Modifier.padding(bottom = CpDimens.spacing2),
         )
         Card(
             shape = RoundedCornerShape(CpDimens.cardRadius),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             content()
         }
@@ -648,7 +650,7 @@ private fun SettingsRow(
     label: String,
     onClick: () -> Unit,
     showArrow: Boolean = true,
-    iconTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    iconTint: Color = MaterialTheme.colorScheme.onSurface,
     iconBg: Color = MaterialTheme.colorScheme.surfaceVariant,
     trailing: @Composable (() -> Unit)? = null,
 ) {
@@ -656,13 +658,16 @@ private fun SettingsRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
+            .padding(
+                horizontal = CpDimens.settingsRowPaddingH,
+                vertical = CpDimens.settingsRowPaddingV,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(CpDimens.radiusSm))
+                .size(CpDimens.settingsIconContainer)
+                .clip(RoundedCornerShape(CpDimens.settingsIconRadius))
                 .background(iconBg),
             contentAlignment = Alignment.Center,
         ) {
@@ -670,7 +675,7 @@ private fun SettingsRow(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconTint,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(CpDimens.settingsIconSize),
             )
         }
         Spacer(Modifier.width(CpDimens.spacing3))
@@ -687,7 +692,7 @@ private fun SettingsRow(
                 imageVector = CpIcons.ChevronRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(CpDimens.settingsIconSize),
             )
         }
     }
@@ -696,7 +701,7 @@ private fun SettingsRow(
 @Composable
 private fun SettingsDivider() {
     HorizontalDivider(
-        modifier = Modifier.padding(start = 64.dp),
+        modifier = Modifier.padding(start = CpDimens.settingsDividerStart),
         color = MaterialTheme.colorScheme.outlineVariant,
         thickness = 0.5.dp,
     )

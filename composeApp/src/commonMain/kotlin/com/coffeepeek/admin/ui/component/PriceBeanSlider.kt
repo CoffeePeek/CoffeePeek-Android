@@ -1,10 +1,12 @@
 package com.coffeepeek.admin.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.material3.Icon
@@ -117,7 +119,7 @@ fun PriceBeanSlider(
 ) {
     val value = (selected ?: 0).coerceIn(0, MAX_PRICE_LEVEL).toFloat()
     val filled = (selected ?: 0).coerceIn(0, MAX_PRICE_LEVEL)
-    val iconWidth = 18.dp
+    val iconWidth = 14.dp
     val hint = priceLevelHint(selected)
 
     Column(
@@ -164,19 +166,26 @@ fun PriceBeanSlider(
             ),
         )
 
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+                .height(iconWidth / BYN_ICON_ASPECT),
         ) {
+            val trackInset = 10.dp
+            val trackWidth = (maxWidth - trackInset * 2).coerceAtLeast(0.dp)
+            val scaledIconWidth = iconWidth * BYN_ICON_SCALE
+
             repeat(MAX_PRICE_LEVEL) { index ->
                 val tier = index + 1
                 val isActive = filled == tier
+                val iconGap = 1.dp
+                val groupWidth = scaledIconWidth * tier + iconGap * (tier - 1)
+                val tickCenter = trackInset + trackWidth * (tier.toFloat() / MAX_PRICE_LEVEL)
+                val x = (tickCenter - groupWidth / 2).coerceIn(0.dp, maxWidth - groupWidth)
+
                 Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.offset(x = x),
+                    horizontalArrangement = Arrangement.spacedBy(iconGap),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     repeat(tier) {

@@ -12,6 +12,7 @@ import coffeepeek.composeapp.generated.resources.maybe_later
 import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.ErrorHandler
+import com.coffeepeek.admin.utils.MIN_REGISTRATION_PASSWORD_LENGTH
 import com.coffeepeek.admin.utils.validateEmailRequired
 import com.coffeepeek.admin.utils.validatePasswordRequired
 import com.coffeepeek.domain.repository.AuthRepository
@@ -65,7 +66,10 @@ class RegisterViewModel(
     fun onPasswordChange(value: String) {
         _password.value = value
         if (_passwordError.value != null) {
-            _passwordError.value = validatePasswordRequired(value)
+            _passwordError.value = validatePasswordRequired(
+                password = value,
+                minLength = MIN_REGISTRATION_PASSWORD_LENGTH,
+            )
         }
     }
 
@@ -121,7 +125,10 @@ class RegisterViewModel(
                 error = Res.string.error_term_of_user
             }
 
-            val passwordErr = validatePasswordRequired(currentPassword)
+            val passwordErr = validatePasswordRequired(
+                password = currentPassword,
+                minLength = MIN_REGISTRATION_PASSWORD_LENGTH,
+            )
             if (passwordErr != null) {
                 _passwordError.value = passwordErr
                 isValid = false

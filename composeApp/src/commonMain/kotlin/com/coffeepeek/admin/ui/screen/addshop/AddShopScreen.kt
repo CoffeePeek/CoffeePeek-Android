@@ -371,17 +371,21 @@ private fun StepBasic(
             errorText = if (state.address.isNotEmpty()) state.addressError else null,
             leadingIcon = CpIcons.Navigation,
             trailingContent = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.padding(end = CpDimens.spacing1),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     if (state.isResolvingAddress) {
                         CoffeePeekLoader(
-                            modifier = Modifier.size(18.dp).padding(end = CpDimens.spacing1),
+                            modifier = Modifier.size(18.dp),
                             strokeWidth = 2.dp,
                         )
+                        Spacer(Modifier.width(CpDimens.spacing1))
                     }
                     FilledIconButton(
                         onClick = vm::openLocationPicker,
                         enabled = !state.isResolvingAddress,
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(40.dp),
                         shape = RoundedCornerShape(CpDimens.radiusSm),
                         colors = IconButtonDefaults.filledIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
@@ -393,7 +397,7 @@ private fun StepBasic(
                         Icon(
                             imageVector = CpIcons.Map,
                             contentDescription = "Выбрать на карте",
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
@@ -924,7 +928,7 @@ private fun FormField(
     content: @Composable () -> Unit,
 ) {
     Row(
-        modifier = Modifier.padding(bottom = 6.dp, start = 4.dp),
+        modifier = Modifier.padding(bottom = CpDimens.spacing2),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {

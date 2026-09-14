@@ -116,22 +116,9 @@ fun ShopFiltersScreen(
                             )
                             TextButton(
                                 onClick = {
-                                    // Quick chips живут на ленте — не сбрасываем отсюда
-                                    draft = FeedFiltersUi(
-                                        coffeeFocus = state.filters.coffeeFocus,
-                                        openOnly = state.filters.openOnly,
-                                        newOnly = state.filters.newOnly,
-                                        visitedOnly = state.filters.visitedOnly,
-                                        favoritesOnly = state.filters.favoritesOnly,
-                                    )
+                                    draft = draft.clearSelections()
                                 },
-                                enabled = draft.copy(
-                                    coffeeFocus = null,
-                                    openOnly = false,
-                                    newOnly = false,
-                                    visitedOnly = false,
-                                    favoritesOnly = false,
-                                ) != FeedFiltersUi(),
+                                enabled = draft.activeFilterCount > 0,
                             ) {
                                 Text("Сбросить")
                             }
@@ -197,16 +184,7 @@ fun ShopFiltersScreen(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         Button(
                             onClick = {
-                                // Preserve feed coffee-focus selection when applying panel filters
-                                onApply(
-                                    draft.copy(
-                                        coffeeFocus = state.filters.coffeeFocus,
-                                        openOnly = state.filters.openOnly,
-                                        newOnly = state.filters.newOnly,
-                                        visitedOnly = state.filters.visitedOnly,
-                                        favoritesOnly = state.filters.favoritesOnly,
-                                    ),
-                                )
+                                onApply(draft)
                                 dismissAnimated()
                             },
                             modifier = Modifier
