@@ -27,8 +27,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -56,12 +58,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
 import com.coffeepeek.admin.ui.component.priceLevelValue
 import com.coffeepeek.admin.ui.Navigator
@@ -302,12 +307,12 @@ private fun AddShopStepDots(
             Box(
                 modifier = Modifier
                     .padding(horizontal = 2.dp)
-                    .height(8.dp)
-                    .width(if (active) 24.dp else 8.dp)
+                    .height(10.dp)
+                    .width(if (active) 28.dp else 10.dp)
                     .clip(CircleShape)
                     .background(
                         if (active) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f),
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
                     ),
             )
         }
@@ -646,7 +651,7 @@ private fun StepSchedule(state: AddShopUiState, vm: AddShopViewModel) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Switch(
+        ScheduleSwitch(
             checked = state.usePerDaySchedule,
             onCheckedChange = vm::setUsePerDaySchedule,
         )
@@ -676,7 +681,7 @@ private fun StepSchedule(state: AddShopUiState, vm: AddShopViewModel) {
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Spacer(Modifier.width(CpDimens.spacing1))
-                                Switch(
+                                ScheduleSwitch(
                                     checked = !day.isClosed,
                                     onCheckedChange = { open ->
                                         vm.updateSchedule(day.dayOfWeek) { it.copy(isClosed = !open) }
@@ -705,6 +710,26 @@ private fun StepSchedule(state: AddShopUiState, vm: AddShopViewModel) {
             }
         }
     }
+}
+
+@Composable
+private fun ScheduleSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    val isLight = MaterialTheme.colorScheme.background.luminance() > 0.5f
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        colors = SwitchDefaults.colors(
+            checkedThumbColor = if (isLight) CpColor.SwitchCheckedThumbLight else CpColor.SwitchCheckedThumbDark,
+            checkedTrackColor = if (isLight) CpColor.GoldWarm else CpColor.SwitchCheckedTrackDark,
+            checkedBorderColor = if (isLight) CpColor.SwitchCheckedThumbLight else CpColor.SwitchCheckedThumbDark,
+            uncheckedThumbColor = if (isLight) CpColor.LightTextSecondary else CpColor.DarkTextSecondary,
+            uncheckedTrackColor = if (isLight) CpColor.LightBorderHover else CpColor.DarkBorderHover,
+            uncheckedBorderColor = if (isLight) CpColor.LightTextSecondary else CpColor.DarkTextSecondary,
+        ),
+    )
 }
 
 @Composable
@@ -749,13 +774,13 @@ private fun StepLegend(
     when {
         requiredHint != null -> Text(
             text = requiredHint,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.onSurface,
         )
         optional -> Text(
             text = "Необязательно — можно пропустить",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = addShopAccentTextColor(),
             modifier = Modifier.padding(bottom = CpDimens.spacing1),
         )
     }
@@ -825,8 +850,8 @@ private fun StepFeatures(state: AddShopUiState, vm: AddShopViewModel) {
     StepLegend(optional = true)
     Text(
         text = "Выберите характеристики, которые описывают ваше заведение.",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+        color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.padding(bottom = CpDimens.spacing4),
     )
 
@@ -841,14 +866,20 @@ private fun StepFeatures(state: AddShopUiState, vm: AddShopViewModel) {
     if (state.roasters.isNotEmpty()) {
         CatalogGroup("Обжарщики", state.roasters, state.selectedRoasterIds, vm::toggleRoaster)
     }
-    TextButton(onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) }) {
+    TextButton(
+        onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
+        colors = ButtonDefaults.textButtonColors(contentColor = addShopAccentTextColor()),
+    ) {
         Icon(
             imageVector = CpIcons.Add,
             contentDescription = null,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(20.dp),
         )
         Spacer(Modifier.width(CpDimens.spacing1))
-        Text("Нет нужного? Добавить обжарщика")
+        Text(
+            "Нет нужного? Добавить обжарщика",
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+        )
     }
     Spacer(Modifier.height(CpDimens.spacing4))
     if (state.equipment.isNotEmpty()) {
@@ -873,7 +904,7 @@ private fun CatalogGroup(
 
     Text(
         text = title,
-        style = MaterialTheme.typography.titleSmall,
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
         color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.padding(bottom = CpDimens.spacing2),
     )
@@ -883,7 +914,12 @@ private fun CatalogGroup(
             FilterChip(
                 selected = isSelected,
                 onClick = { onToggle(item.id) },
-                label = { Text(item.name, style = MaterialTheme.typography.labelMedium) },
+                label = {
+                    Text(
+                        item.name,
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                    )
+                },
                 leadingIcon = if (isSelected) {
                     { Icon(CpIcons.Check, null, modifier = Modifier.size(14.dp)) }
                 } else null,
@@ -892,7 +928,7 @@ private fun CatalogGroup(
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                     selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    labelColor = MaterialTheme.colorScheme.onSurface,
                 ),
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
@@ -905,20 +941,31 @@ private fun CatalogGroup(
         }
     }
     if (hiddenCount > 0) {
-        TextButton(onClick = { expanded = !expanded }) {
+        TextButton(
+            onClick = { expanded = !expanded },
+            colors = ButtonDefaults.textButtonColors(contentColor = addShopAccentTextColor()),
+        ) {
             Icon(
                 imageVector = if (expanded) CpIcons.ChevronUp else CpIcons.ChevronDown,
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(20.dp),
             )
             Spacer(Modifier.width(CpDimens.spacing1))
             Text(
                 text = if (expanded) "Скрыть" else "Ещё $hiddenCount",
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
             )
         }
     }
 }
+
+@Composable
+private fun addShopAccentTextColor(): Color =
+    if (MaterialTheme.colorScheme.background.luminance() > 0.5f) {
+        CpColor.AccentTextLight
+    } else {
+        CpColor.AccentTextDark
+    }
 
 // ── Переиспользуемые компоненты ───────────────────────────────────────────────
 

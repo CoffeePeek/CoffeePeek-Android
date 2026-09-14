@@ -131,7 +131,7 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                             value = state.query,
                             onValueChange = vm::onQueryChange,
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(CpDimens.inputRadius),
+                            shape = RoundedCornerShape(CpDimens.radiusMd),
                             placeholder = {
                                 Text(
                                     "Поиск кофейни…",
