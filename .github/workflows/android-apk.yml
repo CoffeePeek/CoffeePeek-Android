@@ -42,15 +42,23 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
         with:
           cache-provider: basic
-
+          
       - name: Install Android 36 SDK components
         shell: bash
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager \
-          "platform-tools" \
-          "platforms;android-36" \
-          "build-tools;36.0.0"
+          SDKMANAGER="/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager"
+      
+          if [ ! -x "$SDKMANAGER" ]; then
+            echo "sdkmanager not found at $SDKMANAGER"
+            exit 1
+          fi
+      
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+      
+          "$SDKMANAGER" \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0"
 
       - name: Validate branch and build configuration
         shell: bash
