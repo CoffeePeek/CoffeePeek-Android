@@ -35,6 +35,8 @@ data class ShopDetailUiState(
     val isCheckInLoading: Boolean = false,
     val showCheckInSheet: Boolean = false,
     val checkInDraft: CheckInDraft? = null,
+    val showReviewSheet: Boolean = false,
+    val editingReviewId: String? = null,
     val actionMessage: String? = null,
     val error: String? = null,
 )
@@ -155,8 +157,21 @@ class ShopDetailViewModel(
     }
 
     fun openCheckInSheet() {
-        val draft = checkInDraftStore.open(shopId)
-        _uiState.update { it.copy(showCheckInSheet = true, checkInDraft = draft) }
+        workScope.launch {
+            if (!sessionRepository.isLoggedIn()) {
+                _uiState.update { it.copy(actionMessage = "Войдите, чтобы сделать чекин") }
+                return@launch
+            }
+            val draft = checkInDraftStore.open(shopId)
+            _uiState.update {
+                it.copy(
+                    showCheckInSheet = true,
+                    checkInDraft = draft,
+                    showReviewSheet = false,
+                    editingReviewId = null,
+                )
+            }
+        }
     }
 
     fun dismissCheckInSheet() {
@@ -171,6 +186,7 @@ class ShopDetailViewModel(
 
     fun checkIn(draft: CheckInDraft) {
         if (draft.shopId != shopId) return
+        if (_uiState.value.isCheckInLoading) return
         if (draft.isPublic && (
                 validatePublicCheckInHeader(draft.header) != null ||
                     validatePublicCheckInDescription(draft.note) != null
@@ -228,7 +244,13 @@ class ShopDetailViewModel(
                 _uiState.update { it.copy(actionMessage = "Вы уже оставляли отзыв об этом месте") }
                 return@launch
             }
-            Navigator.navigate(Navigator.Screen.CreateReview(shopId))
+            _uiState.update {
+                it.copy(
+                    showReviewSheet = true,
+                    editingReviewId = null,
+                    showCheckInSheet = false,
+                )
+            }
         }
     }
 
@@ -239,16 +261,30 @@ class ShopDetailViewModel(
                 return@launch
             }
             val existingId = _uiState.value.details?.existingReviewId
-            if (!existingId.isNullOrBlank()) {
-                Navigator.navigate(Navigator.Screen.ReviewEdit(existingId))
-            } else {
-                Navigator.navigate(Navigator.Screen.CreateReview(shopId))
+            _uiState.update {
+                it.copy(
+                    showReviewSheet = true,
+                    editingReviewId = existingId?.takeIf(String::isNotBlank),
+                    showCheckInSheet = false,
+                )
             }
         }
     }
 
     fun openEditReview(reviewId: String) {
-        Navigator.navigate(Navigator.Screen.ReviewEdit(reviewId))
+        _uiState.update {
+            it.copy(
+                showReviewSheet = true,
+                editingReviewId = reviewId,
+                showCheckInSheet = false,
+            )
+        }
+    }
+
+    fun dismissReviewSheet() {
+        _uiState.update {
+            it.copy(showReviewSheet = false, editingReviewId = null)
+        }
     }
 
     fun openReportIncorrectData() {

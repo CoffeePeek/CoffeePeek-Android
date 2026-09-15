@@ -85,6 +85,8 @@ import com.coffeepeek.admin.ui.component.PriceBynIcon
 import com.coffeepeek.admin.ui.component.priceRangeLevel
 import com.coffeepeek.admin.ui.component.FullScreenImageDialog
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.screen.review.CreateReviewBottomSheet
+import com.coffeepeek.admin.ui.screen.review.EditReviewBottomSheet
 import com.coffeepeek.admin.utils.OpenInBrowser
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CheckIn
@@ -126,6 +128,23 @@ fun ShopDetailScreen(shopId: String) {
                 onDraftChange = vm::updateCheckInDraft,
                 onSubmit = vm::checkIn,
                 placeName = state.details?.shop?.title,
+            )
+        }
+    }
+
+    if (state.showReviewSheet) {
+        val reviewId = state.editingReviewId
+        if (reviewId == null) {
+            CreateReviewBottomSheet(
+                shopId = shopId,
+                placeName = state.details?.shop?.title,
+                onDismiss = vm::dismissReviewSheet,
+            )
+        } else {
+            EditReviewBottomSheet(
+                reviewId = reviewId,
+                placeName = state.details?.shop?.title,
+                onDismiss = vm::dismissReviewSheet,
             )
         }
     }
@@ -700,7 +719,9 @@ private fun CollapsibleScheduleSection(schedules: List<ShopSchedule>) {
 
             if (expanded) {
                 Column(
-                    modifier = Modifier.padding(start = 56.dp, top = CpDimens.spacing2),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 56.dp, top = CpDimens.spacing2),
                     verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
                 ) {
                     orderedSchedules.forEach { schedule ->
@@ -1440,6 +1461,8 @@ private fun ScheduleRow(
                 fontWeight = if (isCurrentDay) FontWeight.SemiBold else FontWeight.Normal,
             ),
             color = contentColor,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f),
         )
     }
 }

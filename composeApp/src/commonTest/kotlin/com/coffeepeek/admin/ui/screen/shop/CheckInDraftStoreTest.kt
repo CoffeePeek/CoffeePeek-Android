@@ -7,6 +7,15 @@ import kotlin.test.assertNotEquals
 class CheckInDraftStoreTest {
 
     @Test
+    fun newDraftUsesVisibleFourStarDefaults() {
+        val draft = CheckInDraftStore(now = { 1_000L }).open("shop-a")
+
+        assertEquals(4, draft.coffeeRating)
+        assertEquals(4, draft.serviceRating)
+        assertEquals(4, draft.placeRating)
+    }
+
+    @Test
     fun reopeningSameShopKeepsDraft() {
         val store = CheckInDraftStore(now = { 1_000L })
         val initial = store.open("shop-a")

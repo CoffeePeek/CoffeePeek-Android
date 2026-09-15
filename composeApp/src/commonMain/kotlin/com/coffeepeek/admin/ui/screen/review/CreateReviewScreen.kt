@@ -93,7 +93,7 @@ fun CreateReviewScreen(shopId: String) {
                     CoffeePeekLoader()
                 }
             } else {
-                AppButton(text = "Отправить на модерацию", onClick = vm::submit)
+                AppButton(text = "Отправить на модерацию", onClick = { vm.submit() })
             }
         }
     }
@@ -179,7 +179,7 @@ fun EditReviewScreen(reviewId: String) {
                         CoffeePeekLoader()
                     }
                 } else {
-                    AppButton(text = "Сохранить изменения", onClick = vm::submit)
+                    AppButton(text = "Сохранить изменения", onClick = { vm.submit() })
                 }
             }
         }

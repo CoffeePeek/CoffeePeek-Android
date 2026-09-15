@@ -102,8 +102,9 @@ class EditReviewViewModel(
         }
     }
 
-    fun submit() {
+    fun submit(onSuccess: () -> Unit = { Navigator.popBack() }) {
         val s = _state.value
+        if (s.isSubmitting || s.isLoading) return
         val headerError = validateReviewHeader(s.header)
         val commentError = validateReviewComment(s.comment)
         if (headerError != null || commentError != null) {
@@ -131,7 +132,7 @@ class EditReviewViewModel(
             ).onSuccess {
                 shopIdForSync?.let { ReviewSync.notifyChanged(it) }
                 _state.update { it.copy(isSubmitting = false) }
-                Navigator.popBack()
+                onSuccess()
             }.onFailure { e ->
                 _state.update { it.copy(isSubmitting = false, error = e.message) }
             }

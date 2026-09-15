@@ -9,9 +9,9 @@ data class CheckInDraft(
     val note: String = "",
     val isPublic: Boolean = false,
     val visitMillis: Long,
-    val placeRating: Int = 5,
-    val serviceRating: Int = 5,
-    val coffeeRating: Int = 5,
+    val placeRating: Int = 4,
+    val serviceRating: Int = 4,
+    val coffeeRating: Int = 4,
     val photos: List<PickedImage> = emptyList(),
 )
 

@@ -5,9 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
@@ -106,26 +106,36 @@ fun ReviewRatingCards(
     onPlaceRatingChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
     ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = "Ваши оценки",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "Нажмите на звёзды, чтобы изменить оценку",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         EditableRatingCard(
-            modifier = Modifier.weight(1f),
             image = Res.drawable.checkin_rating_coffee,
             label = "Кофе",
             rating = coffeeRating,
             onRatingChange = onCoffeeRatingChange,
         )
         EditableRatingCard(
-            modifier = Modifier.weight(1f),
             image = Res.drawable.checkin_rating_service,
             label = "Сервис",
             rating = serviceRating,
             onRatingChange = onServiceRatingChange,
         )
         EditableRatingCard(
-            modifier = Modifier.weight(1f),
             image = Res.drawable.checkin_rating_atmosphere,
             label = "Атмосфера",
             rating = placeRating,
@@ -142,32 +152,45 @@ private fun EditableRatingCard(
     onRatingChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    Row(
         modifier = modifier
+            .fillMaxWidth()
             .clip(RoundedCornerShape(CpDimens.radiusMd))
             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f))
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(CpDimens.radiusMd))
             .padding(horizontal = CpDimens.spacing2, vertical = CpDimens.spacing3),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
         Image(
             painter = painterResource(image),
             contentDescription = label,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(CpDimens.radiusSm)),
+            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(CpDimens.radiusSm)),
         )
-        Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-        Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-            (1..5).forEach { star ->
-                val icon: ImageVector = if (star <= rating) CpIcons.StarFilled else CpIcons.StarOutline
-                Icon(
-                    imageVector = icon,
-                    contentDescription = "$label: $star",
-                    tint = if (star <= rating) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(16.dp).clickable { onRatingChange(star) },
-                )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+        ) {
+            Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+                (1..5).forEach { star ->
+                    val icon: ImageVector = if (star <= rating) CpIcons.StarFilled else CpIcons.StarOutline
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clickable { onRatingChange(star) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "$label: выбрать $star из 5",
+                            tint = if (star <= rating) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                }
             }
         }
     }

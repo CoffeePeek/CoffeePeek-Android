@@ -33,7 +33,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +47,7 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.ReviewPhotoStrip
 import com.coffeepeek.admin.ui.component.ReviewRatingSummary
+import com.coffeepeek.admin.ui.screen.review.EditReviewBottomSheet
 import com.coffeepeek.domain.model.Review
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
@@ -55,6 +58,19 @@ import org.koin.compose.viewmodel.koinViewModel
 fun MyReviewsScreen(vm: MyReviewsViewModel = koinViewModel()) {
     val state by vm.state.collectAsState()
     val listState = rememberLazyListState()
+    var editingReviewId by remember { mutableStateOf<String?>(null) }
+
+    editingReviewId?.let { reviewId ->
+        EditReviewBottomSheet(
+            reviewId = reviewId,
+            placeName = null,
+            onDismiss = { editingReviewId = null },
+            onSaved = {
+                editingReviewId = null
+                vm.refresh()
+            },
+        )
+    }
 
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -105,7 +121,7 @@ fun MyReviewsScreen(vm: MyReviewsViewModel = koinViewModel()) {
                 items(state.reviews, key = { it.id }) { review ->
                     ReviewListCard(
                         review = review,
-                        onClick = { Navigator.navigate(Navigator.Screen.ReviewEdit(review.id)) },
+                        onClick = { editingReviewId = review.id },
                     )
                 }
                 if (state.isLoadingMore) {
