@@ -3,6 +3,7 @@ package com.coffeepeek.admin.map
 import com.coffeepeek.domain.model.MapShop
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -14,6 +15,13 @@ class MapClustererTest {
         assertEquals("99", clusterCountLabel(99))
         assertEquals("99+", clusterCountLabel(100))
         assertEquals("99+", clusterCountLabel(250))
+    }
+
+    @Test
+    fun onlySingleShopClusterUsesShopPoint() {
+        assertTrue(clusterUsesShopPoint(1))
+        assertFalse(clusterUsesShopPoint(0))
+        assertFalse(clusterUsesShopPoint(2))
     }
 
     @Test

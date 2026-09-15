@@ -73,6 +73,9 @@ internal object MapMarkerIcons {
     }
 
     fun clusterBitmap(context: Context, count: Int): Bitmap {
+        if (clusterUsesShopPoint(count)) {
+            return pinBitmap(context, CoffeeShopType.SPECIALTY, MapPinVisual.Default)
+        }
         val label = clusterCountLabel(count)
         val diameter = clusterDiameterDp(count)
         val key = "cluster-$label-${diameter.toInt()}"

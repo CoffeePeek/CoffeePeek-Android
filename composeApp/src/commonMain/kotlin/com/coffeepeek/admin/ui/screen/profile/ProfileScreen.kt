@@ -56,6 +56,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.config.AppConfig
+import com.coffeepeek.admin.legal.LegalUrls
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.theme.ThemeMode
@@ -63,6 +64,9 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
 import com.coffeepeek.admin.utils.CpImage
+import com.coffeepeek.admin.utils.COFFEEPEEK_SHARE_TEXT
+import com.coffeepeek.admin.utils.OpenInBrowser
+import com.coffeepeek.admin.utils.ShareHelper
 import com.coffeepeek.domain.model.City
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.profile_version
@@ -218,6 +222,22 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                     },
                     onClick = {},
                     showArrow = false,
+                )
+            }
+
+            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
+
+            SettingsSection(title = "О приложении") {
+                SettingsRow(
+                    icon = CpIcons.Lock,
+                    label = "Политика и условия использования",
+                    onClick = { OpenInBrowser.openInBrowser(LegalUrls.TERMS) },
+                )
+                SettingsDivider()
+                SettingsRow(
+                    icon = CpIcons.Share,
+                    label = "Поделиться приложением",
+                    onClick = { ShareHelper.shareText(COFFEEPEEK_SHARE_TEXT) },
                 )
             }
 

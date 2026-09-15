@@ -27,6 +27,8 @@ internal sealed class MapMarkerItem {
 internal fun clusterCountLabel(count: Int): String =
     if (count > 99) "99+" else count.toString()
 
+internal fun clusterUsesShopPoint(count: Int): Boolean = count == 1
+
 internal fun clusterDiameterDp(count: Int): Float = when {
     count >= 100 -> 60f
     count >= 10 -> 55f
