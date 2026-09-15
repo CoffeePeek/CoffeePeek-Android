@@ -886,7 +886,7 @@ private fun ReviewsSection(
             ) {
                 reviews.forEachIndexed { index, review ->
                     val isBlurred = shouldBlurReview(isLoggedIn, index)
-                    Box(modifier = if (isBlurred) Modifier.blur(10.dp) else Modifier) {
+                    Box(modifier = if (isBlurred) Modifier.blur(5.dp) else Modifier) {
                         ReviewCard(
                             review = review,
                             onPhotoClick = if (isBlurred) ({}) else onReviewPhotoClick,

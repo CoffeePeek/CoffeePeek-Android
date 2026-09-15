@@ -44,7 +44,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -189,24 +188,18 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 SettingsRow(
                     icon = CpIcons.Favorite,
                     label = "Избранные кофейни",
-                    enabled = state.isLoggedIn,
-                    showArrow = state.isLoggedIn,
                     onClick = { Navigator.navigate(Navigator.Screen.Favorites) },
                 )
                 SettingsDivider()
                 SettingsRow(
                     icon = CpIcons.Review,
                     label = "Мои отзывы",
-                    enabled = state.isLoggedIn,
-                    showArrow = state.isLoggedIn,
                     onClick = { Navigator.navigate(Navigator.Screen.MyReviews) },
                 )
                 SettingsDivider()
                 SettingsRow(
                     icon = CpIcons.Location,
                     label = "Чекины",
-                    enabled = state.isLoggedIn,
-                    showArrow = state.isLoggedIn,
                     onClick = { Navigator.navigate(Navigator.Screen.VisitedPlaces) },
                 )
             }
@@ -411,21 +404,39 @@ private fun GuestLoginHeader(onLogin: () -> Unit) {
             color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Bold,
         )
-        Button(
-            onClick = onLogin,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(CpDimens.buttonHeight),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-            shape = RoundedCornerShape(CpDimens.buttonRadius),
+        Card(
+            shape = RoundedCornerShape(CpDimens.cardRadius),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
-            Text(
-                text = "Присоединиться к сообществу CoffeePeek",
-                style = MaterialTheme.typography.labelLarge,
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(CpDimens.spacing4),
+                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+            ) {
+                Text(
+                    text = "Сохраняйте любимые кофейни, отмечайте посещения и делитесь отзывами вместе с сообществом CoffeePeek.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Button(
+                    onClick = onLogin,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(CpDimens.buttonHeight),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    shape = RoundedCornerShape(CpDimens.buttonRadius),
+                ) {
+                    Text(
+                        text = "Присоединиться к сообществу CoffeePeek",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
         }
     }
 }
@@ -718,7 +729,6 @@ private fun SettingsRow(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
-    enabled: Boolean = true,
     showArrow: Boolean = true,
     iconTint: Color = MaterialTheme.colorScheme.onSurface,
     iconBg: Color = MaterialTheme.colorScheme.surfaceVariant,
@@ -727,8 +737,7 @@ private fun SettingsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(if (enabled) 1f else 0.38f)
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(onClick = onClick)
             .padding(
                 horizontal = CpDimens.settingsRowPaddingH,
                 vertical = CpDimens.settingsRowPaddingV,
