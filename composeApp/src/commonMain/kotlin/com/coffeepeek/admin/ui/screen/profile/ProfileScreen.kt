@@ -230,13 +230,13 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
             SettingsSection(title = "О приложении") {
                 SettingsRow(
                     icon = CpIcons.Lock,
-                    label = "Политика и условия использования",
+                    label = "Политика использования",
                     onClick = { OpenInBrowser.openInBrowser(LegalUrls.TERMS) },
                 )
                 SettingsDivider()
                 SettingsRow(
                     icon = CpIcons.Share,
-                    label = "Поделиться приложением",
+                    label = "Поделиться",
                     onClick = { ShareHelper.shareText(COFFEEPEEK_SHARE_TEXT) },
                 )
             }
