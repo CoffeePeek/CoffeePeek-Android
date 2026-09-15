@@ -23,16 +23,13 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -70,6 +67,7 @@ import com.coffeepeek.admin.ui.component.PhotoAttachmentsSection
 import com.coffeepeek.admin.ui.component.ReviewRatingCards
 import com.coffeepeek.admin.ui.component.ReviewFormField
 import com.coffeepeek.admin.ui.component.ReviewTextInput
+import com.coffeepeek.admin.ui.component.SwipeDismissModalBottomSheet
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.utils.MAX_REVIEW_PHOTOS
 import com.coffeepeek.admin.utils.currentEpochMillis
@@ -91,7 +89,6 @@ fun CheckInBottomSheet(
     var noteError by remember { mutableStateOf<String?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -157,16 +154,12 @@ fun CheckInBottomSheet(
         }
     }
 
-    ModalBottomSheet(
+    SwipeDismissModalBottomSheet(
         onDismissRequest = {
             keyboardController?.hide()
             focusManager.clearFocus()
             onDismiss()
         },
-        sheetState = sheetState,
-        sheetGesturesEnabled = false,
-        dragHandle = null,
-        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
             modifier = Modifier
@@ -180,47 +173,33 @@ fun CheckInBottomSheet(
             verticalArrangement = Arrangement.spacedBy(CpDimens.spacing6),
         ) {
             // ── Header ────────────────────────────────────────────────────────
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
+                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-                ) {
-                    Text(
-                        text = stringResource(Res.string.checkin_sheet_title),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    if (!placeName.isNullOrBlank()) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = CpIcons.Location,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Text(
-                                text = placeName,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                Text(
+                    text = stringResource(Res.string.checkin_sheet_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (!placeName.isNullOrBlank()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = CpIcons.Location,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(
+                            text = placeName,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                }
-                IconButton(
-                    onClick = {
-                        keyboardController?.hide()
-                        focusManager.clearFocus()
-                        onDismiss()
-                    },
-                ) {
-                    Icon(CpIcons.Close, contentDescription = "Закрыть")
                 }
             }
 
