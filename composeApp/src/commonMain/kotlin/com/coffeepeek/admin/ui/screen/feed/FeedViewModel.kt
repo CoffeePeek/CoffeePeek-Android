@@ -2,12 +2,14 @@ package com.coffeepeek.admin.ui.screen.feed
 
 import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.settings.CityPreference
+import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.FavoriteSync
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.ShopFilters
 import com.coffeepeek.domain.repository.FavoriteRepository
+import com.coffeepeek.domain.repository.SessionRepository
 import com.coffeepeek.domain.repository.ShopRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -96,6 +98,7 @@ class FeedViewModel(
     private val shopRepository: ShopRepository,
     private val favoriteRepository: FavoriteRepository,
     private val cityPreference: CityPreference,
+    private val sessionRepository: SessionRepository,
 ) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
@@ -205,11 +208,23 @@ class FeedViewModel(
     }
 
     fun toggleVisitedOnly() {
-        _uiState.update { it.copy(filters = it.filters.copy(visitedOnly = !it.filters.visitedOnly)) }
+        workScope.launch {
+            if (!sessionRepository.isLoggedIn()) {
+                Navigator.navigate(Navigator.Screen.Auth)
+                return@launch
+            }
+            _uiState.update { it.copy(filters = it.filters.copy(visitedOnly = !it.filters.visitedOnly)) }
+        }
     }
 
     fun toggleFavoritesOnly() {
-        _uiState.update { it.copy(filters = it.filters.copy(favoritesOnly = !it.filters.favoritesOnly)) }
+        workScope.launch {
+            if (!sessionRepository.isLoggedIn()) {
+                Navigator.navigate(Navigator.Screen.Auth)
+                return@launch
+            }
+            _uiState.update { it.copy(filters = it.filters.copy(favoritesOnly = !it.filters.favoritesOnly)) }
+        }
     }
 
     fun setPriceRange(priceRange: Int?) {
@@ -269,6 +284,10 @@ class FeedViewModel(
 
     fun toggleFavorite(shop: CoffeeShop) {
         workScope.launch {
+            if (!sessionRepository.isLoggedIn()) {
+                Navigator.navigate(Navigator.Screen.Auth)
+                return@launch
+            }
             val nextFavorite = !shop.isFavorite
             _uiState.update { state ->
                 state.copy(

@@ -57,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -190,6 +191,7 @@ fun ShopDetailScreen(shopId: String) {
                 details != null -> {
                     ShopDetailContent(
                         details = details,
+                        isLoggedIn = state.isLoggedIn,
                         modifier = Modifier.padding(padding),
                         bottomContentPadding = floatingActionsClearance,
                         isFavoriteLoading = state.isFavoriteLoading,
@@ -223,6 +225,7 @@ fun ShopDetailScreen(shopId: String) {
 @Composable
 private fun ShopDetailContent(
     details: CoffeeShopDetails,
+    isLoggedIn: Boolean,
     modifier: Modifier = Modifier,
     bottomContentPadding: Dp = CpDimens.spacing4,
     isFavoriteLoading: Boolean = false,
@@ -355,6 +358,7 @@ private fun ShopDetailContent(
             ReviewsSection(
                 reviews = details.reviews,
                 shopTitle = shop.title,
+                isLoggedIn = isLoggedIn,
                 onReviewPhotoClick = onReviewPhotoClick,
             )
         }
@@ -859,6 +863,7 @@ private fun PhoneContactPill(
 private fun ReviewsSection(
     reviews: List<Review>,
     shopTitle: String,
+    isLoggedIn: Boolean,
     onReviewPhotoClick: (String) -> Unit,
 ) {
     Column(
@@ -879,8 +884,14 @@ private fun ReviewsSection(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
             ) {
-                reviews.forEach { review ->
-                    ReviewCard(review, onReviewPhotoClick)
+                reviews.forEachIndexed { index, review ->
+                    val isBlurred = shouldBlurReview(isLoggedIn, index)
+                    Box(modifier = if (isBlurred) Modifier.blur(10.dp) else Modifier) {
+                        ReviewCard(
+                            review = review,
+                            onPhotoClick = if (isBlurred) ({}) else onReviewPhotoClick,
+                        )
+                    }
                 }
             }
         }
@@ -905,6 +916,9 @@ private fun CheckInsSection(
         }
     }
 }
+
+internal fun shouldBlurReview(isLoggedIn: Boolean, reviewIndex: Int): Boolean =
+    !isLoggedIn && reviewIndex > 0
 
 @Composable
 private fun OutlinedContentCard(content: @Composable ColumnScope.() -> Unit) {

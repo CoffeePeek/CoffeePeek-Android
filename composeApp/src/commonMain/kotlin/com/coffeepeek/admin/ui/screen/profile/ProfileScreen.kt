@@ -44,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -149,10 +150,16 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
             }
 
             // ── Шапка ─────────────────────────────────────────────────────────
-            ProfileHeader(
-                state = state,
-                onEdit = { Navigator.navigate(Navigator.Screen.EditProfile) },
-            )
+            if (state.isLoggedIn) {
+                ProfileHeader(
+                    state = state,
+                    onEdit = { Navigator.navigate(Navigator.Screen.EditProfile) },
+                )
+            } else {
+                GuestLoginHeader(
+                    onLogin = { Navigator.navigate(Navigator.Screen.Auth) },
+                )
+            }
 
             Spacer(Modifier.height(CpDimens.spacing4))
 
@@ -182,18 +189,24 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 SettingsRow(
                     icon = CpIcons.Favorite,
                     label = "Избранные кофейни",
+                    enabled = state.isLoggedIn,
+                    showArrow = state.isLoggedIn,
                     onClick = { Navigator.navigate(Navigator.Screen.Favorites) },
                 )
                 SettingsDivider()
                 SettingsRow(
                     icon = CpIcons.Review,
                     label = "Мои отзывы",
+                    enabled = state.isLoggedIn,
+                    showArrow = state.isLoggedIn,
                     onClick = { Navigator.navigate(Navigator.Screen.MyReviews) },
                 )
                 SettingsDivider()
                 SettingsRow(
                     icon = CpIcons.Location,
                     label = "Чекины",
+                    enabled = state.isLoggedIn,
+                    showArrow = state.isLoggedIn,
                     onClick = { Navigator.navigate(Navigator.Screen.VisitedPlaces) },
                 )
             }
@@ -244,6 +257,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
             Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
 
             // ── Выход ─────────────────────────────────────────────────────────
+            if (state.isLoggedIn) {
             Button(
                 onClick = { showLogoutDialog = true },
                 modifier = Modifier
@@ -266,6 +280,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                     text = "Выйти",
                     style = MaterialTheme.typography.labelLarge,
                 )
+            }
             }
 
             Spacer(Modifier.height(CpDimens.spacing8 + LocalFloatingNavClearance.current))
@@ -333,6 +348,7 @@ private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
                     )
                 }
             }
+            }
 
             Column(
                 modifier = Modifier.weight(1f),
@@ -373,6 +389,43 @@ private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun GuestLoginHeader(onLogin: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(
+                horizontal = CpDimens.settingsPagePadding,
+                vertical = CpDimens.spacing4,
+            ),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+    ) {
+        Text(
+            text = "Настройки",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontWeight = FontWeight.Bold,
+        )
+        Button(
+            onClick = onLogin,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(CpDimens.buttonHeight),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+            shape = RoundedCornerShape(CpDimens.buttonRadius),
+        ) {
+            Text(
+                text = "Присоединиться к сообществу CoffeePeek",
+                style = MaterialTheme.typography.labelLarge,
             )
         }
     }
@@ -666,6 +719,7 @@ private fun SettingsRow(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
+    enabled: Boolean = true,
     showArrow: Boolean = true,
     iconTint: Color = MaterialTheme.colorScheme.onSurface,
     iconBg: Color = MaterialTheme.colorScheme.surfaceVariant,
@@ -674,7 +728,8 @@ private fun SettingsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .alpha(if (enabled) 1f else 0.38f)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(
                 horizontal = CpDimens.settingsRowPaddingH,
                 vertical = CpDimens.settingsRowPaddingV,

@@ -180,13 +180,15 @@ object Navigator {
         }
 
         Box(modifier = Modifier.fillMaxSize()) {
-            BaseNavigator(isLoggedIn = isLoggedIn)
+            key(isLoggedIn) {
+                BaseNavigator()
+            }
             LoadingDialog(show = loading)
         }
     }
 
     @Composable
-    private fun BaseNavigator(isLoggedIn: Boolean) {
+    private fun BaseNavigator() {
         val nav = rememberNavController()
 
         LaunchedEffect(Unit) {
@@ -204,12 +206,11 @@ object Navigator {
             }.launchIn(this)
         }
 
-        key(isLoggedIn) {
-            NavHost(
-                navController = nav,
-                startDestination = if (isLoggedIn) Screen.Main else Screen.Auth,
-                modifier = Modifier.fillMaxSize(),
-            ) {
+        NavHost(
+            navController = nav,
+            startDestination = Screen.Main,
+            modifier = Modifier.fillMaxSize(),
+        ) {
                 composable<Screen.Auth> { AuthScreen() }
                 composable<Screen.Register> { RegisterScreen() }
                 composable<Screen.Main> { MainScreen() }
@@ -239,7 +240,6 @@ object Navigator {
                 composable<Screen.Favorites> { FavoritesScreen() }
                 composable<Screen.MyReviews> { MyReviewsScreen() }
                 composable<Screen.VisitedPlaces> { VisitedPlacesScreen() }
-            }
         }
     }
 }

@@ -124,9 +124,13 @@ class ShopDetailViewModel(
     }
 
     fun toggleFavorite() {
-        val details = _uiState.value.details ?: return
-        val isFavorite = details.shop.isFavorite
         workScope.launch {
+            if (!sessionRepository.isLoggedIn()) {
+                Navigator.navigate(Navigator.Screen.Auth)
+                return@launch
+            }
+            val details = _uiState.value.details ?: return@launch
+            val isFavorite = details.shop.isFavorite
             _uiState.update { it.copy(isFavoriteLoading = true) }
             val result = if (isFavorite) {
                 favoriteRepository.removeFavorite(shopId)

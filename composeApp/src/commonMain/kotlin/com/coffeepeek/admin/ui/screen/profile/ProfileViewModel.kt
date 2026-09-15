@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class ProfileUiState(
+    val isLoggedIn: Boolean = false,
     val email: String = "",
     val displayName: String = "",
     val about: String? = null,
@@ -152,8 +153,8 @@ class ProfileViewModel(
                     } else if (userId != loadedForUserId) {
                         if (loadedForUserId != null) {
                             resetProfileState()
-                            _uiState.value = ProfileUiState(isLoading = true)
                         }
+                        _uiState.update { it.copy(isLoggedIn = true, isLoading = true) }
                         loadedForUserId = userId
                         if (userRepository.observeProfile().value == null) {
                             refreshProfile()
@@ -166,6 +167,7 @@ class ProfileViewModel(
     private fun applyProfile(profile: UserProfile) {
         _uiState.update {
             it.copy(
+                isLoggedIn = true,
                 email = profile.email,
                 displayName = profile.userName,
                 about = profile.about,
