@@ -164,6 +164,8 @@ fun CheckInBottomSheet(
             onDismiss()
         },
         sheetState = sheetState,
+        sheetGesturesEnabled = false,
+        dragHandle = null,
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(

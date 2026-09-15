@@ -174,6 +174,8 @@ private fun ReviewEditorBottomSheet(
     ModalBottomSheet(
         onDismissRequest = ::dismiss,
         sheetState = sheetState,
+        sheetGesturesEnabled = false,
+        dragHandle = null,
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
