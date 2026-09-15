@@ -31,11 +31,14 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
-
-      - name: Install Android 36 platform
-        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+      - name: Install Android 36 SDK components
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0"
 
       - name: Create local.properties for CI builds
         shell: bash
@@ -44,6 +47,7 @@ jobs:
           if [ -z "$API_BASE_URL" ]; then
             API_BASE_URL="https://example.com/"
           fi
+
           cat > local.properties <<EOF
           API_BASE_URL=$API_BASE_URL
           GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}
