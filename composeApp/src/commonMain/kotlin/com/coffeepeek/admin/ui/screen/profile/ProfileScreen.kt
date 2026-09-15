@@ -348,7 +348,6 @@ private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
                     )
                 }
             }
-            }
 
             Column(
                 modifier = Modifier.weight(1f),
