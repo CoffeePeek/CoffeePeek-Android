@@ -277,7 +277,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
 
 @Composable
 private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
@@ -285,95 +285,95 @@ private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
                 horizontal = CpDimens.settingsPagePadding,
                 vertical = CpDimens.spacing4,
             ),
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
-        verticalAlignment = Alignment.Top,
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
-        Box(modifier = Modifier.size(104.dp)) {
-            Box(
-                modifier = Modifier
-                    .size(96.dp)
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(CpColor.Primary, CpColor.GoldWarm))),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = state.initials.ifEmpty { "?" },
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = CpColor.DarkTextOnPrimary,
-                    fontWeight = FontWeight.Bold,
-                )
-                if (!state.avatarUrl.isNullOrBlank()) {
-                    CpImage(
-                        data = state.avatarUrl,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(modifier = Modifier.size(104.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(listOf(CpColor.Primary, CpColor.GoldWarm))),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = state.initials.ifEmpty { "?" },
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = CpColor.DarkTextOnPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    if (!state.avatarUrl.isNullOrBlank()) {
+                        CpImage(
+                            data = state.avatarUrl,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                        .clickable(onClick = onEdit),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = CpIcons.Edit,
+                        contentDescription = "Редактировать профиль",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(17.dp),
                     )
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
-                    .clickable(onClick = onEdit),
-                contentAlignment = Alignment.Center,
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Icon(
-                    imageVector = CpIcons.Edit,
-                    contentDescription = "Редактировать профиль",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(17.dp),
-                )
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(top = CpDimens.spacing1),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                text = state.displayName.ifBlank { "Пользователь" },
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (state.email.isNotBlank()) {
                 Text(
-                    text = state.email,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = state.displayName.ifBlank { "Пользователь" },
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-            }
+                if (state.email.isNotBlank()) {
+                    Text(
+                        text = state.email,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
 
-            Spacer(Modifier.height(CpDimens.spacing2))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                StatBadge(state.reviewCount, "Отзывы", Modifier.weight(1f))
-                StatBadge(state.checkInCount, "Чек-ины", Modifier.weight(1f))
-                StatBadge(state.addedShopsCount, "Кофейни", Modifier.weight(1f))
-            }
-
-            if (!state.about.isNullOrBlank()) {
                 Spacer(Modifier.height(CpDimens.spacing2))
-                Text(
-                    text = state.about,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    StatBadge(state.reviewCount, "Отзывы", Modifier.weight(1f))
+                    StatBadge(state.checkInCount, "Чек-ины", Modifier.weight(1f))
+                    StatBadge(state.addedShopsCount, "Кофейни", Modifier.weight(1f))
+                }
             }
+        }
+
+        if (!state.about.isNullOrBlank()) {
+            Text(
+                text = state.about,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -382,7 +382,7 @@ private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
 private fun StatBadge(count: Int, label: String, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.Start,
     ) {
         Text(
             text = count.toString(),
