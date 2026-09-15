@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
@@ -34,8 +34,16 @@ jobs:
       - name: Install Android 36 SDK components
         shell: bash
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager \
+          SDKMANAGER="/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager"
+
+          if [ ! -x "$SDKMANAGER" ]; then
+            echo "sdkmanager not found at $SDKMANAGER"
+            exit 1
+          fi
+
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+
+          "$SDKMANAGER" \
             "platform-tools" \
             "platforms;android-36" \
             "build-tools;36.0.0"
@@ -63,7 +71,7 @@ jobs:
           path: composeApp/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
-
+          
   distribute-to-firebase:
     needs: build-debug-apk
     runs-on: ubuntu-latest
