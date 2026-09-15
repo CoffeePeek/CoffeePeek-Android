@@ -277,125 +277,116 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
 
 @Composable
 private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
-    val headerGradient = Brush.verticalGradient(
-        listOf(
-            CpColor.Primary.copy(alpha = 0.12f),
-            MaterialTheme.colorScheme.background,
-        )
-    )
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(headerGradient),
-        contentAlignment = Alignment.Center,
+            .statusBarsPadding()
+            .padding(
+                horizontal = CpDimens.settingsPagePadding,
+                vertical = CpDimens.spacing4,
+            ),
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
+        verticalAlignment = Alignment.Top,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(top = CpDimens.spacing6, bottom = CpDimens.spacing6),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Аватар
+        Box(modifier = Modifier.size(104.dp)) {
             Box(
                 modifier = Modifier
-                    .size(88.dp)
+                    .size(96.dp)
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(CpColor.Primary, CpColor.GoldWarm))),
                 contentAlignment = Alignment.Center,
             ) {
+                Text(
+                    text = state.initials.ifEmpty { "?" },
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = CpColor.DarkTextOnPrimary,
+                    fontWeight = FontWeight.Bold,
+                )
                 if (!state.avatarUrl.isNullOrBlank()) {
-                    Text(
-                        text = state.initials.ifEmpty { "?" },
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = CpColor.DarkTextOnPrimary,
-                        fontWeight = FontWeight.Bold,
-                    )
                     CpImage(
                         data = state.avatarUrl,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                     )
-                } else {
-                    Text(
-                        text = state.initials.ifEmpty { "?" },
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = CpColor.DarkTextOnPrimary,
-                        fontWeight = FontWeight.Bold,
-                    )
                 }
             }
 
-            Spacer(Modifier.height(CpDimens.spacing3))
-
-            // Имя + кнопка редактирования
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                    .clickable(onClick = onEdit),
+                contentAlignment = Alignment.Center,
             ) {
-                if (state.displayName.isNotEmpty()) {
-                    Text(
-                        text = state.displayName,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable(onClick = onEdit),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = CpIcons.Edit,
-                        contentDescription = "Редактировать профиль",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(14.dp),
-                    )
-                }
+                Icon(
+                    imageVector = CpIcons.Edit,
+                    contentDescription = "Редактировать профиль",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(17.dp),
+                )
             }
+        }
 
-            if (state.email.isNotEmpty()) {
-                Spacer(Modifier.height(4.dp))
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(top = CpDimens.spacing1),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = state.displayName.ifBlank { "Пользователь" },
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (state.email.isNotBlank()) {
                 Text(
                     text = state.email,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
-            // О себе
+            Spacer(Modifier.height(CpDimens.spacing2))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                StatBadge(state.reviewCount, "Отзывы", Modifier.weight(1f))
+                StatBadge(state.checkInCount, "Чек-ины", Modifier.weight(1f))
+                StatBadge(state.addedShopsCount, "Кофейни", Modifier.weight(1f))
+            }
+
             if (!state.about.isNullOrBlank()) {
-                Spacer(Modifier.height(CpDimens.spacing3))
+                Spacer(Modifier.height(CpDimens.spacing2))
                 Text(
                     text = state.about,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = CpDimens.spacing8),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                 )
-            }
-
-            // Счётчики активности
-            Spacer(Modifier.height(CpDimens.spacing4))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing6),
-            ) {
-                StatBadge(count = state.reviewCount, label = "Отзывы")
-                StatBadge(count = state.checkInCount, label = "Чек-ины")
-                StatBadge(count = state.addedShopsCount, label = "Кофейни")
             }
         }
     }
 }
 
 @Composable
-private fun StatBadge(count: Int, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun StatBadge(count: Int, label: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Text(
             text = count.toString(),
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Bold,
         )
