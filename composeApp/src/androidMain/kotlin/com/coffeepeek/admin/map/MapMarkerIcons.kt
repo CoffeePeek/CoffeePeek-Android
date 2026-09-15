@@ -81,6 +81,15 @@ internal object MapMarkerIcons {
         }
     }
 
+    fun zoneBitmap(context: Context, name: String, count: Int, isDarkTheme: Boolean): Bitmap {
+        val shortName = if (name.length > 18) "${name.take(17)}…" else name
+        val label = "$shortName · $count"
+        val key = "zone-$isDarkTheme-$label"
+        return cache.getOrPut(key) {
+            createZoneBitmap(context.applicationContext, label, isDarkTheme)
+        }
+    }
+
     fun pulseBitmap(context: Context, frame: Int): Bitmap {
         val clamped = frame.coerceIn(0, PULSE_FRAMES)
         val key = "pulse-$clamped"
@@ -269,6 +278,55 @@ internal object MapMarkerIcons {
         }
         val textY = cy - (textPaint.descent() + textPaint.ascent()) / 2f
         canvas.drawText(label, cx, textY, textPaint)
+        return bitmap
+    }
+
+    private fun createZoneBitmap(context: Context, label: String, isDarkTheme: Boolean): Bitmap {
+        val density = context.resources.displayMetrics.density
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = if (isDarkTheme) 0xFFFFF7D6.toInt() else 0xFF3B2F1F.toInt()
+            textSize = 12f * density
+            typeface = clusterTypeface(context)
+        }
+        val horizontalPadding = 12f * density
+        val verticalPadding = 9f * density
+        val height = textPaint.fontMetrics.run { bottom - top } + verticalPadding * 2f
+        val width = textPaint.measureText(label) + horizontalPadding * 2f
+        val shadowPadding = 5f * density
+        val bitmap = Bitmap.createBitmap(
+            (width + shadowPadding * 2f).roundToInt().coerceAtLeast(1),
+            (height + shadowPadding * 2f).roundToInt().coerceAtLeast(1),
+            Bitmap.Config.ARGB_8888,
+        )
+        val canvas = Canvas(bitmap)
+        val rect = RectF(
+            shadowPadding,
+            shadowPadding,
+            shadowPadding + width,
+            shadowPadding + height,
+        )
+        canvas.drawRoundRect(
+            rect,
+            height / 2f,
+            height / 2f,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = if (isDarkTheme) 0xFF30261F.toInt() else 0xFFFFFBEB.toInt()
+                setShadowLayer(4f * density, 0f, 1f * density, ColorUtils.setAlphaComponent(SHADOW, 0x38))
+            },
+        )
+        canvas.drawRoundRect(
+            rect,
+            height / 2f,
+            height / 2f,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 1.5f * density
+                color = if (isDarkTheme) BRAND_PRIMARY else BRAND_PRIMARY_DARK
+            },
+        )
+        val textY = rect.centerY() - (textPaint.descent() + textPaint.ascent()) / 2f
+        canvas.drawText(label, rect.left + horizontalPadding, textY, textPaint)
         return bitmap
     }
 

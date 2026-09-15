@@ -1,13 +1,16 @@
+@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+
 package com.coffeepeek.api.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
 
 @Serializable
 data class ApiResponse<T>(
-    @SerialName("isSuccess") val isSuccess: Boolean,
-    @SerialName("message") val message: String,
-    @SerialName("data") val data: T? = null,
-    @SerialName("entityId") val entityId: String? = null,
+    @SerialName("isSuccess") @JsonNames("IsSuccess") val isSuccess: Boolean,
+    @SerialName("message") @JsonNames("Message") val message: String,
+    @SerialName("data") @JsonNames("Data") val data: T? = null,
+    @SerialName("entityId") @JsonNames("EntityId") val entityId: String? = null,
 )
 

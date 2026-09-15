@@ -143,6 +143,32 @@ data class MapShop(
     val latitude: Double,
     val longitude: Double,
     val type: String = CoffeeShopType.COFFEE_BAR,
+    val primaryZoneId: String? = null,
+)
+
+data class MapCluster(
+    val id: String,
+    val latitude: Double,
+    val longitude: Double,
+    val count: Int,
+    val bounds: MapBounds,
+)
+
+data class MapCoffeeZone(
+    val id: String,
+    val name: String,
+    val description: String,
+    val latitude: Double,
+    val longitude: Double,
+    val radiusMeters: Double,
+    val shopCount: Int,
+)
+
+data class MapContent(
+    val shops: List<MapShop> = emptyList(),
+    val clusters: List<MapCluster> = emptyList(),
+    val zones: List<MapCoffeeZone> = emptyList(),
+    val isTruncated: Boolean = false,
 )
 
 object CoffeeShopType {

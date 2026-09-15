@@ -75,6 +75,7 @@ import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.MapShop
+import com.coffeepeek.domain.model.MapCoffeeZone
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -109,9 +110,12 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
     Box(Modifier.fillMaxSize()) {
         CoffeeMap(
             shops = mapShops,
+            clusters = state.clusters,
+            zones = state.zones,
             selectedShopId = selectedShopId,
             onBoundsChanged = vm::onBoundsChanged,
             onShopClick = vm::onShopSelected,
+            onZoneClick = vm::onZoneSelected,
             modifier = Modifier.fillMaxSize(),
             cameraTarget = cameraTarget,
             cameraZoom = cameraZoom,
@@ -151,11 +155,37 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
             ),
         )
 
+        if (state.isTruncated) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 80.dp, start = CpDimens.spacing4, end = CpDimens.spacing4),
+                shape = RoundedCornerShape(CpDimens.radiusMd),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 3.dp,
+                shadowElevation = 3.dp,
+            ) {
+                Text(
+                    text = "Слишком много объектов — приблизьте карту",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(
+                        horizontal = CpDimens.spacing3,
+                        vertical = CpDimens.spacing2,
+                    ),
+                )
+            }
+        }
+
         Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .statusBarsPadding()
-                .padding(top = 84.dp, end = CpDimens.spacing4),
+                .padding(
+                    top = if (state.isTruncated) 132.dp else 84.dp,
+                    end = CpDimens.spacing4,
+                ),
             verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
             horizontalAlignment = Alignment.End,
         ) {
@@ -213,6 +243,88 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
             )
         }
 
+        state.selectedZone?.let { zone ->
+            MapZoneCard(
+                zone = zone,
+                onShowShops = vm::showSelectedZoneShops,
+                onDismiss = vm::clearZoneSelection,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(
+                        start = CpDimens.spacing4,
+                        end = CpDimens.spacing4,
+                        bottom = navClearance + CpDimens.spacing4,
+                    ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MapZoneCard(
+    zone: MapCoffeeZone,
+    onShowShops: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(CpDimens.cardRadius),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(CpDimens.spacing4),
+            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = zone.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = "${zone.shopCount} ${mapShopCountLabel(zone.shopCount)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(CpIcons.Close, contentDescription = "Закрыть")
+                }
+            }
+            if (zone.description.isNotBlank()) {
+                Text(
+                    text = zone.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Button(
+                onClick = onShowShops,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(CpDimens.buttonRadius),
+            ) {
+                Text("Показать кофейни")
+            }
+        }
+    }
+}
+
+private fun mapShopCountLabel(count: Int): String {
+    val mod100 = count % 100
+    val mod10 = count % 10
+    return when {
+        mod100 in 11..14 -> "кофеен"
+        mod10 == 1 -> "кофейня"
+        mod10 in 2..4 -> "кофейни"
+        else -> "кофеен"
     }
 }
 
@@ -397,6 +509,7 @@ private fun MapFiltersDialog(
                 }
             }
         }
+
     }
 }
 

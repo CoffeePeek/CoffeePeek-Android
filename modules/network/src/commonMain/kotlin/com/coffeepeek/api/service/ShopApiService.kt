@@ -15,7 +15,6 @@ import com.coffeepeek.api.model.response.shop.GetDrinksResponseDto
 import com.coffeepeek.api.model.response.shop.GetShopDetailsResponseDto
 import com.coffeepeek.api.model.response.shop.CoffeeDrinkDefinitionDto
 import com.coffeepeek.api.model.response.shop.GetShopsInBoundsResponseDto
-import com.coffeepeek.api.model.response.shop.MapShopDto
 import com.coffeepeek.api.model.response.shop.GetShopsResponseDto
 import com.coffeepeek.api.utils.ApiException
 import io.ktor.client.HttpClient
@@ -146,6 +145,7 @@ class ShopApiService(private val client: HttpClient) {
         minLon: Double,
         maxLat: Double,
         maxLon: Double,
+        zoom: Int,
         query: String? = null,
         cityId: String? = null,
         type: String? = null,
@@ -156,12 +156,13 @@ class ShopApiService(private val client: HttpClient) {
         tagIds: List<String>? = null,
         priceRange: String? = null,
         minRating: Double? = null,
-    ): Result<List<MapShopDto>> = runCatching {
+    ): Result<GetShopsInBoundsResponseDto> = runCatching {
         val response = client.get("/api/Map") {
             parameter("minLat", minLat)
             parameter("minLon", minLon)
             parameter("maxLat", maxLat)
             parameter("maxLon", maxLon)
+            parameter("zoom", zoom)
             query?.let { parameter("q", it) }
             cityId?.let { parameter("cityId", it) }
             type?.let { parameter("type", it) }
@@ -175,6 +176,6 @@ class ShopApiService(private val client: HttpClient) {
         }
         val apiResponse = response.body<ApiResponse<GetShopsInBoundsResponseDto>>()
         if (!apiResponse.isSuccess || apiResponse.data == null) throw ApiException(apiResponse.message)
-        apiResponse.data.shops
+        apiResponse.data
     }
 }

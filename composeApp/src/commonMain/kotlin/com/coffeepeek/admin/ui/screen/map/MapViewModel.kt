@@ -6,12 +6,16 @@ import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.MapBounds
+import com.coffeepeek.domain.model.MapCluster
+import com.coffeepeek.domain.model.MapCoffeeZone
 import com.coffeepeek.domain.model.MapShop
 import com.coffeepeek.domain.model.ShopFilters
 import com.coffeepeek.domain.model.ShopSchedule
 import com.coffeepeek.domain.repository.ShopRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,7 +38,10 @@ data class MapFiltersUi(
 
 data class MapUiState(
     val shops: List<MapShop> = emptyList(),
+    val clusters: List<MapCluster> = emptyList(),
+    val zones: List<MapCoffeeZone> = emptyList(),
     val selectedShop: MapShop? = null,
+    val selectedZone: MapCoffeeZone? = null,
     val selectedShopDetails: CoffeeShopDetails? = null,
     val isLoadingShopDetails: Boolean = false,
     val isLoading: Boolean = false,
@@ -50,6 +57,9 @@ data class MapUiState(
     val showSearchArea: Boolean = false,
     val activeBounds: MapBounds? = null,
     val pendingBounds: MapBounds? = null,
+    val activeZoom: Float? = null,
+    val pendingZoom: Float? = null,
+    val isTruncated: Boolean = false,
     val myLocationRequest: Int = 0,
     val cameraTarget: Pair<Double, Double>? = null,
     val cameraZoom: Float? = null,
@@ -97,26 +107,57 @@ class MapViewModel(
             .launchIn(workScope)
     }
 
-    fun onBoundsChanged(bounds: MapBounds) {
+    fun onBoundsChanged(bounds: MapBounds, zoom: Float) {
         if (suppressBoundsUpdates) return
         boundsJob?.cancel()
         _state.update {
             it.copy(
                 pendingBounds = bounds,
+                pendingZoom = zoom,
                 showSearchArea = false,
             )
         }
-        loadBounds(bounds)
+        loadBounds(bounds, zoom)
     }
 
     fun searchCurrentArea() {
         val bounds = _state.value.pendingBounds ?: _state.value.activeBounds ?: return
-        loadBounds(bounds)
+        val zoom = _state.value.pendingZoom ?: _state.value.activeZoom ?: return
+        loadBounds(bounds, zoom)
     }
 
     fun onShopSelected(shop: MapShop) {
         if (_state.value.selectedShop?.id == shop.id) return
+        _state.update { it.copy(selectedZone = null) }
         selectShop(shop)
+    }
+
+    fun onZoneSelected(zone: MapCoffeeZone) {
+        detailsJob?.cancel()
+        _state.update {
+            it.copy(
+                selectedZone = zone,
+                selectedShop = null,
+                selectedShopDetails = null,
+                isLoadingShopDetails = false,
+            )
+        }
+    }
+
+    fun showSelectedZoneShops() {
+        val zone = _state.value.selectedZone ?: return
+        _state.update {
+            it.copy(
+                selectedZone = null,
+                cameraTarget = zone.latitude to zone.longitude,
+                cameraZoom = 14.5f,
+            )
+        }
+        pauseBoundsUpdates(700)
+    }
+
+    fun clearZoneSelection() {
+        _state.update { it.copy(selectedZone = null) }
     }
 
     fun clearSelection() {
@@ -147,7 +188,8 @@ class MapViewModel(
         queryJob = workScope.launch {
             delay(350)
             val bounds = _state.value.activeBounds ?: _state.value.pendingBounds ?: return@launch
-            loadBounds(bounds)
+            val zoom = _state.value.activeZoom ?: _state.value.pendingZoom ?: return@launch
+            loadBounds(bounds, zoom)
         }
     }
 
@@ -244,16 +286,22 @@ class MapViewModel(
                         )
                     }
                     isCityReady = true
-                    _state.value.pendingBounds?.let(::loadBounds)
+                    val current = _state.value
+                    val bounds = current.pendingBounds
+                    val zoom = current.pendingZoom
+                    if (bounds != null && zoom != null) loadBounds(bounds, zoom)
                 }
                 .onFailure {
                     isCityReady = true
-                    _state.value.pendingBounds?.let(::loadBounds)
+                    val current = _state.value
+                    val bounds = current.pendingBounds
+                    val zoom = current.pendingZoom
+                    if (bounds != null && zoom != null) loadBounds(bounds, zoom)
                 }
         }
     }
 
-    private fun loadBounds(bounds: MapBounds) {
+    private fun loadBounds(bounds: MapBounds, zoom: Float) {
         if (!isCityReady) return
         boundsJob?.cancel()
         boundsJob = workScope.launch {
@@ -263,13 +311,16 @@ class MapViewModel(
                     isLoading = true,
                     activeBounds = bounds,
                     pendingBounds = bounds,
+                    activeZoom = zoom,
+                    pendingZoom = zoom,
                     showSearchArea = false,
                 )
             }
             val state = _state.value
             val filters = state.filters
-            shopRepository.getShopsInBounds(
+            val result = shopRepository.getMapContent(
                 bounds = bounds,
+                zoom = zoom,
                 filters = ShopFilters(
                     query = state.query.takeIf { it.isNotBlank() },
                     cityId = filters.cityId,
@@ -283,14 +334,21 @@ class MapViewModel(
                     minRating = filters.minRating,
                 ),
             )
-                .onSuccess { shops ->
+            currentCoroutineContext().ensureActive()
+            result.onSuccess { content ->
                     _state.update { current ->
-                        val merged = mergeShops(shops, current.selectedShop)
+                        val merged = mergeShops(content.shops, current.selectedShop)
                         current.copy(
                             shops = merged,
+                            clusters = content.clusters,
+                            zones = content.zones,
+                            isTruncated = content.isTruncated,
                             isLoading = false,
                             selectedShop = current.selectedShop?.let { selected ->
                                 merged.find { it.id == selected.id } ?: selected
+                            },
+                            selectedZone = current.selectedZone?.takeIf { selected ->
+                                content.zones.any { it.id == selected.id }
                             },
                         )
                     }

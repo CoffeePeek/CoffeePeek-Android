@@ -8,8 +8,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import android.view.animation.DecelerateInterpolator
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -42,11 +40,15 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.coffeepeek.domain.model.MapBounds
+import com.coffeepeek.domain.model.MapCluster
+import com.coffeepeek.domain.model.MapCoffeeZone
 import com.coffeepeek.domain.model.MapShop
 import org.maplibre.android.MapLibre
 import org.maplibre.android.annotations.IconFactory
 import org.maplibre.android.annotations.Marker
 import org.maplibre.android.annotations.MarkerOptions
+import org.maplibre.android.annotations.Polygon
+import org.maplibre.android.annotations.PolygonOptions
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
@@ -67,6 +69,8 @@ import org.maplibre.android.style.layers.PropertyFactory.textHaloColor
 import org.maplibre.android.style.layers.PropertyFactory.textHaloWidth
 import org.maplibre.android.style.layers.PropertyFactory.visibility
 import org.maplibre.android.style.layers.SymbolLayer
+import kotlin.math.cos
+import kotlin.math.sin
 
 private const val DEFAULT_LAT = 53.9045
 private const val DEFAULT_LON = 27.5615
@@ -91,7 +95,12 @@ private data class ClusterMark(
     var latitude: Double,
     var longitude: Double,
     var count: Int,
-    var shops: List<MapShop>,
+    var bounds: MapBounds,
+)
+
+private data class ZoneMark(
+    var marker: Marker,
+    var zone: MapCoffeeZone,
 )
 
 private class MarkerAnimations {
@@ -107,9 +116,12 @@ private class MarkerAnimations {
 @Composable
 actual fun CoffeeMap(
     shops: List<MapShop>,
+    clusters: List<MapCluster>,
+    zones: List<MapCoffeeZone>,
     selectedShopId: String?,
-    onBoundsChanged: (MapBounds) -> Unit,
+    onBoundsChanged: (MapBounds, Float) -> Unit,
     onShopClick: (MapShop) -> Unit,
+    onZoneClick: (MapCoffeeZone) -> Unit,
     modifier: Modifier,
     cameraTarget: Pair<Double, Double>?,
     cameraZoom: Float?,
@@ -125,6 +137,7 @@ actual fun CoffeeMap(
     val uriHandler = LocalUriHandler.current
     val onBoundsChangedState = rememberUpdatedState(onBoundsChanged)
     val onShopClickState = rememberUpdatedState(onShopClick)
+    val onZoneClickState = rememberUpdatedState(onZoneClick)
     val onCameraTargetAppliedState = rememberUpdatedState(onCameraTargetApplied)
     val onMyLocationFoundState = rememberUpdatedState(onMyLocationFound)
     val onLocationPermissionDeniedState = rememberUpdatedState(onLocationPermissionDenied)
@@ -149,11 +162,11 @@ actual fun CoffeeMap(
     }
     val shopMarks = remember { mutableMapOf<String, ShopMark>() }
     val clusterMarks = remember { mutableMapOf<String, ClusterMark>() }
+    val zoneMarks = remember { mutableMapOf<String, ZoneMark>() }
+    val zonePolygons = remember { mutableMapOf<String, Polygon>() }
     val animations = remember { MarkerAnimations() }
-    val handler = remember { Handler(Looper.getMainLooper()) }
     var map by remember { mutableStateOf<MapLibreMap?>(null) }
     var styleGeneration by remember { mutableIntStateOf(0) }
-    var clusterGeneration by remember { mutableIntStateOf(0) }
     var initialCameraApplied by remember { mutableStateOf(false) }
     var currentLocation by remember { mutableStateOf<LatLng?>(null) }
     var currentLocationMarker by remember { mutableStateOf<Marker?>(null) }
@@ -210,7 +223,6 @@ actual fun CoffeeMap(
 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            handler.removeCallbacksAndMessages(null)
             animations.cancel()
             stop()
             mapView.onDestroy()
@@ -219,18 +231,13 @@ actual fun CoffeeMap(
 
     DisposableEffect(map) {
         val activeMap = map ?: return@DisposableEffect onDispose { }
-        val recluster = Runnable { clusterGeneration += 1 }
-        val moveListener = MapLibreMap.OnCameraMoveListener {
-            handler.removeCallbacks(recluster)
-            handler.postDelayed(recluster, CLUSTER_MOVE_DEBOUNCE_MS)
-        }
         val idleListener = MapLibreMap.OnCameraIdleListener {
-            handler.removeCallbacks(recluster)
-            clusterGeneration += 1
-            onBoundsChangedState.value(activeMap.projection.visibleRegion.latLngBounds.toMapBounds())
+            onBoundsChangedState.value(
+                activeMap.projection.visibleRegion.latLngBounds.toMapBounds(),
+                activeMap.cameraPosition.zoom.toFloat(),
+            )
         }
 
-        activeMap.addOnCameraMoveListener(moveListener)
         activeMap.addOnCameraIdleListener(idleListener)
         activeMap.setOnMarkerClickListener { marker ->
             val shop = shopMarks.values.firstOrNull { it.marker.id == marker.id }
@@ -240,17 +247,21 @@ actual fun CoffeeMap(
             } else {
                 val cluster = clusterMarks.values.firstOrNull { it.marker.id == marker.id }
                 if (cluster != null) {
-                    zoomToCluster(activeMap, mapView.width, mapView.height, cluster.shops)
+                    zoomToBounds(activeMap, mapView.width, mapView.height, cluster.bounds)
                     true
                 } else {
-                    false
+                    val zone = zoneMarks.values.firstOrNull { it.marker.id == marker.id }
+                    if (zone != null) {
+                        onZoneClickState.value(zone.zone)
+                        true
+                    } else {
+                        false
+                    }
                 }
             }
         }
 
         onDispose {
-            handler.removeCallbacks(recluster)
-            activeMap.removeOnCameraMoveListener(moveListener)
             activeMap.removeOnCameraIdleListener(idleListener)
             activeMap.setOnMarkerClickListener(null)
         }
@@ -263,6 +274,8 @@ actual fun CoffeeMap(
         activeMap.removeAnnotations()
         shopMarks.clear()
         clusterMarks.clear()
+        zoneMarks.clear()
+        zonePolygons.clear()
         currentLocationMarker = null
         activeMap.setStyle(Style.Builder().fromUri(coffeeMapStyleUri(isDarkTheme))) { style ->
             styleGeneration += 1
@@ -343,21 +356,21 @@ actual fun CoffeeMap(
         }
     }
 
-    LaunchedEffect(shops, selectedShopId, clusterGeneration, styleGeneration, map) {
+    LaunchedEffect(shops, clusters, zones, selectedShopId, isDarkTheme, styleGeneration, map) {
         val activeMap = map ?: return@LaunchedEffect
         if (styleGeneration == 0) return@LaunchedEffect
         syncMapMarkers(
             context = appContext,
             map = activeMap,
             shops = shops,
+            clusters = clusters,
+            zones = zones,
             selectedShopId = selectedShopId,
-            zoom = activeMap.cameraPosition.zoom.toFloat(),
-            project = { shop ->
-                activeMap.projection.toScreenLocation(LatLng(shop.latitude, shop.longitude))
-                    .let { ScreenXy(it.x, it.y) }
-            },
+            isDarkTheme = isDarkTheme,
             shopMarks = shopMarks,
             clusterMarks = clusterMarks,
+            zoneMarks = zoneMarks,
+            zonePolygons = zonePolygons,
             animations = animations,
             reduceMotion = appContext.prefersReducedMotion(),
         )
@@ -426,50 +439,49 @@ private fun syncMapMarkers(
     context: Context,
     map: MapLibreMap,
     shops: List<MapShop>,
+    clusters: List<MapCluster>,
+    zones: List<MapCoffeeZone>,
     selectedShopId: String?,
-    zoom: Float,
-    project: (MapShop) -> ScreenXy?,
+    isDarkTheme: Boolean,
     shopMarks: MutableMap<String, ShopMark>,
     clusterMarks: MutableMap<String, ClusterMark>,
+    zoneMarks: MutableMap<String, ZoneMark>,
+    zonePolygons: MutableMap<String, Polygon>,
     animations: MarkerAnimations,
     reduceMotion: Boolean,
 ) {
     val selected = shops.firstOrNull { it.id == selectedShopId }
-    val clusterable = if (selected == null) shops else shops.filter { it.id != selected.id }
-    val clustered = clusterMapShops(clusterable, zoom, project)
-    val shopItems = buildList {
-        clustered.filterIsInstance<MapMarkerItem.Shop>().forEach { add(it.shop) }
-        if (selected != null) add(selected)
-    }.distinctBy { it.id }
-    val clusterItems = clustered.filterIsInstance<MapMarkerItem.Cluster>()
-
-    val shopIds = shopItems.map { it.id }.toSet()
+    val shopIds = shops.map { it.id }.toSet()
     shopMarks.keys.filter { it !in shopIds }.toList().forEach { id ->
         shopMarks.remove(id)?.let { map.removeMarker(it.marker) }
     }
-    val clusterKeys = clusterItems.map { it.key }.toSet()
+    val clusterKeys = clusters.map { it.id }.toSet()
     clusterMarks.keys.filter { it !in clusterKeys }.toList().forEach { key ->
         clusterMarks.remove(key)?.let { map.removeMarker(it.marker) }
     }
+    val zoneIds = zones.map { it.id }.toSet()
+    zoneMarks.keys.filter { it !in zoneIds }.toList().forEach { id ->
+        zoneMarks.remove(id)?.let { map.removeMarker(it.marker) }
+    }
 
-    clusterItems.forEach { cluster ->
+    clusters.forEach { cluster ->
         val position = LatLng(cluster.latitude, cluster.longitude)
-        val existing = clusterMarks[cluster.key]
+        val existing = clusterMarks[cluster.id]
         if (existing == null) {
             val marker = map.addMarker(
                 MarkerOptions()
                     .position(position)
                     .icon(IconFactory.getInstance(context).fromBitmap(MapMarkerIcons.clusterBitmap(context, cluster.count))),
             )
-            clusterMarks[cluster.key] = ClusterMark(
+            clusterMarks[cluster.id] = ClusterMark(
                 marker = marker,
                 latitude = cluster.latitude,
                 longitude = cluster.longitude,
                 count = cluster.count,
-                shops = cluster.shops,
+                bounds = cluster.bounds,
             )
         } else {
-            existing.shops = cluster.shops
+            existing.bounds = cluster.bounds
             if (existing.latitude != cluster.latitude || existing.longitude != cluster.longitude) {
                 existing.marker.position = position
                 existing.latitude = cluster.latitude
@@ -485,7 +497,50 @@ private fun syncMapMarkers(
         }
     }
 
-    shopItems.forEach { shop ->
+    zones.forEach { zone ->
+        val position = LatLng(zone.latitude, zone.longitude)
+        val existing = zoneMarks[zone.id]
+        if (existing == null) {
+            val marker = map.addMarker(
+                MarkerOptions()
+                    .position(position)
+                    .icon(
+                        IconFactory.getInstance(context).fromBitmap(
+                            MapMarkerIcons.zoneBitmap(context, zone.name, zone.shopCount, isDarkTheme),
+                        ),
+                    ),
+            )
+            zoneMarks[zone.id] = ZoneMark(marker = marker, zone = zone)
+        } else {
+            val oldZone = existing.zone
+            existing.zone = zone
+            if (oldZone.latitude != zone.latitude || oldZone.longitude != zone.longitude) {
+                existing.marker.position = position
+            }
+            if (oldZone.name != zone.name || oldZone.shopCount != zone.shopCount) {
+                existing.marker.setIcon(
+                    IconFactory.getInstance(context).fromBitmap(
+                        MapMarkerIcons.zoneBitmap(context, zone.name, zone.shopCount, isDarkTheme),
+                    ),
+                )
+            }
+            map.updateMarker(existing.marker)
+        }
+    }
+
+    zonePolygons.values.forEach { polygon -> runCatching { map.removePolygon(polygon) } }
+    zonePolygons.clear()
+    zones.forEach { zone ->
+        val polygon = map.addPolygon(
+            PolygonOptions()
+                .addAll(zoneCirclePoints(zone))
+                .fillColor(if (isDarkTheme) 0x33EAB308 else 0x26EAB308)
+                .strokeColor(if (isDarkTheme) 0x99EAB308.toInt() else 0xB3CA8A04.toInt()),
+        )
+        zonePolygons[zone.id] = polygon
+    }
+
+    shops.forEach { shop ->
         val position = LatLng(shop.latitude, shop.longitude)
         val isSelected = shop.id == selectedShopId
         val visual = if (isSelected) MapPinVisual.Selected else MapPinVisual.Default
@@ -571,23 +626,18 @@ private fun playSelectedAnimation(
     pulse.start()
 }
 
-private fun zoomToCluster(
+private fun zoomToBounds(
     map: MapLibreMap,
     viewWidth: Int,
     viewHeight: Int,
-    shops: List<MapShop>,
+    bounds: MapBounds,
 ) {
-    if (shops.isEmpty()) return
-    val minLat = shops.minOf { it.latitude }
-    val maxLat = shops.maxOf { it.latitude }
-    val minLon = shops.minOf { it.longitude }
-    val maxLon = shops.maxOf { it.longitude }
     val currentZoom = map.cameraPosition.zoom.toFloat()
 
-    if (minLat == maxLat && minLon == maxLon) {
+    if (bounds.minLat == bounds.maxLat && bounds.minLon == bounds.maxLon) {
         map.animateCamera(
             CameraUpdateFactory.newLatLngZoom(
-                LatLng(minLat, minLon),
+                LatLng(bounds.minLat, bounds.minLon),
                 clusterFitZoom(currentZoom, currentZoom + 2f).toDouble(),
             ),
             CLUSTER_TAP_ANIMATION_MS.toInt(),
@@ -595,11 +645,11 @@ private fun zoomToCluster(
         return
     }
 
-    val bounds = LatLngBounds.from(maxLat, maxLon, minLat, minLon)
+    val latLngBounds = LatLngBounds.from(bounds.maxLat, bounds.maxLon, bounds.minLat, bounds.minLon)
     val insetX = (viewWidth.coerceAtLeast(1) * clusterPaddingFraction() / 2f).toInt()
     val insetY = (viewHeight.coerceAtLeast(1) * clusterPaddingFraction() / 2f).toInt()
     val fitted = map.getCameraForLatLngBounds(
-        bounds,
+        latLngBounds,
         intArrayOf(insetX, insetY, insetX, insetY),
     ) ?: return
     val target = CameraPosition.Builder(fitted)
@@ -609,6 +659,19 @@ private fun zoomToCluster(
         CameraUpdateFactory.newCameraPosition(target),
         CLUSTER_TAP_ANIMATION_MS.toInt(),
     )
+}
+
+private fun zoneCirclePoints(zone: MapCoffeeZone, pointCount: Int = 48): List<LatLng> {
+    val latitudeDegrees = zone.radiusMeters / 111_320.0
+    val longitudeScale = cos(Math.toRadians(zone.latitude)).coerceAtLeast(0.01)
+    val longitudeDegrees = zone.radiusMeters / (111_320.0 * longitudeScale)
+    return (0..pointCount).map { index ->
+        val angle = 2.0 * Math.PI * index / pointCount
+        LatLng(
+            zone.latitude + latitudeDegrees * sin(angle),
+            zone.longitude + longitudeDegrees * cos(angle),
+        )
+    }
 }
 
 private fun LatLngBounds.toMapBounds(): MapBounds = MapBounds(
