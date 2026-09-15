@@ -568,7 +568,7 @@ private fun SingleSelectMenu(
                 overflow = TextOverflow.Ellipsis,
             )
             Icon(
-                CpIcons.ChevronDown,
+                CpIcons.ChevronUpDown,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
@@ -690,7 +690,7 @@ private fun CatalogMultiSelectMenu(
                 overflow = TextOverflow.Ellipsis,
             )
             Icon(
-                CpIcons.ChevronDown,
+                CpIcons.ChevronUpDown,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),

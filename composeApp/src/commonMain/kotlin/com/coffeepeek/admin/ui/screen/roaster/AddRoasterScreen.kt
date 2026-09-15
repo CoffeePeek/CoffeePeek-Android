@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.ui.screen.roaster
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -300,18 +302,29 @@ private fun RoasterCityPicker(
                 color = if (selected == null) MaterialTheme.colorScheme.onSurfaceVariant
                 else MaterialTheme.colorScheme.onSurface,
             )
-            Icon(CpIcons.ChevronDown, contentDescription = null)
+            Icon(CpIcons.ChevronUpDown, contentDescription = null)
         }
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.width(anchorWidth),
+            modifier = Modifier
+                .width(anchorWidth)
+                .clip(RoundedCornerShape(CpDimens.selectRadius))
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant,
+                    RoundedCornerShape(CpDimens.selectRadius),
+                ),
             shape = RoundedCornerShape(CpDimens.selectRadius),
             containerColor = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
         ) {
             DropdownMenuItem(
                 text = { Text("Не указывать город") },
                 onClick = { onSelect(null); expanded = false },
+                trailingIcon = if (selected == null) {
+                    { Icon(CpIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                } else null,
             )
             cities.forEach { city ->
                 DropdownMenuItem(

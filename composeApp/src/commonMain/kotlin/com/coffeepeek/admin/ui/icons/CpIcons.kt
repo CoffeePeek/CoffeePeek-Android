@@ -13,6 +13,7 @@ import com.adamglin.phosphoricons.regular.CaretDown
 import com.adamglin.phosphoricons.regular.CaretLeft
 import com.adamglin.phosphoricons.regular.CaretRight
 import com.adamglin.phosphoricons.regular.CaretUp
+import com.adamglin.phosphoricons.regular.CaretUpDown
 import com.adamglin.phosphoricons.regular.ChatCenteredText
 import com.adamglin.phosphoricons.regular.Check
 import com.adamglin.phosphoricons.regular.CheckCircle
@@ -65,6 +66,7 @@ object CpIcons {
     val ChevronLeft: ImageVector get() = PhosphorIcons.Regular.CaretLeft
     val ChevronRight: ImageVector get() = PhosphorIcons.Regular.CaretRight
     val ChevronUp: ImageVector get() = PhosphorIcons.Regular.CaretUp
+    val ChevronUpDown: ImageVector get() = PhosphorIcons.Regular.CaretUpDown
     val Close: ImageVector get() = PhosphorIcons.Regular.X
     val Coffee: ImageVector get() = PhosphorIcons.Regular.Coffee
     val CoffeeBean: ImageVector get() = PhosphorIcons.Regular.CoffeeBean

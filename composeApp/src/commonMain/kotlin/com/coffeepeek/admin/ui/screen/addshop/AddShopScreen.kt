@@ -7,6 +7,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -1104,6 +1105,7 @@ private fun CityDropdown(
     error: String? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val menuShape = RoundedCornerShape(CpDimens.selectRadius)
     Box {
         OutlinedTextField(
             value = selected?.name ?: "",
@@ -1120,13 +1122,13 @@ private fun CityDropdown(
             textStyle = MaterialTheme.typography.bodyLarge,
             trailingIcon = {
                 Icon(
-                    CpIcons.ChevronDown,
+                    CpIcons.ChevronUpDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
             isError = error != null,
-            shape = RoundedCornerShape(CpDimens.radiusMd),
+            shape = menuShape,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor   = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -1147,7 +1149,12 @@ private fun CityDropdown(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+            modifier = Modifier
+                .clip(menuShape)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, menuShape),
+            shape = menuShape,
+            containerColor = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
         ) {
             cities.forEach { city ->
                 DropdownMenuItem(

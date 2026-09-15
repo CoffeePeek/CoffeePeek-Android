@@ -437,6 +437,12 @@ private fun CityRow(
         trailing = {
             Box {
                 Row(
+                    modifier = Modifier
+                        .height(CpDimens.buttonHeight)
+                        .clip(menuShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, menuShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = CpDimens.spacing3),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
                 ) {
@@ -449,7 +455,7 @@ private fun CityRow(
                         modifier = Modifier.widthIn(max = 140.dp),
                     )
                     Icon(
-                        imageVector = CpIcons.ChevronDown,
+                        imageVector = CpIcons.ChevronUpDown,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp),
@@ -571,7 +577,7 @@ private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Icon(
-                    imageVector = CpIcons.ChevronDown,
+                    imageVector = CpIcons.ChevronUpDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),
