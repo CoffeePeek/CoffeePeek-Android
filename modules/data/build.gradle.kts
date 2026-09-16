@@ -13,6 +13,8 @@ kotlin {
             jvmTarget.set(JvmTarget.fromTarget(Config.JVM_VERSION))
         }
     }
+    iosArm64()
+    iosSimulatorArm64()
 
     sourceSets {
         androidMain.dependencies {

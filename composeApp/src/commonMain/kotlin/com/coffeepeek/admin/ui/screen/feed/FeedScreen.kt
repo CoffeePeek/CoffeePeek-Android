@@ -69,6 +69,7 @@ import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
 import com.coffeepeek.admin.ui.component.PriceBynRow
 import com.coffeepeek.admin.ui.component.priceRangeLevel
 import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
+import com.coffeepeek.admin.utils.formatOneDecimal
 import androidx.compose.foundation.lazy.LazyColumn
 import com.coffeepeek.domain.model.CoffeeShop
 import coffeepeek.composeapp.generated.resources.Res
@@ -76,11 +77,11 @@ import coffeepeek.composeapp.generated.resources.maskot_with_magnifying_glass
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import org.jetbrains.compose.resources.painterResource
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
+fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
     val state by vm.uiState.collectAsState()
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
@@ -421,7 +422,7 @@ private fun ShopCard(
                             modifier = Modifier.size(14.dp),
                         )
                         Text(
-                            text = "%.1f".format(rating),
+                            text = formatOneDecimal(rating),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )

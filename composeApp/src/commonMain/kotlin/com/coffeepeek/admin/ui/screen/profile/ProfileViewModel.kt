@@ -42,7 +42,7 @@ class ProfileViewModel(
     private val userRepository: UserRepository,
     private val sessionRepository: SessionRepository,
 ) {
-    private val workScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val workScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()

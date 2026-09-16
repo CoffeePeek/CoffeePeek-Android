@@ -14,8 +14,6 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
-import java.lang.Exception
-
 class ApiException(override val message: String) : Exception(message)
 
 suspend inline fun <reified T : DataResponse> HttpResponse.getResult(): Result<T> {

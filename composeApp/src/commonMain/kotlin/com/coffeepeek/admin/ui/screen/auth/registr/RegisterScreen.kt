@@ -72,13 +72,13 @@ import com.coffeepeek.admin.ui.screen.auth.AuthScreenScaffold
 import com.coffeepeek.admin.ui.screen.auth.AuthStepper
 import com.coffeepeek.admin.ui.screen.auth.AuthTextField
 import org.jetbrains.compose.resources.stringResource
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 
 object RegisterScreen {
 
     @Composable
     operator fun invoke(
-        vm: RegisterViewModel = koinViewModel(),
+        vm: RegisterViewModel = platformViewModel(),
     ) {
         val step by vm.step.collectAsState()
         val name by vm.name.collectAsState()

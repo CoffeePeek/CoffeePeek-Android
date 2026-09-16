@@ -11,6 +11,7 @@ import com.coffeepeek.domain.model.PendingPhotoUpload
 import com.coffeepeek.admin.utils.MAX_MENU_PHOTOS
 import com.coffeepeek.admin.utils.MAX_SHOP_PHOTOS
 import com.coffeepeek.admin.utils.PickedImage
+import com.coffeepeek.admin.utils.formatMinutesAsClock
 import com.coffeepeek.domain.model.ScheduleInterval
 import com.coffeepeek.domain.model.ShopCatalogs
 import com.coffeepeek.domain.model.ShopSchedule
@@ -138,7 +139,7 @@ internal fun shiftTime(time: String, minutesDelta: Int): String {
     val totalMinutes = (parts.getOrNull(0)?.toIntOrNull() ?: 9) * 60 +
         (parts.getOrNull(1)?.toIntOrNull() ?: 0) + minutesDelta
     val clamped = totalMinutes.coerceIn(0, 23 * 60 + 59)
-    return "%02d:%02d".format(clamped / 60, clamped % 60)
+    return formatMinutesAsClock(clamped)
 }
 
 class AddShopViewModel(

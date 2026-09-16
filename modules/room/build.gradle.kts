@@ -16,6 +16,8 @@ kotlin {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(Config.JVM_VERSION))
         }
     }
+    iosArm64()
+    iosSimulatorArm64()
 
     sourceSets {
         commonMain.dependencies {
@@ -48,4 +50,6 @@ dependencies {
     implementation(libs.androidx.sqlite.ktx)
     add("kspCommonMainMetadata", libs.androidx.room.compiler)
     add("kspAndroid", libs.androidx.room.compiler)
+    add("kspIosArm64", libs.androidx.room.compiler)
+    add("kspIosSimulatorArm64", libs.androidx.room.compiler)
 }

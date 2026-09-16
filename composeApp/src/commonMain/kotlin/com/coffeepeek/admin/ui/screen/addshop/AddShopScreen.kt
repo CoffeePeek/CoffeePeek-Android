@@ -79,11 +79,11 @@ import com.coffeepeek.admin.utils.PhotoPickerController
 import com.coffeepeek.admin.utils.rememberPhotoPicker
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
+fun AddShopScreen(vm: AddShopViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
     var locationPermissionRequestKey by remember { mutableStateOf(1) }
     var forceMyLocation by remember { mutableStateOf(false) }

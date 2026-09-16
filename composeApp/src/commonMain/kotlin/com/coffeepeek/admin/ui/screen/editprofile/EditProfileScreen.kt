@@ -54,11 +54,11 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.rememberPhotoPicker
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditProfileScreen(vm: EditProfileViewModel = koinViewModel()) {
+fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
     var isPhotoLoading by remember { mutableStateOf(false) }
     val photoPicker = rememberPhotoPicker(

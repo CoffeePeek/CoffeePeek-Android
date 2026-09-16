@@ -1,0 +1,6 @@
+// Copy this file to Local.xcconfig and fill in your Google OAuth values.
+// The local file is ignored by Git.
+// API_BASE_URL = https:/$()/your-api.example.com/
+// GOOGLE_IOS_CLIENT_ID = 000000000000-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
+// GOOGLE_WEB_CLIENT_ID = 000000000000-yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy.apps.googleusercontent.com
+// GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.000000000000-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

@@ -84,6 +84,7 @@ import com.coffeepeek.admin.ui.component.priceRangeLevel
 import com.coffeepeek.admin.ui.component.FullScreenImageDialog
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.utils.OpenInBrowser
+import com.coffeepeek.admin.utils.formatOneDecimal
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.Review
 import com.coffeepeek.domain.model.ReviewRating
@@ -93,13 +94,13 @@ import com.coffeepeek.domain.model.ShopMenuItem
 import com.coffeepeek.domain.model.ShopSchedule
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 import org.koin.core.parameter.parametersOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopDetailScreen(shopId: String) {
-    val vm: ShopDetailViewModel = koinViewModel(parameters = { parametersOf(shopId) })
+    val vm: ShopDetailViewModel = platformViewModel(parameters = { parametersOf(shopId) })
     val state by vm.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
@@ -462,7 +463,7 @@ private fun ShopMetaRow(
                     modifier = Modifier.size(14.dp),
                 )
                 Text(
-                    text = "%.1f".format(rating ?: 0.0),
+                    text = formatOneDecimal(rating ?: 0.0),
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                     color = CpColor.Primary,
                 )
@@ -1161,7 +1162,7 @@ private fun RatingBlock(rating: Double?, reviewCount: Int) {
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    text = "%.1f".format(rating),
+                    text = formatOneDecimal(rating),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -1442,7 +1443,7 @@ private fun ReviewCard(review: Review, onPhotoClick: (String) -> Unit) {
                     modifier = Modifier.size(13.dp),
                 )
                 Text(
-                    text = "%.1f".format(review.rating.average),
+                    text = formatOneDecimal(review.rating.average),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )

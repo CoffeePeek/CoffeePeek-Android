@@ -37,11 +37,11 @@ import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.domain.model.CheckIn
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = koinViewModel()) {
+fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
     val listState = rememberLazyListState()
 

@@ -13,7 +13,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -41,7 +41,7 @@ import kotlinx.serialization.Serializable
 
 object Navigator {
 
-    private val navigatorScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val navigatorScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     private val _navigationEvents = MutableSharedFlow<NavEvent>()
     val navigationEvents = _navigationEvents.asSharedFlow()
@@ -151,7 +151,7 @@ object Navigator {
 
     @Composable
     operator fun invoke(
-        vm: NavigatorViewModel = koinViewModel(),
+        vm: NavigatorViewModel = platformViewModel(),
     ) {
         val errorMessage = ErrorHandler.errorMessage.collectAsState().value
         val loading = LoadingHandler.isLoading.collectAsState().value

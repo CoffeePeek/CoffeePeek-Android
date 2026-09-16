@@ -34,13 +34,13 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.utils.ErrorHandler
 import org.jetbrains.compose.resources.stringResource
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 
 object AuthScreen {
 
     @Composable
     operator fun invoke(
-        vm: AuthViewModel = koinViewModel(),
+        vm: AuthViewModel = platformViewModel(),
     ) {
         val email by vm.email.collectAsState()
         val password by vm.password.collectAsState()

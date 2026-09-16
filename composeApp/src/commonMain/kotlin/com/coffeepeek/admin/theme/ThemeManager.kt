@@ -15,7 +15,7 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 object ThemeManager {
     private const val THEME_MODE_KEY = "theme_mode"
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     private var settingRepository: SettingRepository? = null
     private var isInitialized = false

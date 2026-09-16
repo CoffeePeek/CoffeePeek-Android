@@ -32,13 +32,13 @@ import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.PhotoAttachmentsSection
 import com.coffeepeek.admin.utils.MAX_REVIEW_PHOTOS
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 import org.koin.core.parameter.parametersOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateReviewScreen(shopId: String) {
-    val vm: CreateReviewViewModel = koinViewModel(parameters = { parametersOf(shopId) })
+    val vm: CreateReviewViewModel = platformViewModel(parameters = { parametersOf(shopId) })
     val state by vm.state.collectAsState()
 
     Scaffold(
@@ -96,7 +96,7 @@ fun CreateReviewScreen(shopId: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditReviewScreen(reviewId: String) {
-    val vm: EditReviewViewModel = koinViewModel(parameters = { parametersOf(reviewId) })
+    val vm: EditReviewViewModel = platformViewModel(parameters = { parametersOf(reviewId) })
     val state by vm.state.collectAsState()
 
     Scaffold(

@@ -3,6 +3,7 @@ package com.coffeepeek.data.di
 import com.coffeepeek.api.CoffeePeekClient
 import com.coffeepeek.api.CoffeePeekRepo
 import com.coffeepeek.data.session.SessionTokenProvider
+import com.coffeepeek.data.session.createPlatformSessionSecureStore
 import com.coffeepeek.data.repository.AuthRepositoryImpl
 import com.coffeepeek.data.repository.CheckInRepositoryImpl
 import com.coffeepeek.data.repository.FavoriteRepositoryImpl
@@ -29,25 +30,27 @@ import kotlinx.coroutines.launch
 import com.coffeepeek.room.DatabaseCore
 import org.koin.core.module.Module
 import org.koin.dsl.module
-import java.io.File
 
 fun dataModule(
     baseUrl: String,
-    cacheFolder: File,
+    cacheFolderPath: String,
+    appCacheRootPath: String,
     database: DatabaseCore,
+    platformContext: Any? = null,
     debug: Boolean = false,
 ): Module = module {
-    single { CoroutineScope(Dispatchers.IO + SupervisorJob()) }
+    single { CoroutineScope(Dispatchers.Default + SupervisorJob()) }
 
-    single<SessionRepository> { SessionRepositoryImpl(database) }
+    single { createPlatformSessionSecureStore(database, platformContext) }
+    single<SessionRepository> { SessionRepositoryImpl(database, get()) }
     single { SessionTokenProvider(get(), get()) }
     single { FileUrlResolver(baseUrl) }
     single {
         UserSessionCleaner(
             sessionRepository = get(),
             favoriteRepository = get(),
-            httpCacheFolder = cacheFolder,
-            appCacheRoot = cacheFolder.parentFile ?: cacheFolder,
+            httpCacheFolderPath = cacheFolderPath,
+            appCacheRootPath = appCacheRootPath,
         )
     }
 
@@ -56,7 +59,7 @@ fun dataModule(
         val tokenProvider = get<SessionTokenProvider>()
         CoffeePeekClient(
             url = baseUrl,
-            cacheFolder = cacheFolder,
+            cacheFolderPath = cacheFolderPath,
             debug = debug,
             getToken = { tokenProvider.current() },
             saveToken = { authResp ->

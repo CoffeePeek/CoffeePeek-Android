@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.ui.screen.map
 
+import com.coffeepeek.admin.utils.formatOneDecimal
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
 import androidx.compose.foundation.background
@@ -64,10 +65,10 @@ import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.MapShop
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 
 @Composable
-fun MapScreen(vm: MapViewModel = koinViewModel()) {
+fun MapScreen(vm: MapViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
     val pendingFocus by Navigator.pendingMapFocus.collectAsState()
     val pendingFocusShop = pendingFocus?.let { focus ->
@@ -481,7 +482,7 @@ private fun MapShopBottomSheet(
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = "%.1f".format(rating),
+                            text = formatOneDecimal(rating),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )

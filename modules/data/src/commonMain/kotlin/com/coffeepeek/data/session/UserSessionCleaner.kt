@@ -2,13 +2,12 @@ package com.coffeepeek.data.session
 
 import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.SessionRepository
-import java.io.File
 
 class UserSessionCleaner(
     private val sessionRepository: SessionRepository,
     private val favoriteRepository: FavoriteRepository,
-    private val httpCacheFolder: File,
-    private val appCacheRoot: File,
+    private val httpCacheFolderPath: String,
+    private val appCacheRootPath: String,
 ) {
     suspend fun clearLocalUserData() {
         sessionRepository.saveSession(null)
@@ -17,12 +16,6 @@ class UserSessionCleaner(
     }
 
     fun clearDiskCaches() {
-        runCatching {
-            httpCacheFolder.listFiles()?.forEach { it.deleteRecursively() }
-            httpCacheFolder.mkdirs()
-        }
-        runCatching {
-            clearPlatformImageCaches(appCacheRoot)
-        }
+        runCatching { clearPlatformCaches(httpCacheFolderPath, appCacheRootPath) }
     }
 }

@@ -18,6 +18,16 @@ kotlin {
         }
     }
 
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64(),
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "ComposeApp"
+            isStatic = true
+        }
+    }
+
     sourceSets {
         androidMain.dependencies {
             implementation(compose.preview)
@@ -48,6 +58,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
 
             implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.websockets)
+            implementation(libs.kotlinx.serialization.json)
             implementation(libs.kamel)
             implementation(libs.koin.core)
             implementation(libs.koin.compose)

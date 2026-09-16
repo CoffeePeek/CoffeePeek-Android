@@ -36,8 +36,10 @@ fun initKoin() {
         modules(
             dataModule(
                 baseUrl = Constants.BASE_URL,
-                cacheFolder = Locator.cacheFolder,
+                cacheFolderPath = Locator.cacheFolderPath,
+                appCacheRootPath = Locator.appCacheRootPath,
                 database = database,
+                platformContext = Locator.platformContext,
                 debug = AppConfig.isDebug,
             ),
             appModule(),

@@ -36,12 +36,13 @@ import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.utils.formatOneDecimal
 import com.coffeepeek.domain.model.CoffeeShopDetails
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FavoritesScreen(vm: FavoritesViewModel = koinViewModel()) {
+fun FavoritesScreen(vm: FavoritesViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
 
     Scaffold(
@@ -122,7 +123,7 @@ private fun FavoriteShopCard(details: CoffeeShopDetails, onClick: () -> Unit) {
                     modifier = Modifier.padding(top = 4.dp),
                 ) {
                     Icon(CpIcons.StarFilled, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 2.dp).then(Modifier))
-                    Text("%.1f".format(rating), style = MaterialTheme.typography.labelMedium)
+                    Text(formatOneDecimal(rating), style = MaterialTheme.typography.labelMedium)
                 }
             }
         }

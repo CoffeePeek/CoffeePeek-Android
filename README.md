@@ -1,6 +1,6 @@
 # CoffeePeek
 
-Android-приложение экосистемы specialty-кофе: лента кофеен, карта, профиль, чек-ины и отзывы.
+Кроссплатформенное приложение экосистемы specialty-кофе для Android и iOS: лента кофеен, карта, профиль, чек-ины и отзывы.
 
 **Стек:** Kotlin · Jetpack Compose (Compose Multiplatform) · Ktor · Koin · Room
 
@@ -24,7 +24,8 @@ Android-приложение экосистемы specialty-кофе: лента
 ### Требования
 
 - **JDK 17** (обязательно; JDK 24/26 ломают сборку Gradle)
-- Android Studio с SDK **36**
+- Android Studio с SDK **37**
+- Для iOS: macOS, Xcode **27** и iOS Simulator runtime
 - Git
 
 ### Настройка
@@ -46,13 +47,22 @@ cp local.properties.example local.properties
 
 Полная инструкция для контрибьюторов: **[CONTRIBUTING.md](./CONTRIBUTING.md)**
 
-### Сборка и запуск
+### Android: сборка и запуск
 
 ```bash
 ./gradlew :composeApp:assembleDebug
 ```
 
 Или Run `composeApp` из Android Studio на эмуляторе/устройстве.
+
+### iOS: сборка и запуск
+
+```bash
+open iosApp/iosApp.xcodeproj
+```
+
+В Xcode выберите схему `iosApp`, любой iPhone Simulator и нажмите `Run` (`⌘R`).
+Подробная настройка Xcode, Google Sign-In, подписи и запуск на реальном iPhone описаны в **[docs/IOS_SETUP.md](./docs/IOS_SETUP.md)**.
 
 ---
 
@@ -63,13 +73,14 @@ CoffeePeek-Android/
 ├── composeApp/              UI, ViewModel, навигация, тема, Koin
 │   └── src/
 │       ├── commonMain/      Compose UI и общая логика
-│       └── androidMain/     MapKit, Google Auth, Android-специфика
+│       ├── androidMain/     MapKit, Google Auth, Android-специфика
+│       └── iosMain/         MapKit, Keychain, PhotosUI, CoreLocation
+├── iosApp/                  SwiftUI-оболочка и Xcode-проект
 ├── modules/
 │   ├── domain/              модели и интерфейсы репозиториев
 │   ├── network/             Ktor, DTO, API-сервисы
 │   ├── data/                реализации репозиториев
 │   └── room/                SQLite (сессия, настройки)
-├── buildSrc/                версии SDK, applicationId
 ├── CONTRIBUTING.md          гайд для разработчиков
 ├── LOG_ISSUES.md            известные баги из logcat-анализа
 └── local.properties.example шаблон секретов
@@ -85,7 +96,8 @@ CoffeePeek-Android/
 
 ## Конфигурация
 
-- **API URL:** `local.properties` → `BuildConfig.API_BASE_URL`
+- **API URL Android:** `local.properties` → `BuildConfig.API_BASE_URL`
+- **API URL iOS:** `iosApp/Configuration/Shared.xcconfig` или локальный `Local.xcconfig`
 - **Версия приложения:** `1.0.<git-commit-count>` из `composeApp/build.gradle.kts`
 - **Application ID:** `com.coffeepeek`
 

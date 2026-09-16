@@ -46,11 +46,12 @@ import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.domain.model.Review
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
+import com.coffeepeek.admin.utils.formatOneDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyReviewsScreen(vm: MyReviewsViewModel = koinViewModel()) {
+fun MyReviewsScreen(vm: MyReviewsViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
     val listState = rememberLazyListState()
 
@@ -147,7 +148,7 @@ private fun ReviewListCard(review: Review, onClick: () -> Unit) {
                         modifier = Modifier.size(14.dp),
                     )
                     Text(
-                        "%.1f".format(review.rating.average),
+                        formatOneDecimal(review.rating.average),
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(start = 2.dp),
                     )

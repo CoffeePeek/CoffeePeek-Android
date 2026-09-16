@@ -26,7 +26,7 @@ import org.jetbrains.compose.resources.getString
 abstract class BaseViewModel : ViewModel(), Closeable {
 
 
-    protected val workScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    protected val workScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     init {
         addCloseable(this)

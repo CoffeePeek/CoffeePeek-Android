@@ -13,24 +13,27 @@ import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.cache.HttpCache
-import io.ktor.client.plugins.cache.storage.FileStorage
+import io.ktor.client.plugins.cache.storage.CacheStorage
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.plugin
 import io.ktor.serialization.kotlinx.json.json
-import java.io.File
 
 internal expect fun createClient(block: HttpClientConfig<*>.() -> Unit = {}): HttpClient
 
 internal expect fun createUploadClient(block: HttpClientConfig<*>.() -> Unit = {}): HttpClient
 
+internal expect fun createHttpCacheStorage(cacheFolderPath: String): CacheStorage?
+
 class CoffeePeekClient(
     url: String,
-    cacheFolder: File,
+    cacheFolderPath: String,
     private val debug: Boolean,
     private val getToken: () -> AuthResp?,
     private val saveToken: (AuthResp?) -> Unit,
 ) {
+    private val baseUrl = normalizeBaseUrl(url)
+
     private fun resolveTokens(): AuthResp? = getToken()
 
     private fun persistTokens(tokens: AuthResp?) {
@@ -39,7 +42,7 @@ class CoffeePeekClient(
 
     val plainClient: HttpClient = createClient {
         install(ContentNegotiation) { json(json = JsonExt.json) }
-        defaultRequest { url(url) }
+        defaultRequest { url(baseUrl) }
     }.also { intercept(it) }
 
     val uploadClient: HttpClient = createUploadClient {
@@ -54,7 +57,7 @@ class CoffeePeekClient(
 
     val client: HttpClient = createClient {
         install(ContentNegotiation) { json(json = JsonExt.json) }
-        defaultRequest { url(url) }
+        defaultRequest { url(baseUrl) }
 
         install(Auth) {
             bearer {
@@ -80,7 +83,7 @@ class CoffeePeekClient(
         }
 
         install(HttpCache) {
-            publicStorage(FileStorage(cacheFolder))
+            createHttpCacheStorage(cacheFolderPath)?.let(::publicStorage)
         }
     }.also { intercept(it) }
 
@@ -98,3 +101,5 @@ class CoffeePeekClient(
         }
     }
 }
+
+internal fun normalizeBaseUrl(url: String): String = url.trim().trimEnd('/')
