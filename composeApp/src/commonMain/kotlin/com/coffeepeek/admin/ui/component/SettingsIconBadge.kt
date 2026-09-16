@@ -8,8 +8,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.coffeepeek.admin.theme.CpDimens
 
@@ -72,17 +75,22 @@ fun SettingsIconBadge(
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
 ) {
+    // ponytail: derive dark-theme colors from the icon hue instead of a second palette
+    // table — the pale light backgrounds read as near-white blocks on a dark surface.
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val background = if (isDark) colors.icon.copy(alpha = 0.20f) else colors.background
+    val iconTint = if (isDark) lerp(colors.icon, Color.White, 0.30f) else colors.icon
     Box(
         modifier = modifier
             .size(CpDimens.settingsIconContainer)
             .clip(RoundedCornerShape(CpDimens.settingsIconRadius))
-            .background(colors.background),
+            .background(background),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = colors.icon,
+            tint = iconTint,
             modifier = Modifier.size(CpDimens.settingsIconSize),
         )
     }
