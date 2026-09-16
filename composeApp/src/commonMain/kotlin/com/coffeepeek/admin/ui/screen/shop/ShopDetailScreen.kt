@@ -79,7 +79,7 @@ import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopImage
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
-import com.coffeepeek.admin.utils.CpImage
+import com.coffeepeek.admin.ui.component.ReviewDisplayCard
 import com.coffeepeek.admin.utils.currentLocalDayOfWeek
 import com.coffeepeek.admin.ui.component.PriceBynRow
 import com.coffeepeek.admin.ui.component.PriceBynIcon
@@ -93,7 +93,6 @@ import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CheckIn
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.Review
-import com.coffeepeek.domain.model.ReviewRating
 import com.coffeepeek.domain.model.ShopContact
 import com.coffeepeek.domain.model.ShopMenu
 import com.coffeepeek.domain.model.ShopMenuItem
@@ -1797,138 +1796,9 @@ private fun ContactRow(
 
 @Composable
 private fun ReviewCard(review: Review, onPhotoClick: (String) -> Unit) {
-    OutlinedContentCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ReviewAuthorAvatar(
-                avatarUrl = review.avatarUrl,
-                username = review.username,
-            )
-            Spacer(Modifier.width(CpDimens.spacing3))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = review.username.ifBlank { "Пользователь" },
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                if (review.createdAt.isNotBlank()) {
-                    Text(
-                        text = formatReviewDate(review.createdAt),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                Icon(
-                    CpIcons.StarFilled,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(13.dp),
-                )
-                Text(
-                    text = "%.1f".format(review.rating.average),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-        }
-
-        ReviewRatingBreakdown(review.rating)
-
-        if (review.header.isNotBlank()) {
-            Text(
-                text = review.header,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(top = CpDimens.spacing1),
-            )
-        }
-        if (review.comment.isNotBlank()) {
-            Text(
-                text = review.comment,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp),
-            )
-        }
-
-        if (review.photoUrls.isNotEmpty()) {
-            Spacer(Modifier.height(CpDimens.spacing2))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-                items(review.photoUrls) { url ->
-                    CoffeeShopImage(
-                        imageUrl = url,
-                        contentDescription = "Фото отзыва",
-                        contentScale = ContentScale.Crop,
-                        placeholderLabelSize = 12.sp,
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(RoundedCornerShape(CpDimens.radiusSm))
-                            .clickable { onPhotoClick(url) },
-                    )
-                }
-            }
-        }
-
-    }
-}
-
-@Composable
-private fun ReviewAuthorAvatar(avatarUrl: String?, username: String) {
-    val modifier = Modifier
-        .size(40.dp)
-        .clip(CircleShape)
-
-    if (!avatarUrl.isNullOrBlank()) {
-        CpImage(
-            data = avatarUrl,
-            modifier = modifier,
-            contentDescription = "Фото пользователя ${username.ifBlank { "Пользователь" }}",
-        )
-    } else {
-        Box(
-            modifier = modifier
-                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = username.trim().firstOrNull()?.uppercase() ?: "?",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-    }
-}
-
-@Composable
-private fun ReviewRatingBreakdown(rating: ReviewRating) {
-    if (rating.place == 0 && rating.service == 0 && rating.coffee == 0) return
-    Spacer(Modifier.height(CpDimens.spacing1))
-    Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3)) {
-        RatingPill("Место", rating.place)
-        RatingPill("Сервис", rating.service)
-        RatingPill("Кофе", rating.coffee)
-    }
-}
-
-@Composable
-private fun RatingPill(label: String, value: Int) {
-    if (value <= 0) return
-    Text(
-        text = "$label: $value",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .clip(RoundedCornerShape(CpDimens.radiusSm))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = CpDimens.spacing2, vertical = 2.dp),
+    ReviewDisplayCard(
+        review = review,
+        onPhotoClick = onPhotoClick,
     )
 }
 

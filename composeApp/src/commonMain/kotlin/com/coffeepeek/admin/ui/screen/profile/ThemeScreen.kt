@@ -34,6 +34,9 @@ import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.theme.ThemeManager
 import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.component.SettingsIconBadge
+import com.coffeepeek.admin.ui.component.SettingsIconColors
+import com.coffeepeek.admin.ui.component.SettingsIconPalette
 import com.coffeepeek.admin.ui.icons.CpIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -118,6 +121,11 @@ private fun ThemeOption(
             .padding(horizontal = CpDimens.spacing4),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        SettingsIconBadge(
+            icon = mode.icon(),
+            colors = mode.iconColors(),
+        )
+        Spacer(Modifier.size(CpDimens.spacing3))
         Text(
             text = mode.title(),
             style = MaterialTheme.typography.bodyLarge,
@@ -139,4 +147,16 @@ private fun ThemeMode.title(): String = when (this) {
     ThemeMode.SYSTEM -> "Системная"
     ThemeMode.LIGHT -> "Светлая"
     ThemeMode.DARK -> "Тёмная"
+}
+
+private fun ThemeMode.icon() = when (this) {
+    ThemeMode.SYSTEM -> CpIcons.ThemeSystem
+    ThemeMode.LIGHT -> CpIcons.ThemeLight
+    ThemeMode.DARK -> CpIcons.ThemeDark
+}
+
+private fun ThemeMode.iconColors(): SettingsIconColors = when (this) {
+    ThemeMode.SYSTEM -> SettingsIconPalette.Cyan
+    ThemeMode.LIGHT -> SettingsIconPalette.Gold
+    ThemeMode.DARK -> SettingsIconPalette.Violet
 }

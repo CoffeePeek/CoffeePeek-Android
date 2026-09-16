@@ -63,6 +63,7 @@ import com.coffeepeek.admin.auth.isGoogleSignInConfigured
 import com.coffeepeek.admin.legal.LegalUrls
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.ui.screen.auth.AuthFooterRow
 import com.coffeepeek.admin.ui.screen.auth.AuthMascot
@@ -103,6 +104,7 @@ object RegisterScreen {
         AuthScreenScaffold(
             mascot = if (step == RegisterStep.Success) AuthMascot.Happy else AuthMascot.Laptop,
             showMascot = true,
+            onClose = Navigator::closeAuth,
         ) {
             when (step) {
                 RegisterStep.Success -> {

@@ -68,6 +68,7 @@ enum class AuthMascot {
 fun AuthScreenScaffold(
     mascot: AuthMascot = AuthMascot.Laptop,
     showMascot: Boolean = true,
+    onClose: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
@@ -153,6 +154,42 @@ fun AuthScreenScaffold(
                 .padding(top = 20.dp, end = 20.dp)
                 .zIndex(2f),
             isDark = isDark,
+        )
+        AuthCloseButton(
+            onClick = onClose,
+            isDark = isDark,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .statusBarsPadding()
+                .padding(top = 20.dp, start = 20.dp)
+                .zIndex(2f),
+        )
+    }
+}
+
+@Composable
+private fun AuthCloseButton(
+    onClick: () -> Unit,
+    isDark: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .size(CpDimens.authThemeToggleSize)
+            .clip(CircleShape)
+            .background(
+                if (isDark) CpColor.DarkSurface.copy(alpha = 0.88f)
+                else CpColor.LightSurface.copy(alpha = 0.96f),
+            )
+            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = CpIcons.Close,
+            contentDescription = "Закрыть",
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(20.dp),
         )
     }
 }

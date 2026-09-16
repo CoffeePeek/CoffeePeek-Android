@@ -154,6 +154,10 @@ object Navigator {
         navigatorScope.launch { _navigationEvents.emit(NavEvent.PopBack) }
     }
 
+    fun closeAuth() {
+        popBack()
+    }
+
     /** Pop current screen, then navigate (ordered in one coroutine). */
     fun popThenNavigate(screen: Screen) {
         navigatorScope.launch {

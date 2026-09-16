@@ -59,6 +59,9 @@ import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
+import com.coffeepeek.admin.ui.component.SettingsIconBadge
+import com.coffeepeek.admin.ui.component.SettingsIconColors
+import com.coffeepeek.admin.ui.component.SettingsIconPalette
 import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.COFFEEPEEK_SHARE_TEXT
 import com.coffeepeek.admin.utils.OpenInBrowser
@@ -162,8 +165,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                     icon = CpIcons.Add,
                     label = "Добавить кофейню",
                     description = "Предложить новое место для CoffeePeek",
-                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    iconBg = MaterialTheme.colorScheme.primaryContainer,
+                    iconColors = SettingsIconPalette.Gold,
                     onClick = { Navigator.navigate(Navigator.Screen.AddShop) },
                 )
                 SettingsDivider()
@@ -171,8 +173,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                     icon = CpIcons.CoffeeBean,
                     label = "Добавить обжарщика",
                     description = "Помогите сообществу открыть новых обжарщиков",
-                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    iconBg = MaterialTheme.colorScheme.primaryContainer,
+                    iconColors = SettingsIconPalette.Mint,
                     onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
                 )
             }
@@ -185,6 +186,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                         icon = CpIcons.Favorite,
                         label = "Избранные кофейни",
                         description = "Кофейни, которые вы сохранили",
+                        iconColors = SettingsIconPalette.Rose,
                         onClick = { Navigator.navigate(Navigator.Screen.Favorites) },
                     )
                     SettingsDivider()
@@ -192,6 +194,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                         icon = CpIcons.Review,
                         label = "Мои отзывы",
                         description = "Ваши оценки и отзывы о кофейнях",
+                        iconColors = SettingsIconPalette.Lavender,
                         onClick = { Navigator.navigate(Navigator.Screen.MyReviews) },
                     )
                     SettingsDivider()
@@ -199,6 +202,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                         icon = CpIcons.Location,
                         label = "Чекины",
                         description = "Места, которые вы уже посетили",
+                        iconColors = SettingsIconPalette.Sky,
                         onClick = { Navigator.navigate(Navigator.Screen.VisitedPlaces) },
                     )
                 }
@@ -218,6 +222,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                     icon = themeMode.icon(),
                     label = "Тема",
                     description = "Настройте внешний вид приложения",
+                    iconColors = SettingsIconPalette.Violet,
                     trailing = { ThemeValue(themeMode) },
                     onClick = { Navigator.navigate(Navigator.Screen.ThemeSettings) },
                 )
@@ -232,12 +237,14 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 SettingsRow(
                     icon = CpIcons.Lock,
                     label = "Политика использования",
+                    iconColors = SettingsIconPalette.Emerald,
                     onClick = { OpenInBrowser.openInBrowser(LegalUrls.TERMS) },
                 )
                 SettingsDivider()
                 SettingsRow(
                     icon = CpIcons.Share,
                     label = "Поделиться",
+                    iconColors = SettingsIconPalette.BrightCyan,
                     onClick = { ShareHelper.shareText(COFFEEPEEK_SHARE_TEXT) },
                 )
             }
@@ -427,8 +434,8 @@ private fun GuestLoginHeader(
                         .fillMaxWidth()
                         .height(CpDimens.buttonHeight),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.onSurface,
-                        contentColor = MaterialTheme.colorScheme.surface,
+                        containerColor = CpColor.Primary,
+                        contentColor = CpColor.DarkTextOnPrimary,
                     ),
                     shape = RoundedCornerShape(CpDimens.buttonRadius),
                 ) {
@@ -507,6 +514,7 @@ private fun CityRow(
         icon = CpIcons.Location,
         label = "Город",
         description = "Определяет, какие кофейни показывать в первую очередь",
+        iconColors = SettingsIconPalette.Aqua,
         trailing = {
             Box {
                 Row(
@@ -649,8 +657,7 @@ private fun SettingsRow(
     description: String? = null,
     onClick: () -> Unit,
     showArrow: Boolean = true,
-    iconTint: Color = MaterialTheme.colorScheme.onSurface,
-    iconBg: Color = MaterialTheme.colorScheme.surfaceVariant,
+    iconColors: SettingsIconColors = SettingsIconPalette.Cyan,
     trailing: @Composable (() -> Unit)? = null,
 ) {
     Row(
@@ -663,20 +670,7 @@ private fun SettingsRow(
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(CpDimens.settingsIconContainer)
-                .clip(RoundedCornerShape(CpDimens.settingsIconRadius))
-                .background(iconBg),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(CpDimens.settingsIconSize),
-            )
-        }
+        SettingsIconBadge(icon = icon, colors = iconColors)
         Spacer(Modifier.width(CpDimens.spacing3))
         Column(
             modifier = Modifier.weight(1f),
