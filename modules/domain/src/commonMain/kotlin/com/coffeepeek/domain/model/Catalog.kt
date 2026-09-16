@@ -9,6 +9,7 @@ data class CatalogItem(
     val id: String,
     val name: String,
     val slug: String = "",
+    val photoUrl: String? = null,
 )
 
 data class ShopCatalogs(

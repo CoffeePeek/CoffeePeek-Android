@@ -1503,7 +1503,6 @@ private fun CoffeeDetailsSection(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RoasterDetailGroup(
     items: List<CatalogItem>,
@@ -1528,20 +1527,69 @@ private fun RoasterDetailGroup(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
             }
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3)) {
                 items.forEach { item ->
-                    InfoChip(
-                        text = item.name,
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                        textColor = MaterialTheme.colorScheme.primary,
+                    RoasterLinkRow(
+                        item = item,
                         onClick = { onRoasterClick(item.id) },
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RoasterLinkRow(
+    item: CatalogItem,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(CpDimens.radiusLg))
+            .clickable(onClick = onClick)
+            .padding(vertical = CpDimens.spacing1),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(CircleShape),
+        ) {
+            val photoUrl = item.photoUrl?.takeIf(String::isNotBlank)
+            if (photoUrl != null) {
+                CoffeeShopImage(
+                    imageUrl = photoUrl,
+                    contentDescription = "Фото обжарщика ${item.name}",
+                    placeholderLabelSize = 7.sp,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                CoffeeShopPlaceholderImage(
+                    labelSize = 7.sp,
+                    contentDescription = "Фото обжарщика ${item.name} отсутствует",
+                )
+            }
+        }
+        Text(
+            text = item.name,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                textDecoration = TextDecoration.Underline,
+            ),
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = CpIcons.ChevronRight,
+            contentDescription = "Открыть обжарщика ${item.name}",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
     }
 }
 

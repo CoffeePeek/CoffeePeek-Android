@@ -8,6 +8,7 @@ import com.coffeepeek.admin.ui.screen.favorites.FavoritesScreen
 import com.coffeepeek.admin.ui.screen.reviews.MyReviewsScreen
 import com.coffeepeek.admin.ui.screen.roaster.AddRoasterScreen
 import com.coffeepeek.admin.ui.screen.roaster.RoasterDetailScreen
+import com.coffeepeek.admin.ui.screen.profile.ThemeScreen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -84,6 +85,7 @@ object Navigator {
         @Serializable data object Favorites : Screen
         @Serializable data object MyReviews : Screen
         @Serializable data object VisitedPlaces : Screen
+        @Serializable data object ThemeSettings : Screen
         @Serializable data class CreateReview(val shopId: String) : Screen
         @Serializable data class ReviewEdit(val reviewId: String) : Screen
     }
@@ -132,7 +134,8 @@ object Navigator {
         is Screen.ReviewEdit,
         is Screen.Favorites,
         is Screen.MyReviews,
-        is Screen.VisitedPlaces -> true
+        is Screen.VisitedPlaces,
+        is Screen.ThemeSettings -> true
         else -> false
     }
 
@@ -240,6 +243,7 @@ object Navigator {
                 composable<Screen.Favorites> { FavoritesScreen() }
                 composable<Screen.MyReviews> { MyReviewsScreen() }
                 composable<Screen.VisitedPlaces> { VisitedPlacesScreen() }
+                composable<Screen.ThemeSettings> { ThemeScreen() }
         }
     }
 }

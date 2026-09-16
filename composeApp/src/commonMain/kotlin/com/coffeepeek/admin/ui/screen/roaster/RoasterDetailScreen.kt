@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -24,7 +22,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -42,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -57,6 +55,7 @@ import com.coffeepeek.admin.ui.component.FullScreenImageDialog
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.utils.OpenInBrowser
 import com.coffeepeek.domain.model.RoasterDetails
+import com.coffeepeek.domain.model.RoasterShop
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -165,35 +164,23 @@ private fun RoasterContent(
                 val website = details.contact?.siteLink
                 if (!instagram.isNullOrBlank() || !website.isNullOrBlank()) {
                     RoasterSection(title = "Ссылки") {
-                        Row(
+                        Column(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                            verticalArrangement = Arrangement.spacedBy(11.dp),
                         ) {
                             if (!instagram.isNullOrBlank()) {
-                                OutlinedButton(
-                                    onClick = { OpenInBrowser.openInBrowser(normalizeExternalUrl(instagram)) },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(CpDimens.buttonRadius),
-                                ) {
-                                    Icon(CpIcons.Instagram, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(Modifier.width(CpDimens.spacing1))
-                                    Text("Instagram", maxLines = 1)
-                                }
+                                RoasterContactPill(
+                                    icon = CpIcons.Instagram,
+                                    text = instagramDisplayText(instagram),
+                                    onClick = { OpenInBrowser.openInBrowser(normalizeInstagramUrl(instagram)) },
+                                )
                             }
                             if (!website.isNullOrBlank()) {
-                                Button(
+                                RoasterContactPill(
+                                    icon = CpIcons.Globe,
+                                    text = prettyExternalLink(website),
                                     onClick = { OpenInBrowser.openInBrowser(normalizeExternalUrl(website)) },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(CpDimens.buttonRadius),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                                    ),
-                                ) {
-                                    Icon(CpIcons.Globe, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(Modifier.width(CpDimens.spacing1))
-                                    Text("Сайт", maxLines = 1)
-                                }
+                                )
                             }
                         }
                     }
@@ -221,43 +208,66 @@ private fun RoasterContent(
             }
         } else {
             items(details.shops, key = { it.id }) { shop ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing1)
-                        .clickable { onShopClick(shop.id) },
-                    shape = RoundedCornerShape(CpDimens.cardRadius),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.outlineVariant,
-                    ),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(CpDimens.spacing4),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = CpIcons.Coffee,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            text = shop.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f).padding(horizontal = CpDimens.spacing3),
-                        )
-                        Icon(
-                            imageVector = CpIcons.ChevronRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                RoasterShopCard(shop = shop, onClick = { onShopClick(shop.id) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun RoasterShopCard(
+    shop: RoasterShop,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing1)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(CpDimens.cardRadius),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant,
+        ),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(CpDimens.spacing2),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(CpDimens.radiusMd)),
+            ) {
+                val photoUrl = shop.photoUrl?.takeIf(String::isNotBlank)
+                if (photoUrl != null) {
+                    CoffeeShopImage(
+                        imageUrl = photoUrl,
+                        contentDescription = "Фото кофейни ${shop.name}",
+                        placeholderLabelSize = 9.sp,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    CoffeeShopPlaceholderImage(
+                        labelSize = 9.sp,
+                        contentDescription = "Фото кофейни ${shop.name} отсутствует",
+                    )
                 }
             }
+            Text(
+                text = shop.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).padding(horizontal = CpDimens.spacing3),
+            )
+            Icon(
+                imageVector = CpIcons.ChevronRight,
+                contentDescription = "Открыть кофейню ${shop.name}",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -338,6 +348,69 @@ private fun RoasterSection(
         content()
     }
 }
+
+@Composable
+private fun RoasterContactPill(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(999.dp),
+        color = Color.Transparent,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        tonalElevation = 0.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+private fun normalizeInstagramUrl(value: String): String {
+    val trimmed = value.trim()
+    if (trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)) {
+        return trimmed
+    }
+    val handle = trimmed.removePrefix("@").trim('/')
+    return "https://instagram.com/$handle"
+}
+
+private fun instagramDisplayText(value: String): String {
+    val normalized = normalizeInstagramUrl(value)
+    val handle = normalized
+        .substringAfter("instagram.com/", "")
+        .substringBefore('/')
+        .substringBefore('?')
+        .substringBefore('#')
+        .trim()
+    return if (handle.isNotBlank()) "@$handle" else prettyExternalLink(value)
+}
+
+private fun prettyExternalLink(value: String): String = normalizeExternalUrl(value)
+    .removePrefix("https://")
+    .removePrefix("http://")
+    .removePrefix("www.")
+    .substringBefore('?')
+    .substringBefore('#')
+    .trimEnd('/')
 
 private fun normalizeExternalUrl(value: String): String {
     val trimmed = value.trim()

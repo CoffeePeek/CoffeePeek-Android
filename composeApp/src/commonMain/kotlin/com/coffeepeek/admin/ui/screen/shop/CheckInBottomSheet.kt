@@ -164,7 +164,8 @@ fun CheckInBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.92f)
+                // Keep the shop hero/title visible behind the modal.
+                .fillMaxHeight(0.76f)
                 .verticalScroll(scrollState)
                 .imePadding()
                 .navigationBarsPadding()

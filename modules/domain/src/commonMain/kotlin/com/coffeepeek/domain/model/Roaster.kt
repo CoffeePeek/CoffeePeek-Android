@@ -32,6 +32,7 @@ data class RoasterPhoto(
 data class RoasterShop(
     val id: String,
     val name: String,
+    val photoUrl: String? = null,
 )
 
 data class CreateRoasterInput(

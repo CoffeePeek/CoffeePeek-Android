@@ -60,7 +60,7 @@ private fun appModule(settingRepository: com.coffeepeek.room.repository.SettingR
     factory { NavigatorViewModel(get()) }
     factory { FeedViewModel(get(), get(), get(), get()) }
     factory { MapViewModel(get(), get()) }
-    factory { (shopId: String) -> ShopDetailViewModel(shopId, get(), get(), get(), get(), get(), get(), get()) }
+    factory { (shopId: String) -> ShopDetailViewModel(shopId, get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { (shopId: String) -> ShopReportViewModel(shopId, get()) }
     single { ProfileViewModel(get(), get(), get(), get(), get()) }
     factory { AddShopViewModel(get()) }
@@ -69,7 +69,7 @@ private fun appModule(settingRepository: com.coffeepeek.room.repository.SettingR
     factory { MyReviewsViewModel(get(), get()) }
     factory { VisitedPlacesViewModel(get()) }
     factory { AddRoasterViewModel(get(), get()) }
-    factory { (roasterId: String) -> RoasterDetailViewModel(roasterId, get()) }
+    factory { (roasterId: String) -> RoasterDetailViewModel(roasterId, get(), get()) }
     factory { (shopId: String) -> CreateReviewViewModel(shopId, get()) }
     factory { (reviewId: String) -> EditReviewViewModel(reviewId, get(), get()) }
 }

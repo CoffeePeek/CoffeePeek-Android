@@ -17,9 +17,13 @@ import com.coffeepeek.domain.model.Review
 import com.coffeepeek.domain.repository.CheckInRepository
 import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.ReviewRepository
+import com.coffeepeek.domain.repository.RoasterRepository
 import com.coffeepeek.domain.repository.SessionRepository
 import com.coffeepeek.domain.repository.ShopRepository
 import com.coffeepeek.domain.repository.UserRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,6 +48,7 @@ data class ShopDetailUiState(
 class ShopDetailViewModel(
     private val shopId: String,
     private val shopRepository: ShopRepository,
+    private val roasterRepository: RoasterRepository,
     private val favoriteRepository: FavoriteRepository,
     private val checkInRepository: CheckInRepository,
     private val reviewRepository: ReviewRepository,
@@ -82,6 +87,15 @@ class ShopDetailViewModel(
                 _uiState.update {
                     it.copy(details = details, isLoggedIn = isLoggedIn, isLoading = false)
                 }
+                val enrichedDetails = enrichRoasterPhotos(details)
+                _uiState.update { state ->
+                    val currentDetails = state.details
+                    if (currentDetails?.shop?.id == enrichedDetails.shop.id) {
+                        state.copy(details = currentDetails.copy(roasters = enrichedDetails.roasters))
+                    } else {
+                        state
+                    }
+                }
             }
             .onFailure { e ->
                 _uiState.update {
@@ -111,6 +125,22 @@ class ShopDetailViewModel(
                 },
             ),
         )
+    }
+
+    private suspend fun enrichRoasterPhotos(details: CoffeeShopDetails): CoffeeShopDetails = coroutineScope {
+        val roasters = details.roasters.map { roaster ->
+            async {
+                val photoUrl = roaster.photoUrl?.takeIf(String::isNotBlank)
+                    ?: roasterRepository.getRoaster(roaster.id)
+                        .getOrNull()
+                        ?.photos
+                        ?.firstOrNull()
+                        ?.fullUrl
+                        ?.takeIf(String::isNotBlank)
+                roaster.copy(photoUrl = photoUrl)
+            }
+        }.awaitAll()
+        details.copy(roasters = roasters)
     }
 
     private suspend fun enrichWithReviewAccess(details: CoffeeShopDetails): CoffeeShopDetails {

@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,11 +48,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.config.AppConfig
 import com.coffeepeek.admin.legal.LegalUrls
@@ -68,9 +64,6 @@ import com.coffeepeek.admin.utils.COFFEEPEEK_SHARE_TEXT
 import com.coffeepeek.admin.utils.OpenInBrowser
 import com.coffeepeek.admin.utils.ShareHelper
 import com.coffeepeek.domain.model.City
-import coffeepeek.composeapp.generated.resources.Res
-import coffeepeek.composeapp.generated.resources.profile_version
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
 @Composable
@@ -157,16 +150,18 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
             } else {
                 GuestLoginHeader(
                     onLogin = { Navigator.navigate(Navigator.Screen.Auth) },
+                    onRegister = { Navigator.navigate(Navigator.Screen.Register) },
                 )
             }
 
             Spacer(Modifier.height(CpDimens.spacing4))
 
             // ── Добавить ──────────────────────────────────────────────────────
-            SettingsSection(title = "Добавить") {
+            SettingsSection(title = if (state.isLoggedIn) "Добавить" else "Внести вклад") {
                 SettingsRow(
                     icon = CpIcons.Add,
                     label = "Добавить кофейню",
+                    description = "Предложить новое место для CoffeePeek",
                     iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                     iconBg = MaterialTheme.colorScheme.primaryContainer,
                     onClick = { Navigator.navigate(Navigator.Screen.AddShop) },
@@ -175,33 +170,38 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 SettingsRow(
                     icon = CpIcons.CoffeeBean,
                     label = "Добавить обжарщика",
+                    description = "Помогите сообществу открыть новых обжарщиков",
                     iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                     iconBg = MaterialTheme.colorScheme.primaryContainer,
                     onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
                 )
             }
 
-            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
-
             // ── Моя активность ─────────────────────────────────────────────────
-            SettingsSection(title = "Моя активность") {
-                SettingsRow(
-                    icon = CpIcons.Favorite,
-                    label = "Избранные кофейни",
-                    onClick = { Navigator.navigate(Navigator.Screen.Favorites) },
-                )
-                SettingsDivider()
-                SettingsRow(
-                    icon = CpIcons.Review,
-                    label = "Мои отзывы",
-                    onClick = { Navigator.navigate(Navigator.Screen.MyReviews) },
-                )
-                SettingsDivider()
-                SettingsRow(
-                    icon = CpIcons.Location,
-                    label = "Чекины",
-                    onClick = { Navigator.navigate(Navigator.Screen.VisitedPlaces) },
-                )
+            if (state.isLoggedIn) {
+                Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
+                SettingsSection(title = "Моя активность") {
+                    SettingsRow(
+                        icon = CpIcons.Favorite,
+                        label = "Избранные кофейни",
+                        description = "Кофейни, которые вы сохранили",
+                        onClick = { Navigator.navigate(Navigator.Screen.Favorites) },
+                    )
+                    SettingsDivider()
+                    SettingsRow(
+                        icon = CpIcons.Review,
+                        label = "Мои отзывы",
+                        description = "Ваши оценки и отзывы о кофейнях",
+                        onClick = { Navigator.navigate(Navigator.Screen.MyReviews) },
+                    )
+                    SettingsDivider()
+                    SettingsRow(
+                        icon = CpIcons.Location,
+                        label = "Чекины",
+                        description = "Места, которые вы уже посетили",
+                        onClick = { Navigator.navigate(Navigator.Screen.VisitedPlaces) },
+                    )
+                }
             }
 
             Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
@@ -214,26 +214,21 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                     onSelect = vm::setCity,
                 )
                 SettingsDivider()
-                ThemeRow(current = themeMode, onSelect = vm::setTheme)
-                SettingsDivider()
                 SettingsRow(
-                    icon = CpIcons.Info,
-                    label = stringResource(Res.string.profile_version),
-                    trailing = {
-                        Text(
-                            text = AppConfig.versionName,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                    onClick = {},
-                    showArrow = false,
+                    icon = themeMode.icon(),
+                    label = "Тема",
+                    description = "Настройте внешний вид приложения",
+                    trailing = { ThemeValue(themeMode) },
+                    onClick = { Navigator.navigate(Navigator.Screen.ThemeSettings) },
                 )
             }
 
             Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
 
-            SettingsSection(title = "О приложении") {
+            SettingsSection(
+                title = "О приложении",
+                description = "Версия приложения и полезная информация",
+            ) {
                 SettingsRow(
                     icon = CpIcons.Lock,
                     label = "Политика использования",
@@ -251,31 +246,32 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
 
             // ── Выход ─────────────────────────────────────────────────────────
             if (state.isLoggedIn) {
-            Button(
-                onClick = { showLogoutDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = CpDimens.settingsPagePadding)
-                    .height(CpDimens.buttonHeight),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = CpColor.Error.copy(alpha = 0.1f),
-                    contentColor   = CpColor.Error,
-                ),
-                shape = RoundedCornerShape(CpDimens.buttonRadius),
-            ) {
-                Icon(
-                    imageVector = CpIcons.Logout,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(CpDimens.spacing2))
-                Text(
-                    text = "Выйти",
-                    style = MaterialTheme.typography.labelLarge,
-                )
-            }
+                Button(
+                    onClick = { showLogoutDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = CpDimens.settingsPagePadding)
+                        .height(CpDimens.buttonHeight),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = CpColor.Error.copy(alpha = 0.1f),
+                        contentColor   = CpColor.Error,
+                    ),
+                    shape = RoundedCornerShape(CpDimens.buttonRadius),
+                ) {
+                    Icon(
+                        imageVector = CpIcons.Logout,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(CpDimens.spacing2))
+                    Text(
+                        text = "Выйти",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
             }
 
+            AppVersionFooter()
             Spacer(Modifier.height(CpDimens.spacing8 + LocalFloatingNavClearance.current))
         }
     }
@@ -387,7 +383,10 @@ private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
 }
 
 @Composable
-private fun GuestLoginHeader(onLogin: () -> Unit) {
+private fun GuestLoginHeader(
+    onLogin: () -> Unit,
+    onRegister: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -399,7 +398,7 @@ private fun GuestLoginHeader(onLogin: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
         Text(
-            text = "Настройки",
+            text = "Аккаунт",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Bold,
@@ -413,12 +412,14 @@ private fun GuestLoginHeader(onLogin: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(CpDimens.spacing4),
+                horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
             ) {
                 Text(
-                    text = "Сохраняйте любимые кофейни, отмечайте посещения и делитесь отзывами вместе с сообществом CoffeePeek.",
+                    text = "Присоединяйтесь к сообществу, чтобы сохранять любимые места и делиться впечатлениями.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
                 Button(
                     onClick = onLogin,
@@ -426,15 +427,32 @@ private fun GuestLoginHeader(onLogin: () -> Unit) {
                         .fillMaxWidth()
                         .height(CpDimens.buttonHeight),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = MaterialTheme.colorScheme.onSurface,
+                        contentColor = MaterialTheme.colorScheme.surface,
                     ),
                     shape = RoundedCornerShape(CpDimens.buttonRadius),
                 ) {
                     Text(
-                        text = "Присоединиться к сообществу CoffeePeek",
+                        text = "Войти",
                         style = MaterialTheme.typography.labelLarge,
                     )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        text = "Нет аккаунта?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = onRegister) {
+                        Text(
+                            text = "Зарегистрироваться",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
                 }
             }
         }
@@ -461,7 +479,7 @@ private fun StatBadge(count: Int, label: String, modifier: Modifier = Modifier) 
     }
 }
 
-// ── Выбор темы через DropdownMenu ─────────────────────────────────────────────
+// ── Настройки города и темы ───────────────────────────────────────────────────
 
 private fun ThemeMode.label() = when (this) {
     ThemeMode.SYSTEM -> "Авто"
@@ -488,6 +506,7 @@ private fun CityRow(
     SettingsRow(
         icon = CpIcons.Location,
         label = "Город",
+        description = "Определяет, какие кофейни показывать в первую очередь",
         trailing = {
             Box {
                 Row(
@@ -569,151 +588,50 @@ private fun CityRow(
 }
 
 @Composable
-private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    var anchorWidth by remember { mutableStateOf(0.dp) }
-    val density = LocalDensity.current
-    val menuMinWidth = 208.dp
-    val menuWidth = anchorWidth.coerceAtLeast(menuMinWidth)
-    val selectShape = RoundedCornerShape(CpDimens.selectRadius)
-
+private fun ThemeValue(current: ThemeMode) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = CpDimens.settingsRowPaddingH,
-                vertical = CpDimens.settingsRowPaddingV,
-            ),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {
-        Box(
-            modifier = Modifier
-                .size(CpDimens.settingsIconContainer)
-                .clip(RoundedCornerShape(CpDimens.settingsIconRadius))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = current.icon(),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(CpDimens.settingsIconSize),
-            )
-        }
-        Spacer(Modifier.width(CpDimens.spacing3))
         Text(
-            text = "Тема",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            text = current.label(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
-            modifier = Modifier.weight(1f),
         )
-
-        Box(modifier = Modifier.wrapContentWidth(Alignment.End)) {
-            Row(
-                modifier = Modifier
-                    .wrapContentWidth()
-                    .height(CpDimens.buttonHeight)
-                    .onGloballyPositioned { coords ->
-                        anchorWidth = with(density) { coords.size.width.toDp() }
-                    }
-                    .clip(selectShape)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, selectShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .clickable { expanded = true }
-                    .padding(horizontal = CpDimens.spacing3),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-            ) {
-                Text(
-                    text = current.label(),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Icon(
-                    imageVector = CpIcons.ChevronUpDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                offset = DpOffset(x = anchorWidth - menuWidth, y = 0.dp),
-                modifier = Modifier
-                    .width(menuWidth)
-                    .clip(selectShape)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, selectShape),
-                shape = selectShape,
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp,
-            ) {
-                ThemeMode.entries.forEach { mode ->
-                    val isSelected = mode == current
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = mode.label(),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Normal,
-                                color = if (isSelected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
-                                maxLines = 1,
-                                softWrap = false,
-                            )
-                        },
-                        onClick = {
-                            onSelect(mode)
-                            expanded = false
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = mode.icon(),
-                                contentDescription = null,
-                                tint = if (isSelected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                modifier = Modifier.size(18.dp),
-                            )
-                        },
-                        trailingIcon = if (isSelected) {
-                            {
-                                Icon(
-                                    imageVector = CpIcons.Check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-                        } else {
-                            null
-                        },
-                    )
-                }
-            }
-        }
+        Icon(
+            imageVector = CpIcons.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
     }
 }
 
 // ── Общие компоненты ──────────────────────────────────────────────────────────
 
 @Composable
-private fun SettingsSection(title: String, content: @Composable () -> Unit) {
+private fun SettingsSection(
+    title: String,
+    description: String? = null,
+    content: @Composable () -> Unit,
+) {
     Column(modifier = Modifier.padding(horizontal = CpDimens.settingsPagePadding)) {
         Text(
             text = title.uppercase(),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             letterSpacing = androidx.compose.ui.unit.TextUnit(0.08f, androidx.compose.ui.unit.TextUnitType.Em),
-            modifier = Modifier.padding(bottom = CpDimens.spacing2),
         )
+        if (description != null) {
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = CpDimens.spacing1),
+            )
+        }
+        Spacer(Modifier.height(CpDimens.spacing2))
         Card(
             shape = RoundedCornerShape(CpDimens.cardRadius),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -728,6 +646,7 @@ private fun SettingsSection(title: String, content: @Composable () -> Unit) {
 private fun SettingsRow(
     icon: ImageVector,
     label: String,
+    description: String? = null,
     onClick: () -> Unit,
     showArrow: Boolean = true,
     iconTint: Color = MaterialTheme.colorScheme.onSurface,
@@ -759,12 +678,28 @@ private fun SettingsRow(
             )
         }
         Spacer(Modifier.width(CpDimens.spacing3))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+        Column(
             modifier = Modifier.weight(1f),
-        )
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (description != null) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Spacer(Modifier.width(CpDimens.spacing2))
         if (trailing != null) {
             trailing()
         } else if (showArrow) {
@@ -776,6 +711,22 @@ private fun SettingsRow(
             )
         }
     }
+}
+
+@Composable
+private fun AppVersionFooter() {
+    Text(
+        text = "Версия ${AppConfig.versionName}",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = CpDimens.settingsPagePadding,
+                top = CpDimens.spacing4,
+                end = CpDimens.settingsPagePadding,
+            ),
+    )
 }
 
 @Composable
