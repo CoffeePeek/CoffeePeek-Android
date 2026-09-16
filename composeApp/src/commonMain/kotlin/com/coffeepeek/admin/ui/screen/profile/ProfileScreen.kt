@@ -175,33 +175,31 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
             }
 
             // ── Моя активность ─────────────────────────────────────────────────
-            if (state.isLoggedIn) {
-                Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
-                SettingsSection(title = "Моя активность") {
-                    SettingsRow(
-                        icon = CpIcons.Favorite,
-                        label = "Избранные кофейни",
-                        description = "Кофейни, которые вы сохранили",
-                        iconColors = SettingsIconPalette.Rose,
-                        onClick = { Navigator.navigate(Navigator.Screen.Favorites) },
-                    )
-                    SettingsDivider()
-                    SettingsRow(
-                        icon = CpIcons.Review,
-                        label = "Мои отзывы",
-                        description = "Ваши оценки и отзывы о кофейнях",
-                        iconColors = SettingsIconPalette.Lavender,
-                        onClick = { Navigator.navigate(Navigator.Screen.MyReviews) },
-                    )
-                    SettingsDivider()
-                    SettingsRow(
-                        icon = CpIcons.Location,
-                        label = "Чекины",
-                        description = "Места, которые вы уже посетили",
-                        iconColors = SettingsIconPalette.Sky,
-                        onClick = { Navigator.navigate(Navigator.Screen.VisitedPlaces) },
-                    )
-                }
+            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
+            SettingsSection(title = "Моя активность") {
+                SettingsRow(
+                    icon = CpIcons.Favorite,
+                    label = "Избранные кофейни",
+                    description = "Кофейни, которые вы сохранили",
+                    iconColors = SettingsIconPalette.Rose,
+                    onClick = { Navigator.navigate(Navigator.Screen.Favorites) },
+                )
+                SettingsDivider()
+                SettingsRow(
+                    icon = CpIcons.Review,
+                    label = "Мои отзывы",
+                    description = "Ваши оценки и отзывы о кофейнях",
+                    iconColors = SettingsIconPalette.Lavender,
+                    onClick = { Navigator.navigate(Navigator.Screen.MyReviews) },
+                )
+                SettingsDivider()
+                SettingsRow(
+                    icon = CpIcons.Location,
+                    label = "Чекины",
+                    description = "Места, которые вы уже посетили",
+                    iconColors = SettingsIconPalette.Sky,
+                    onClick = { Navigator.navigate(Navigator.Screen.VisitedPlaces) },
+                )
             }
 
             Spacer(Modifier.height(CpDimens.settingsSectionSpacing))

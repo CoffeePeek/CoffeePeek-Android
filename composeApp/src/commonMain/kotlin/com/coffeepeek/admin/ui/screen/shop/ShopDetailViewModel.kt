@@ -7,6 +7,7 @@ import com.coffeepeek.admin.utils.FavoriteSync
 import com.coffeepeek.admin.utils.OpenInBrowser
 import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.admin.utils.ReviewSync
+import com.coffeepeek.admin.utils.ShareHelper
 import com.coffeepeek.admin.utils.epochMillisToIsoInstant
 import com.coffeepeek.admin.utils.validatePublicCheckInDescription
 import com.coffeepeek.admin.utils.validatePublicCheckInHeader
@@ -332,8 +333,14 @@ class ShopDetailViewModel(
     }
 
     fun shareShop() {
+        val title = _uiState.value.details?.shop?.title?.takeIf { it.isNotBlank() }
         val shareUrl = "https://coffeepeek.by/shops/$shopId"
-        _uiState.update { it.copy(actionMessage = "Ссылка на кофейню: $shareUrl") }
+        val text = if (title != null) {
+            "Нашёл кофейню «$title» в CoffeePeek — загляни: $shareUrl"
+        } else {
+            "Нашёл кофейню в CoffeePeek — загляни: $shareUrl"
+        }
+        ShareHelper.shareText(text)
     }
 
     fun copyPhone(phone: String) {

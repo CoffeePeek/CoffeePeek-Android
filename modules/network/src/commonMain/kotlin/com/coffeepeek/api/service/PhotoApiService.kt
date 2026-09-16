@@ -47,7 +47,7 @@ class PhotoApiService(
 
     suspend fun requestRoasterPhotoUploadUrls(
         requests: List<PhotoRequestDto>,
-    ): Result<List<GenerateUploadUrlDto>> = requestPhotoUploadUrls("/api/Photos", requests)
+    ): Result<List<GenerateUploadUrlDto>> = requestPhotoUploadUrls("/api/Photos/roaster", requests)
 
     private suspend fun requestPhotoUploadUrls(
         path: String,
