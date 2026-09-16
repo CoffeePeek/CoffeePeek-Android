@@ -39,6 +39,7 @@ import coffeepeek.composeapp.generated.resources.checkin_rating_service
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.utils.CpImage
+import com.coffeepeek.domain.model.CheckIn
 import com.coffeepeek.domain.model.Review
 import com.coffeepeek.domain.model.ReviewRating
 import org.jetbrains.compose.resources.DrawableResource
@@ -264,6 +265,101 @@ fun ReviewDisplayCard(
 }
 
 @Composable
+fun CheckInDisplayCard(
+    checkIn: CheckIn,
+    modifier: Modifier = Modifier,
+    showShopName: Boolean = true,
+    onClick: (() -> Unit)? = null,
+    onPhotoClick: ((String) -> Unit)? = null,
+) {
+    val cardModifier = modifier
+        .fillMaxWidth()
+        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+
+    Card(
+        modifier = cardModifier,
+        shape = RoundedCornerShape(CpDimens.radius2xl),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.72f),
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(CpDimens.spacing4),
+            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
+        ) {
+            CheckInHeader(checkIn = checkIn, showShopName = showShopName)
+            checkIn.rating?.let { rating ->
+                ReviewMetricCards(rating)
+                ReviewScoreRow(rating.average)
+            }
+            if (checkIn.note.isNotBlank()) {
+                ReviewQuote(checkIn.note)
+            }
+            ReviewPhotoStrip(
+                photoUrls = checkIn.photoUrls,
+                onPhotoClick = onPhotoClick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CheckInHeader(checkIn: CheckIn, showShopName: Boolean) {
+    val date = checkIn.visitedAt.ifBlank { checkIn.createdAt }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
+                    shape = CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = CpIcons.Location,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp),
+            )
+        }
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = CpDimens.spacing3),
+        ) {
+            Text(
+                text = if (showShopName) {
+                    checkIn.shopName.ifBlank { "Кофейня" }
+                } else {
+                    "Посещение"
+                },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+            )
+            if (date.isNotBlank()) {
+                Text(
+                    text = formatReviewDisplayDate(date),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun HelpfulButton(
     helpfulCount: Int,
     isHelpful: Boolean,
@@ -442,21 +538,6 @@ private fun ReviewScoreRow(average: Double) {
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(start = CpDimens.spacing2),
         )
-        Box(
-            modifier = Modifier.weight(1f).padding(start = CpDimens.spacing2),
-            contentAlignment = Alignment.CenterEnd,
-        ) {
-            Text(
-                text = experienceLabel(average),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(CpDimens.radius2xl))
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing2),
-                maxLines = 1,
-            )
-        }
     }
 }
 
@@ -484,13 +565,6 @@ private fun ReviewQuote(comment: String) {
             modifier = Modifier.width(20.dp),
         )
     }
-}
-
-private fun experienceLabel(average: Double): String = when {
-    average >= 4.0 -> "Отличный опыт"
-    average >= 3.0 -> "Хороший опыт"
-    average >= 2.0 -> "Смешанные впечатления"
-    else -> "Есть вопросы"
 }
 
 private fun formatReviewDisplayDate(raw: String): String {

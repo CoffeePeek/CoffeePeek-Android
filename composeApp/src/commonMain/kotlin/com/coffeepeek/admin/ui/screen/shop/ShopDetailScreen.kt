@@ -79,6 +79,7 @@ import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopImage
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
+import com.coffeepeek.admin.ui.component.CheckInDisplayCard
 import com.coffeepeek.admin.ui.component.ReviewDisplayCard
 import com.coffeepeek.admin.utils.currentLocalDayOfWeek
 import com.coffeepeek.admin.ui.component.PriceBynRow
@@ -881,7 +882,7 @@ private fun ReviewsSection(
             .fillMaxWidth()
             .padding(horizontal = CpDimens.spacing4)
             .padding(top = CpDimens.spacing6, bottom = CpDimens.spacing3),
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing6),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
         SectionTitle("Отзывы")
         if (reviews.isEmpty()) {
@@ -890,15 +891,24 @@ private fun ReviewsSection(
                 message = "Станьте первым, кто оценит и оставит отзыв о своём посещении $shopTitle",
             )
         } else {
-            Column(
+            LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
             ) {
-                reviews.forEachIndexed { index, review ->
+                items(
+                    count = reviews.size,
+                    key = { index -> reviews[index].id },
+                ) { index ->
+                    val review = reviews[index]
                     val isBlurred = shouldBlurReview(isLoggedIn, index)
-                    Box(modifier = if (isBlurred) Modifier.blur(5.dp) else Modifier) {
+                    Box(
+                        modifier = Modifier
+                            .width(320.dp)
+                            .then(if (isBlurred) Modifier.blur(5.dp) else Modifier),
+                    ) {
                         ReviewCard(
                             review = review,
+                            modifier = Modifier.fillMaxWidth(),
                             onPhotoClick = if (isBlurred) ({}) else onReviewPhotoClick,
                             onHelpfulClick = if (isBlurred) null else ({ onReviewHelpfulClick(review.id) }),
                         )
@@ -922,8 +932,18 @@ private fun CheckInsSection(
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
         SectionTitle("Мои чекины")
-        checkIns.forEach { checkIn ->
-            CheckInCard(checkIn = checkIn, onPhotoClick = onPhotoClick)
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+        ) {
+            items(checkIns, key = { it.id }) { checkIn ->
+                CheckInDisplayCard(
+                    checkIn = checkIn,
+                    showShopName = false,
+                    onPhotoClick = onPhotoClick,
+                    modifier = Modifier.width(320.dp),
+                )
+            }
         }
     }
 }
@@ -944,48 +964,6 @@ private fun OutlinedContentCard(content: @Composable ColumnScope.() -> Unit) {
             modifier = Modifier.padding(CpDimens.spacing4),
             content = content,
         )
-    }
-}
-
-@Composable
-private fun CheckInCard(
-    checkIn: CheckIn,
-    onPhotoClick: (String) -> Unit,
-) {
-    OutlinedContentCard {
-        val date = checkIn.visitedAt.ifBlank { checkIn.createdAt }
-        if (date.isNotBlank()) {
-            Text(
-                text = formatReviewDate(date),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (checkIn.note.isNotBlank()) {
-            Text(
-                text = checkIn.note,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(top = CpDimens.spacing1),
-            )
-        }
-        if (checkIn.photoUrls.isNotEmpty()) {
-            Spacer(Modifier.height(CpDimens.spacing2))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-                items(checkIn.photoUrls) { url ->
-                    CoffeeShopImage(
-                        imageUrl = url,
-                        contentDescription = "Фото посещения",
-                        contentScale = ContentScale.Crop,
-                        placeholderLabelSize = 12.sp,
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(RoundedCornerShape(CpDimens.radiusSm))
-                            .clickable { onPhotoClick(url) },
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -1807,11 +1785,13 @@ private fun ContactRow(
 @Composable
 private fun ReviewCard(
     review: Review,
+    modifier: Modifier = Modifier,
     onPhotoClick: (String) -> Unit,
     onHelpfulClick: (() -> Unit)?,
 ) {
     ReviewDisplayCard(
         review = review,
+        modifier = modifier,
         onPhotoClick = onPhotoClick,
         onHelpfulClick = onHelpfulClick,
     )

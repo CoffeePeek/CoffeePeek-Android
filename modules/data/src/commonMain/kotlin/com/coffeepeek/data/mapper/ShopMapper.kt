@@ -86,8 +86,8 @@ internal object ShopMapper {
             CheckIn(
                 id = checkIn.id,
                 shopId = checkIn.shopId,
-                shopName = checkIn.shopName.ifBlank { name.orEmpty() },
-                note = checkIn.note,
+                shopName = checkIn.shopName.orEmpty().ifBlank { name.orEmpty() },
+                note = checkIn.note.orEmpty(),
                 createdAt = checkIn.createdAt,
                 reviewId = checkIn.reviewId,
                 visitedAt = checkIn.visitedAt,

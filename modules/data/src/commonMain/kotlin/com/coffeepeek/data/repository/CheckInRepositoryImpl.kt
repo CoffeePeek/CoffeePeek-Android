@@ -56,8 +56,8 @@ class CheckInRepositoryImpl(
                     CheckIn(
                         id = dto.id,
                         shopId = dto.shopId,
-                        shopName = dto.shopName,
-                        note = dto.note,
+                        shopName = dto.shopName.orEmpty(),
+                        note = dto.note.orEmpty(),
                         createdAt = dto.createdAt,
                         reviewId = dto.reviewId,
                         visitedAt = dto.visitedAt,
