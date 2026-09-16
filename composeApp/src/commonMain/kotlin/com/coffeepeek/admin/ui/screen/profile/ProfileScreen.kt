@@ -231,8 +231,8 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
             Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
 
             SettingsSection(
-                title = "О приложении",
-                description = "Версия приложения и полезная информация",
+                title = "Другие настройки",
+                description = "Управление полезными дополнениями, отзывы в App Store и настройки конфиденциальности",
             ) {
                 SettingsRow(
                     icon = CpIcons.Lock,

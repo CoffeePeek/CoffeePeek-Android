@@ -147,15 +147,18 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                                 )
                             },
                             singleLine = true,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor   = MaterialTheme.colorScheme.surface,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                                focusedBorderColor      = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor    = MaterialTheme.colorScheme.outline,
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = ImeAction.Search,
                             ),
-                            contentPadding = OutlinedTextFieldDefaults.contentPadding(top = 12.dp, bottom = 12.dp),
+                            keyboardActions = KeyboardActions(
+                                onSearch = { focusManager.clearFocus() },
+                            ),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            ),
                             textStyle = MaterialTheme.typography.bodyLarge,
                         )
                         BadgedBox(

@@ -129,31 +129,36 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
         OutlinedTextField(
             value = state.query,
             onValueChange = vm::onQueryChange,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .statusBarsPadding()
-                .fillMaxWidth()
-                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
-            placeholder = { Text("Поиск по карте") },
-            leadingIcon = {
-                Icon(CpIcons.Search, contentDescription = null)
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(CpDimens.radiusMd),
+            placeholder = {
+                Text(
+                    "Поиск кофейни…",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             },
-            trailingIcon = if (state.query.isNotEmpty()) {
-                {
-                    IconButton(onClick = { vm.onQueryChange("") }) {
-                        Icon(CpIcons.Close, contentDescription = "Очистить поиск")
-                    }
-                }
-            } else {
-                null
+            leadingIcon = {
+                Icon(
+                    CpIcons.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             },
             singleLine = true,
-            shape = RoundedCornerShape(CpDimens.radiusMd),
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Search,
+            ),
+            keyboardActions = KeyboardActions(
+                onSearch = { focusManager.clearFocus() },
+            ),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
             ),
-            contentPadding = OutlinedTextFieldDefaults.contentPadding(top = 12.dp, bottom = 12.dp),
+            textStyle = MaterialTheme.typography.bodyLarge,
         )
 
         if (state.isTruncated) {
