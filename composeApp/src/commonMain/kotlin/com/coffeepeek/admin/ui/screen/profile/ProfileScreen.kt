@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,8 +25,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -66,7 +63,6 @@ import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.COFFEEPEEK_SHARE_TEXT
 import com.coffeepeek.admin.utils.OpenInBrowser
 import com.coffeepeek.admin.utils.ShareHelper
-import com.coffeepeek.domain.model.City
 import org.koin.compose.koinInject
 
 @Composable
@@ -212,10 +208,17 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
 
             // ── Настройки ─────────────────────────────────────────────────────
             SettingsSection(title = "Настройки") {
-                CityRow(
-                    cities = cities,
-                    selectedCityId = selectedCityId,
-                    onSelect = vm::setCity,
+                SettingsRow(
+                    icon = CpIcons.Location,
+                    label = "Город",
+                    description = "Определяет, какие кофейни показывать в первую очередь",
+                    iconColors = SettingsIconPalette.Aqua,
+                    trailing = {
+                        CityValue(
+                            cityName = cities.firstOrNull { it.id == selectedCityId }?.name,
+                        )
+                    },
+                    onClick = { Navigator.navigate(Navigator.Screen.CitySettings) },
                 )
                 SettingsDivider()
                 SettingsRow(
@@ -501,98 +504,25 @@ private fun ThemeMode.icon() = when (this) {
 }
 
 @Composable
-private fun CityRow(
-    cities: List<City>,
-    selectedCityId: String?,
-    onSelect: (String) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val selectedCity = cities.firstOrNull { it.id == selectedCityId }
-    val menuShape = RoundedCornerShape(CpDimens.selectRadius)
-
-    SettingsRow(
-        icon = CpIcons.Location,
-        label = "Город",
-        description = "Определяет, какие кофейни показывать в первую очередь",
-        iconColors = SettingsIconPalette.Aqua,
-        trailing = {
-            Box {
-                Row(
-                    modifier = Modifier
-                        .height(CpDimens.buttonHeight)
-                        .clip(menuShape)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, menuShape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(horizontal = CpDimens.spacing3),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-                ) {
-                    Text(
-                        text = selectedCity?.name ?: "Выберите",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 140.dp),
-                    )
-                    Icon(
-                        imageVector = CpIcons.ChevronUpDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                    modifier = Modifier
-                        .widthIn(min = 208.dp)
-                        .clip(menuShape)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, menuShape),
-                    shape = menuShape,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 0.dp,
-                ) {
-                    cities.forEach { city ->
-                        val isSelected = city.id == selectedCityId
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = city.name,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Normal,
-                                    color = if (isSelected) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface
-                                    },
-                                )
-                            },
-                            onClick = {
-                                onSelect(city.id)
-                                expanded = false
-                            },
-                            trailingIcon = if (isSelected) {
-                                {
-                                    Icon(
-                                        imageVector = CpIcons.Check,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                }
-                            } else {
-                                null
-                            },
-                        )
-                    }
-                }
-            }
-        },
-        onClick = { if (cities.isNotEmpty()) expanded = true },
-        showArrow = false,
-    )
+private fun CityValue(cityName: String?) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+    ) {
+        Text(
+            text = cityName ?: "Выберите",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Icon(
+            imageVector = CpIcons.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(CpDimens.settingsIconSize),
+        )
+    }
 }
 
 @Composable

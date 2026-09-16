@@ -130,7 +130,9 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                         OutlinedTextField(
                             value = state.query,
                             onValueChange = vm::onQueryChange,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp),
                             shape = RoundedCornerShape(CpDimens.radiusMd),
                             placeholder = {
                                 Text(
@@ -145,6 +147,19 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
+                            },
+                            trailingIcon = if (state.query.isNotEmpty()) {
+                                {
+                                    IconButton(onClick = { vm.onQueryChange("") }) {
+                                        Icon(
+                                            CpIcons.Close,
+                                            contentDescription = "Очистить поиск",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            } else {
+                                null
                             },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(
@@ -287,14 +302,39 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                                     modifier = Modifier.size(132.dp),
                                 )
                                 Spacer(Modifier.height(CpDimens.spacing3))
-                                Text(
-                                    "Ничего не найдено",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Spacer(Modifier.height(CpDimens.spacing2))
-                                TextButton(onClick = vm::clearFilters) {
-                                    Text("Сбросить фильтры")
+                                if (state.query.isNotBlank()) {
+                                    Text(
+                                        "Couldn't find a shop?",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    Spacer(Modifier.height(CpDimens.spacing2))
+                                    Text(
+                                        "Share your favorite shops with the community.",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Spacer(Modifier.height(CpDimens.spacing4))
+                                    Button(
+                                        onClick = { Navigator.navigate(Navigator.Screen.AddShop) },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                                        ),
+                                    ) {
+                                        Text("Submit shop")
+                                    }
+                                } else {
+                                    Text(
+                                        "Ничего не найдено",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Spacer(Modifier.height(CpDimens.spacing2))
+                                    TextButton(onClick = vm::clearFilters) {
+                                        Text("Сбросить фильтры")
+                                    }
                                 }
                             }
                         }

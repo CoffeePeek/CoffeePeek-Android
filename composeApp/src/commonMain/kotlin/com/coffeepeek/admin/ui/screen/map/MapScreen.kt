@@ -29,6 +29,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -58,8 +60,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -81,6 +85,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun MapScreen(vm: MapViewModel = koinViewModel()) {
     val state by vm.state.collectAsState()
+    val focusManager = LocalFocusManager.current
     val pendingFocus by Navigator.pendingMapFocus.collectAsState()
     val pendingFocusShop = pendingFocus?.let { focus ->
         MapShop(
@@ -129,7 +134,12 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
         OutlinedTextField(
             value = state.query,
             onValueChange = vm::onQueryChange,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .fillMaxWidth()
+                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3)
+                .height(52.dp),
             shape = RoundedCornerShape(CpDimens.radiusMd),
             placeholder = {
                 Text(
@@ -144,6 +154,19 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            },
+            trailingIcon = if (state.query.isNotEmpty()) {
+                {
+                    IconButton(onClick = { vm.onQueryChange("") }) {
+                        Icon(
+                            CpIcons.Close,
+                            contentDescription = "Очистить поиск",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            } else {
+                null
             },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
@@ -428,10 +451,24 @@ private fun MapFiltersDialog(
                         OutlinedTextField(
                             value = state.query,
                             onValueChange = onQueryChange,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
                             singleLine = true,
                             placeholder = { Text("Поиск кофейни…") },
                             leadingIcon = { Icon(CpIcons.Search, contentDescription = null) },
+                            trailingIcon = if (state.query.isNotEmpty()) {
+                                {
+                                    IconButton(onClick = { onQueryChange("") }) {
+                                        Icon(
+                                            CpIcons.Close,
+                                            contentDescription = "Очистить поиск",
+                                        )
+                                    }
+                                }
+                            } else {
+                                null
+                            },
                             shape = RoundedCornerShape(CpDimens.inputRadius),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -443,7 +480,6 @@ private fun MapFiltersDialog(
                                 focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             ),
-                            contentPadding = OutlinedTextFieldDefaults.contentPadding(top = 12.dp, bottom = 12.dp),
                         )
                         FilterSection("Цена") {
                             CompactPriceFilter(
