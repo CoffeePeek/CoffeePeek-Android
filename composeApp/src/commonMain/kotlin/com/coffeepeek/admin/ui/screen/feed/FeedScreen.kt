@@ -155,6 +155,7 @@ fun FeedScreen(vm: FeedViewModel = koinViewModel()) {
                                 focusedBorderColor      = MaterialTheme.colorScheme.primary,
                                 unfocusedBorderColor    = MaterialTheme.colorScheme.outline,
                             ),
+                            contentPadding = OutlinedTextFieldDefaults.contentPadding(top = 12.dp, bottom = 12.dp),
                             textStyle = MaterialTheme.typography.bodyLarge,
                         )
                         BadgedBox(

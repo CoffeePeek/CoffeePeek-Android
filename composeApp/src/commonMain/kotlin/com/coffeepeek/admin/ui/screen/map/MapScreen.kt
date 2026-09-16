@@ -153,6 +153,7 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
             ),
+            contentPadding = OutlinedTextFieldDefaults.contentPadding(top = 12.dp, bottom = 12.dp),
         )
 
         if (state.isTruncated) {
@@ -437,6 +438,7 @@ private fun MapFiltersDialog(
                                 focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             ),
+                            contentPadding = OutlinedTextFieldDefaults.contentPadding(top = 12.dp, bottom = 12.dp),
                         )
                         FilterSection("Цена") {
                             CompactPriceFilter(
