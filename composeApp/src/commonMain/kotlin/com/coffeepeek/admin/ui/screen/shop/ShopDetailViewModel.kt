@@ -13,17 +13,11 @@ import com.coffeepeek.admin.utils.validatePublicCheckInHeader
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.CreateCheckInInput
 import com.coffeepeek.domain.model.PendingPhotoUpload
-import com.coffeepeek.domain.model.Review
 import com.coffeepeek.domain.repository.CheckInRepository
 import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.ReviewRepository
-import com.coffeepeek.domain.repository.RoasterRepository
 import com.coffeepeek.domain.repository.SessionRepository
 import com.coffeepeek.domain.repository.ShopRepository
-import com.coffeepeek.domain.repository.UserRepository
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,12 +42,10 @@ data class ShopDetailUiState(
 class ShopDetailViewModel(
     private val shopId: String,
     private val shopRepository: ShopRepository,
-    private val roasterRepository: RoasterRepository,
     private val favoriteRepository: FavoriteRepository,
     private val checkInRepository: CheckInRepository,
     private val reviewRepository: ReviewRepository,
     private val sessionRepository: SessionRepository,
-    private val userRepository: UserRepository,
     private val checkInDraftStore: CheckInDraftStore,
 ) : BaseViewModel() {
 
@@ -82,19 +74,10 @@ class ShopDetailViewModel(
     private suspend fun refreshDetails(showLoading: Boolean) {
         val isLoggedIn = sessionRepository.isLoggedIn()
         shopRepository.getShopDetails(shopId)
-            .mapCatching { enrichDetails(it) }
+            .mapCatching { enrichWithReviewAccess(it) }
             .onSuccess { details ->
                 _uiState.update {
                     it.copy(details = details, isLoggedIn = isLoggedIn, isLoading = false)
-                }
-                val enrichedDetails = enrichRoasterPhotos(details)
-                _uiState.update { state ->
-                    val currentDetails = state.details
-                    if (currentDetails?.shop?.id == enrichedDetails.shop.id) {
-                        state.copy(details = currentDetails.copy(roasters = enrichedDetails.roasters))
-                    } else {
-                        state
-                    }
                 }
             }
             .onFailure { e ->
@@ -105,42 +88,6 @@ class ShopDetailViewModel(
                     )
                 }
             }
-    }
-
-    private suspend fun enrichDetails(details: CoffeeShopDetails): CoffeeShopDetails {
-        val avatarUrls = buildMap {
-            details.reviews
-                .map(Review::userId)
-                .filter(String::isNotBlank)
-                .distinct()
-                .forEach { userId ->
-                    put(userId, userRepository.getPublicAvatarUrl(userId).getOrNull())
-                }
-        }
-
-        return enrichWithReviewAccess(
-            details.copy(
-                reviews = details.reviews.map { review ->
-                    review.copy(avatarUrl = avatarUrls[review.userId])
-                },
-            ),
-        )
-    }
-
-    private suspend fun enrichRoasterPhotos(details: CoffeeShopDetails): CoffeeShopDetails = coroutineScope {
-        val roasters = details.roasters.map { roaster ->
-            async {
-                val photoUrl = roaster.photoUrl?.takeIf(String::isNotBlank)
-                    ?: roasterRepository.getRoaster(roaster.id)
-                        .getOrNull()
-                        ?.photos
-                        ?.firstOrNull()
-                        ?.fullUrl
-                        ?.takeIf(String::isNotBlank)
-                roaster.copy(photoUrl = photoUrl)
-            }
-        }.awaitAll()
-        details.copy(roasters = roasters)
     }
 
     private suspend fun enrichWithReviewAccess(details: CoffeeShopDetails): CoffeeShopDetails {
@@ -318,6 +265,37 @@ class ShopDetailViewModel(
     fun dismissReviewSheet() {
         _uiState.update {
             it.copy(showReviewSheet = false, editingReviewId = null)
+        }
+    }
+
+    fun toggleHelpful(reviewId: String) {
+        workScope.launch {
+            if (!sessionRepository.isLoggedIn()) {
+                _uiState.update { it.copy(actionMessage = "Войдите, чтобы отмечать отзывы") }
+                return@launch
+            }
+            val review = _uiState.value.details?.reviews?.firstOrNull { it.id == reviewId } ?: return@launch
+            reviewRepository.setReviewHelpful(reviewId, helpful = !review.isHelpfulByCurrentUser)
+                .onSuccess { vote ->
+                    _uiState.update { state ->
+                        val current = state.details ?: return@update state
+                        state.copy(
+                            details = current.copy(
+                                reviews = current.reviews.map { r ->
+                                    if (r.id == reviewId) {
+                                        r.copy(
+                                            isHelpfulByCurrentUser = vote.isHelpful,
+                                            helpfulCount = vote.helpfulCount,
+                                        )
+                                    } else {
+                                        r
+                                    }
+                                },
+                            ),
+                        )
+                    }
+                }
+                .onFailure { e -> _uiState.update { it.copy(actionMessage = e.message) } }
         }
     }
 

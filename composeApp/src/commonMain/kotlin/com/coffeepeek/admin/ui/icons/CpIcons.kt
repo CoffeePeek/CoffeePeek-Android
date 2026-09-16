@@ -50,6 +50,7 @@ import com.adamglin.phosphoricons.regular.Sparkle
 import com.adamglin.phosphoricons.regular.SquaresFour
 import com.adamglin.phosphoricons.regular.Star
 import com.adamglin.phosphoricons.regular.Sun
+import com.adamglin.phosphoricons.regular.ThumbsUp
 import com.adamglin.phosphoricons.regular.Trash
 import com.adamglin.phosphoricons.regular.User
 import com.adamglin.phosphoricons.regular.WarningCircle
@@ -102,6 +103,7 @@ object CpIcons {
     val ThemeDark: ImageVector get() = PhosphorIcons.Regular.Moon
     val ThemeLight: ImageVector get() = PhosphorIcons.Regular.Sun
     val ThemeSystem: ImageVector get() = PhosphorIcons.Regular.Monitor
+    val Helpful: ImageVector get() = PhosphorIcons.Regular.ThumbsUp
     val Time: ImageVector get() = PhosphorIcons.Regular.Clock
     val User: ImageVector get() = PhosphorIcons.Regular.User
     val Visibility: ImageVector get() = PhosphorIcons.Regular.Eye

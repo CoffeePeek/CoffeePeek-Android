@@ -92,12 +92,18 @@ data class Review(
     val shopId: String = "",
     val userId: String = "",
     val username: String,
-    val avatarUrl: String? = null,
     val header: String,
     val comment: String,
     val rating: ReviewRating,
     val createdAt: String,
     val photoUrls: List<String> = emptyList(),
+    val helpfulCount: Int = 0,
+    val isHelpfulByCurrentUser: Boolean = false,
+)
+
+data class HelpfulVote(
+    val isHelpful: Boolean,
+    val helpfulCount: Int,
 )
 
 data class ReviewRating(

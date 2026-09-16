@@ -7,6 +7,7 @@ import com.coffeepeek.api.service.ReviewApiService
 import com.coffeepeek.data.mapper.ShopMapper.toDomain
 import com.coffeepeek.data.util.FileUrlResolver
 import com.coffeepeek.domain.model.CreateReviewInput
+import com.coffeepeek.domain.model.HelpfulVote
 import com.coffeepeek.domain.model.PagedResult
 import com.coffeepeek.domain.model.Review
 import com.coffeepeek.domain.model.UpdateReviewInput
@@ -55,6 +56,11 @@ class ReviewRepositoryImpl(
             )
         ).getOrThrow()
     }
+
+    override suspend fun setReviewHelpful(reviewId: String, helpful: Boolean): Result<HelpfulVote> =
+        reviewApiService.setReviewHelpful(reviewId, helpful).map {
+            HelpfulVote(isHelpful = it.isHelpful, helpfulCount = it.helpfulCount)
+        }
 
     override suspend fun getUserReviews(
         userId: String,

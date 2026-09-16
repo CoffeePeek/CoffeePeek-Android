@@ -218,6 +218,7 @@ fun ReviewDisplayCard(
     modifier: Modifier = Modifier,
     onPhotoClick: ((String) -> Unit)? = null,
     onEditClick: (() -> Unit)? = null,
+    onHelpfulClick: (() -> Unit)? = null,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -253,9 +254,43 @@ fun ReviewDisplayCard(
                 onPhotoClick = onPhotoClick,
             )
 
-            // Helpful votes and replies stay hidden until their state and
-            // mutations are part of the backend contract.
+            HelpfulButton(
+                helpfulCount = review.helpfulCount,
+                isHelpful = review.isHelpfulByCurrentUser,
+                onClick = onHelpfulClick,
+            )
         }
+    }
+}
+
+@Composable
+private fun HelpfulButton(
+    helpfulCount: Int,
+    isHelpful: Boolean,
+    onClick: (() -> Unit)?,
+) {
+    val tint = if (isHelpful) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(CpDimens.radius2xl))
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing2),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+    ) {
+        Icon(
+            imageVector = CpIcons.Helpful,
+            contentDescription = if (isHelpful) "Убрать отметку «полезно»" else "Отметить как полезный",
+            tint = tint,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = if (helpfulCount > 0) "Полезно · $helpfulCount" else "Полезно",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = tint,
+        )
     }
 }
 
@@ -265,7 +300,7 @@ private fun ReviewHeader(review: Review, onEditClick: (() -> Unit)?) {
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ReviewAvatar(avatarUrl = review.avatarUrl, username = review.username)
+        ReviewAvatar(username = review.username)
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -298,30 +333,22 @@ private fun ReviewHeader(review: Review, onEditClick: (() -> Unit)?) {
 }
 
 @Composable
-private fun ReviewAvatar(avatarUrl: String?, username: String) {
+private fun ReviewAvatar(username: String) {
     val avatarModifier = Modifier.size(52.dp).clip(CircleShape)
-    if (!avatarUrl.isNullOrBlank()) {
-        CpImage(
-            data = avatarUrl,
-            modifier = avatarModifier,
-            contentDescription = "Фото пользователя ${username.ifBlank { "Пользователь" }}",
+    Box(
+        modifier = avatarModifier.border(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
+            shape = CircleShape,
+        ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = username.trim().firstOrNull()?.uppercase() ?: "?",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
         )
-    } else {
-        Box(
-            modifier = avatarModifier.border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
-                shape = CircleShape,
-            ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = username.trim().firstOrNull()?.uppercase() ?: "?",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
     }
 }
 

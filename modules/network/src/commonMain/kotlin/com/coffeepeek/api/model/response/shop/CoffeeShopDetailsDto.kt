@@ -10,7 +10,7 @@ import kotlinx.serialization.json.JsonElement
 data class CoffeeShopDetailsDto(
     @SerialName("id") val id: String,
     @SerialName("cityId") val cityId: String = "",
-    @SerialName("name") val name: String,
+    @SerialName("name") val name: String? = null,
     @SerialName("description") val description: String? = null,
     @SerialName("photos") val photos: List<ShortPhotoDto> = emptyList(),
     @SerialName("rating") val rating: Double = 0.0,

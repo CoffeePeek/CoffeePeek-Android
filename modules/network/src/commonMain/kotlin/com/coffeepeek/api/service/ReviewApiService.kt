@@ -6,7 +6,9 @@ import com.coffeepeek.api.model.request.UpdateReviewReq
 import com.coffeepeek.api.model.response.CanCreateReviewResponseDto
 import com.coffeepeek.api.model.response.CreateEntityResponseDto
 import com.coffeepeek.api.model.response.GetReviewsByUserIdResponseDto
+import com.coffeepeek.api.model.response.ReviewHelpfulResponseDto
 import com.coffeepeek.api.utils.ApiException
+import com.coffeepeek.api.utils.deleteResult
 import com.coffeepeek.api.utils.getResult
 import com.coffeepeek.api.utils.postResult
 import com.coffeepeek.api.utils.putResult
@@ -46,6 +48,17 @@ class ReviewApiService(private val client: HttpClient) {
         if (!apiResponse.isSuccess) {
             throw ApiException(apiResponse.message)
         }
+    }
+
+    /** PUT to mark helpful, DELETE to remove the vote. Both idempotent; returns fresh count/state. */
+    suspend fun setReviewHelpful(reviewId: String, helpful: Boolean): Result<ReviewHelpfulResponseDto> = runCatching {
+        val path = "/api/CoffeeShopReviews/$reviewId/helpful"
+        val response = (if (helpful) client.putResult(path) else client.deleteResult(path)).getOrThrow()
+        val apiResponse = response.body<ApiResponse<ReviewHelpfulResponseDto>>()
+        if (!apiResponse.isSuccess || apiResponse.data == null) {
+            throw ApiException(apiResponse.message)
+        }
+        apiResponse.data
     }
 
     suspend fun getUserReviews(userId: String, page: Int, pageSize: Int): Result<GetReviewsByUserIdResponseDto> =

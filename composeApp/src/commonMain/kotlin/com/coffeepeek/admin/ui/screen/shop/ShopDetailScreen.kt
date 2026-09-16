@@ -201,6 +201,7 @@ fun ShopDetailScreen(shopId: String) {
                         onReportIncorrectData = vm::openReportIncorrectData,
                         onBack = Navigator::popBack,
                         onReviewPhotoClick = { previewImageUrl = it },
+                        onReviewHelpfulClick = vm::toggleHelpful,
                     )
                 }
             }
@@ -235,6 +236,7 @@ private fun ShopDetailContent(
     onReportIncorrectData: () -> Unit = {},
     onBack: () -> Unit = {},
     onReviewPhotoClick: (String) -> Unit = {},
+    onReviewHelpfulClick: (String) -> Unit = {},
 ) {
     val shop = details.shop
     val photos = details.photos.filter { it.isNotBlank() }.ifEmpty {
@@ -359,6 +361,7 @@ private fun ShopDetailContent(
                 shopTitle = shop.title,
                 isLoggedIn = isLoggedIn,
                 onReviewPhotoClick = onReviewPhotoClick,
+                onReviewHelpfulClick = onReviewHelpfulClick,
             )
         }
 
@@ -750,7 +753,7 @@ private fun ContactsSection(
             .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing4),
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
-        SectionTitle("Контакты", barColor = CpColor.GoldWarm)
+        SectionTitle("Контакты")
         Column(verticalArrangement = Arrangement.spacedBy(11.dp)) {
             contact.phone?.takeIf { it.isNotBlank() }?.let { phone ->
                 PhoneContactPill(
@@ -864,6 +867,7 @@ private fun ReviewsSection(
     shopTitle: String,
     isLoggedIn: Boolean,
     onReviewPhotoClick: (String) -> Unit,
+    onReviewHelpfulClick: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -872,7 +876,7 @@ private fun ReviewsSection(
             .padding(top = CpDimens.spacing6, bottom = CpDimens.spacing3),
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing6),
     ) {
-        SectionTitle("Отзывы", barColor = CpColor.Primary)
+        SectionTitle("Отзывы")
         if (reviews.isEmpty()) {
             EmptyMascotState(
                 mascot = Res.drawable.maskot_with_book,
@@ -889,6 +893,7 @@ private fun ReviewsSection(
                         ReviewCard(
                             review = review,
                             onPhotoClick = if (isBlurred) ({}) else onReviewPhotoClick,
+                            onHelpfulClick = if (isBlurred) null else ({ onReviewHelpfulClick(review.id) }),
                         )
                     }
                 }
@@ -909,7 +914,7 @@ private fun CheckInsSection(
             .padding(top = CpDimens.spacing6, bottom = CpDimens.spacing3),
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
-        SectionTitle("Мои чекины", barColor = CpColor.Primary)
+        SectionTitle("Мои чекины")
         checkIns.forEach { checkIn ->
             CheckInCard(checkIn = checkIn, onPhotoClick = onPhotoClick)
         }
@@ -1494,7 +1499,6 @@ private fun CoffeeDetailsSection(
             .padding(horizontal = CpDimens.spacing4, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
-        SectionTitle("Детали кофе")
         RoasterDetailGroup(roasters, onRoasterClick)
         CatalogDetailGroup(CpIcons.Coffee, "Методы заваривания", brewMethods)
         CatalogDetailGroup(CpIcons.CoffeeBean, "Кофейные зёрна", coffeeBeans)
@@ -1576,7 +1580,6 @@ private fun RoasterLinkRow(
             text = item.name,
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.SemiBold,
-                textDecoration = TextDecoration.Underline,
             ),
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 2,
@@ -1695,26 +1698,12 @@ private fun ShopBadge(text: String, color: Color) {
 }
 
 @Composable
-private fun SectionTitle(
-    title: String,
-    barColor: Color = CpColor.GoldWarm,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(width = 6.dp, height = 32.dp)
-                .clip(RoundedCornerShape(999.dp))
-                .background(barColor),
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
+private fun SectionTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.headlineSmall,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
 }
 
 @Composable
@@ -1795,10 +1784,15 @@ private fun ContactRow(
 }
 
 @Composable
-private fun ReviewCard(review: Review, onPhotoClick: (String) -> Unit) {
+private fun ReviewCard(
+    review: Review,
+    onPhotoClick: (String) -> Unit,
+    onHelpfulClick: (() -> Unit)?,
+) {
     ReviewDisplayCard(
         review = review,
         onPhotoClick = onPhotoClick,
+        onHelpfulClick = onHelpfulClick,
     )
 }
 

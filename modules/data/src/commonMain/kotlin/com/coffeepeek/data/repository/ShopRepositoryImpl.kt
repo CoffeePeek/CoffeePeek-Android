@@ -69,11 +69,13 @@ class ShopRepositoryImpl(
             val shopTags    = async { shopApiService.getShopTags().getOrThrow() }
             ShopCatalogs(
                 cities      = cities.await().map { City(it.id, it.name) },
-                beans       = beans.await().map { CatalogItem(it.id, it.name) },
-                equipment   = equipment.await().map { CatalogItem(it.id, it.name) },
-                roasters    = roasters.await().map { CatalogItem(it.id, it.name) },
-                brewMethods = brewMethods.await().map { CatalogItem(it.id, it.name) },
-                shopTags    = shopTags.await().map { CatalogItem(it.id, it.name, it.slug) },
+                beans       = beans.await().map { CatalogItem(it.id, it.name.orEmpty()) },
+                equipment   = equipment.await().map { CatalogItem(it.id, it.name.orEmpty()) },
+                roasters    = roasters.await().map {
+                    CatalogItem(it.id, it.name.orEmpty(), photoUrl = it.photoUrl)
+                },
+                brewMethods = brewMethods.await().map { CatalogItem(it.id, it.name.orEmpty()) },
+                shopTags    = shopTags.await().map { CatalogItem(it.id, it.name.orEmpty(), it.slug) },
             ).also { cachedCatalogs = it }
         }
     }

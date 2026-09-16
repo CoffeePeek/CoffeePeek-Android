@@ -40,7 +40,7 @@ internal object ShopMapper {
         isVisited = isVisited,
         reviewCount = reviewCount,
         tags = extractBackendTags(tags, shopTags)
-            .ifEmpty { (brewMethods + roasters + beans).map { it.name } }
+            .ifEmpty { (brewMethods + roasters + beans).mapNotNull { it.name?.takeIf(String::isNotBlank) } }
             .take(3),
         type = parseShopType(type, coffeeFocus),
     )
@@ -48,7 +48,7 @@ internal object ShopMapper {
     fun CoffeeShopDetailsDto.toDomain(fileUrls: FileUrlResolver) = CoffeeShopDetails(
         shop = CoffeeShop(
             id = id,
-            title = name,
+            title = name.orEmpty(),
             rating = rating.takeIf { it > 0 },
             cityName = null,
             priceRange = priceRangeLabel(priceRange),
@@ -60,7 +60,10 @@ internal object ShopMapper {
             isVisited = isVisited,
             reviewCount = reviewCount,
             tags = extractBackendTags(tags, shopTags)
-                .ifEmpty { (brewMethods + roasters + coffeeBeans).map { it.name } }
+                .ifEmpty {
+                    (brewMethods + roasters + coffeeBeans)
+                        .mapNotNull { it.name?.takeIf(String::isNotBlank) }
+                }
                 .take(3),
             type = parseShopType(type, coffeeFocus),
         ),
@@ -83,7 +86,7 @@ internal object ShopMapper {
             CheckIn(
                 id = checkIn.id,
                 shopId = checkIn.shopId,
-                shopName = checkIn.shopName.ifBlank { name },
+                shopName = checkIn.shopName.ifBlank { name.orEmpty() },
                 note = checkIn.note,
                 createdAt = checkIn.createdAt,
                 reviewId = checkIn.reviewId,
@@ -108,10 +111,17 @@ internal object ShopMapper {
                 phone = c.phoneNumber,
             )
         },
-        brewMethods = brewMethods.map { it.name },
-        coffeeBeans = coffeeBeans.map { it.name },
-        roasters = roasters.map { CatalogItem(it.id, it.name, it.slug) },
-        equipment = equipments.map { it.name },
+        brewMethods = brewMethods.mapNotNull { it.name?.takeIf(String::isNotBlank) },
+        coffeeBeans = coffeeBeans.mapNotNull { it.name?.takeIf(String::isNotBlank) },
+        roasters = roasters.map {
+            CatalogItem(
+                id = it.id,
+                name = it.name.orEmpty(),
+                slug = it.slug,
+                photoUrl = it.photoUrl,
+            )
+        },
+        equipment = equipments.mapNotNull { it.name?.takeIf(String::isNotBlank) },
         schedules = schedules.orEmpty().map { schedule ->
             com.coffeepeek.domain.model.ShopSchedule(
                 dayOfWeek = parseDayOfWeek(schedule.dayOfWeek),
@@ -131,9 +141,9 @@ internal object ShopMapper {
         id = id,
         shopId = coffeeShopId,
         userId = userId,
-        username = username,
-        header = header,
-        comment = comment,
+        username = username.orEmpty(),
+        header = header.orEmpty(),
+        comment = comment.orEmpty(),
         rating = ReviewRating(
             place = rating.place,
             service = rating.service,
@@ -143,6 +153,8 @@ internal object ShopMapper {
         photoUrls = photos.mapNotNull { photo ->
             fileUrls.resolve(photo.storageKey, photo.fullUrl)
         },
+        helpfulCount = helpfulCount,
+        isHelpfulByCurrentUser = isHelpfulByCurrentUser,
     )
 
     fun ShopMenuDto.toDomain() = ShopMenu(
