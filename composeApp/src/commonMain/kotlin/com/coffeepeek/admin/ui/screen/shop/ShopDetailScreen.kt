@@ -154,7 +154,14 @@ fun ShopDetailScreen(shopId: String) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = {
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(bottom = floatingActionsClearance),
+                )
+            },
             containerColor = MaterialTheme.colorScheme.background,
         ) { padding ->
             when {
@@ -1027,8 +1034,6 @@ private fun MenuSection(
                             drinks.forEach { drink -> MenuDrinkRow(drink) }
                         }
                     }
-                } else if (menu.photos.isNotEmpty()) {
-                    Spacer(Modifier.weight(1f))
                 }
 
                 if (menu.photos.isNotEmpty()) {
@@ -1334,14 +1339,6 @@ private fun BottomBarAction(
     }
 }
 
-private fun scheduleSummary(schedule: ShopSchedule): String = when {
-    schedule.isClosed -> "Выходной"
-    schedule.intervals.isEmpty() -> "—"
-    else -> schedule.intervals.joinToString(", ") { interval ->
-        "${formatTime(interval.openTime)}–${formatTime(interval.closeTime)}"
-    }
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PhotoGallery(
@@ -1471,18 +1468,73 @@ private fun ScheduleRow(
                 fontWeight = if (isCurrentDay) FontWeight.SemiBold else FontWeight.Normal,
             ),
             color = contentColor,
-            modifier = Modifier.width(40.dp),
+            modifier = Modifier.width(36.dp),
         )
-        Text(
-            text = scheduleSummary(schedule),
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = if (isCurrentDay) FontWeight.SemiBold else FontWeight.Normal,
-            ),
-            color = contentColor,
-            textAlign = TextAlign.End,
-            modifier = Modifier.weight(1f),
-        )
+        when {
+            schedule.isClosed -> {
+                Text(
+                    text = "Выходной",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = if (isCurrentDay) FontWeight.SemiBold else FontWeight.Normal,
+                    ),
+                    color = contentColor,
+                )
+            }
+            schedule.intervals.isEmpty() -> {
+                Text(
+                    text = "—",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = contentColor,
+                )
+            }
+            else -> {
+                Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1)) {
+                    schedule.intervals.forEach { interval ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            ScheduleTimeText(
+                                text = formatTime(interval.openTime),
+                                color = contentColor,
+                                emphasized = isCurrentDay,
+                                modifier = Modifier.width(58.dp),
+                            )
+                            ScheduleTimeText(
+                                text = "–",
+                                color = contentColor,
+                                emphasized = isCurrentDay,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.width(20.dp),
+                            )
+                            ScheduleTimeText(
+                                text = formatTime(interval.closeTime),
+                                color = contentColor,
+                                emphasized = isCurrentDay,
+                                modifier = Modifier.width(58.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun ScheduleTimeText(
+    text: String,
+    color: Color,
+    emphasized: Boolean,
+    modifier: Modifier = Modifier,
+    textAlign: TextAlign = TextAlign.Start,
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium.copy(
+            fontWeight = if (emphasized) FontWeight.SemiBold else FontWeight.Normal,
+        ),
+        color = color,
+        textAlign = textAlign,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -1500,9 +1552,9 @@ private fun CoffeeDetailsSection(
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
         RoasterDetailGroup(roasters, onRoasterClick)
-        CatalogDetailGroup(CpIcons.Coffee, "Методы заваривания", brewMethods)
-        CatalogDetailGroup(CpIcons.CoffeeBean, "Кофейные зёрна", coffeeBeans)
-        CatalogDetailGroup(CpIcons.Settings, "Оборудование", equipment)
+        CatalogDetailGroup("Методы заваривания", brewMethods)
+        CatalogDetailGroup("Кофе", coffeeBeans)
+        CatalogDetailGroup("Оборудование", equipment)
     }
 }
 
@@ -1512,24 +1564,9 @@ private fun RoasterDetailGroup(
     onRoasterClick: (String) -> Unit,
 ) {
     if (items.isEmpty()) return
-    OutlinedContentCard {
-        Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-            ) {
-                Icon(
-                    imageVector = CpIcons.CoffeeBean,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    text = "Обжарщики",
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3)) {
+        SectionTitle("Обжарщики")
+        OutlinedContentCard {
             Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3)) {
                 items.forEach { item ->
                     RoasterLinkRow(
@@ -1559,7 +1596,7 @@ private fun RoasterLinkRow(
         Box(
             modifier = Modifier
                 .size(56.dp)
-                .clip(CircleShape),
+                .clip(RoundedCornerShape(CpDimens.radiusMd)),
         ) {
             val photoUrl = item.photoUrl?.takeIf(String::isNotBlank)
             if (photoUrl != null) {
@@ -1597,29 +1634,13 @@ private fun RoasterLinkRow(
 
 @Composable
 private fun CatalogDetailGroup(
-    icon: ImageVector,
     title: String,
     items: List<String>,
 ) {
     if (items.isEmpty()) return
-    OutlinedContentCard {
-        Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3)) {
+        SectionTitle(title)
+        OutlinedContentCard {
             TagFlow(items = items)
         }
     }
