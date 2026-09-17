@@ -86,6 +86,7 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopImage
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CheckInDisplayCard
+import com.coffeepeek.admin.ui.component.GuestAuthCard
 import com.coffeepeek.admin.ui.component.ReviewDisplayCard
 import com.coffeepeek.admin.utils.currentLocalDayOfWeek
 import com.coffeepeek.admin.ui.component.PriceBynRow
@@ -896,6 +897,19 @@ private fun ReviewsSection(
                 mascot = Res.drawable.maskot_with_book,
                 message = "Станьте первым, кто оценит и оставит отзыв о своём посещении $shopTitle",
             )
+        } else if (!isLoggedIn) {
+            // Guests get a single teaser review (no scrolling) and a prompt to sign in for the rest.
+            val teaser = reviews.first()
+            ReviewCard(
+                review = teaser,
+                modifier = Modifier.fillMaxWidth(),
+                onPhotoClick = onReviewPhotoClick,
+                onHelpfulClick = null,
+            )
+            GuestAuthCard(
+                onLogin = { Navigator.navigate(Navigator.Screen.Auth) },
+                onRegister = { Navigator.navigate(Navigator.Screen.Register) },
+            )
         } else {
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -906,17 +920,12 @@ private fun ReviewsSection(
                     key = { index -> reviews[index].id },
                 ) { index ->
                     val review = reviews[index]
-                    val isBlurred = shouldBlurReview(isLoggedIn, index)
-                    Box(
-                        modifier = Modifier
-                            .width(320.dp)
-                            .then(if (isBlurred) Modifier.blur(5.dp) else Modifier),
-                    ) {
+                    Box(modifier = Modifier.width(320.dp)) {
                         ReviewCard(
                             review = review,
                             modifier = Modifier.fillMaxWidth(),
-                            onPhotoClick = if (isBlurred) ({}) else onReviewPhotoClick,
-                            onHelpfulClick = if (isBlurred) null else ({ onReviewHelpfulClick(review.id) }),
+                            onPhotoClick = onReviewPhotoClick,
+                            onHelpfulClick = { onReviewHelpfulClick(review.id) },
                         )
                     }
                 }
@@ -954,8 +963,6 @@ private fun CheckInsSection(
     }
 }
 
-internal fun shouldBlurReview(isLoggedIn: Boolean, reviewIndex: Int): Boolean =
-    !isLoggedIn && reviewIndex > 0
 
 @Composable
 private fun OutlinedContentCard(content: @Composable ColumnScope.() -> Unit) {

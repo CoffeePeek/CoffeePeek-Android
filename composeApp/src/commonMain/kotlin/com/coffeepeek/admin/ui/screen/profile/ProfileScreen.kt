@@ -1,5 +1,7 @@
 package com.coffeepeek.admin.ui.screen.profile
 
+import com.coffeepeek.admin.ui.component.GuestAuthCard
+
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -411,59 +413,7 @@ private fun GuestLoginHeader(
             color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Bold,
         )
-        Card(
-            shape = RoundedCornerShape(CpDimens.cardRadius),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(CpDimens.spacing4),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
-            ) {
-                Text(
-                    text = "Присоединяйтесь к сообществу, чтобы сохранять любимые места и делиться впечатлениями.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                )
-                Button(
-                    onClick = onLogin,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(CpDimens.buttonHeight),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = CpColor.Primary,
-                        contentColor = CpColor.DarkTextOnPrimary,
-                    ),
-                    shape = RoundedCornerShape(CpDimens.buttonRadius),
-                ) {
-                    Text(
-                        text = "Войти",
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    Text(
-                        text = "Нет аккаунта?",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    TextButton(onClick = onRegister) {
-                        Text(
-                            text = "Зарегистрироваться",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-            }
-        }
+        GuestAuthCard(onLogin = onLogin, onRegister = onRegister)
     }
 }
 
