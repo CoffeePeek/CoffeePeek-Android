@@ -3,6 +3,7 @@ package com.coffeepeek.admin.ui.screen.checkins
 import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.domain.model.CheckIn
 import com.coffeepeek.domain.repository.CheckInRepository
+import com.coffeepeek.domain.repository.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -21,6 +22,7 @@ data class VisitedPlacesUiState(
 
 class VisitedPlacesViewModel(
     private val checkInRepository: CheckInRepository,
+    private val sessionRepository: SessionRepository,
 ) : BaseViewModel() {
 
     private val _state = MutableStateFlow(VisitedPlacesUiState())
@@ -30,6 +32,19 @@ class VisitedPlacesViewModel(
 
     fun load(reset: Boolean = false) {
         workScope.launch {
+            // Logged-out users have no check-ins — show an empty list, not an error.
+            if (!sessionRepository.isLoggedIn()) {
+                _state.update {
+                    it.copy(
+                        checkIns = emptyList(),
+                        isLoading = false,
+                        isLoadingMore = false,
+                        error = null,
+                        hasMore = false,
+                    )
+                }
+                return@launch
+            }
             val page = if (reset) 1 else _state.value.currentPage + 1
             if (!reset && (!_state.value.hasMore || _state.value.isLoadingMore)) return@launch
 

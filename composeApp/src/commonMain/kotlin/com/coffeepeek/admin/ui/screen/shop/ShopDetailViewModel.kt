@@ -93,7 +93,8 @@ class ShopDetailViewModel(
 
     private suspend fun enrichWithReviewAccess(details: CoffeeShopDetails): CoffeeShopDetails {
         if (!sessionRepository.isLoggedIn()) {
-            return details.copy(existingReviewId = null)
+            // userCheckIns are the signed-in user's own — never show them to a logged-out viewer.
+            return details.copy(existingReviewId = null, userCheckIns = emptyList())
         }
         return reviewRepository.canCreateReview(shopId).fold(
             onSuccess = { (_, reviewId) -> details.copy(existingReviewId = reviewId) },
