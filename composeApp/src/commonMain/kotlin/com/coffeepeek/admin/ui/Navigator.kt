@@ -10,6 +10,7 @@ import com.coffeepeek.admin.ui.screen.roaster.AddRoasterScreen
 import com.coffeepeek.admin.ui.screen.roaster.RoasterDetailScreen
 import com.coffeepeek.admin.ui.screen.profile.CityScreen
 import com.coffeepeek.admin.ui.screen.profile.ThemeScreen
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -220,6 +221,8 @@ object Navigator {
             navController = nav,
             startDestination = Screen.Main,
             modifier = Modifier.fillMaxSize(),
+            exitTransition = { ExitTransition.None },
+            popExitTransition = { ExitTransition.None },
         ) {
                 composable<Screen.Auth> { AuthScreen() }
                 composable<Screen.Register> { RegisterScreen() }
