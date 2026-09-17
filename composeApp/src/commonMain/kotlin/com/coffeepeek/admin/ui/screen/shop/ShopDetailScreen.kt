@@ -71,6 +71,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coffeepeek.composeapp.generated.resources.Res
+import coffeepeek.composeapp.generated.resources.brew_aeropress
+import coffeepeek.composeapp.generated.resources.brew_coffee
+import coffeepeek.composeapp.generated.resources.brew_coffee_machine
+import coffeepeek.composeapp.generated.resources.brew_cold_brew
+import coffeepeek.composeapp.generated.resources.brew_turkish_coffee
+import coffeepeek.composeapp.generated.resources.brew_v60
 import coffeepeek.composeapp.generated.resources.maskot_with_book
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -1530,7 +1536,7 @@ private fun CoffeeDetailsSection(
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
         RoasterDetailGroup(roasters, onRoasterClick)
-        CatalogDetailGroup("Методы заваривания", brewMethods)
+        BrewMethodsGroup("Методы заваривания", brewMethods)
         CatalogDetailGroup("Кофе", coffeeBeans)
         CatalogDetailGroup("Оборудование", equipment)
     }
@@ -1621,6 +1627,61 @@ private fun CatalogDetailGroup(
         OutlinedContentCard {
             TagFlow(items = items)
         }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BrewMethodsGroup(title: String, items: List<String>) {
+    if (items.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3)) {
+        SectionTitle(title)
+        OutlinedContentCard {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            ) {
+                items.forEach { name -> BrewMethodChip(name) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrewMethodChip(name: String) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(CpDimens.radiusSm))
+            .background(CpColor.GoldWarmSoft)
+            .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+    ) {
+        Icon(
+            painter = painterResource(brewMethodIcon(name)),
+            contentDescription = null,
+            tint = CpColor.GoldWarmHover,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = name,
+            style = MaterialTheme.typography.labelMedium,
+            color = CpColor.GoldWarmHover,
+        )
+    }
+}
+
+// ponytail: keyword match on the method name (RU/EN); generic coffee icon as fallback.
+// Adjust the keywords if backend names don't match.
+private fun brewMethodIcon(name: String): DrawableResource {
+    val n = name.lowercase()
+    return when {
+        "аэропресс" in n || "aeropress" in n -> Res.drawable.brew_aeropress
+        "v60" in n || "воронк" in n || "пуровер" in n || "pour" in n -> Res.drawable.brew_v60
+        "колд" in n || "cold" in n -> Res.drawable.brew_cold_brew
+        "турк" in n || "turkish" in n || "джезв" in n || "cezve" in n -> Res.drawable.brew_turkish_coffee
+        "машин" in n || "machine" in n || "эспрессо" in n || "espresso" in n || "рожк" in n -> Res.drawable.brew_coffee_machine
+        else -> Res.drawable.brew_coffee
     }
 }
 
