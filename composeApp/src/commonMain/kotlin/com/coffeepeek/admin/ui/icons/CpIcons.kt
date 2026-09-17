@@ -7,11 +7,13 @@ import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.fill.Heart as FillHeart
 import com.adamglin.phosphoricons.fill.Star as FillStar
 import com.adamglin.phosphoricons.regular.ArrowLeft
+import com.adamglin.phosphoricons.regular.CalendarBlank
 import com.adamglin.phosphoricons.regular.Camera
 import com.adamglin.phosphoricons.regular.CaretDown
 import com.adamglin.phosphoricons.regular.CaretLeft
 import com.adamglin.phosphoricons.regular.CaretRight
 import com.adamglin.phosphoricons.regular.CaretUp
+import com.adamglin.phosphoricons.regular.CaretUpDown
 import com.adamglin.phosphoricons.regular.ChatCenteredText
 import com.adamglin.phosphoricons.regular.Check
 import com.adamglin.phosphoricons.regular.CheckCircle
@@ -48,6 +50,7 @@ import com.adamglin.phosphoricons.regular.Sparkle
 import com.adamglin.phosphoricons.regular.SquaresFour
 import com.adamglin.phosphoricons.regular.Star
 import com.adamglin.phosphoricons.regular.Sun
+import com.adamglin.phosphoricons.regular.ThumbsUp
 import com.adamglin.phosphoricons.regular.Trash
 import com.adamglin.phosphoricons.regular.User
 import com.adamglin.phosphoricons.regular.WarningCircle
@@ -56,6 +59,7 @@ import com.adamglin.phosphoricons.regular.X
 object CpIcons {
     val Add: ImageVector get() = PhosphorIcons.Regular.Plus
     val Back: ImageVector get() = PhosphorIcons.Regular.ArrowLeft
+    val Calendar: ImageVector get() = PhosphorIcons.Regular.CalendarBlank
     val Camera: ImageVector get() = PhosphorIcons.Regular.Camera
     val Check: ImageVector get() = PhosphorIcons.Regular.Check
     val CheckCircle: ImageVector get() = PhosphorIcons.Regular.CheckCircle
@@ -63,6 +67,7 @@ object CpIcons {
     val ChevronLeft: ImageVector get() = PhosphorIcons.Regular.CaretLeft
     val ChevronRight: ImageVector get() = PhosphorIcons.Regular.CaretRight
     val ChevronUp: ImageVector get() = PhosphorIcons.Regular.CaretUp
+    val ChevronUpDown: ImageVector get() = PhosphorIcons.Regular.CaretUpDown
     val Close: ImageVector get() = PhosphorIcons.Regular.X
     val Coffee: ImageVector get() = PhosphorIcons.Regular.Coffee
     val CoffeeBean: ImageVector get() = PhosphorIcons.Regular.CoffeeBean
@@ -98,6 +103,7 @@ object CpIcons {
     val ThemeDark: ImageVector get() = PhosphorIcons.Regular.Moon
     val ThemeLight: ImageVector get() = PhosphorIcons.Regular.Sun
     val ThemeSystem: ImageVector get() = PhosphorIcons.Regular.Monitor
+    val Helpful: ImageVector get() = PhosphorIcons.Regular.ThumbsUp
     val Time: ImageVector get() = PhosphorIcons.Regular.Clock
     val User: ImageVector get() = PhosphorIcons.Regular.User
     val Visibility: ImageVector get() = PhosphorIcons.Regular.Eye

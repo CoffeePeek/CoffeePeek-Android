@@ -101,10 +101,15 @@ fun CoffeePeekPullToRefresh(
         if (!isRefreshing) pullOffset = 0f
     }
 
-    val scrollModifier = Modifier.nestedScroll(nestedScrollConnection)
+    val contentOffsetPx = if (isRefreshing) thresholdPx else pullOffset
+    val scrollModifier = Modifier
+        .nestedScroll(nestedScrollConnection)
+        .graphicsLayer { translationY = contentOffsetPx }
     val showIndicator = isRefreshing || pullOffset > 0f
 
     Box(modifier = modifier) {
+        content(scrollModifier)
+
         if (showIndicator) {
             val progress = if (isRefreshing) 1f else (pullOffset / thresholdPx).coerceIn(0f, 1f)
             Box(
@@ -120,6 +125,5 @@ fun CoffeePeekPullToRefresh(
                 )
             }
         }
-        content(scrollModifier)
     }
 }

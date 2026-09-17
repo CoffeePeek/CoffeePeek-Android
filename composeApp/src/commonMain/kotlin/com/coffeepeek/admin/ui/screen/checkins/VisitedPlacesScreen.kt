@@ -1,7 +1,6 @@
 package com.coffeepeek.admin.ui.screen.checkins
 
 import com.coffeepeek.admin.ui.icons.CpIcons
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,8 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,12 +28,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.component.CheckInDisplayCard
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
-import com.coffeepeek.domain.model.CheckIn
 import com.coffeepeek.admin.di.platformViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,7 +54,7 @@ fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = platformViewModel()) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Посещённые места") },
+                title = { Text("Чекины") },
                 navigationIcon = {
                     IconButton(onClick = { Navigator.popBack() }) {
                         Icon(CpIcons.Back, contentDescription = "Назад")
@@ -93,7 +89,7 @@ fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = platformViewModel()) {
                 verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
             ) {
                 items(state.checkIns, key = { it.id }) { checkIn ->
-                    CheckInCard(
+                    CheckInDisplayCard(
                         checkIn = checkIn,
                         onClick = { Navigator.navigate(Navigator.Screen.ShopDetail(checkIn.shopId)) },
                     )
@@ -105,43 +101,6 @@ fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = platformViewModel()) {
                         }
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CheckInCard(checkIn: CheckIn, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(0.dp),
-    ) {
-        Column(modifier = Modifier.padding(CpDimens.spacing3)) {
-            androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(CpIcons.Location, null, tint = MaterialTheme.colorScheme.primary)
-                Text(
-                    text = checkIn.shopName.ifBlank { "Кофейня" },
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(start = CpDimens.spacing2),
-                )
-            }
-            if (checkIn.note.isNotBlank()) {
-                Text(
-                    text = checkIn.note,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = CpDimens.spacing1),
-                )
-            }
-            if (checkIn.createdAt.isNotBlank()) {
-                Text(
-                    text = checkIn.createdAt.take(10),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
             }
         }
     }

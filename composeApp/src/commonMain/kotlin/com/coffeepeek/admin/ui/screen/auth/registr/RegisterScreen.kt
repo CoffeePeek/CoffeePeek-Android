@@ -63,6 +63,7 @@ import com.coffeepeek.admin.auth.isGoogleSignInConfigured
 import com.coffeepeek.admin.legal.LegalUrls
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.ui.screen.auth.AuthFooterRow
 import com.coffeepeek.admin.ui.screen.auth.AuthMascot
@@ -71,6 +72,7 @@ import com.coffeepeek.admin.ui.screen.auth.AuthPrimaryButton
 import com.coffeepeek.admin.ui.screen.auth.AuthScreenScaffold
 import com.coffeepeek.admin.ui.screen.auth.AuthStepper
 import com.coffeepeek.admin.ui.screen.auth.AuthTextField
+import com.coffeepeek.admin.utils.MIN_REGISTRATION_PASSWORD_LENGTH
 import org.jetbrains.compose.resources.stringResource
 import com.coffeepeek.admin.di.platformViewModel
 
@@ -102,6 +104,7 @@ object RegisterScreen {
         AuthScreenScaffold(
             mascot = if (step == RegisterStep.Success) AuthMascot.Happy else AuthMascot.Laptop,
             showMascot = true,
+            onClose = Navigator::closeAuth,
         ) {
             when (step) {
                 RegisterStep.Success -> {
@@ -265,7 +268,7 @@ object RegisterScreen {
                         text = stringResource(Res.string.create_account),
                         onClick = { vm.onRegisterClick() },
                         enabled = name.trim().length >= 2 &&
-                            password.length >= 6 &&
+                            password.length >= MIN_REGISTRATION_PASSWORD_LENGTH &&
                             isTermsAccepted,
                     )
 

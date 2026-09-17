@@ -1,5 +1,5 @@
 [versions]
-agp = "8.13.2"
+agp = "9.2.1"
 androidx-activity = "1.11.0"
 androidx-appcompat = "1.7.1"
 androidx-core = "1.17.0"
@@ -10,13 +10,13 @@ navigation = "2.9.1"
 composeMultiplatform = "1.9.3"
 junit = "4.13.2"
 kotlin = "2.2.21"
-ksp = "2.2.21-2.0.4"
+ksp = "2.3.2"
 kotlinx-coroutines = "1.10.2"
 kotlinx-serialization = "1.9.0"
 koin = "4.0.1"
 ktor = "3.3.1"
 kamel = "1.0.8"
-yandex-mapkit = "4.38.1-lite"
+maplibre = "13.6.0"
 phosphor-icon = "1.0.0"
 
 room = "2.8.3"
@@ -59,7 +59,7 @@ androidx-sqlite-ktx = { module = "androidx.sqlite:sqlite-ktx", version.ref = "sq
 
 
 kamel = { module = "media.kamel:kamel-image-default", version.ref = "kamel" }
-yandex-mapkit = { module = "com.yandex.android:maps.mobile", version.ref = "yandex-mapkit" }
+maplibre-android = { module = "org.maplibre.gl:android-sdk-opengl", version.ref = "maplibre" }
 phosphor-icon = { module = "com.adamglin:phosphor-icon", version.ref = "phosphor-icon" }
 
 [plugins]

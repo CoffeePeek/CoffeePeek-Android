@@ -94,7 +94,7 @@ fun PickShopLocationDialog(
             CoffeeMap(
                 shops = emptyList(),
                 selectedShopId = null,
-                onBoundsChanged = { bounds ->
+                onBoundsChanged = { bounds, _ ->
                     cameraCenter = bounds.center()
                 },
                 onShopClick = {},

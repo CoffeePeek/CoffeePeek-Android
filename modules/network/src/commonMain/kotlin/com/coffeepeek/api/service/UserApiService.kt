@@ -7,6 +7,7 @@ import com.coffeepeek.api.model.request.UpdateUsernameReq
 import com.coffeepeek.api.model.request.UploadedPhotoReq
 import com.coffeepeek.api.utils.setJsonBody
 import com.coffeepeek.api.model.response.UserProfileDto
+import com.coffeepeek.api.model.response.PublicUserProfileDto
 import com.coffeepeek.api.utils.ApiException
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -22,6 +23,13 @@ class UserApiService(private val client: HttpClient) {
     suspend fun getMe(): Result<UserProfileDto> = runCatching {
         val response = client.get("/api/Users/me")
         val apiResponse = response.body<ApiResponse<UserProfileDto>>()
+        if (!apiResponse.isSuccess || apiResponse.data == null) throw ApiException(apiResponse.message)
+        apiResponse.data
+    }
+
+    suspend fun getUser(userId: String): Result<PublicUserProfileDto> = runCatching {
+        val response = client.get("/api/Users/$userId")
+        val apiResponse = response.body<ApiResponse<PublicUserProfileDto>>()
         if (!apiResponse.isSuccess || apiResponse.data == null) throw ApiException(apiResponse.message)
         apiResponse.data
     }

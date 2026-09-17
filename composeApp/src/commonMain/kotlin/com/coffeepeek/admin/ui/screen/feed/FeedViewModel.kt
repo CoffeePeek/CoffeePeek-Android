@@ -1,12 +1,15 @@
 package com.coffeepeek.admin.ui.screen.feed
 
 import com.coffeepeek.admin.base.BaseViewModel
+import com.coffeepeek.admin.settings.CityPreference
+import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.FavoriteSync
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.ShopFilters
 import com.coffeepeek.domain.repository.FavoriteRepository
+import com.coffeepeek.domain.repository.SessionRepository
 import com.coffeepeek.domain.repository.ShopRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -23,18 +26,13 @@ import kotlinx.coroutines.launch
 
 private const val PAGE_SIZE = 20
 
-enum class FeedQuickMode {
-    ALL,
-    OPEN,
-    NEW,
-    VISITED,
-    FAVORITES,
-}
-
 data class FeedFiltersUi(
     val cityId: String? = null,
     val coffeeFocus: String? = null,
-    val quickMode: FeedQuickMode = FeedQuickMode.ALL,
+    val openOnly: Boolean = false,
+    val newOnly: Boolean = false,
+    val visitedOnly: Boolean = false,
+    val favoritesOnly: Boolean = false,
     val priceRange: Int? = null,
     val minRating: Double? = null,
     val roasterIds: Set<String> = emptySet(),
@@ -42,11 +40,31 @@ data class FeedFiltersUi(
     val equipmentIds: Set<String> = emptySet(),
     val brewMethodIds: Set<String> = emptySet(),
     val tagIds: Set<String> = emptySet(),
-)
+) {
+    val activeFilterCount: Int
+        get() {
+            var count = 0
+            if (coffeeFocus != null) count++
+            if (openOnly) count++
+            if (newOnly) count++
+            if (visitedOnly) count++
+            if (favoritesOnly) count++
+            if (priceRange != null) count++
+            if (minRating != null) count++
+            count += roasterIds.size + beanIds.size + equipmentIds.size +
+                brewMethodIds.size + tagIds.size
+            return count
+        }
+
+    fun clearSelections(): FeedFiltersUi = FeedFiltersUi(cityId = cityId)
+}
 
 data class FeedUiState(
     val shops: List<CoffeeShop> = emptyList(),
-    val isLoading: Boolean = false,
+    // The first shops request starts after catalogs/city resolution. Keep the
+    // screen in a loading state during that preparation so the empty state
+    // cannot flash before the initial request is dispatched.
+    val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
     val error: String? = null,
@@ -64,25 +82,14 @@ data class FeedUiState(
     val hasMore: Boolean = false,
 ) {
     val activeFilterCount: Int
-        get() {
-            var count = 0
-            if (filters.cityId != null) count++
-            if (filters.coffeeFocus != null) count++
-            if (filters.quickMode != FeedQuickMode.ALL) count++
-            if (filters.priceRange != null) count++
-            if (filters.minRating != null) count++
-            count += filters.roasterIds.size + filters.beanIds.size +
-                filters.equipmentIds.size + filters.brewMethodIds.size + filters.tagIds.size
-            return count
-        }
+        get() = filters.activeFilterCount
 
     val visibleShops: List<CoffeeShop>
-        get() = when (filters.quickMode) {
-            FeedQuickMode.ALL -> shops
-            FeedQuickMode.OPEN -> shops.filter { it.isOpen }
-            FeedQuickMode.NEW -> shops.filter { it.isNew }
-            FeedQuickMode.VISITED -> shops.filter { it.isVisited }
-            FeedQuickMode.FAVORITES -> shops.filter { it.isFavorite }
+        get() = shops.filter { shop ->
+            (!filters.openOnly || shop.isOpen) &&
+                (!filters.newOnly || shop.isNew) &&
+                (!filters.visitedOnly || shop.isVisited) &&
+                (!filters.favoritesOnly || shop.isFavorite)
         }
 }
 
@@ -90,6 +97,8 @@ data class FeedUiState(
 class FeedViewModel(
     private val shopRepository: ShopRepository,
     private val favoriteRepository: FavoriteRepository,
+    private val cityPreference: CityPreference,
+    private val sessionRepository: SessionRepository,
 ) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
@@ -97,10 +106,19 @@ class FeedViewModel(
 
     private val queryFlow = MutableStateFlow("")
     private var shopsLoadJob: Job? = null
+    private var isCityReady = false
 
     init {
-        loadShops(reset = true)
         loadCatalogs()
+        cityPreference.selectedCityId
+            .onEach { cityId ->
+                if (!isCityReady || cityId == null || cityId == _uiState.value.filters.cityId) {
+                    return@onEach
+                }
+                _uiState.update { it.copy(filters = it.filters.copy(cityId = cityId)) }
+                loadShops(reset = true)
+            }
+            .launchIn(workScope)
         queryFlow
             .debounce(400)
             .distinctUntilChanged()
@@ -132,8 +150,10 @@ class FeedViewModel(
         workScope.launch {
             shopRepository.getCatalogs()
                 .onSuccess { catalogs ->
+                    val cityId = cityPreference.resolve(catalogs.cities)
                     _uiState.update {
                         it.copy(
+                            filters = it.filters.copy(cityId = cityId),
                             cities = catalogs.cities,
                             beans = catalogs.beans,
                             equipment = catalogs.equipment,
@@ -142,6 +162,12 @@ class FeedViewModel(
                             shopTags = catalogs.shopTags,
                         )
                     }
+                    isCityReady = true
+                    loadShops(reset = true)
+                }
+                .onFailure {
+                    isCityReady = true
+                    loadShops(reset = true)
                 }
         }
     }
@@ -168,18 +194,37 @@ class FeedViewModel(
         loadShops(reset = true)
     }
 
-    fun setCity(cityId: String?) {
-        _uiState.update { it.copy(filters = it.filters.copy(cityId = cityId)) }
-        loadShops(reset = true)
-    }
-
     fun setCoffeeFocus(coffeeFocus: String?) {
         _uiState.update { it.copy(filters = it.filters.copy(coffeeFocus = coffeeFocus)) }
         loadShops(reset = true)
     }
 
-    fun setQuickMode(mode: FeedQuickMode) {
-        _uiState.update { it.copy(filters = it.filters.copy(quickMode = mode)) }
+    fun toggleOpenOnly() {
+        _uiState.update { it.copy(filters = it.filters.copy(openOnly = !it.filters.openOnly)) }
+    }
+
+    fun toggleNewOnly() {
+        _uiState.update { it.copy(filters = it.filters.copy(newOnly = !it.filters.newOnly)) }
+    }
+
+    fun toggleVisitedOnly() {
+        workScope.launch {
+            if (!sessionRepository.isLoggedIn()) {
+                Navigator.navigate(Navigator.Screen.Auth)
+                return@launch
+            }
+            _uiState.update { it.copy(filters = it.filters.copy(visitedOnly = !it.filters.visitedOnly)) }
+        }
+    }
+
+    fun toggleFavoritesOnly() {
+        workScope.launch {
+            if (!sessionRepository.isLoggedIn()) {
+                Navigator.navigate(Navigator.Screen.Auth)
+                return@launch
+            }
+            _uiState.update { it.copy(filters = it.filters.copy(favoritesOnly = !it.filters.favoritesOnly)) }
+        }
     }
 
     fun setPriceRange(priceRange: Int?) {
@@ -222,7 +267,9 @@ class FeedViewModel(
 
     fun clearFilters() {
         queryFlow.value = ""
-        _uiState.update { it.copy(query = "", filters = FeedFiltersUi()) }
+        _uiState.update {
+            it.copy(query = "", filters = it.filters.clearSelections())
+        }
         loadShops(reset = true)
     }
 
@@ -237,6 +284,10 @@ class FeedViewModel(
 
     fun toggleFavorite(shop: CoffeeShop) {
         workScope.launch {
+            if (!sessionRepository.isLoggedIn()) {
+                Navigator.navigate(Navigator.Screen.Auth)
+                return@launch
+            }
             val nextFavorite = !shop.isFavorite
             _uiState.update { state ->
                 state.copy(

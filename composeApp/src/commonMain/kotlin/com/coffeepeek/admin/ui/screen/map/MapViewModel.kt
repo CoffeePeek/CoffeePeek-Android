@@ -1,19 +1,26 @@
 package com.coffeepeek.admin.ui.screen.map
 
 import com.coffeepeek.admin.base.BaseViewModel
+import com.coffeepeek.admin.settings.CityPreference
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.MapBounds
+import com.coffeepeek.domain.model.MapCluster
+import com.coffeepeek.domain.model.MapCoffeeZone
 import com.coffeepeek.domain.model.MapShop
 import com.coffeepeek.domain.model.ShopFilters
 import com.coffeepeek.domain.model.ShopSchedule
 import com.coffeepeek.domain.repository.ShopRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -31,11 +38,13 @@ data class MapFiltersUi(
 
 data class MapUiState(
     val shops: List<MapShop> = emptyList(),
+    val clusters: List<MapCluster> = emptyList(),
+    val zones: List<MapCoffeeZone> = emptyList(),
     val selectedShop: MapShop? = null,
+    val selectedZone: MapCoffeeZone? = null,
     val selectedShopDetails: CoffeeShopDetails? = null,
     val isLoadingShopDetails: Boolean = false,
     val isLoading: Boolean = false,
-    val error: String? = null,
     val query: String = "",
     val filters: MapFiltersUi = MapFiltersUi(),
     val cities: List<City> = emptyList(),
@@ -48,6 +57,9 @@ data class MapUiState(
     val showSearchArea: Boolean = false,
     val activeBounds: MapBounds? = null,
     val pendingBounds: MapBounds? = null,
+    val activeZoom: Float? = null,
+    val pendingZoom: Float? = null,
+    val isTruncated: Boolean = false,
     val myLocationRequest: Int = 0,
     val cameraTarget: Pair<Double, Double>? = null,
     val cameraZoom: Float? = null,
@@ -56,7 +68,6 @@ data class MapUiState(
         get() {
             var count = 0
             if (query.isNotBlank()) count++
-            if (filters.cityId != null) count++
             if (filters.coffeeFocus != null) count++
             if (filters.priceRange != null) count++
             if (filters.minRating != null) count++
@@ -68,43 +79,85 @@ data class MapUiState(
 
 class MapViewModel(
     private val shopRepository: ShopRepository,
+    private val cityPreference: CityPreference,
 ) : BaseViewModel() {
 
     private val _state = MutableStateFlow(MapUiState())
     val state: StateFlow<MapUiState> = _state.asStateFlow()
 
     private var boundsJob: Job? = null
+    private var queryJob: Job? = null
     private var detailsJob: Job? = null
     private var boundsPauseJob: Job? = null
     private var selectionVersion = 0
     private val detailsCache = mutableMapOf<String, CoffeeShopDetails>()
     private var suppressBoundsUpdates = false
+    private var isCityReady = false
 
     init {
         loadCatalogs()
-        requestMyLocation()
+        cityPreference.selectedCityId
+            .onEach { cityId ->
+                if (!isCityReady || cityId == null || cityId == _state.value.filters.cityId) {
+                    return@onEach
+                }
+                _state.update { it.copy(filters = it.filters.copy(cityId = cityId)) }
+                searchCurrentArea()
+            }
+            .launchIn(workScope)
     }
 
-    fun onBoundsChanged(bounds: MapBounds) {
+    fun onBoundsChanged(bounds: MapBounds, zoom: Float) {
         if (suppressBoundsUpdates) return
         boundsJob?.cancel()
         _state.update {
             it.copy(
                 pendingBounds = bounds,
+                pendingZoom = zoom,
                 showSearchArea = false,
             )
         }
-        loadBounds(bounds)
+        loadBounds(bounds, zoom)
     }
 
     fun searchCurrentArea() {
         val bounds = _state.value.pendingBounds ?: _state.value.activeBounds ?: return
-        loadBounds(bounds)
+        val zoom = _state.value.pendingZoom ?: _state.value.activeZoom ?: return
+        loadBounds(bounds, zoom)
     }
 
     fun onShopSelected(shop: MapShop) {
         if (_state.value.selectedShop?.id == shop.id) return
+        _state.update { it.copy(selectedZone = null) }
         selectShop(shop)
+    }
+
+    fun onZoneSelected(zone: MapCoffeeZone) {
+        detailsJob?.cancel()
+        _state.update {
+            it.copy(
+                selectedZone = zone,
+                selectedShop = null,
+                selectedShopDetails = null,
+                isLoadingShopDetails = false,
+            )
+        }
+    }
+
+    fun showSelectedZoneShops() {
+        val zone = _state.value.selectedZone ?: return
+        _state.update {
+            it.copy(
+                selectedZone = null,
+                cameraTarget = zone.latitude to zone.longitude,
+                cameraZoom = 14.5f,
+            )
+        }
+        pauseBoundsUpdates(700)
+    }
+
+    fun clearZoneSelection() {
+        _state.update { it.copy(selectedZone = null) }
     }
 
     fun clearSelection() {
@@ -121,10 +174,6 @@ class MapViewModel(
         }
     }
 
-    fun clearError() {
-        _state.update { it.copy(error = null) }
-    }
-
     fun toggleFilters() {
         _state.update { it.copy(showFilters = !it.showFilters) }
     }
@@ -135,10 +184,13 @@ class MapViewModel(
 
     fun onQueryChange(query: String) {
         _state.update { it.copy(query = query) }
-    }
-
-    fun setCity(cityId: String?) {
-        _state.update { it.copy(filters = it.filters.copy(cityId = cityId)) }
+        queryJob?.cancel()
+        queryJob = workScope.launch {
+            delay(350)
+            val bounds = _state.value.activeBounds ?: _state.value.pendingBounds ?: return@launch
+            val zoom = _state.value.activeZoom ?: _state.value.pendingZoom ?: return@launch
+            loadBounds(bounds, zoom)
+        }
     }
 
     fun setCoffeeFocus(coffeeFocus: String?) {
@@ -173,7 +225,9 @@ class MapViewModel(
     }
 
     fun clearFilters() {
-        _state.update { it.copy(query = "", filters = MapFiltersUi()) }
+        _state.update {
+            it.copy(query = "", filters = MapFiltersUi(cityId = it.filters.cityId))
+        }
         searchCurrentArea()
     }
 
@@ -215,18 +269,14 @@ class MapViewModel(
         pauseBoundsUpdates(700)
     }
 
-    fun onLocationPermissionDenied() {
-        _state.update {
-            it.copy(error = "Нет доступа к геолокации. Разрешите в настройках приложения.")
-        }
-    }
-
     private fun loadCatalogs() {
         workScope.launch {
             shopRepository.getCatalogs()
                 .onSuccess { catalogs ->
+                    val cityId = cityPreference.resolve(catalogs.cities)
                     _state.update {
                         it.copy(
+                            filters = it.filters.copy(cityId = cityId),
                             cities = catalogs.cities,
                             beans = catalogs.beans,
                             equipment = catalogs.equipment,
@@ -235,32 +285,42 @@ class MapViewModel(
                             shopTags = catalogs.shopTags,
                         )
                     }
+                    isCityReady = true
+                    val current = _state.value
+                    val bounds = current.pendingBounds
+                    val zoom = current.pendingZoom
+                    if (bounds != null && zoom != null) loadBounds(bounds, zoom)
                 }
-                .onFailure { err ->
-                    _state.update {
-                        it.copy(error = err.message ?: "Ошибка загрузки каталогов")
-                    }
+                .onFailure {
+                    isCityReady = true
+                    val current = _state.value
+                    val bounds = current.pendingBounds
+                    val zoom = current.pendingZoom
+                    if (bounds != null && zoom != null) loadBounds(bounds, zoom)
                 }
         }
     }
 
-    private fun loadBounds(bounds: MapBounds) {
+    private fun loadBounds(bounds: MapBounds, zoom: Float) {
+        if (!isCityReady) return
         boundsJob?.cancel()
         boundsJob = workScope.launch {
             delay(250)
             _state.update {
                 it.copy(
                     isLoading = true,
-                    error = null,
                     activeBounds = bounds,
                     pendingBounds = bounds,
+                    activeZoom = zoom,
+                    pendingZoom = zoom,
                     showSearchArea = false,
                 )
             }
             val state = _state.value
             val filters = state.filters
-            shopRepository.getShopsInBounds(
+            val result = shopRepository.getMapContent(
                 bounds = bounds,
+                zoom = zoom,
                 filters = ShopFilters(
                     query = state.query.takeIf { it.isNotBlank() },
                     cityId = filters.cityId,
@@ -274,23 +334,29 @@ class MapViewModel(
                     minRating = filters.minRating,
                 ),
             )
-                .onSuccess { shops ->
+            currentCoroutineContext().ensureActive()
+            result.onSuccess { content ->
                     _state.update { current ->
-                        val merged = mergeShops(shops, current.selectedShop)
+                        val merged = mergeShops(content.shops, current.selectedShop)
                         current.copy(
                             shops = merged,
+                            clusters = content.clusters,
+                            zones = content.zones,
+                            isTruncated = content.isTruncated,
                             isLoading = false,
                             selectedShop = current.selectedShop?.let { selected ->
                                 merged.find { it.id == selected.id } ?: selected
                             },
+                            selectedZone = current.selectedZone?.takeIf { selected ->
+                                content.zones.any { it.id == selected.id }
+                            },
                         )
                     }
                 }
-                .onFailure { err ->
+                .onFailure {
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            error = err.message ?: "Ошибка загрузки кофеен",
                             showSearchArea = true,
                         )
                     }

@@ -22,10 +22,6 @@
 -keep @androidx.room.Entity class *
 -dontwarn androidx.room.paging.**
 
-# Yandex MapKit
--keep class com.yandex.** { *; }
--dontwarn com.yandex.**
-
 # Koin
 -keep class org.koin.** { *; }
 -dontwarn org.koin.**

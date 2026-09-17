@@ -1,44 +1,88 @@
+@file:Suppress("DEPRECATION")
+
 package com.coffeepeek.admin.map
 
 import android.Manifest
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
+import android.provider.Settings
+import android.view.animation.DecelerateInterpolator
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.coffeepeek.domain.model.MapBounds
+import com.coffeepeek.domain.model.MapCluster
+import com.coffeepeek.domain.model.MapCoffeeZone
 import com.coffeepeek.domain.model.MapShop
-import com.yandex.mapkit.Animation
-import com.yandex.mapkit.MapKitFactory
-import com.yandex.mapkit.geometry.Point
-import com.yandex.mapkit.map.CameraListener
-import com.yandex.mapkit.map.CameraPosition
-import com.yandex.mapkit.map.CameraUpdateReason
-import com.yandex.mapkit.map.IconStyle
-import com.yandex.mapkit.map.Map
-import com.yandex.mapkit.map.PlacemarkMapObject
-import com.yandex.mapkit.map.VisibleRegion
-import com.yandex.mapkit.mapview.MapView
+import org.maplibre.android.MapLibre
+import org.maplibre.android.annotations.IconFactory
+import org.maplibre.android.annotations.Marker
+import org.maplibre.android.annotations.MarkerOptions
+import org.maplibre.android.annotations.Polygon
+import org.maplibre.android.annotations.PolygonOptions
+import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.Style
+import org.maplibre.android.style.layers.BackgroundLayer
+import org.maplibre.android.style.layers.FillLayer
+import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.Property
+import org.maplibre.android.style.layers.PropertyFactory.backgroundColor
+import org.maplibre.android.style.layers.PropertyFactory.fillColor
+import org.maplibre.android.style.layers.PropertyFactory.fillOutlineColor
+import org.maplibre.android.style.layers.PropertyFactory.lineColor
+import org.maplibre.android.style.layers.PropertyFactory.textColor
+import org.maplibre.android.style.layers.PropertyFactory.textHaloColor
+import org.maplibre.android.style.layers.PropertyFactory.textHaloWidth
+import org.maplibre.android.style.layers.PropertyFactory.visibility
+import org.maplibre.android.style.layers.SymbolLayer
+import kotlin.math.cos
+import kotlin.math.sin
 
 private const val DEFAULT_LAT = 53.9045
 private const val DEFAULT_LON = 27.5615
 private const val DEFAULT_ZOOM = 12f
+private const val LOCATION_ZOOM = 15f
+private const val TARGET_ZOOM = 16f
+private const val OSM_COPYRIGHT_URL = "https://www.openstreetmap.org/copyright"
+private const val OPEN_FREE_MAP_LIGHT_STYLE = "https://tiles.openfreemap.org/styles/positron"
+private const val OPEN_FREE_MAP_DARK_STYLE = "https://tiles.openfreemap.org/styles/dark"
 
-private data class PlacemarkEntry(
-    var placemark: PlacemarkMapObject,
+private data class ShopMark(
+    var marker: Marker,
     var isSelected: Boolean,
     var latitude: Double,
     var longitude: Double,
@@ -46,12 +90,38 @@ private data class PlacemarkEntry(
     var type: String,
 )
 
+private data class ClusterMark(
+    var marker: Marker,
+    var latitude: Double,
+    var longitude: Double,
+    var count: Int,
+    var bounds: MapBounds,
+)
+
+private data class ZoneMark(
+    var marker: Marker,
+    var zone: MapCoffeeZone,
+)
+
+private class MarkerAnimations {
+    var pulse: ValueAnimator? = null
+    var pulseMark: Marker? = null
+
+    fun cancel() {
+        pulse?.cancel()
+        pulse = null
+    }
+}
+
 @Composable
 actual fun CoffeeMap(
     shops: List<MapShop>,
+    clusters: List<MapCluster>,
+    zones: List<MapCoffeeZone>,
     selectedShopId: String?,
-    onBoundsChanged: (MapBounds) -> Unit,
+    onBoundsChanged: (MapBounds, Float) -> Unit,
     onShopClick: (MapShop) -> Unit,
+    onZoneClick: (MapCoffeeZone) -> Unit,
     modifier: Modifier,
     cameraTarget: Pair<Double, Double>?,
     cameraZoom: Float?,
@@ -64,8 +134,10 @@ actual fun CoffeeMap(
     val context = LocalContext.current
     val appContext = context.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
+    val uriHandler = LocalUriHandler.current
     val onBoundsChangedState = rememberUpdatedState(onBoundsChanged)
     val onShopClickState = rememberUpdatedState(onShopClick)
+    val onZoneClickState = rememberUpdatedState(onZoneClick)
     val onCameraTargetAppliedState = rememberUpdatedState(onCameraTargetApplied)
     val onMyLocationFoundState = rememberUpdatedState(onMyLocationFound)
     val onLocationPermissionDeniedState = rememberUpdatedState(onLocationPermissionDenied)
@@ -73,301 +145,663 @@ actual fun CoffeeMap(
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { permissions ->
-        val granted = permissions.values.any { it }
-        if (!granted) {
+        if (permissions.values.none { it }) {
             onLocationPermissionDeniedState.value()
         }
     }
 
     LaunchedEffect(Unit) {
-        val fineGranted = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-        ) == PackageManager.PERMISSION_GRANTED
-        val coarseGranted = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-        ) == PackageManager.PERMISSION_GRANTED
-        if (!fineGranted && !coarseGranted) {
-            locationPermissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                ),
-            )
+        if (!context.hasLocationPermission()) {
+            locationPermissionLauncher.launch(locationPermissions)
         }
     }
 
-    val mapView = remember { MapView(appContext) }
-    val placemarks = remember { mutableMapOf<String, PlacemarkEntry>() }
-    val iconStyle = remember {
-        IconStyle()
-            .setAnchor(MapMarkerIcons.anchor())
-            .setScale(1f)
+    val mapView = remember {
+        MapLibre.getInstance(appContext)
+        MapView(appContext).apply { onCreate(null) }
     }
+    val shopMarks = remember { mutableMapOf<String, ShopMark>() }
+    val clusterMarks = remember { mutableMapOf<String, ClusterMark>() }
+    val zoneMarks = remember { mutableMapOf<String, ZoneMark>() }
+    val zonePolygons = remember { mutableMapOf<String, Polygon>() }
+    val animations = remember { MarkerAnimations() }
+    var map by remember { mutableStateOf<MapLibreMap?>(null) }
+    var styleGeneration by remember { mutableIntStateOf(0) }
+    var initialCameraApplied by remember { mutableStateOf(false) }
+    var currentLocation by remember { mutableStateOf<LatLng?>(null) }
+    var currentLocationMarker by remember { mutableStateOf<Marker?>(null) }
 
     DisposableEffect(lifecycleOwner, mapView) {
-        val map = mapView.mapWindow.map
-        val cameraListener = object : CameraListener {
-            override fun onCameraPositionChanged(
-                map: Map,
-                cameraPosition: CameraPosition,
-                cameraUpdateReason: CameraUpdateReason,
-                finished: Boolean,
-            ) {
-                if (finished) {
-                    onBoundsChangedState.value(map.visibleRegion.toMapBounds())
-                }
+        var started = false
+        var resumed = false
+
+        fun start() {
+            if (!started) {
+                mapView.onStart()
+                started = true
             }
         }
-        map.addCameraListener(cameraListener)
 
-        val startMap = {
-            MapKitFactory.getInstance().onStart()
-            mapView.onStart()
+        fun resume() {
+            start()
+            if (!resumed) {
+                mapView.onResume()
+                resumed = true
+            }
         }
-        val stopMap = {
-            mapView.onStop()
-            MapKitFactory.getInstance().onStop()
+
+        fun pause() {
+            if (resumed) {
+                mapView.onPause()
+                resumed = false
+            }
+        }
+
+        fun stop() {
+            pause()
+            if (started) {
+                mapView.onStop()
+                started = false
+            }
         }
 
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_START -> startMap()
-                Lifecycle.Event.ON_STOP -> stopMap()
+                Lifecycle.Event.ON_START -> start()
+                Lifecycle.Event.ON_RESUME -> resume()
+                Lifecycle.Event.ON_PAUSE -> pause()
+                Lifecycle.Event.ON_STOP -> stop()
                 else -> Unit
             }
         }
 
         lifecycleOwner.lifecycle.addObserver(observer)
-        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
-            startMap()
+        when {
+            lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) -> resume()
+            lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) -> start()
         }
 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            map.removeCameraListener(cameraListener)
-            placemarks.values.forEach { entry ->
-                map.mapObjects.remove(entry.placemark)
-            }
-            placemarks.clear()
-            stopMap()
+            animations.cancel()
+            stop()
+            mapView.onDestroy()
         }
     }
 
-    LaunchedEffect(cameraTarget, cameraZoom, mapView) {
+    DisposableEffect(map) {
+        val activeMap = map ?: return@DisposableEffect onDispose { }
+        val idleListener = MapLibreMap.OnCameraIdleListener {
+            onBoundsChangedState.value(
+                activeMap.projection.visibleRegion.latLngBounds.toMapBounds(),
+                activeMap.cameraPosition.zoom.toFloat(),
+            )
+        }
+
+        activeMap.addOnCameraIdleListener(idleListener)
+        activeMap.setOnMarkerClickListener { marker ->
+            val shop = shopMarks.values.firstOrNull { it.marker.id == marker.id }
+            if (shop != null) {
+                onShopClickState.value(shop.shop)
+                true
+            } else {
+                val cluster = clusterMarks.values.firstOrNull { it.marker.id == marker.id }
+                if (cluster != null) {
+                    zoomToBounds(activeMap, mapView.width, mapView.height, cluster.bounds)
+                    true
+                } else {
+                    val zone = zoneMarks.values.firstOrNull { it.marker.id == marker.id }
+                    if (zone != null) {
+                        onZoneClickState.value(zone.zone)
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+        }
+
+        onDispose {
+            activeMap.removeOnCameraIdleListener(idleListener)
+            activeMap.setOnMarkerClickListener(null)
+        }
+    }
+
+    LaunchedEffect(map, isDarkTheme) {
+        val activeMap = map ?: return@LaunchedEffect
+        animations.cancel()
+        animations.pulseMark = null
+        activeMap.removeAnnotations()
+        shopMarks.clear()
+        clusterMarks.clear()
+        zoneMarks.clear()
+        zonePolygons.clear()
+        currentLocationMarker = null
+        activeMap.setStyle(Style.Builder().fromUri(coffeeMapStyleUri(isDarkTheme))) { style ->
+            styleGeneration += 1
+            applyCoffeePeekMapStyle(style, isDarkTheme)
+            if (!initialCameraApplied) {
+                val location = context.lastKnownLocation()
+                currentLocation = location?.let { LatLng(it.latitude, it.longitude) }
+                val initialTarget = cameraTarget?.let { LatLng(it.first, it.second) }
+                    ?: currentLocation
+                    ?: LatLng(DEFAULT_LAT, DEFAULT_LON)
+                val initialZoom = cameraZoom ?: when {
+                    cameraTarget != null -> TARGET_ZOOM
+                    location != null -> LOCATION_ZOOM
+                    else -> DEFAULT_ZOOM
+                }
+                activeMap.moveCamera(CameraUpdateFactory.newLatLngZoom(initialTarget, initialZoom.toDouble()))
+                initialCameraApplied = true
+                location?.takeIf { cameraTarget == null }?.let {
+                    onMyLocationFoundState.value(it.latitude, it.longitude)
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(cameraTarget, cameraZoom, map, styleGeneration) {
         val target = cameraTarget ?: return@LaunchedEffect
-        val map = mapView.mapWindow.map
-        map.move(
-            CameraPosition(
-                Point(target.first, target.second),
-                cameraZoom ?: 16f,
-                0f,
-                0f,
+        val activeMap = map ?: return@LaunchedEffect
+        if (styleGeneration == 0) return@LaunchedEffect
+        activeMap.animateCamera(
+            CameraUpdateFactory.newLatLngZoom(
+                LatLng(target.first, target.second),
+                (cameraZoom ?: TARGET_ZOOM).toDouble(),
             ),
-            Animation(Animation.Type.SMOOTH, 0.45f),
-            null,
+            450,
         )
         onCameraTargetAppliedState.value()
     }
 
-    LaunchedEffect(isDarkTheme, mapView) {
-        mapView.mapWindow.map.isNightModeEnabled = isDarkTheme
-    }
-
-    LaunchedEffect(myLocationRequestKey, mapView) {
-        if (myLocationRequestKey == 0) return@LaunchedEffect
-        val fineGranted = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-        ) == PackageManager.PERMISSION_GRANTED
-        val coarseGranted = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-        ) == PackageManager.PERMISSION_GRANTED
-        if (!fineGranted && !coarseGranted) {
-            locationPermissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                ),
-            )
+    LaunchedEffect(myLocationRequestKey, map, styleGeneration) {
+        if (myLocationRequestKey == 0 || styleGeneration == 0) return@LaunchedEffect
+        val activeMap = map ?: return@LaunchedEffect
+        if (!context.hasLocationPermission()) {
+            locationPermissionLauncher.launch(locationPermissions)
             return@LaunchedEffect
         }
 
         context.lastKnownLocation()?.let { location ->
-            val map = mapView.mapWindow.map
-            map.move(
-                CameraPosition(Point(location.latitude, location.longitude), 15f, 0f, 0f),
-                Animation(Animation.Type.SMOOTH, 0.45f),
-                null,
+            currentLocation = LatLng(location.latitude, location.longitude)
+            activeMap.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(
+                    LatLng(location.latitude, location.longitude),
+                    LOCATION_ZOOM.toDouble(),
+                ),
+                450,
             )
             onMyLocationFoundState.value(location.latitude, location.longitude)
         }
     }
 
-    LaunchedEffect(shops, selectedShopId, mapView) {
-        val map = mapView.mapWindow.map
-        syncPlacemarks(
+    LaunchedEffect(currentLocation, map, styleGeneration) {
+        val activeMap = map ?: return@LaunchedEffect
+        val position = currentLocation ?: return@LaunchedEffect
+        if (styleGeneration == 0) return@LaunchedEffect
+
+        val marker = currentLocationMarker
+        if (marker == null) {
+            currentLocationMarker = activeMap.addMarker(
+                MarkerOptions()
+                    .position(position)
+                    .icon(
+                        IconFactory.getInstance(appContext)
+                            .fromBitmap(MapMarkerIcons.myLocationBitmap(appContext)),
+                    ),
+            )
+        } else {
+            marker.position = position
+            activeMap.updateMarker(marker)
+        }
+    }
+
+    LaunchedEffect(shops, clusters, zones, selectedShopId, isDarkTheme, styleGeneration, map) {
+        val activeMap = map ?: return@LaunchedEffect
+        if (styleGeneration == 0) return@LaunchedEffect
+        syncMapMarkers(
             context = appContext,
-            map = map,
+            map = activeMap,
             shops = shops,
+            clusters = clusters,
+            zones = zones,
             selectedShopId = selectedShopId,
-            placemarks = placemarks,
-            iconStyle = iconStyle,
-            onShopClick = { shop -> onShopClickState.value(shop) },
+            isDarkTheme = isDarkTheme,
+            shopMarks = shopMarks,
+            clusterMarks = clusterMarks,
+            zoneMarks = zoneMarks,
+            zonePolygons = zonePolygons,
+            animations = animations,
+            reduceMotion = appContext.prefersReducedMotion(),
         )
     }
 
-    AndroidView(
-        modifier = modifier,
-        factory = {
-            mapView.apply {
-                val location = context.lastKnownLocation()
-                val initialTarget = cameraTarget?.let { Point(it.first, it.second) }
-                    ?: location?.let { Point(it.latitude, it.longitude) }
-                    ?: Point(DEFAULT_LAT, DEFAULT_LON)
-                val initialZoom = cameraZoom ?: when {
-                    cameraTarget != null -> 16f
-                    location != null -> 15f
-                    else -> DEFAULT_ZOOM
+    Box(modifier = modifier) {
+        AndroidView(
+            modifier = Modifier.matchParentSize(),
+            factory = {
+                mapView.apply {
+                    getMapAsync { readyMap ->
+                        readyMap.uiSettings.apply {
+                            isLogoEnabled = false
+                            isAttributionEnabled = false
+                            isCompassEnabled = false
+                        }
+                        readyMap.setPrefetchesTiles(true)
+                        map = readyMap
+                    }
                 }
-                mapWindow.map.move(
-                    CameraPosition(
-                        initialTarget,
-                        initialZoom,
-                        0f,
-                        0f,
-                    ),
-                    Animation(Animation.Type.SMOOTH, 0f),
-                    null,
+            },
+        )
+        Text(
+            text = "OpenFreeMap · OpenMapTiles · © OSM",
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(8.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                    shape = RoundedCornerShape(4.dp),
                 )
-                location?.let {
-                    onMyLocationFoundState.value(it.latitude, it.longitude)
-                }
-            }
-        },
-    )
+                .clickable { uriHandler.openUri(OSM_COPYRIGHT_URL) }
+                .padding(horizontal = 6.dp, vertical = 3.dp),
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 10.sp,
+        )
+    }
 }
+
+private val locationPermissions = arrayOf(
+    Manifest.permission.ACCESS_FINE_LOCATION,
+    Manifest.permission.ACCESS_COARSE_LOCATION,
+)
+
+private fun Context.hasLocationPermission(): Boolean =
+    ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+        ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
 private fun Context.lastKnownLocation(): Location? {
     val locationManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
-    val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
-    return providers
+    if (!hasLocationPermission()) return null
+    return listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
         .mapNotNull { provider ->
-            runCatching {
-                if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                    ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                ) {
-                    locationManager.getLastKnownLocation(provider)
-                } else {
-                    null
-                }
-            }.getOrNull()
+            runCatching { locationManager.getLastKnownLocation(provider) }.getOrNull()
         }
         .maxByOrNull { it.time }
 }
 
-private fun syncPlacemarks(
+private fun Context.prefersReducedMotion(): Boolean {
+    val duration = Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+    val transition = Settings.Global.getFloat(contentResolver, Settings.Global.TRANSITION_ANIMATION_SCALE, 1f)
+    return duration == 0f || transition == 0f
+}
+
+private fun syncMapMarkers(
     context: Context,
-    map: Map,
+    map: MapLibreMap,
     shops: List<MapShop>,
+    clusters: List<MapCluster>,
+    zones: List<MapCoffeeZone>,
     selectedShopId: String?,
-    placemarks: MutableMap<String, PlacemarkEntry>,
-    iconStyle: IconStyle,
-    onShopClick: (MapShop) -> Unit,
+    isDarkTheme: Boolean,
+    shopMarks: MutableMap<String, ShopMark>,
+    clusterMarks: MutableMap<String, ClusterMark>,
+    zoneMarks: MutableMap<String, ZoneMark>,
+    zonePolygons: MutableMap<String, Polygon>,
+    animations: MarkerAnimations,
+    reduceMotion: Boolean,
 ) {
+    val selected = shops.firstOrNull { it.id == selectedShopId }
     val shopIds = shops.map { it.id }.toSet()
-    placemarks.keys.filter { it !in shopIds }.toList().forEach { id ->
-        placemarks.remove(id)?.let { entry ->
-            map.mapObjects.remove(entry.placemark)
+    shopMarks.keys.filter { it !in shopIds }.toList().forEach { id ->
+        shopMarks.remove(id)?.let { map.removeMarker(it.marker) }
+    }
+    val clusterKeys = clusters.map { it.id }.toSet()
+    clusterMarks.keys.filter { it !in clusterKeys }.toList().forEach { key ->
+        clusterMarks.remove(key)?.let { map.removeMarker(it.marker) }
+    }
+    val zoneIds = zones.map { it.id }.toSet()
+    zoneMarks.keys.filter { it !in zoneIds }.toList().forEach { id ->
+        zoneMarks.remove(id)?.let { map.removeMarker(it.marker) }
+    }
+
+    clusters.forEach { cluster ->
+        val position = LatLng(cluster.latitude, cluster.longitude)
+        val existing = clusterMarks[cluster.id]
+        if (existing == null) {
+            val marker = map.addMarker(
+                MarkerOptions()
+                    .position(position)
+                    .icon(IconFactory.getInstance(context).fromBitmap(MapMarkerIcons.clusterBitmap(context, cluster.count))),
+            )
+            clusterMarks[cluster.id] = ClusterMark(
+                marker = marker,
+                latitude = cluster.latitude,
+                longitude = cluster.longitude,
+                count = cluster.count,
+                bounds = cluster.bounds,
+            )
+        } else {
+            existing.bounds = cluster.bounds
+            if (existing.latitude != cluster.latitude || existing.longitude != cluster.longitude) {
+                existing.marker.position = position
+                existing.latitude = cluster.latitude
+                existing.longitude = cluster.longitude
+            }
+            if (existing.count != cluster.count) {
+                existing.marker.setIcon(
+                    IconFactory.getInstance(context).fromBitmap(MapMarkerIcons.clusterBitmap(context, cluster.count)),
+                )
+                existing.count = cluster.count
+            }
+            map.updateMarker(existing.marker)
         }
+    }
+
+    zones.forEach { zone ->
+        val position = LatLng(zone.latitude, zone.longitude)
+        val existing = zoneMarks[zone.id]
+        if (existing == null) {
+            val marker = map.addMarker(
+                MarkerOptions()
+                    .position(position)
+                    .icon(
+                        IconFactory.getInstance(context).fromBitmap(
+                            MapMarkerIcons.zoneBitmap(context, zone.name, zone.shopCount, isDarkTheme),
+                        ),
+                    ),
+            )
+            zoneMarks[zone.id] = ZoneMark(marker = marker, zone = zone)
+        } else {
+            val oldZone = existing.zone
+            existing.zone = zone
+            if (oldZone.latitude != zone.latitude || oldZone.longitude != zone.longitude) {
+                existing.marker.position = position
+            }
+            if (oldZone.name != zone.name || oldZone.shopCount != zone.shopCount) {
+                existing.marker.setIcon(
+                    IconFactory.getInstance(context).fromBitmap(
+                        MapMarkerIcons.zoneBitmap(context, zone.name, zone.shopCount, isDarkTheme),
+                    ),
+                )
+            }
+            map.updateMarker(existing.marker)
+        }
+    }
+
+    zonePolygons.values.forEach { polygon -> runCatching { map.removePolygon(polygon) } }
+    zonePolygons.clear()
+    zones.forEach { zone ->
+        val polygon = map.addPolygon(
+            PolygonOptions()
+                .addAll(zoneCirclePoints(zone))
+                .fillColor(if (isDarkTheme) 0x33EAB308 else 0x26EAB308)
+                .strokeColor(if (isDarkTheme) 0x99EAB308.toInt() else 0xB3CA8A04.toInt()),
+        )
+        zonePolygons[zone.id] = polygon
     }
 
     shops.forEach { shop ->
-        val point = Point(shop.latitude, shop.longitude)
+        val position = LatLng(shop.latitude, shop.longitude)
         val isSelected = shop.id == selectedShopId
-        val entry = placemarks[shop.id]
-
-        if (entry == null) {
-            placemarks[shop.id] = createPlacemark(
-                context = context,
-                map = map,
-                shop = shop,
-                point = point,
-                isSelected = isSelected,
-                iconStyle = iconStyle,
-                onShopClick = onShopClick,
+        val visual = if (isSelected) MapPinVisual.Selected else MapPinVisual.Default
+        val existing = shopMarks[shop.id]
+        if (existing == null) {
+            val marker = map.addMarker(
+                MarkerOptions()
+                    .position(position)
+                    .icon(IconFactory.getInstance(context).fromBitmap(MapMarkerIcons.pinBitmap(context, shop.type, visual))),
             )
-            return@forEach
+            val entry = ShopMark(
+                marker = marker,
+                isSelected = isSelected,
+                latitude = shop.latitude,
+                longitude = shop.longitude,
+                shop = shop,
+                type = shop.type,
+            )
+            shopMarks[shop.id] = entry
+            if (isSelected) {
+                playSelectedAnimation(context, map, entry, animations, reduceMotion)
+            }
+        } else {
+            existing.shop = shop
+            if (existing.latitude != shop.latitude || existing.longitude != shop.longitude) {
+                existing.marker.position = position
+                existing.latitude = shop.latitude
+                existing.longitude = shop.longitude
+            }
+            if (existing.isSelected != isSelected || existing.type != shop.type) {
+                existing.marker.setIcon(
+                    IconFactory.getInstance(context).fromBitmap(MapMarkerIcons.pinBitmap(context, shop.type, visual)),
+                )
+                existing.isSelected = isSelected
+                existing.type = shop.type
+                if (isSelected) {
+                    playSelectedAnimation(context, map, existing, animations, reduceMotion)
+                }
+            }
+            map.updateMarker(existing.marker)
         }
+    }
 
-        entry.shop = shop
-
-        if (entry.latitude != shop.latitude || entry.longitude != shop.longitude) {
-            entry.placemark.geometry = point
-            entry.latitude = shop.latitude
-            entry.longitude = shop.longitude
-        }
-
-        if (entry.isSelected != isSelected || entry.type != shop.type) {
-            entry.placemark.setIcon(MapMarkerIcons.provider(context, shop.type, isSelected))
-            entry.placemark.setIconStyle(iconStyle)
-            entry.placemark.zIndex = if (isSelected) 2f else 1f
-            entry.isSelected = isSelected
-            entry.type = shop.type
-        }
+    if (selected == null) {
+        animations.cancel()
+        animations.pulseMark?.let { runCatching { map.removeMarker(it) } }
+        animations.pulseMark = null
     }
 }
 
-private fun createPlacemark(
+private fun playSelectedAnimation(
     context: Context,
-    map: Map,
-    shop: MapShop,
-    point: Point,
-    isSelected: Boolean,
-    iconStyle: IconStyle,
-    onShopClick: (MapShop) -> Unit,
-): PlacemarkEntry {
-    lateinit var entry: PlacemarkEntry
-    val placemark = map.mapObjects.addPlacemark(point).apply {
-        setIcon(MapMarkerIcons.provider(context, shop.type, isSelected))
-        setIconStyle(iconStyle)
-        zIndex = if (isSelected) 2f else 1f
-        isDraggable = false
-        addTapListener { _, _ ->
-            onShopClick(entry.shop)
-            true
+    map: MapLibreMap,
+    mark: ShopMark,
+    animations: MarkerAnimations,
+    reduceMotion: Boolean,
+) {
+    animations.cancel()
+    animations.pulseMark?.let { runCatching { map.removeMarker(it) } }
+    animations.pulseMark = null
+    if (reduceMotion) return
+
+    val pulseMark = map.addMarker(
+        MarkerOptions()
+            .position(LatLng(mark.latitude, mark.longitude))
+            .icon(IconFactory.getInstance(context).fromBitmap(MapMarkerIcons.pulseBitmap(context, 0))),
+    )
+    animations.pulseMark = pulseMark
+    val pulse = ValueAnimator.ofInt(0, MapMarkerIcons.PULSE_FRAMES).apply {
+        duration = 1800L
+        interpolator = DecelerateInterpolator()
+        repeatCount = ValueAnimator.INFINITE
+        addUpdateListener { animator ->
+            val frame = animator.animatedValue as Int
+            pulseMark.position = mark.marker.position
+            pulseMark.setIcon(
+                IconFactory.getInstance(context).fromBitmap(MapMarkerIcons.pulseBitmap(context, frame)),
+            )
+            map.updateMarker(pulseMark)
         }
     }
-    entry = PlacemarkEntry(
-        placemark = placemark,
-        isSelected = isSelected,
-        latitude = shop.latitude,
-        longitude = shop.longitude,
-        shop = shop,
-        type = shop.type,
-    )
-    return entry
+    animations.pulse = pulse
+    pulse.start()
 }
 
-private fun VisibleRegion.toMapBounds(): MapBounds {
-    val lats = listOf(
-        topLeft.latitude,
-        topRight.latitude,
-        bottomLeft.latitude,
-        bottomRight.latitude,
-    )
-    val lons = listOf(
-        topLeft.longitude,
-        topRight.longitude,
-        bottomLeft.longitude,
-        bottomRight.longitude,
-    )
-    return MapBounds(
-        minLat = lats.min(),
-        minLon = lons.min(),
-        maxLat = lats.max(),
-        maxLon = lons.max(),
+private fun zoomToBounds(
+    map: MapLibreMap,
+    viewWidth: Int,
+    viewHeight: Int,
+    bounds: MapBounds,
+) {
+    val currentZoom = map.cameraPosition.zoom.toFloat()
+
+    if (bounds.minLat == bounds.maxLat && bounds.minLon == bounds.maxLon) {
+        map.animateCamera(
+            CameraUpdateFactory.newLatLngZoom(
+                LatLng(bounds.minLat, bounds.minLon),
+                clusterFitZoom(currentZoom, currentZoom + 2f).toDouble(),
+            ),
+            CLUSTER_TAP_ANIMATION_MS.toInt(),
+        )
+        return
+    }
+
+    val latLngBounds = LatLngBounds.from(bounds.maxLat, bounds.maxLon, bounds.minLat, bounds.minLon)
+    val insetX = (viewWidth.coerceAtLeast(1) * clusterPaddingFraction() / 2f).toInt()
+    val insetY = (viewHeight.coerceAtLeast(1) * clusterPaddingFraction() / 2f).toInt()
+    val fitted = map.getCameraForLatLngBounds(
+        latLngBounds,
+        intArrayOf(insetX, insetY, insetX, insetY),
+    ) ?: return
+    val target = CameraPosition.Builder(fitted)
+        .zoom(clusterFitZoom(currentZoom, fitted.zoom.toFloat()).toDouble())
+        .build()
+    map.animateCamera(
+        CameraUpdateFactory.newCameraPosition(target),
+        CLUSTER_TAP_ANIMATION_MS.toInt(),
     )
 }
+
+private fun zoneCirclePoints(zone: MapCoffeeZone, pointCount: Int = 48): List<LatLng> {
+    val latitudeDegrees = zone.radiusMeters / 111_320.0
+    val longitudeScale = cos(Math.toRadians(zone.latitude)).coerceAtLeast(0.01)
+    val longitudeDegrees = zone.radiusMeters / (111_320.0 * longitudeScale)
+    return (0..pointCount).map { index ->
+        val angle = 2.0 * Math.PI * index / pointCount
+        LatLng(
+            zone.latitude + latitudeDegrees * sin(angle),
+            zone.longitude + longitudeDegrees * cos(angle),
+        )
+    }
+}
+
+private fun LatLngBounds.toMapBounds(): MapBounds = MapBounds(
+    minLat = latitudeSouth,
+    minLon = longitudeWest,
+    maxLat = latitudeNorth,
+    maxLon = longitudeEast,
+)
+
+private fun coffeeMapStyleUri(isDarkTheme: Boolean): String =
+    if (isDarkTheme) OPEN_FREE_MAP_DARK_STYLE else OPEN_FREE_MAP_LIGHT_STYLE
+
+private data class CoffeeMapPalette(
+    val background: String,
+    val residential: String,
+    val park: String,
+    val building: String,
+    val water: String,
+    val waterLine: String,
+    val roadCasing: String,
+    val road: String,
+    val minorRoad: String,
+    val boundary: String,
+    val text: String,
+    val waterText: String,
+    val textHalo: String,
+)
+
+private fun applyCoffeePeekMapStyle(style: Style, isDarkTheme: Boolean) {
+    val palette = if (isDarkTheme) {
+        CoffeeMapPalette(
+            background = "#1A1412",
+            residential = "#211B18",
+            park = "#25231D",
+            building = "#302722",
+            water = "#26343A",
+            waterLine = "#42545B",
+            roadCasing = "#332A26",
+            road = "#4B403A",
+            minorRoad = "#3D342F",
+            boundary = "#66564D",
+            text = "#C8BEB7",
+            waterText = "#9AAFB5",
+            textHalo = "#1A1412",
+        )
+    } else {
+        CoffeeMapPalette(
+            background = "#F8F6F3",
+            residential = "#EFEAE5",
+            park = "#E4E8DF",
+            building = "#E3DDD7",
+            water = "#D3DEE1",
+            waterLine = "#B2C5CA",
+            roadCasing = "#D6CEC7",
+            road = "#FFFFFF",
+            minorRoad = "#E8E2DC",
+            boundary = "#AA9D94",
+            text = "#625A55",
+            waterText = "#687E84",
+            textHalo = "#FAF8F5",
+        )
+    }
+
+    style.layers.forEach { layer ->
+        runCatching {
+            val id = layer.id.lowercase()
+            if (isMapNoiseLayer(id)) {
+                layer.setProperties(visibility(Property.NONE))
+                return@runCatching
+            }
+
+            if (id.contains("highway_path")) {
+                layer.minZoom = maxOf(layer.minZoom, 15f)
+            }
+
+            when (layer) {
+                is BackgroundLayer -> layer.setProperties(backgroundColor(palette.background))
+                is FillLayer -> when {
+                    id == "water" || id.startsWith("water_") -> layer.setProperties(
+                        fillColor(palette.water),
+                        fillOutlineColor(palette.waterLine),
+                    )
+                    id == "park" || id.contains("landcover_wood") || id.contains("landuse_park") -> {
+                        layer.setProperties(fillColor(palette.park))
+                    }
+                    id.contains("building") -> layer.setProperties(
+                        fillColor(palette.building),
+                        fillOutlineColor(palette.roadCasing),
+                    )
+                    id.contains("residential") -> layer.setProperties(fillColor(palette.residential))
+                }
+                is LineLayer -> when {
+                    id.contains("waterway") -> layer.setProperties(lineColor(palette.waterLine))
+                    id.contains("boundary") -> layer.setProperties(lineColor(palette.boundary))
+                    id.contains("highway") || id.contains("road") || id.contains("bridge") || id.contains("tunnel") -> {
+                        val color = when {
+                            id.contains("casing") -> palette.roadCasing
+                            id.contains("inner") || id.contains("motorway") || id.contains("major") -> palette.road
+                            else -> palette.minorRoad
+                        }
+                        layer.setProperties(lineColor(color))
+                    }
+                }
+                is SymbolLayer -> layer.setProperties(
+                    textColor(if (id.contains("water")) palette.waterText else palette.text),
+                    textHaloColor(palette.textHalo),
+                    textHaloWidth(1.2f),
+                )
+            }
+        }
+    }
+}
+
+private fun isMapNoiseLayer(id: String): Boolean {
+    val segments = id.split('-', '_', '.')
+    if (segments.any { it == "poi" || it == "housenumber" || it == "oneway" }) return true
+    return mapNoiseLayerPhrases.any(id::contains)
+}
+
+private val mapNoiseLayerPhrases = listOf(
+    "house-number",
+    "house_number",
+    "transit_stop",
+    "transit-stop",
+    "bus_stop",
+    "bus-stop",
+    "ferry_terminal",
+    "ferry-terminal",
+    "aerodrome_label",
+    "aerodrome-label",
+    "airport_label",
+    "airport-label",
+)

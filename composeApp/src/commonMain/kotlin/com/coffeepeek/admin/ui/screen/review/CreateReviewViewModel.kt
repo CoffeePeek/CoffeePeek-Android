@@ -18,9 +18,9 @@ import kotlinx.coroutines.launch
 data class CreateReviewUiState(
     val header: String = "",
     val comment: String = "",
-    val placeRating: Int = 5,
-    val serviceRating: Int = 5,
-    val coffeeRating: Int = 5,
+    val placeRating: Int = 4,
+    val serviceRating: Int = 4,
+    val coffeeRating: Int = 4,
     val photos: List<PickedImage> = emptyList(),
     val isSubmitting: Boolean = false,
     val headerError: String? = null,
@@ -62,8 +62,9 @@ class CreateReviewViewModel(
         }
     }
 
-    fun submit() {
+    fun submit(onSuccess: () -> Unit = { Navigator.popBack() }) {
         val s = _state.value
+        if (s.isSubmitting) return
         val headerError = validateReviewHeader(s.header)
         val commentError = validateReviewComment(s.comment)
         if (headerError != null || commentError != null) {
@@ -91,7 +92,7 @@ class CreateReviewViewModel(
             ).onSuccess {
                 ReviewSync.notifyChanged(shopId)
                 _state.update { it.copy(isSubmitting = false) }
-                Navigator.popBack()
+                onSuccess()
             }.onFailure { e ->
                 _state.update { it.copy(isSubmitting = false, error = e.message) }
             }

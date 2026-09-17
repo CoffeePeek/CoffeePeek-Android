@@ -7,4 +7,5 @@ interface PhotoRepository {
     suspend fun uploadAvatar(photo: PendingPhotoUpload): Result<UploadedPhotoMeta>
     suspend fun uploadShopPhotos(photos: List<PendingPhotoUpload>): Result<List<UploadedPhotoMeta>>
     suspend fun uploadMenuPhotos(photos: List<PendingPhotoUpload>): Result<List<UploadedPhotoMeta>>
+    suspend fun uploadRoasterPhotos(photos: List<PendingPhotoUpload>): Result<List<UploadedPhotoMeta>>
 }

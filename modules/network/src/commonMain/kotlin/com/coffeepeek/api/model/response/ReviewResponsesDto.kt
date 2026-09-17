@@ -24,3 +24,9 @@ data class GetReviewsByUserIdResponseDto(
 data class CreateEntityResponseDto(
     @SerialName("entityId") val entityId: String? = null,
 ) : DataResponse()
+
+@Serializable
+data class ReviewHelpfulResponseDto(
+    @SerialName("isHelpful") val isHelpful: Boolean = false,
+    @SerialName("helpfulCount") val helpfulCount: Int = 0,
+) : DataResponse()

@@ -29,7 +29,6 @@
 
 Опциональные (прилетят в `BuildConfig` при сборке):
 
-- `MAPKIT_API_KEY`
 - `GOOGLE_WEB_CLIENT_ID`
 
 ## Как получить `FIREBASE_SERVICE_ACCOUNT_JSON`

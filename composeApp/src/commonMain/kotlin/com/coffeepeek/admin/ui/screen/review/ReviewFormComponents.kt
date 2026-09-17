@@ -2,6 +2,8 @@ package com.coffeepeek.admin.ui.screen.review
 
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,9 +11,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -21,9 +25,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.component.ReviewFormField
+import com.coffeepeek.admin.ui.component.ReviewTextInput
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 
@@ -33,15 +40,15 @@ fun ReviewHeaderField(
     onChange: (String) -> Unit,
     error: String? = null,
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onChange,
-        modifier = Modifier.fillMaxWidth(),
-        label = { Text("Заголовок") },
-        singleLine = true,
-        isError = error != null,
-        supportingText = error?.let { { Text(it) } },
-    )
+    ReviewFormField(label = "Заголовок", error = error) {
+        ReviewTextInput(
+            value = value,
+            onValueChange = onChange,
+            placeholder = "Коротко о впечатлении",
+            isError = error != null,
+            singleLine = true,
+        )
+    }
 }
 
 @Composable
@@ -50,14 +57,16 @@ fun ReviewCommentField(
     onChange: (String) -> Unit,
     error: String? = null,
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onChange,
-        modifier = Modifier.fillMaxWidth().height(140.dp),
-        label = { Text("Текст отзыва") },
-        isError = error != null,
-        supportingText = error?.let { { Text(it) } },
-    )
+    ReviewFormField(label = "Описание", error = error) {
+        ReviewTextInput(
+            value = value,
+            onValueChange = onChange,
+            placeholder = "Расскажите о кофе, сервисе и атмосфере",
+            isError = error != null,
+            singleLine = false,
+            modifier = Modifier.heightIn(min = 80.dp),
+        )
+    }
 }
 
 @Composable

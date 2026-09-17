@@ -12,4 +12,6 @@ class CoffeePeekRepo(httpClient: CoffeePeekClient) {
     val photoApiService = com.coffeepeek.api.service.PhotoApiService(client, httpClient.uploadClient)
     val reviewApiService = com.coffeepeek.api.service.ReviewApiService(client)
     val checkInApiService = com.coffeepeek.api.service.CheckInApiService(client)
+    val shopIssueReportApiService = com.coffeepeek.api.service.ShopIssueReportApiService(client)
+    val roasterApiService = com.coffeepeek.api.service.RoasterApiService(client)
 }

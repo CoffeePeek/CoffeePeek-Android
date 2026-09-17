@@ -28,10 +28,11 @@ data class CoffeeShopDetails(
     val existingReviewId: String? = null,
     val photos: List<String> = emptyList(),
     val reviews: List<Review> = emptyList(),
+    val userCheckIns: List<CheckIn> = emptyList(),
     val contact: ShopContact? = null,
     val brewMethods: List<String> = emptyList(),
     val coffeeBeans: List<String> = emptyList(),
-    val roasters: List<String> = emptyList(),
+    val roasters: List<CatalogItem> = emptyList(),
     val equipment: List<String> = emptyList(),
     val schedules: List<ShopSchedule> = emptyList(),
     val menu: ShopMenu? = null,
@@ -89,12 +90,20 @@ data class ScheduleInterval(
 data class Review(
     val id: String,
     val shopId: String = "",
+    val userId: String = "",
     val username: String,
     val header: String,
     val comment: String,
     val rating: ReviewRating,
     val createdAt: String,
     val photoUrls: List<String> = emptyList(),
+    val helpfulCount: Int = 0,
+    val isHelpfulByCurrentUser: Boolean = false,
+)
+
+data class HelpfulVote(
+    val isHelpful: Boolean,
+    val helpfulCount: Int,
 )
 
 data class ReviewRating(
@@ -140,6 +149,32 @@ data class MapShop(
     val latitude: Double,
     val longitude: Double,
     val type: String = CoffeeShopType.COFFEE_BAR,
+    val primaryZoneId: String? = null,
+)
+
+data class MapCluster(
+    val id: String,
+    val latitude: Double,
+    val longitude: Double,
+    val count: Int,
+    val bounds: MapBounds,
+)
+
+data class MapCoffeeZone(
+    val id: String,
+    val name: String,
+    val description: String,
+    val latitude: Double,
+    val longitude: Double,
+    val radiusMeters: Double,
+    val shopCount: Int,
+)
+
+data class MapContent(
+    val shops: List<MapShop> = emptyList(),
+    val clusters: List<MapCluster> = emptyList(),
+    val zones: List<MapCoffeeZone> = emptyList(),
+    val isTruncated: Boolean = false,
 )
 
 object CoffeeShopType {

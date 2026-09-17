@@ -1,18 +1,23 @@
 package com.coffeepeek.admin.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -107,6 +112,7 @@ fun PriceBeansRow(
 /**
  * Discrete price filter: null/0 = any, 1–3 = BYN tiers (как в макете).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PriceBeanSlider(
     selected: Int?,
@@ -114,34 +120,32 @@ fun PriceBeanSlider(
     modifier: Modifier = Modifier,
     title: String = "Цена",
     showTitle: Boolean = true,
+    showHint: Boolean = true,
 ) {
     val value = (selected ?: 0).coerceIn(0, MAX_PRICE_LEVEL).toFloat()
     val filled = (selected ?: 0).coerceIn(0, MAX_PRICE_LEVEL)
-    val iconWidth = 18.dp
+    val iconWidth = 14.dp
     val hint = priceLevelHint(selected)
+    val sliderColors = SliderDefaults.colors(
+        thumbColor = CpColor.Primary,
+        activeTrackColor = CpColor.Primary,
+        inactiveTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+    )
+    val interactionSource = remember { MutableInteractionSource() }
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {
         if (showTitle) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                if (filled > 0) {
-                    Text(
-                        text = " $filled",
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = CpColor.Primary,
-                    )
-                }
-            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
         }
 
-        if (hint != null) {
+        if (showHint && hint != null) {
             Text(
                 text = hint,
                 style = MaterialTheme.typography.bodySmall,
@@ -157,26 +161,44 @@ fun PriceBeanSlider(
             },
             valueRange = 0f..MAX_PRICE_LEVEL.toFloat(),
             steps = MAX_PRICE_LEVEL - 1,
-            colors = SliderDefaults.colors(
-                thumbColor = CpColor.Primary,
-                activeTrackColor = CpColor.Primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-            ),
+            colors = sliderColors,
+            interactionSource = interactionSource,
+            thumb = {
+                SliderDefaults.Thumb(
+                    interactionSource = interactionSource,
+                    colors = sliderColors,
+                    thumbSize = DpSize(width = 3.dp, height = 32.dp),
+                )
+            },
+            track = { sliderState ->
+                SliderDefaults.Track(
+                    sliderState = sliderState,
+                    modifier = Modifier.height(6.dp),
+                    colors = sliderColors,
+                )
+            },
         )
 
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+                .height(iconWidth / BYN_ICON_ASPECT),
         ) {
+            val trackInset = 10.dp
+            val trackWidth = (maxWidth - trackInset * 2).coerceAtLeast(0.dp)
+            val scaledIconWidth = iconWidth * BYN_ICON_SCALE
+
             repeat(MAX_PRICE_LEVEL) { index ->
                 val tier = index + 1
                 val isActive = filled == tier
+                val iconGap = 1.dp
+                val groupWidth = scaledIconWidth * tier + iconGap * (tier - 1)
+                val tickCenter = trackInset + trackWidth * (tier.toFloat() / MAX_PRICE_LEVEL)
+                val x = (tickCenter - groupWidth / 2).coerceIn(0.dp, maxWidth - groupWidth)
+
                 Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.offset(x = x),
+                    horizontalArrangement = Arrangement.spacedBy(iconGap),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     repeat(tier) {
@@ -195,9 +217,16 @@ fun PriceBeanSlider(
     }
 }
 
-private fun priceLevelHint(selected: Int?): String? = when (selected) {
-    1 -> "Капучино < 8"
-    2 -> "Капучино ≈ 8"
-    3 -> "Капучино > 8"
+fun priceLevelHint(selected: Int?): String? = when (selected) {
+    1 -> "До 8 BYN"
+    2 -> "Около 8 BYN"
+    3 -> "Больше 8 BYN"
+    else -> null
+}
+
+fun priceLevelValue(selected: Int?): String? = when (selected) {
+    1 -> "< 8 BYN"
+    2 -> "8 BYN"
+    3 -> "> 8 BYN"
     else -> null
 }

@@ -1,11 +1,14 @@
 package com.coffeepeek.admin.ui.screen.profile
 
 import com.coffeepeek.admin.auth.GoogleAuth
+import com.coffeepeek.admin.settings.CityPreference
 import com.coffeepeek.admin.theme.ThemeManager
 import com.coffeepeek.admin.theme.ThemeMode
+import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.UserProfile
 import com.coffeepeek.domain.repository.AuthRepository
 import com.coffeepeek.domain.repository.SessionRepository
+import com.coffeepeek.domain.repository.ShopRepository
 import com.coffeepeek.domain.repository.UserRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +23,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class ProfileUiState(
+    val isLoggedIn: Boolean = false,
     val email: String = "",
     val displayName: String = "",
     val about: String? = null,
@@ -41,6 +45,8 @@ class ProfileViewModel(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
     private val sessionRepository: SessionRepository,
+    private val shopRepository: ShopRepository,
+    private val cityPreference: CityPreference,
 ) {
     private val workScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -48,12 +54,16 @@ class ProfileViewModel(
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     val themeMode: StateFlow<ThemeMode> = ThemeManager.themeMode
+    private val _cities = MutableStateFlow<List<City>>(emptyList())
+    val cities: StateFlow<List<City>> = _cities.asStateFlow()
+    val selectedCityId: StateFlow<String?> = cityPreference.selectedCityId
 
     private var loadedForUserId: String? = null
 
     init {
         observeProfileCache()
         observeSessionChanges()
+        loadCities()
     }
 
     fun refreshProfile() {
@@ -94,6 +104,11 @@ class ProfileViewModel(
         ThemeManager.setTheme(mode)
     }
 
+    fun setCity(cityId: String) {
+        if (_cities.value.none { it.id == cityId }) return
+        cityPreference.select(cityId)
+    }
+
     fun logout() {
         resetProfileState()
         workScope.launch {
@@ -109,6 +124,16 @@ class ProfileViewModel(
                     applyProfile(profile)
                 }
             }
+        }
+    }
+
+    private fun loadCities() {
+        workScope.launch {
+            shopRepository.getCatalogs()
+                .onSuccess { catalogs ->
+                    _cities.value = catalogs.cities
+                    cityPreference.resolve(catalogs.cities)
+                }
         }
     }
 
@@ -128,8 +153,8 @@ class ProfileViewModel(
                     } else if (userId != loadedForUserId) {
                         if (loadedForUserId != null) {
                             resetProfileState()
-                            _uiState.value = ProfileUiState(isLoading = true)
                         }
+                        _uiState.update { it.copy(isLoggedIn = true, isLoading = true) }
                         loadedForUserId = userId
                         if (userRepository.observeProfile().value == null) {
                             refreshProfile()
@@ -142,6 +167,7 @@ class ProfileViewModel(
     private fun applyProfile(profile: UserProfile) {
         _uiState.update {
             it.copy(
+                isLoggedIn = true,
                 email = profile.email,
                 displayName = profile.userName,
                 about = profile.about,

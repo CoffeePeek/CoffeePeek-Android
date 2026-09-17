@@ -11,12 +11,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.icons.CpIcons
-import com.coffeepeek.admin.utils.CpImage
 
 @Composable
 fun FullScreenImageDialog(
@@ -34,8 +34,8 @@ fun FullScreenImageDialog(
                 .clickable(onClick = onDismiss),
             contentAlignment = Alignment.Center,
         ) {
-            CpImage(
-                data = imageUrl,
+            CoffeeShopImage(
+                imageUrl = imageUrl,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit,
             )
@@ -48,7 +48,7 @@ fun FullScreenImageDialog(
                 Icon(
                     imageVector = CpIcons.Close,
                     contentDescription = "Закрыть",
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = Color.White,
                 )
             }
         }

@@ -13,6 +13,8 @@ data class CreateCheckInReq(
     @SerialName("isPublic") val isPublic: Boolean,
     @SerialName("visitedAt") val visitedAt: String,
     @EncodeDefault(EncodeDefault.Mode.NEVER)
+    @SerialName("header") val header: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
     @SerialName("note") val note: String? = null,
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     @SerialName("photos") val photos: List<UploadedPhotoReq>? = null,

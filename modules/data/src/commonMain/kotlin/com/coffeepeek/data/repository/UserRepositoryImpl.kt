@@ -28,6 +28,7 @@ class UserRepositoryImpl(
     override fun observeProfile(): StateFlow<UserProfile?> = _profile.asStateFlow()
 
     private var cachedForUserId: String? = null
+    private val publicAvatarCache = mutableMapOf<String, String?>()
 
     init {
         scope.launch {
@@ -56,6 +57,16 @@ class UserRepositoryImpl(
     override suspend fun getMe(): Result<UserProfile> {
         _profile.value?.let { return Result.success(it) }
         return refreshProfile()
+    }
+
+    override suspend fun getPublicAvatarUrl(userId: String): Result<String?> {
+        if (userId.isBlank()) return Result.success(null)
+        if (publicAvatarCache.containsKey(userId)) {
+            return Result.success(publicAvatarCache[userId])
+        }
+        return userApiService.getUser(userId).map { profile ->
+            profile.avatarUrl.also { publicAvatarCache[userId] = it }
+        }
     }
 
     override suspend fun updateUsername(username: String): Result<Unit> =

@@ -11,6 +11,8 @@ interface UserRepository {
 
     suspend fun getMe(): Result<UserProfile>
 
+    suspend fun getPublicAvatarUrl(userId: String): Result<String?>
+
     suspend fun updateUsername(username: String): Result<Unit>
 
     suspend fun updateAbout(about: String): Result<Unit>

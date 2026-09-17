@@ -21,11 +21,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -36,19 +39,17 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,11 +59,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
+import com.coffeepeek.admin.ui.component.priceLevelValue
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
@@ -71,7 +78,6 @@ import com.coffeepeek.admin.utils.MAX_MENU_PHOTOS
 import com.coffeepeek.admin.utils.MAX_SHOP_PHOTOS
 import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.admin.location.LocationPermissionEffect
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.layout.ContentScale
 import com.coffeepeek.admin.utils.CpImage
@@ -85,19 +91,22 @@ import com.coffeepeek.admin.di.platformViewModel
 @Composable
 fun AddShopScreen(vm: AddShopViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
-    var locationPermissionRequestKey by remember { mutableStateOf(1) }
-    var forceMyLocation by remember { mutableStateOf(false) }
+
+    if (state.isSuccess) {
+        AddShopSuccessScreen(
+            name = state.name.trim().ifBlank { "Кофейня" },
+            cityName = state.selectedCity?.name,
+            address = state.address.trim(),
+            coverPhoto = state.photos.firstOrNull()?.bytes,
+            onGoHome = vm::onSuccessDismiss,
+        )
+        return
+    }
 
     LocationPermissionEffect(
-        requestKey = locationPermissionRequestKey,
-        onGranted = {
-            vm.fillAddressFromCurrentLocation(force = forceMyLocation)
-            forceMyLocation = false
-        },
-        onDenied = {
-            forceMyLocation = false
-            vm.onLocationPermissionDenied()
-        },
+        requestKey = 1,
+        onGranted = { vm.fillAddressFromCurrentLocation(force = false) },
+        onDenied = vm::onLocationPermissionDenied,
     )
 
     if (state.showLocationPicker) {
@@ -105,30 +114,6 @@ fun AddShopScreen(vm: AddShopViewModel = platformViewModel()) {
             initialPoint = state.selectedGeoPoint,
             onConfirm = vm::onLocationPicked,
             onDismiss = vm::dismissLocationPicker,
-        )
-    }
-
-    // Диалог успеха
-    if (state.isSuccess) {
-        AlertDialog(
-            onDismissRequest = vm::onSuccessDismiss,
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text("Заявка отправлена!", style = MaterialTheme.typography.headlineSmall) },
-            text = {
-                Text(
-                    "Кофейня отправлена на модерацию. После проверки она появится в ленте.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = vm::onSuccessDismiss,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(CpDimens.buttonRadius),
-                ) { Text("Отлично!") }
-            },
-            shape = RoundedCornerShape(CpDimens.radius2xl),
         )
     }
 
@@ -148,49 +133,21 @@ fun AddShopScreen(vm: AddShopViewModel = platformViewModel()) {
 
     Scaffold(
         topBar = {
-            Column {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = when (state.currentStep) {
-                                AddShopStep.BASIC    -> "Основное"
-                                AddShopStep.PHOTOS   -> "Фото"
-                                AddShopStep.SCHEDULE -> "Расписание"
-                                AddShopStep.CONTACTS -> "Контакты"
-                                AddShopStep.FEATURES -> "Особенности"
-                            },
-                            style = MaterialTheme.typography.titleLarge,
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = {
-                            if (state.currentStep == AddShopStep.BASIC) Navigator.popBack()
-                            else vm.prevStep()
-                        }) {
-                            Icon(CpIcons.Back, contentDescription = "Назад")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                    ),
-                )
-                // Прогресс-бар
-                val progress = when (state.currentStep) {
-                    AddShopStep.BASIC    -> 0.2f
-                    AddShopStep.PHOTOS   -> 0.4f
-                    AddShopStep.SCHEDULE -> 0.6f
-                    AddShopStep.CONTACTS -> 0.8f
-                    AddShopStep.FEATURES -> 1.0f
-                }
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                )
-            }
+            AddShopHeader(
+                title = when (state.currentStep) {
+                    AddShopStep.BASIC    -> "Основная информация"
+                    AddShopStep.CONTACTS -> "Контакты"
+                    AddShopStep.PHOTOS   -> "Фотографии"
+                    AddShopStep.FEATURES -> "Оборудование"
+                    AddShopStep.SCHEDULE -> "Расписание"
+                },
+                currentIndex = state.currentStep.ordinal,
+                total = AddShopStep.entries.size,
+                onBack = {
+                    if (state.currentStep == AddShopStep.BASIC) Navigator.popBack()
+                    else vm.prevStep()
+                },
+            )
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -237,35 +194,31 @@ fun AddShopScreen(vm: AddShopViewModel = platformViewModel()) {
                     .padding(CpDimens.spacing4),
             ) {
                 when (step) {
-                    AddShopStep.BASIC    -> StepBasic(
-                        state = state,
-                        vm = vm,
-                        onUseMyLocation = {
-                            forceMyLocation = true
-                            locationPermissionRequestKey += 1
-                        },
-                    )
+                    AddShopStep.BASIC    -> StepBasic(state = state, vm = vm)
+                    AddShopStep.CONTACTS -> StepContacts(state, vm)
                     AddShopStep.PHOTOS   -> StepPhotos(
                         state = state,
                         vm = vm,
                         photoPicker = photoPicker,
                         isPhotoLoading = isPhotoLoading,
                     )
-                    AddShopStep.SCHEDULE -> StepSchedule(state, vm)
-                    AddShopStep.CONTACTS -> StepContacts(state, vm)
                     AddShopStep.FEATURES -> StepFeatures(state, vm)
+                    AddShopStep.SCHEDULE -> StepSchedule(state, vm)
                 }
 
                 Spacer(Modifier.height(CpDimens.spacing6))
 
                 AppButton(
                     text = when (step) {
-                        AddShopStep.FEATURES -> "Отправить на модерацию"
-                        else -> "Продолжить"
+                        AddShopStep.SCHEDULE -> "Отправить на модерацию"
+                        else -> "Далее"
                     },
                     onClick = vm::nextStep,
-                    enabled = !state.isSubmitting &&
-                        (step != AddShopStep.BASIC || state.step1Valid),
+                    enabled = !state.isSubmitting && when (step) {
+                        AddShopStep.BASIC -> state.step1Valid
+                        AddShopStep.CONTACTS -> state.contactsStepValid
+                        else -> true
+                    },
                 )
 
                 if (state.isSubmitting) {
@@ -284,24 +237,118 @@ fun AddShopScreen(vm: AddShopViewModel = platformViewModel()) {
     }
 }
 
+@Composable
+private fun AddShopHeader(
+    title: String,
+    currentIndex: Int,
+    total: Int,
+    onBack: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
+            .padding(horizontal = CpDimens.spacing5, vertical = CpDimens.spacing4),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(36.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .clickable(onClick = onBack),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = CpIcons.ChevronLeft,
+                    contentDescription = "Назад",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(horizontal = 44.dp),
+            )
+        }
+        Spacer(Modifier.height(CpDimens.spacing4))
+        AddShopStepDots(
+            currentIndex = currentIndex,
+            total = total,
+        )
+    }
+}
+
+@Composable
+private fun AddShopStepDots(
+    currentIndex: Int,
+    total: Int,
+) {
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(total) { index ->
+            val active = index == currentIndex
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 2.dp)
+                    .height(10.dp)
+                    .width(if (active) 28.dp else 10.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (active) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
+                    ),
+            )
+        }
+    }
+}
+
 // ── Шаг 1: Основное ───────────────────────────────────────────────────────────
 
 @Composable
 private fun StepBasic(
     state: AddShopUiState,
     vm: AddShopViewModel,
-    onUseMyLocation: () -> Unit,
 ) {
     StepLegend(requiredHint = "Поля со * обязательны для заполнения")
     Spacer(Modifier.height(CpDimens.spacing3))
 
-    FormField(label = "Название", required = true) {
+    FormField(label = "Название кофейни", required = true) {
         AppOutlinedField(
             value = state.name,
             onValueChange = vm::onNameChange,
-            placeholder = "Например: Rocket Coffee",
+            placeholder = "Например, Surf Coffee",
             errorText = if (state.name.isNotEmpty()) state.nameError else null,
             counter = "${state.name.length}/55",
+        )
+    }
+
+    Spacer(Modifier.height(CpDimens.spacing4))
+
+    FormField(label = "Описание", optional = true) {
+        AppOutlinedField(
+            value = state.description,
+            onValueChange = vm::onDescriptionChange,
+            placeholder = "Расскажите о концепции, атмосфере и фишках кофейни…",
+            minLines = 3,
+            maxLines = 6,
         )
     }
 
@@ -327,53 +374,42 @@ private fun StepBasic(
         AppOutlinedField(
             value = state.address,
             onValueChange = vm::onAddressChange,
-            placeholder = "пр. Независимости, 15",
+            placeholder = "Улица, дом, корпус",
             errorText = if (state.address.isNotEmpty()) state.addressError else null,
-            minLines = 2,
-            maxLines = 4,
+            leadingIcon = CpIcons.Navigation,
             trailingContent = {
-                if (state.isResolvingAddress) {
-                    CoffeePeekLoader(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                    )
+                Row(
+                    modifier = Modifier.padding(end = CpDimens.spacing1),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (state.isResolvingAddress) {
+                        CoffeePeekLoader(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        Spacer(Modifier.width(CpDimens.spacing1))
+                    }
+                    FilledIconButton(
+                        onClick = vm::openLocationPicker,
+                        enabled = !state.isResolvingAddress,
+                        modifier = Modifier.size(40.dp),
+                        shape = RoundedCornerShape(CpDimens.radiusSm),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+                        ),
+                    ) {
+                        Icon(
+                            imageVector = CpIcons.Map,
+                            contentDescription = "Выбрать на карте",
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
             },
         )
-        Spacer(Modifier.height(CpDimens.spacing2))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-        ) {
-            OutlinedButton(
-                onClick = onUseMyLocation,
-                enabled = !state.isResolvingAddress,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(CpDimens.buttonRadius),
-            ) {
-                Icon(
-                    CpIcons.MyLocation,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text("Моё место", style = MaterialTheme.typography.labelLarge)
-            }
-            OutlinedButton(
-                onClick = vm::openLocationPicker,
-                enabled = !state.isResolvingAddress,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(CpDimens.buttonRadius),
-            ) {
-                Icon(
-                    CpIcons.Map,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text("На карте", style = MaterialTheme.typography.labelLarge)
-            }
-        }
         state.locationHint?.let { hint ->
             Spacer(Modifier.height(CpDimens.spacing2))
             Text(
@@ -386,24 +422,13 @@ private fun StepBasic(
 
     Spacer(Modifier.height(CpDimens.spacing4))
 
-    FormField(label = "Описание", optional = true) {
-        AppOutlinedField(
-            value = state.description,
-            onValueChange = vm::onDescriptionChange,
-            placeholder = "Расскажите о заведении…",
-            minLines = 3,
-            maxLines = 6,
-        )
-    }
-
-    Spacer(Modifier.height(CpDimens.spacing4))
-
-    FormField(label = "Ценовой диапазон", optional = true) {
-        PriceBeanSlider(
-            selected = state.priceRange,
-            onSelect = vm::onPriceRangeSelect,
-        )
-    }
+    val selectedPrice = priceLevelValue(state.priceRange)
+    PriceBeanSlider(
+        selected = state.priceRange,
+        onSelect = vm::onPriceRangeSelect,
+        title = selectedPrice?.let { "Цена (капучино за $it)" } ?: "Цена",
+        showHint = false,
+    )
 }
 
 // ── Шаг 2: Фото ───────────────────────────────────────────────────────────────
@@ -627,7 +652,7 @@ private fun StepSchedule(state: AddShopUiState, vm: AddShopViewModel) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Switch(
+        ScheduleSwitch(
             checked = state.usePerDaySchedule,
             onCheckedChange = vm::setUsePerDaySchedule,
         )
@@ -657,7 +682,7 @@ private fun StepSchedule(state: AddShopUiState, vm: AddShopViewModel) {
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Spacer(Modifier.width(CpDimens.spacing1))
-                                Switch(
+                                ScheduleSwitch(
                                     checked = !day.isClosed,
                                     onCheckedChange = { open ->
                                         vm.updateSchedule(day.dayOfWeek) { it.copy(isClosed = !open) }
@@ -686,6 +711,26 @@ private fun StepSchedule(state: AddShopUiState, vm: AddShopViewModel) {
             }
         }
     }
+}
+
+@Composable
+private fun ScheduleSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    val isLight = MaterialTheme.colorScheme.background.luminance() > 0.5f
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        colors = SwitchDefaults.colors(
+            checkedThumbColor = if (isLight) CpColor.SwitchCheckedThumbLight else CpColor.SwitchCheckedThumbDark,
+            checkedTrackColor = if (isLight) CpColor.GoldWarm else CpColor.SwitchCheckedTrackDark,
+            checkedBorderColor = if (isLight) CpColor.SwitchCheckedThumbLight else CpColor.SwitchCheckedThumbDark,
+            uncheckedThumbColor = if (isLight) CpColor.LightTextSecondary else CpColor.DarkTextSecondary,
+            uncheckedTrackColor = if (isLight) CpColor.LightBorderHover else CpColor.DarkBorderHover,
+            uncheckedBorderColor = if (isLight) CpColor.LightTextSecondary else CpColor.DarkTextSecondary,
+        ),
+    )
 }
 
 @Composable
@@ -730,13 +775,13 @@ private fun StepLegend(
     when {
         requiredHint != null -> Text(
             text = requiredHint,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.onSurface,
         )
         optional -> Text(
             text = "Необязательно — можно пропустить",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = addShopAccentTextColor(),
             modifier = Modifier.padding(bottom = CpDimens.spacing1),
         )
     }
@@ -754,13 +799,35 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
         modifier = Modifier.padding(bottom = CpDimens.spacing4),
     )
 
-    FormField(label = "Телефон", optional = true) {
+    FormField(label = "Номер телефона", optional = true) {
         AppOutlinedField(
             value = state.phone,
             onValueChange = vm::onPhoneChange,
-            placeholder = "+375 29 000 00 00",
+            placeholder = "+375",
             keyboardType = KeyboardType.Phone,
             errorText = if (state.phone.isNotEmpty()) state.phoneError else null,
+            leadingIcon = CpIcons.Phone,
+        )
+    }
+    Spacer(Modifier.height(CpDimens.spacing3))
+    FormField(label = "Instagram профиль", optional = true) {
+        AppOutlinedField(
+            value = state.instagram,
+            onValueChange = vm::onInstagramChange,
+            placeholder = "@",
+            errorText = if (state.instagram.isNotEmpty()) state.instagramError else null,
+            leadingIcon = CpIcons.Instagram,
+        )
+    }
+    Spacer(Modifier.height(CpDimens.spacing3))
+    FormField(label = "Веб-сайт", optional = true) {
+        AppOutlinedField(
+            value = state.website,
+            onValueChange = vm::onWebsiteChange,
+            placeholder = "https://mycoffee.by",
+            keyboardType = KeyboardType.Uri,
+            errorText = if (state.website.isNotEmpty()) state.websiteError else null,
+            leadingIcon = CpIcons.Globe,
         )
     }
     Spacer(Modifier.height(CpDimens.spacing3))
@@ -771,25 +838,7 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
             placeholder = "info@coffee.by",
             keyboardType = KeyboardType.Email,
             errorText = if (state.email.isNotEmpty()) state.emailError else null,
-        )
-    }
-    Spacer(Modifier.height(CpDimens.spacing3))
-    FormField(label = "Сайт", optional = true) {
-        AppOutlinedField(
-            value = state.website,
-            onValueChange = vm::onWebsiteChange,
-            placeholder = "https://coffee.by",
-            keyboardType = KeyboardType.Uri,
-            errorText = if (state.website.isNotEmpty()) state.websiteError else null,
-        )
-    }
-    Spacer(Modifier.height(CpDimens.spacing3))
-    FormField(label = "Instagram", optional = true) {
-        AppOutlinedField(
-            value = state.instagram,
-            onValueChange = vm::onInstagramChange,
-            placeholder = "@coffee_minsk",
-            errorText = if (state.instagram.isNotEmpty()) state.instagramError else null,
+            leadingIcon = CpIcons.Email,
         )
     }
 }
@@ -802,8 +851,8 @@ private fun StepFeatures(state: AddShopUiState, vm: AddShopViewModel) {
     StepLegend(optional = true)
     Text(
         text = "Выберите характеристики, которые описывают ваше заведение.",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+        color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.padding(bottom = CpDimens.spacing4),
     )
 
@@ -817,12 +866,29 @@ private fun StepFeatures(state: AddShopUiState, vm: AddShopViewModel) {
     }
     if (state.roasters.isNotEmpty()) {
         CatalogGroup("Обжарщики", state.roasters, state.selectedRoasterIds, vm::toggleRoaster)
-        Spacer(Modifier.height(CpDimens.spacing4))
     }
+    TextButton(
+        onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
+        colors = ButtonDefaults.textButtonColors(contentColor = addShopAccentTextColor()),
+    ) {
+        Icon(
+            imageVector = CpIcons.Add,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(CpDimens.spacing1))
+        Text(
+            "Нет нужного? Добавить обжарщика",
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+        )
+    }
+    Spacer(Modifier.height(CpDimens.spacing4))
     if (state.equipment.isNotEmpty()) {
         CatalogGroup("Оборудование", state.equipment, state.selectedEquipmentIds, vm::toggleEquipment)
     }
 }
+
+private const val CATALOG_VISIBLE_LIMIT = 4
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -831,20 +897,30 @@ private fun CatalogGroup(
     items: List<CatalogItem>,
     selected: Set<String>,
     onToggle: (String) -> Unit,
+    visibleLimit: Int = CATALOG_VISIBLE_LIMIT,
 ) {
+    var expanded by remember { mutableStateOf(false) }
+    val hiddenCount = (items.size - visibleLimit).coerceAtLeast(0)
+    val visibleItems = if (expanded || hiddenCount == 0) items else items.take(visibleLimit)
+
     Text(
         text = title,
-        style = MaterialTheme.typography.titleSmall,
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
         color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.padding(bottom = CpDimens.spacing2),
     )
     FlowRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-        items.forEach { item ->
+        visibleItems.forEach { item ->
             val isSelected = item.id in selected
             FilterChip(
                 selected = isSelected,
                 onClick = { onToggle(item.id) },
-                label = { Text(item.name, style = MaterialTheme.typography.labelMedium) },
+                label = {
+                    Text(
+                        item.name,
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                    )
+                },
                 leadingIcon = if (isSelected) {
                     { Icon(CpIcons.Check, null, modifier = Modifier.size(14.dp)) }
                 } else null,
@@ -853,7 +929,7 @@ private fun CatalogGroup(
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                     selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    labelColor = MaterialTheme.colorScheme.onSurface,
                 ),
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
@@ -865,7 +941,32 @@ private fun CatalogGroup(
             )
         }
     }
+    if (hiddenCount > 0) {
+        TextButton(
+            onClick = { expanded = !expanded },
+            colors = ButtonDefaults.textButtonColors(contentColor = addShopAccentTextColor()),
+        ) {
+            Icon(
+                imageVector = if (expanded) CpIcons.ChevronUp else CpIcons.ChevronDown,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(CpDimens.spacing1))
+            Text(
+                text = if (expanded) "Скрыть" else "Ещё $hiddenCount",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            )
+        }
+    }
 }
+
+@Composable
+private fun addShopAccentTextColor(): Color =
+    if (MaterialTheme.colorScheme.background.luminance() > 0.5f) {
+        CpColor.AccentTextLight
+    } else {
+        CpColor.AccentTextDark
+    }
 
 // ── Переиспользуемые компоненты ───────────────────────────────────────────────
 
@@ -877,7 +978,7 @@ private fun FormField(
     content: @Composable () -> Unit,
 ) {
     Row(
-        modifier = Modifier.padding(bottom = 6.dp, start = 4.dp),
+        modifier = Modifier.padding(bottom = CpDimens.spacing2),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {
@@ -908,13 +1009,14 @@ private fun AppOutlinedField(
     minLines: Int = 1,
     maxLines: Int = 1,
     keyboardType: KeyboardType = KeyboardType.Text,
+    leadingIcon: ImageVector? = null,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
-    Column {
+    Column(modifier = modifier) {
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(CpDimens.radiusMd),
             placeholder = {
                 Text(
@@ -928,6 +1030,15 @@ private fun AppOutlinedField(
             singleLine = maxLines <= 1,
             minLines = minLines,
             maxLines = maxLines,
+            leadingIcon = leadingIcon?.let { icon ->
+                {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
             trailingIcon = trailingContent?.let { content ->
                 { content() }
             },
@@ -994,6 +1105,7 @@ private fun CityDropdown(
     error: String? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val menuShape = RoundedCornerShape(CpDimens.selectRadius)
     Box {
         OutlinedTextField(
             value = selected?.name ?: "",
@@ -1010,13 +1122,13 @@ private fun CityDropdown(
             textStyle = MaterialTheme.typography.bodyLarge,
             trailingIcon = {
                 Icon(
-                    CpIcons.ChevronDown,
+                    CpIcons.ChevronUpDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
             isError = error != null,
-            shape = RoundedCornerShape(CpDimens.radiusMd),
+            shape = menuShape,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor   = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -1037,7 +1149,12 @@ private fun CityDropdown(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+            modifier = Modifier
+                .clip(menuShape)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, menuShape),
+            shape = menuShape,
+            containerColor = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
         ) {
             cities.forEach { city ->
                 DropdownMenuItem(

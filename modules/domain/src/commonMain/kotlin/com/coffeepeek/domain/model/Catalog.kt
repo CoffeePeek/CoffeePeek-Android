@@ -9,6 +9,7 @@ data class CatalogItem(
     val id: String,
     val name: String,
     val slug: String = "",
+    val photoUrl: String? = null,
 )
 
 data class ShopCatalogs(
@@ -84,14 +85,25 @@ data class UpdateReviewInput(
     val photos: List<PendingPhotoUpload> = emptyList(),
 )
 
+enum class ShopIssueCategory {
+    OutdatedMenu,
+    ShopClosed,
+    IncorrectAddress,
+    WrongOpeningHours,
+    IncorrectPhotos,
+    Other,
+}
+
 data class CreateCheckInInput(
     val shopId: String,
+    val header: String? = null,
     val note: String? = null,
     val isPublic: Boolean = true,
     val visitedAtIso: String,
     val placeRating: Int? = null,
     val serviceRating: Int? = null,
     val coffeeRating: Int? = null,
+    val photos: List<PendingPhotoUpload> = emptyList(),
 )
 
 data class CheckIn(
@@ -101,4 +113,7 @@ data class CheckIn(
     val note: String,
     val createdAt: String,
     val reviewId: String?,
+    val visitedAt: String = "",
+    val photoUrls: List<String> = emptyList(),
+    val rating: ReviewRating? = null,
 )

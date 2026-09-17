@@ -47,7 +47,10 @@ object AuthScreen {
         val emailError by vm.emailError.collectAsState()
         val passwordError by vm.passwordError.collectAsState()
 
-        AuthScreenScaffold(mascot = AuthMascot.Laptop) {
+        AuthScreenScaffold(
+            mascot = AuthMascot.Laptop,
+            onClose = Navigator::closeAuth,
+        ) {
             Text(
                 text = stringResource(Res.string.login_title),
                 style = MaterialTheme.typography.headlineMedium.copy(
@@ -133,7 +136,7 @@ object AuthScreen {
 
             AuthFooterRow(
                 onBack = null,
-                onSecondary = { Navigator.navigate(Navigator.Screen.Register) },
+                onSecondary = { Navigator.popThenNavigate(Navigator.Screen.Register) },
                 secondaryText = stringResource(Res.string.create_account),
             )
         }

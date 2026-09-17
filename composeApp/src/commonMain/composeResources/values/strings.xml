@@ -20,7 +20,7 @@
     <string name="error_enter_name">Введите имя!</string>
     <string name="error_enter_email">Введите email!</string>
     <string name="error_enter_password">Введите пароль!</string>
-    <string name="error_enter_password_length">Минимум 6 символов в пароле!</string>
+    <string name="error_enter_password_length">Пароль должен содержать как минимум 8 символов</string>
     <string name="error_term_of_user">Для завершения регистрации необходимо принять условия соглашения и политику конфиденциальности!</string>
     <string name="error_email_name">Введите email!</string>
     <string name="error_valid_email">Некорректный формат email!</string>
@@ -41,7 +41,7 @@
     <string name="register_success_subtitle">Мы отправили ссылку на %1$s. Перейдите по ссылке чтобы активировать аккаунт. Ссылка действует 10 минут.</string>
     <string name="go_to_login">На страницу входа</string>
 
-    <string name="profile_version">Версия приложения</string>
+    <string name="profile_version">Версия</string>
     <string name="retry">Попробовать снова</string>
     <string name="checkin_title">Отметить посещение</string>
     <string name="checkin_note_hint_private">Заметка (необязательно)</string>
@@ -50,6 +50,22 @@
     <string name="checkin_public_hint">Появится в ленте как отзыв — нужен комментарий</string>
     <string name="checkin_error_note_required">Для публичного чек-ина добавьте комментарий</string>
     <string name="checkin_submit">Сохранить чек-ин</string>
+    <string name="checkin_sheet_title">Чекин</string>
+    <string name="checkin_rating_coffee">Кофе</string>
+    <string name="checkin_rating_service">Сервис</string>
+    <string name="checkin_rating_atmosphere">Атмосф.</string>
+    <string name="checkin_date_label">Дата посещения</string>
+    <string name="checkin_note_label">Заметка (необязательно)</string>
+    <string name="checkin_note_placeholder">Расскажите о вашем визите…</string>
+    <string name="checkin_photos_label">Фото (необязательно)</string>
+    <string name="checkin_public_switch_title">Сделать публичным</string>
+    <string name="checkin_public_switch_hint">Ваш чекин станет отзывом — нужны заголовок и описание</string>
+    <string name="checkin_header_label">Заголовок</string>
+    <string name="checkin_header_placeholder">Кратко опишите впечатление</string>
+    <string name="checkin_description_label">Описание</string>
+    <string name="checkin_action">Чекин</string>
+    <string name="checkin_date_picker_confirm">Готово</string>
+    <string name="checkin_date_picker_dismiss">Отмена</string>
     <string name="error_invalid_phone">Некорректный формат телефона</string>
     <string name="error_invalid_url">Укажите ссылку с http:// или https://</string>
     <string name="error_invalid_instagram">Некорректный Instagram</string>

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Badge
@@ -57,11 +58,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.component.CoffeeShopImage
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CoffeePeekPullToRefresh
@@ -74,8 +77,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import com.coffeepeek.domain.model.CoffeeShop
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.maskot_with_magnifying_glass
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
 import org.jetbrains.compose.resources.painterResource
 import com.coffeepeek.admin.di.platformViewModel
 
@@ -117,7 +118,7 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                         .padding(top = CpDimens.spacing3, bottom = CpDimens.spacing2),
                 ) {
                     Text(
-                        text = "Кофейни",
+                        text = "Кофейни рядом",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
@@ -130,8 +131,10 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                         OutlinedTextField(
                             value = state.query,
                             onValueChange = vm::onQueryChange,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(CpDimens.inputRadius),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp),
+                            shape = RoundedCornerShape(CpDimens.radiusMd),
                             placeholder = {
                                 Text(
                                     "Поиск кофейни…",
@@ -146,14 +149,31 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             },
+                            trailingIcon = if (state.query.isNotEmpty()) {
+                                {
+                                    IconButton(onClick = { vm.onQueryChange("") }) {
+                                        Icon(
+                                            CpIcons.Close,
+                                            contentDescription = "Очистить поиск",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            } else {
+                                null
+                            },
                             singleLine = true,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = ImeAction.Search,
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onSearch = { focusManager.clearFocus() },
+                            ),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor   = MaterialTheme.colorScheme.surface,
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
                                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                                focusedBorderColor      = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor    = MaterialTheme.colorScheme.outline,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                             ),
                             textStyle = MaterialTheme.typography.bodyLarge,
                         )
@@ -179,8 +199,14 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                     }
                     Spacer(modifier = Modifier.height(CpDimens.spacing2))
                     FeedQuickFilterBar(
-                        quickMode = state.filters.quickMode,
-                        onQuickMode = vm::setQuickMode,
+                        openOnly = state.filters.openOnly,
+                        newOnly = state.filters.newOnly,
+                        visitedOnly = state.filters.visitedOnly,
+                        favoritesOnly = state.filters.favoritesOnly,
+                        onToggleOpen = vm::toggleOpenOnly,
+                        onToggleNew = vm::toggleNewOnly,
+                        onToggleVisited = vm::toggleVisitedOnly,
+                        onToggleFavorites = vm::toggleFavoritesOnly,
                         coffeeFocusId = state.filters.coffeeFocus,
                         onCoffeeFocusChange = { id ->
                             vm.setCoffeeFocus(
@@ -277,14 +303,39 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                                     modifier = Modifier.size(132.dp),
                                 )
                                 Spacer(Modifier.height(CpDimens.spacing3))
-                                Text(
-                                    "Ничего не найдено",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Spacer(Modifier.height(CpDimens.spacing2))
-                                TextButton(onClick = vm::clearFilters) {
-                                    Text("Сбросить фильтры")
+                                if (state.query.isNotBlank()) {
+                                    Text(
+                                        "Couldn't find a shop?",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    Spacer(Modifier.height(CpDimens.spacing2))
+                                    Text(
+                                        "Share your favorite shops with the community.",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Spacer(Modifier.height(CpDimens.spacing4))
+                                    Button(
+                                        onClick = { Navigator.navigate(Navigator.Screen.AddShop) },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                                        ),
+                                    ) {
+                                        Text("Submit shop")
+                                    }
+                                } else {
+                                    Text(
+                                        "Ничего не найдено",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Spacer(Modifier.height(CpDimens.spacing2))
+                                    TextButton(onClick = vm::clearFilters) {
+                                        Text("Сбросить фильтры")
+                                    }
                                 }
                             }
                         }
@@ -355,10 +406,11 @@ private fun ShopCard(
             ) {
                 val photoUrl = shop.photoUrl
                 if (!photoUrl.isNullOrBlank()) {
-                    KamelImage(
-                        resource = asyncPainterResource(photoUrl),
+                    CoffeeShopImage(
+                        imageUrl = photoUrl,
                         contentDescription = shop.title,
                         contentScale = ContentScale.Crop,
+                        placeholderLabelSize = 18.sp,
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else {
@@ -387,6 +439,35 @@ private fun ShopCard(
                         onClick = onToggleFavorite,
                         modifier = Modifier.padding(start = 8.dp),
                     )
+                }
+
+                if (shop.tags.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .fillMaxWidth()
+                            .padding(CpDimens.spacing3),
+                        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+                    ) {
+                        shop.tags.take(3).forEach { tag ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(CpDimens.radiusSm))
+                                    .background(CpColor.Primary.copy(alpha = 0.82f))
+                                    .widthIn(max = 104.dp)
+                                    .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
+                            ) {
+                                Text(
+                                    text = tag,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = CpColor.DarkTextOnPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -455,26 +536,6 @@ private fun ShopCard(
                         )
                     }
                 }
-
-                if (shop.tags.isNotEmpty()) {
-                    Spacer(Modifier.height(CpDimens.spacing2))
-                    Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1)) {
-                        shop.tags.take(3).forEach { tag ->
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(CpDimens.radiusSm))
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
-                                    .padding(horizontal = CpDimens.spacing2, vertical = 3.dp),
-                            ) {
-                                Text(
-                                    text = tag,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                )
-                            }
-                        }
-                    }
-                }
             }
         }
     }
@@ -515,8 +576,14 @@ private fun OpenStatusBadge() {
 
 @Composable
 private fun FeedQuickFilterBar(
-    quickMode: FeedQuickMode,
-    onQuickMode: (FeedQuickMode) -> Unit,
+    openOnly: Boolean,
+    newOnly: Boolean,
+    visitedOnly: Boolean,
+    favoritesOnly: Boolean,
+    onToggleOpen: () -> Unit,
+    onToggleNew: () -> Unit,
+    onToggleVisited: () -> Unit,
+    onToggleFavorites: () -> Unit,
     coffeeFocusId: String?,
     onCoffeeFocusChange: (String) -> Unit,
 ) {
@@ -528,33 +595,27 @@ private fun FeedQuickFilterBar(
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {
         DesignFilterChip(
-            label = "Все",
-            selected = quickMode == FeedQuickMode.ALL,
-            onClick = { onQuickMode(FeedQuickMode.ALL) },
-            leadingIcon = CpIcons.Grid,
-        )
-        DesignFilterChip(
             label = "Открыто",
-            selected = quickMode == FeedQuickMode.OPEN,
-            onClick = { onQuickMode(FeedQuickMode.OPEN) },
+            selected = openOnly,
+            onClick = onToggleOpen,
             leadingIcon = CpIcons.Time,
         )
         DesignFilterChip(
             label = "Новые",
-            selected = quickMode == FeedQuickMode.NEW,
-            onClick = { onQuickMode(FeedQuickMode.NEW) },
+            selected = newOnly,
+            onClick = onToggleNew,
             leadingIcon = CpIcons.Sparkle,
         )
         DesignFilterChip(
             label = "Уже был",
-            selected = quickMode == FeedQuickMode.VISITED,
-            onClick = { onQuickMode(FeedQuickMode.VISITED) },
+            selected = visitedOnly,
+            onClick = onToggleVisited,
             leadingIcon = CpIcons.CheckCircle,
         )
         DesignFilterChip(
             label = "Избранное",
-            selected = quickMode == FeedQuickMode.FAVORITES,
-            onClick = { onQuickMode(FeedQuickMode.FAVORITES) },
+            selected = favoritesOnly,
+            onClick = onToggleFavorites,
             leadingIcon = CpIcons.Favorite,
         )
 

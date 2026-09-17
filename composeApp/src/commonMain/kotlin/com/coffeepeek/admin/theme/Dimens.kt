@@ -54,6 +54,16 @@ object CpDimens {
     val cardRadius  = 16.dp
     val cardPadding = 24.dp
 
+    // ── Settings ─────────────────────────────────────────────────────────────
+    val settingsPagePadding      = 16.dp
+    val settingsSectionSpacing   = 16.dp
+    val settingsRowPaddingH      = 16.dp
+    val settingsRowPaddingV      = 12.dp
+    val settingsIconContainer    = 40.dp
+    val settingsIconSize         = 22.dp
+    val settingsIconRadius       = 12.dp
+    val settingsDividerStart     = 68.dp
+
     // ── Header ────────────────────────────────────────────────────────────────
     val headerHeight   = 64.dp
     val headerLogoSize = 40.dp
@@ -68,10 +78,8 @@ object CpDimens {
     val loaderDefault = 48.dp
     val loaderButton  = 20.dp
 
-    // ── Floating bottom nav ───────────────────────────────────────────────────
+    // ── Bottom navigation ─────────────────────────────────────────────────────
     val floatingNavBarHeight = 64.dp
-    val floatingNavHorizontalMargin = 28.dp
-    val floatingNavBottomMargin = 14.dp
-    /** Approximate clearance: bar + bottom margin (+ caller adds nav-bar inset). */
-    val floatingNavContentClearance = floatingNavBarHeight + floatingNavBottomMargin + spacing2
+    /** Panel height; the caller adds the system navigation inset. */
+    val floatingNavContentClearance = floatingNavBarHeight
 }

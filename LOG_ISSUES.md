@@ -147,7 +147,7 @@ if (!response.status.isSuccess()) {
 
 **Лог:** `Skipped 48 frames` / `Skipped 40 frames`, Davey ~721 ms сразу после запуска.
 
-**Причина:** параллельно уходят 6+ запросов (каталоги ×5 + лента), тяжёлая инициализация Compose + MapKit при первом открытии карты.
+**Причина:** параллельно уходят 6+ запросов (каталоги ×5 + лента), тяжёлая инициализация Compose и карты при первом открытии.
 
 **Исправление (постепенно):**
 - [ ] Отложить загрузку каталогов MapScreen до открытия вкладки «Карта».
@@ -172,19 +172,9 @@ if (!response.status.isSuccess()) {
 
 **Статус:** `OPEN`  
 
-Зависимость MapKit/других SDK тянет SLF4J без binding. На работу не влияет, засоряет лог.
+Одна из SDK-зависимостей тянет SLF4J без binding. На работу не влияет, засоряет лог.
 
 **Исправление:** `slf4j-nop` или `slf4j-android` в `androidMain` dependencies.
-
----
-
-### LOG-009 · Yandex MapKit: `Java object is already finalized`
-
-**Статус:** `OPEN`  
-
-Многократно после закрытия карты/диалогов. Возможна утечка lifecycle или ранний GC listener'ов в `CoffeeMap.android.kt`.
-
-**Исправление:** аудит `DisposableEffect`, не держать ссылки на `MapView` после dispose; проверить повторное создание карты при навигации.
 
 ---
 
@@ -212,9 +202,7 @@ if (!response.status.isSuccess()) {
 
 | ID | Сообщение | Комментарий |
 |----|-----------|-------------|
-| INFO-01 | `yandex.maps` Vulkan / locale / API key already set | Нормальные warning SDK |
 | INFO-02 | `TileDataSourceLayer::invalidateMemoryCache` | Смена темы карты |
-| INFO-03 | `PolylineImageAtlas` width not power of 2 | Внутренний warning MapKit |
 | INFO-04 | `VibratorInfo: Invalid frequency profile` | Драйвер устройства |
 | INFO-05 | `HWUI: Format: 4 doesn't support gainmap` | Декодирование JPEG аватара |
 | INFO-06 | Все остальные `CURL 200` | API в целом доступен, auth работает |

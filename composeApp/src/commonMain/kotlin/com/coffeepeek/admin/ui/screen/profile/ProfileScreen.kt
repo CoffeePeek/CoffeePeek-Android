@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,8 +25,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,28 +45,32 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.config.AppConfig
+import com.coffeepeek.admin.legal.LegalUrls
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
+import com.coffeepeek.admin.ui.component.SettingsIconBadge
+import com.coffeepeek.admin.ui.component.SettingsIconColors
+import com.coffeepeek.admin.ui.component.SettingsIconPalette
 import com.coffeepeek.admin.utils.CpImage
-import coffeepeek.composeapp.generated.resources.Res
-import coffeepeek.composeapp.generated.resources.profile_version
-import org.jetbrains.compose.resources.stringResource
+import com.coffeepeek.admin.utils.COFFEEPEEK_SHARE_TEXT
+import com.coffeepeek.admin.utils.OpenInBrowser
+import com.coffeepeek.admin.utils.ShareHelper
 import org.koin.compose.koinInject
 
 @Composable
 fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
     val state by vm.uiState.collectAsState()
     val themeMode by vm.themeMode.collectAsState()
+    val cities by vm.cities.collectAsState()
+    val selectedCityId by vm.selectedCityId.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     if (showLogoutDialog) {
@@ -140,95 +141,145 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
             }
 
             // ── Шапка ─────────────────────────────────────────────────────────
-            ProfileHeader(
-                state = state,
-                onEdit = { Navigator.navigate(Navigator.Screen.EditProfile) },
-            )
-
-            Spacer(Modifier.height(CpDimens.spacing4))
-
-            // ── Кофейни ───────────────────────────────────────────────────────
-            SettingsSection(title = "Кофейни") {
-                SettingsRow(
-                    icon = CpIcons.Add,
-                    label = "Добавить кофейню",
-                    iconTint = MaterialTheme.colorScheme.primary,
-                    iconBg = MaterialTheme.colorScheme.primaryContainer,
-                    onClick = { Navigator.navigate(Navigator.Screen.AddShop) },
+            if (state.isLoggedIn) {
+                ProfileHeader(
+                    state = state,
+                    onEdit = { Navigator.navigate(Navigator.Screen.EditProfile) },
+                )
+            } else {
+                GuestLoginHeader(
+                    onLogin = { Navigator.navigate(Navigator.Screen.Auth) },
+                    onRegister = { Navigator.navigate(Navigator.Screen.Register) },
                 )
             }
 
-            Spacer(Modifier.height(CpDimens.spacing3))
+            Spacer(Modifier.height(CpDimens.spacing4))
+
+            // ── Добавить ──────────────────────────────────────────────────────
+            SettingsSection(title = if (state.isLoggedIn) "Добавить" else "Внести вклад") {
+                SettingsRow(
+                    icon = CpIcons.Add,
+                    label = "Добавить кофейню",
+                    description = "Предложить новое место для CoffeePeek",
+                    iconColors = SettingsIconPalette.Gold,
+                    onClick = { Navigator.navigate(Navigator.Screen.AddShop) },
+                )
+                SettingsDivider()
+                SettingsRow(
+                    icon = CpIcons.CoffeeBean,
+                    label = "Добавить обжарщика",
+                    description = "Помогите сообществу открыть новых обжарщиков",
+                    iconColors = SettingsIconPalette.Mint,
+                    onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
+                )
+            }
 
             // ── Моя активность ─────────────────────────────────────────────────
+            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
             SettingsSection(title = "Моя активность") {
                 SettingsRow(
                     icon = CpIcons.Favorite,
                     label = "Избранные кофейни",
+                    description = "Кофейни, которые вы сохранили",
+                    iconColors = SettingsIconPalette.Rose,
                     onClick = { Navigator.navigate(Navigator.Screen.Favorites) },
                 )
                 SettingsDivider()
                 SettingsRow(
                     icon = CpIcons.Review,
                     label = "Мои отзывы",
+                    description = "Ваши оценки и отзывы о кофейнях",
+                    iconColors = SettingsIconPalette.Lavender,
                     onClick = { Navigator.navigate(Navigator.Screen.MyReviews) },
                 )
                 SettingsDivider()
                 SettingsRow(
                     icon = CpIcons.Location,
-                    label = "Посещённые места",
+                    label = "Чекины",
+                    description = "Места, которые вы уже посетили",
+                    iconColors = SettingsIconPalette.Sky,
                     onClick = { Navigator.navigate(Navigator.Screen.VisitedPlaces) },
                 )
             }
 
-            Spacer(Modifier.height(CpDimens.spacing3))
+            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
 
             // ── Настройки ─────────────────────────────────────────────────────
             SettingsSection(title = "Настройки") {
-                ThemeRow(current = themeMode, onSelect = vm::setTheme)
-                SettingsDivider()
                 SettingsRow(
-                    icon = CpIcons.Info,
-                    label = stringResource(Res.string.profile_version),
+                    icon = CpIcons.Location,
+                    label = "Город",
+                    description = "Определяет, какие кофейни показывать в первую очередь",
+                    iconColors = SettingsIconPalette.Aqua,
                     trailing = {
-                        Text(
-                            text = AppConfig.versionName,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        CityValue(
+                            cityName = cities.firstOrNull { it.id == selectedCityId }?.name,
                         )
                     },
-                    onClick = {},
-                    showArrow = false,
+                    onClick = { Navigator.navigate(Navigator.Screen.CitySettings) },
+                )
+                SettingsDivider()
+                SettingsRow(
+                    icon = themeMode.icon(),
+                    label = "Тема",
+                    description = "Настройте внешний вид приложения",
+                    iconColors = SettingsIconPalette.Violet,
+                    trailing = { ThemeValue(themeMode) },
+                    onClick = { Navigator.navigate(Navigator.Screen.ThemeSettings) },
                 )
             }
 
-            Spacer(Modifier.height(CpDimens.spacing6))
+            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
+
+            SettingsSection(
+                title = "Другие настройки",
+                description = "Управление полезными дополнениями, отзывы в App Store и настройки конфиденциальности",
+            ) {
+                SettingsRow(
+                    icon = CpIcons.Lock,
+                    label = "Политика использования",
+                    iconColors = SettingsIconPalette.Emerald,
+                    onClick = { OpenInBrowser.openInBrowser(LegalUrls.TERMS) },
+                )
+                SettingsDivider()
+                SettingsRow(
+                    icon = CpIcons.Share,
+                    label = "Поделиться",
+                    iconColors = SettingsIconPalette.BrightCyan,
+                    onClick = { ShareHelper.shareText(COFFEEPEEK_SHARE_TEXT) },
+                )
+            }
+
+            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
 
             // ── Выход ─────────────────────────────────────────────────────────
-            Button(
-                onClick = { showLogoutDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = CpDimens.spacing4)
-                    .height(CpDimens.buttonHeight),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = CpColor.Error.copy(alpha = 0.1f),
-                    contentColor   = CpColor.Error,
-                ),
-                shape = RoundedCornerShape(CpDimens.buttonRadius),
-            ) {
-                Icon(
-                    imageVector = CpIcons.Logout,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(CpDimens.spacing2))
-                Text(
-                    text = "Выйти из аккаунта",
-                    style = MaterialTheme.typography.labelLarge,
-                )
+            if (state.isLoggedIn) {
+                Button(
+                    onClick = { showLogoutDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = CpDimens.settingsPagePadding)
+                        .height(CpDimens.buttonHeight),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = CpColor.Error.copy(alpha = 0.1f),
+                        contentColor   = CpColor.Error,
+                    ),
+                    shape = RoundedCornerShape(CpDimens.buttonRadius),
+                ) {
+                    Icon(
+                        imageVector = CpIcons.Logout,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(CpDimens.spacing2))
+                    Text(
+                        text = "Выйти",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
             }
 
+            AppVersionFooter()
             Spacer(Modifier.height(CpDimens.spacing8 + LocalFloatingNavClearance.current))
         }
     }
@@ -238,125 +289,193 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
 
 @Composable
 private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
-    val headerGradient = Brush.verticalGradient(
-        listOf(
-            CpColor.Primary.copy(alpha = 0.12f),
-            MaterialTheme.colorScheme.background,
-        )
-    )
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(headerGradient),
-        contentAlignment = Alignment.Center,
+            .statusBarsPadding()
+            .padding(
+                horizontal = CpDimens.settingsPagePadding,
+                vertical = CpDimens.spacing4,
+            ),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(top = CpDimens.spacing6, bottom = CpDimens.spacing6),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
+            verticalAlignment = Alignment.Top,
         ) {
-            // Аватар
-            Box(
-                modifier = Modifier
-                    .size(88.dp)
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(CpColor.Primary, CpColor.GoldWarm))),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (!state.avatarUrl.isNullOrBlank()) {
-                    Text(
-                        text = state.initials.ifEmpty { "?" },
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = CpColor.DarkTextOnPrimary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    CpImage(
-                        data = state.avatarUrl,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
-                } else {
-                    Text(
-                        text = state.initials.ifEmpty { "?" },
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = CpColor.DarkTextOnPrimary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(CpDimens.spacing3))
-
-            // Имя + кнопка редактирования
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-            ) {
-                if (state.displayName.isNotEmpty()) {
-                    Text(
-                        text = state.displayName,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
+            Box(modifier = Modifier.size(104.dp)) {
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(96.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(Brush.linearGradient(listOf(CpColor.Primary, CpColor.GoldWarm))),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = state.initials.ifEmpty { "?" },
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = CpColor.DarkTextOnPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    if (!state.avatarUrl.isNullOrBlank()) {
+                        CpImage(
+                            data = state.avatarUrl,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                         .clickable(onClick = onEdit),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = CpIcons.Edit,
                         contentDescription = "Редактировать профиль",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(17.dp),
                     )
                 }
             }
 
-            if (state.email.isNotEmpty()) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = state.email,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            // О себе
-            if (!state.about.isNullOrBlank()) {
-                Spacer(Modifier.height(CpDimens.spacing3))
-                Text(
-                    text = state.about,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = CpDimens.spacing8),
-                )
-            }
-
-            // Счётчики активности
-            Spacer(Modifier.height(CpDimens.spacing4))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing6),
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                StatBadge(count = state.reviewCount, label = "Отзывы")
-                StatBadge(count = state.checkInCount, label = "Чек-ины")
-                StatBadge(count = state.addedShopsCount, label = "Кофейни")
+                Text(
+                    text = state.displayName.ifBlank { "Пользователь" },
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (state.email.isNotBlank()) {
+                    Text(
+                        text = state.email,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
+                Spacer(Modifier.height(CpDimens.spacing2))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    StatBadge(state.reviewCount, "Отзывы", Modifier.weight(1f))
+                    StatBadge(state.checkInCount, "Чек-ины", Modifier.weight(1f))
+                    StatBadge(state.addedShopsCount, "Кофейни", Modifier.weight(1f))
+                }
+            }
+        }
+
+        if (!state.about.isNullOrBlank()) {
+            Text(
+                text = state.about,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun GuestLoginHeader(
+    onLogin: () -> Unit,
+    onRegister: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(
+                horizontal = CpDimens.settingsPagePadding,
+                vertical = CpDimens.spacing4,
+            ),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+    ) {
+        Text(
+            text = "Аккаунт",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontWeight = FontWeight.Bold,
+        )
+        Card(
+            shape = RoundedCornerShape(CpDimens.cardRadius),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(CpDimens.spacing4),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+            ) {
+                Text(
+                    text = "Присоединяйтесь к сообществу, чтобы сохранять любимые места и делиться впечатлениями.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
+                Button(
+                    onClick = onLogin,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(CpDimens.buttonHeight),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = CpColor.Primary,
+                        contentColor = CpColor.DarkTextOnPrimary,
+                    ),
+                    shape = RoundedCornerShape(CpDimens.buttonRadius),
+                ) {
+                    Text(
+                        text = "Войти",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        text = "Нет аккаунта?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = onRegister) {
+                        Text(
+                            text = "Зарегистрироваться",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun StatBadge(count: Int, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun StatBadge(count: Int, label: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.Start,
+    ) {
         Text(
             text = count.toString(),
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Bold,
         )
@@ -368,7 +487,7 @@ private fun StatBadge(count: Int, label: String) {
     }
 }
 
-// ── Выбор темы через DropdownMenu ─────────────────────────────────────────────
+// ── Настройки города и темы ───────────────────────────────────────────────────
 
 private fun ThemeMode.label() = when (this) {
     ThemeMode.SYSTEM -> "Авто"
@@ -383,149 +502,76 @@ private fun ThemeMode.icon() = when (this) {
 }
 
 @Composable
-private fun ThemeRow(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    var anchorWidth by remember { mutableStateOf(0.dp) }
-    val density = LocalDensity.current
-    val menuMinWidth = 208.dp
-    val menuWidth = anchorWidth.coerceAtLeast(menuMinWidth)
-    val selectShape = RoundedCornerShape(CpDimens.selectRadius)
-
+private fun CityValue(cityName: String?) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(CpDimens.radiusSm))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = current.icon(),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        Spacer(Modifier.width(CpDimens.spacing3))
         Text(
-            text = "Тема оформления",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            text = cityName ?: "Выберите",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
-            modifier = Modifier.weight(1f),
+            overflow = TextOverflow.Ellipsis,
         )
+        Icon(
+            imageVector = CpIcons.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(CpDimens.settingsIconSize),
+        )
+    }
+}
 
-        Box(modifier = Modifier.wrapContentWidth(Alignment.End)) {
-            Row(
-                modifier = Modifier
-                    .wrapContentWidth()
-                    .height(CpDimens.buttonHeight)
-                    .onGloballyPositioned { coords ->
-                        anchorWidth = with(density) { coords.size.width.toDp() }
-                    }
-                    .clip(selectShape)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, selectShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .clickable { expanded = true }
-                    .padding(horizontal = CpDimens.spacing3),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-            ) {
-                Text(
-                    text = current.label(),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Icon(
-                    imageVector = CpIcons.ChevronDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                offset = DpOffset(x = anchorWidth - menuWidth, y = 0.dp),
-                modifier = Modifier.width(menuWidth),
-                shape = selectShape,
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 4.dp,
-            ) {
-                ThemeMode.entries.forEach { mode ->
-                    val isSelected = mode == current
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = mode.label(),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = if (isSelected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
-                                maxLines = 1,
-                                softWrap = false,
-                            )
-                        },
-                        onClick = {
-                            onSelect(mode)
-                            expanded = false
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = mode.icon(),
-                                contentDescription = null,
-                                tint = if (isSelected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                modifier = Modifier.size(18.dp),
-                            )
-                        },
-                        trailingIcon = if (isSelected) {
-                            {
-                                Icon(
-                                    imageVector = CpIcons.Check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-                        } else {
-                            null
-                        },
-                    )
-                }
-            }
-        }
+@Composable
+private fun ThemeValue(current: ThemeMode) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+    ) {
+        Text(
+            text = current.label(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+        Icon(
+            imageVector = CpIcons.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
     }
 }
 
 // ── Общие компоненты ──────────────────────────────────────────────────────────
 
 @Composable
-private fun SettingsSection(title: String, content: @Composable () -> Unit) {
-    Column(modifier = Modifier.padding(horizontal = CpDimens.spacing4)) {
+private fun SettingsSection(
+    title: String,
+    description: String? = null,
+    content: @Composable () -> Unit,
+) {
+    Column(modifier = Modifier.padding(horizontal = CpDimens.settingsPagePadding)) {
         Text(
             text = title.uppercase(),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             letterSpacing = androidx.compose.ui.unit.TextUnit(0.08f, androidx.compose.ui.unit.TextUnitType.Em),
-            modifier = Modifier.padding(start = CpDimens.spacing1, bottom = CpDimens.spacing2),
         )
+        if (description != null) {
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = CpDimens.spacing1),
+            )
+        }
+        Spacer(Modifier.height(CpDimens.spacing2))
         Card(
             shape = RoundedCornerShape(CpDimens.cardRadius),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             content()
         }
@@ -536,40 +582,46 @@ private fun SettingsSection(title: String, content: @Composable () -> Unit) {
 private fun SettingsRow(
     icon: ImageVector,
     label: String,
+    description: String? = null,
     onClick: () -> Unit,
     showArrow: Boolean = true,
-    iconTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    iconBg: Color = MaterialTheme.colorScheme.surfaceVariant,
+    iconColors: SettingsIconColors = SettingsIconPalette.Cyan,
     trailing: @Composable (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
+            .padding(
+                horizontal = CpDimens.settingsRowPaddingH,
+                vertical = CpDimens.settingsRowPaddingV,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(CpDimens.radiusSm))
-                .background(iconBg),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(18.dp),
-            )
-        }
+        SettingsIconBadge(icon = icon, colors = iconColors)
         Spacer(Modifier.width(CpDimens.spacing3))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+        Column(
             modifier = Modifier.weight(1f),
-        )
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (description != null) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Spacer(Modifier.width(CpDimens.spacing2))
         if (trailing != null) {
             trailing()
         } else if (showArrow) {
@@ -577,16 +629,32 @@ private fun SettingsRow(
                 imageVector = CpIcons.ChevronRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(CpDimens.settingsIconSize),
             )
         }
     }
 }
 
 @Composable
+private fun AppVersionFooter() {
+    Text(
+        text = "Версия ${AppConfig.versionName}",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = CpDimens.settingsPagePadding,
+                top = CpDimens.spacing4,
+                end = CpDimens.settingsPagePadding,
+            ),
+    )
+}
+
+@Composable
 private fun SettingsDivider() {
     HorizontalDivider(
-        modifier = Modifier.padding(start = 64.dp),
+        modifier = Modifier.padding(start = CpDimens.settingsDividerStart),
         color = MaterialTheme.colorScheme.outlineVariant,
         thickness = 0.5.dp,
     )

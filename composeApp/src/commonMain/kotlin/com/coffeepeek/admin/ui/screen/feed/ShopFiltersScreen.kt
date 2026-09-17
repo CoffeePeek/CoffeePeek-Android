@@ -116,14 +116,9 @@ fun ShopFiltersScreen(
                             )
                             TextButton(
                                 onClick = {
-                                    // Quick chips живут на ленте — не сбрасываем отсюда
-                                    draft = FeedFiltersUi(
-                                        coffeeFocus = state.filters.coffeeFocus,
-                                        quickMode = state.filters.quickMode,
-                                    )
+                                    draft = draft.clearSelections()
                                 },
-                                enabled = draft.copy(coffeeFocus = null, quickMode = FeedQuickMode.ALL) !=
-                                    FeedFiltersUi(),
+                                enabled = draft.activeFilterCount > 0,
                             ) {
                                 Text("Сбросить")
                             }
@@ -189,13 +184,7 @@ fun ShopFiltersScreen(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         Button(
                             onClick = {
-                                // Preserve feed coffee-focus selection when applying panel filters
-                                onApply(
-                                    draft.copy(
-                                        coffeeFocus = state.filters.coffeeFocus,
-                                        quickMode = state.filters.quickMode,
-                                    ),
-                                )
+                                onApply(draft)
                                 dismissAnimated()
                             },
                             modifier = Modifier

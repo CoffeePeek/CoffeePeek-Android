@@ -1,9 +1,9 @@
 package com.coffeepeek.admin.ui.screen.map
 
-import com.coffeepeek.admin.utils.formatOneDecimal
 import com.coffeepeek.admin.ui.icons.CpIcons
-import com.coffeepeek.admin.ui.component.PriceBeanSlider
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -27,16 +29,21 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,18 +51,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.coffeepeek.admin.map.CoffeeMap
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.component.CoffeeShopImage
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
@@ -63,13 +79,13 @@ import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.MapShop
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
+import com.coffeepeek.domain.model.MapCoffeeZone
 import com.coffeepeek.admin.di.platformViewModel
 
 @Composable
 fun MapScreen(vm: MapViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
+    val focusManager = LocalFocusManager.current
     val pendingFocus by Navigator.pendingMapFocus.collectAsState()
     val pendingFocusShop = pendingFocus?.let { focus ->
         MapShop(
@@ -96,33 +112,15 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
         }
     }
 
-    state.error?.let { err ->
-        AlertDialog(
-            onDismissRequest = vm::clearError,
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text("Ошибка", style = MaterialTheme.typography.headlineSmall) },
-            text = {
-                Text(
-                    err,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = vm::clearError) {
-                    Text("Понятно", style = MaterialTheme.typography.labelLarge)
-                }
-            },
-            shape = RoundedCornerShape(CpDimens.radius2xl),
-        )
-    }
-
     Box(Modifier.fillMaxSize()) {
         CoffeeMap(
             shops = mapShops,
+            clusters = state.clusters,
+            zones = state.zones,
             selectedShopId = selectedShopId,
             onBoundsChanged = vm::onBoundsChanged,
             onShopClick = vm::onShopSelected,
+            onZoneClick = vm::onZoneSelected,
             modifier = Modifier.fillMaxSize(),
             cameraTarget = cameraTarget,
             cameraZoom = cameraZoom,
@@ -130,30 +128,102 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
             isDarkTheme = isDarkTheme,
             myLocationRequestKey = state.myLocationRequest,
             onMyLocationFound = vm::onMyLocationApplied,
-            onLocationPermissionDenied = vm::onLocationPermissionDenied,
+            onLocationPermissionDenied = {},
         )
+
+        OutlinedTextField(
+            value = state.query,
+            onValueChange = vm::onQueryChange,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .fillMaxWidth()
+                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3)
+                .height(52.dp),
+            shape = RoundedCornerShape(CpDimens.radiusMd),
+            placeholder = {
+                Text(
+                    "Поиск кофейни…",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    CpIcons.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            trailingIcon = if (state.query.isNotEmpty()) {
+                {
+                    IconButton(onClick = { vm.onQueryChange("") }) {
+                        Icon(
+                            CpIcons.Close,
+                            contentDescription = "Очистить поиск",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            } else {
+                null
+            },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Search,
+            ),
+            keyboardActions = KeyboardActions(
+                onSearch = { focusManager.clearFocus() },
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            ),
+            textStyle = MaterialTheme.typography.bodyLarge,
+        )
+
+        if (state.isTruncated) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 80.dp, start = CpDimens.spacing4, end = CpDimens.spacing4),
+                shape = RoundedCornerShape(CpDimens.radiusMd),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 3.dp,
+                shadowElevation = 3.dp,
+            ) {
+                Text(
+                    text = "Слишком много объектов — приблизьте карту",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(
+                        horizontal = CpDimens.spacing3,
+                        vertical = CpDimens.spacing2,
+                    ),
+                )
+            }
+        }
 
         Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .statusBarsPadding()
-                .padding(CpDimens.spacing4),
+                .padding(
+                    top = if (state.isTruncated) 132.dp else 84.dp,
+                    end = CpDimens.spacing4,
+                ),
             verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
             horizontalAlignment = Alignment.End,
         ) {
-            MapControlButton(onClick = vm::toggleFilters) {
-                BadgedBox(
-                    badge = {
-                        if (state.activeFilterCount > 0) {
-                            Badge { Text(state.activeFilterCount.toString()) }
-                        }
-                    },
-                ) {
-                    Icon(CpIcons.Filter, contentDescription = "Фильтры")
-                }
-            }
             MapControlButton(onClick = vm::requestMyLocation) {
-                Icon(CpIcons.MyLocation, contentDescription = "Моё местоположение")
+                Icon(
+                    CpIcons.MyLocation,
+                    contentDescription = "Моё местоположение",
+                    modifier = Modifier.size(30.dp),
+                )
             }
         }
 
@@ -202,18 +272,88 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
             )
         }
 
-        if (state.showFilters) {
-            MapFiltersDialog(
-                state = state,
-                onDismiss = vm::dismissFilters,
-                onQueryChange = vm::onQueryChange,
-                onPrice = vm::setPriceRange,
-                onCoffeeFocusChange = vm::setCoffeeFocus,
-                onToggleCatalog = vm::toggleFilterCatalog,
-                onClear = vm::clearFilters,
-                onApply = vm::applyFilters,
+        state.selectedZone?.let { zone ->
+            MapZoneCard(
+                zone = zone,
+                onShowShops = vm::showSelectedZoneShops,
+                onDismiss = vm::clearZoneSelection,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(
+                        start = CpDimens.spacing4,
+                        end = CpDimens.spacing4,
+                        bottom = navClearance + CpDimens.spacing4,
+                    ),
             )
         }
+    }
+}
+
+@Composable
+private fun MapZoneCard(
+    zone: MapCoffeeZone,
+    onShowShops: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(CpDimens.cardRadius),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(CpDimens.spacing4),
+            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = zone.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = "${zone.shopCount} ${mapShopCountLabel(zone.shopCount)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(CpIcons.Close, contentDescription = "Закрыть")
+                }
+            }
+            if (zone.description.isNotBlank()) {
+                Text(
+                    text = zone.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Button(
+                onClick = onShowShops,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(CpDimens.buttonRadius),
+            ) {
+                Text("Показать кофейни")
+            }
+        }
+    }
+}
+
+private fun mapShopCountLabel(count: Int): String {
+    val mod100 = count % 100
+    val mod10 = count % 10
+    return when {
+        mod100 in 11..14 -> "кофеен"
+        mod10 == 1 -> "кофейня"
+        mod10 in 2..4 -> "кофейни"
+        else -> "кофеен"
     }
 }
 
@@ -252,160 +392,428 @@ private fun MapFiltersDialog(
     onApply: () -> Unit,
 ) {
     val filters = state.filters
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        modifier = Modifier
-            .fillMaxWidth(0.92f)
-            .widthIn(min = 320.dp),
         properties = DialogProperties(usePlatformDefaultWidth = false),
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(CpDimens.radius2xl),
-        title = { Text("Фильтры", style = MaterialTheme.typography.headlineSmall) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
+            contentAlignment = Alignment.Center,
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 560.dp)
+                    .heightIn(max = 760.dp),
+                shape = RoundedCornerShape(CpDimens.radius4xl),
+                color = MaterialTheme.colorScheme.background,
+                contentColor = MaterialTheme.colorScheme.onBackground,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                tonalElevation = 0.dp,
+                shadowElevation = 12.dp,
             ) {
-                OutlinedTextField(
-                    value = state.query,
-                    onValueChange = onQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = { Text("Поиск") },
-                    leadingIcon = { Icon(CpIcons.Search, contentDescription = null) },
-                )
-                FilterSection("Цена") {
-                    PriceBeanSlider(
-                        selected = filters.priceRange,
-                        onSelect = onPrice,
-                        showTitle = false,
-                    )
-                }
-                FilterSection("Формат точки") {
-                    CoffeeFocusFilterChips(
-                        selectedId = filters.coffeeFocus,
-                        onSelect = onCoffeeFocusChange,
-                    )
-                }
-                if (state.roasters.isNotEmpty()) {
-                    FilterSection("Обжарщики") {
-                        CatalogFilterChips(state.roasters, filters.roasterIds, "roaster", onToggleCatalog)
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = CpDimens.spacing5, top = CpDimens.spacing3, end = CpDimens.spacing2, bottom = CpDimens.spacing3),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Фильтры",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = CpIcons.Close,
+                                contentDescription = "Закрыть фильтры",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
-                }
-                if (state.beans.isNotEmpty()) {
-                    FilterSection("Зёрна") {
-                        CatalogFilterChips(state.beans, filters.beanIds, "bean", onToggleCatalog)
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = CpDimens.spacing5, vertical = CpDimens.spacing4),
+                        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
+                    ) {
+                        OutlinedTextField(
+                            value = state.query,
+                            onValueChange = onQueryChange,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            singleLine = true,
+                            placeholder = { Text("Поиск кофейни…") },
+                            leadingIcon = { Icon(CpIcons.Search, contentDescription = null) },
+                            trailingIcon = if (state.query.isNotEmpty()) {
+                                {
+                                    IconButton(onClick = { onQueryChange("") }) {
+                                        Icon(
+                                            CpIcons.Close,
+                                            contentDescription = "Очистить поиск",
+                                        )
+                                    }
+                                }
+                            } else {
+                                null
+                            },
+                            shape = RoundedCornerShape(CpDimens.inputRadius),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                                unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
+                        )
+                        FilterSection("Цена") {
+                            CompactPriceFilter(
+                                selected = filters.priceRange,
+                                onSelect = onPrice,
+                            )
+                        }
+                        FilterSection("Формат точки") {
+                            SingleSelectMenu(
+                                placeholder = "Любой формат",
+                                items = COFFEE_FOCUS_OPTIONS.map { it.id to it.label },
+                                selectedId = filters.coffeeFocus,
+                                onSelect = onCoffeeFocusChange,
+                            )
+                        }
+                        if (state.roasters.isNotEmpty()) {
+                            CatalogMultiSelectMenu("Обжарщики", state.roasters, filters.roasterIds) {
+                                onToggleCatalog("roaster", it)
+                            }
+                        }
+                        if (state.beans.isNotEmpty()) {
+                            CatalogMultiSelectMenu("Зёрна", state.beans, filters.beanIds) {
+                                onToggleCatalog("bean", it)
+                            }
+                        }
+                        if (state.equipment.isNotEmpty()) {
+                            CatalogMultiSelectMenu("Оборудование", state.equipment, filters.equipmentIds) {
+                                onToggleCatalog("equipment", it)
+                            }
+                        }
+                        if (state.brewMethods.isNotEmpty()) {
+                            CatalogMultiSelectMenu("Заваривание", state.brewMethods, filters.brewMethodIds) {
+                                onToggleCatalog("brew", it)
+                            }
+                        }
+                        if (state.shopTags.isNotEmpty()) {
+                            CatalogMultiSelectMenu("Особенности", state.shopTags, filters.tagIds) {
+                                onToggleCatalog("tag", it)
+                            }
+                        }
                     }
-                }
-                if (state.equipment.isNotEmpty()) {
-                    FilterSection("Оборудование") {
-                        CatalogFilterChips(state.equipment, filters.equipmentIds, "equipment", onToggleCatalog)
-                    }
-                }
-                if (state.brewMethods.isNotEmpty()) {
-                    FilterSection("Заваривание") {
-                        CatalogFilterChips(state.brewMethods, filters.brewMethodIds, "brew", onToggleCatalog)
-                    }
-                }
-                if (state.shopTags.isNotEmpty()) {
-                    FilterSection("Особенности") {
-                        CatalogFilterChips(state.shopTags, filters.tagIds, "tag", onToggleCatalog)
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(CpDimens.spacing4),
+                        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2, Alignment.End),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        TextButton(onClick = onClear) {
+                            Text(
+                                text = "Сбросить",
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        }
+                        Button(
+                            onClick = onApply,
+                            shape = RoundedCornerShape(CpDimens.buttonRadius),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                            contentPadding = PaddingValues(horizontal = CpDimens.spacing5, vertical = CpDimens.spacing3),
+                        ) {
+                            Text("Готово", style = MaterialTheme.typography.labelLarge)
+                        }
                     }
                 }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onClear) {
-                Text("Сбросить")
-            }
-        },
-        confirmButton = {
-            Button(onClick = onApply) {
-                Text("Готово")
-            }
-        },
-    )
+        }
+
+    }
 }
 
 @Composable
 private fun FilterSection(title: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
         )
         content()
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CoffeeFocusFilterChips(
+private fun SingleSelectMenu(
+    placeholder: String,
+    items: List<Pair<String, String>>,
     selectedId: String?,
     onSelect: (String?) -> Unit,
 ) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-    ) {
-        COFFEE_FOCUS_OPTIONS.forEach { option ->
-            FilterChip(
-                selected = selectedId == option.id,
-                onClick = {
-                    onSelect(if (selectedId == option.id) null else option.id)
+    var expanded by remember { mutableStateOf(false) }
+    var anchorWidth by remember { mutableStateOf(0.dp) }
+    val density = LocalDensity.current
+    val menuShape = RoundedCornerShape(CpDimens.selectRadius)
+    val selectedLabel = items.firstOrNull { it.first == selectedId }?.second
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = CpDimens.selectMinHeight)
+                .onGloballyPositioned { coordinates ->
+                    anchorWidth = with(density) { coordinates.size.width.toDp() }
                 },
-                label = { Text(option.label, style = MaterialTheme.typography.labelSmall) },
+            shape = RoundedCornerShape(CpDimens.selectRadius),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ),
+            contentPadding = PaddingValues(horizontal = CpDimens.spacing4),
+        ) {
+            Text(
+                text = selectedLabel ?: placeholder,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (selectedId == null) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+            Icon(
+                CpIcons.ChevronUpDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .width(anchorWidth.coerceAtLeast(280.dp))
+                .clip(menuShape)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    shape = menuShape,
+                ),
+            shape = menuShape,
+            containerColor = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
+        ) {
+            val defaultSelected = selectedId == null
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = placeholder,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Normal,
+                        color = if (defaultSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface,
+                    )
+                },
+                onClick = {
+                    onSelect(null)
+                    expanded = false
+                },
+                trailingIcon = if (defaultSelected) {
+                    {
+                        Icon(
+                            CpIcons.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                } else null,
+            )
+            items.forEach { (id, label) ->
+                val selected = id == selectedId
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Normal,
+                            color = if (selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    onClick = {
+                        onSelect(id)
+                        expanded = false
+                    },
+                    trailingIcon = if (selected) {
+                        {
+                            Icon(
+                                CpIcons.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    } else null,
+                )
+            }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CatalogFilterChips(
+private fun CatalogMultiSelectMenu(
+    title: String,
     items: List<CatalogItem>,
     selectedIds: Set<String>,
-    type: String,
-    onToggle: (String, String) -> Unit,
+    onToggle: (String) -> Unit,
 ) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-    ) {
-        items.forEach { item ->
-            FilterChip(
-                selected = item.id in selectedIds,
-                onClick = { onToggle(type, item.id) },
-                label = { Text(item.name, style = MaterialTheme.typography.labelSmall) },
+    var expanded by remember { mutableStateOf(false) }
+    var anchorWidth by remember { mutableStateOf(0.dp) }
+    val density = LocalDensity.current
+    val menuShape = RoundedCornerShape(CpDimens.selectRadius)
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = CpDimens.selectMinHeight)
+                .onGloballyPositioned { coordinates ->
+                    anchorWidth = with(density) { coordinates.size.width.toDp() }
+                },
+            shape = RoundedCornerShape(CpDimens.selectRadius),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ),
+            contentPadding = PaddingValues(horizontal = CpDimens.spacing4),
+        ) {
+            Text(
+                text = if (selectedIds.isEmpty()) title else "$title · ${selectedIds.size}",
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (selectedIds.isEmpty()) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+            Icon(
+                CpIcons.ChevronUpDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .width(anchorWidth.coerceAtLeast(280.dp))
+                .heightIn(max = 320.dp)
+                .clip(menuShape)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    shape = menuShape,
+                ),
+            shape = menuShape,
+            containerColor = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
+        ) {
+            items.forEach { item ->
+                val selected = item.id in selectedIds
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            item.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Normal,
+                            color = if (selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    onClick = { onToggle(item.id) },
+                    trailingIcon = if (selected) {
+                        {
+                            Icon(
+                                CpIcons.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    } else null,
+                )
+            }
         }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun <T> CatalogChips(
-    items: List<T>,
-    selectedIds: Set<String>,
-    onToggle: (String) -> Unit,
-    idSelector: (T) -> String,
-    labelSelector: (T) -> String,
+private fun CompactPriceFilter(
+    selected: Int?,
+    onSelect: (Int?) -> Unit,
 ) {
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {
-        items.forEach { item ->
-            val id = idSelector(item)
-            FilterChip(
-                selected = id in selectedIds,
-                onClick = { onToggle(id) },
-                label = { Text(labelSelector(item), style = MaterialTheme.typography.labelSmall) },
-            )
+        listOf(null to "Любая", 1 to "до 8", 2 to "≈ 8", 3 to "> 8").forEach { (value, label) ->
+            val isSelected = selected == value
+            Surface(
+                onClick = { onSelect(value) },
+                shape = RoundedCornerShape(CpDimens.radiusLg),
+                color = if (isSelected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.surface,
+                contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(horizontal = CpDimens.spacing4, vertical = 10.dp),
+                )
+            }
         }
     }
 }
@@ -447,10 +855,11 @@ private fun MapShopBottomSheet(
             ) {
                 when {
                     !photoUrl.isNullOrBlank() -> {
-                        KamelImage(
-                            resource = asyncPainterResource(photoUrl),
+                        CoffeeShopImage(
+                            imageUrl = photoUrl,
                             contentDescription = shop.title,
                             contentScale = ContentScale.Crop,
+                            placeholderLabelSize = 7.sp,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -482,7 +891,7 @@ private fun MapShopBottomSheet(
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = formatOneDecimal(rating),
+                            text = "%.1f".format(rating),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )

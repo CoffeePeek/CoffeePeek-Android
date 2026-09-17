@@ -6,6 +6,11 @@ import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesScreen
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileScreen
 import com.coffeepeek.admin.ui.screen.favorites.FavoritesScreen
 import com.coffeepeek.admin.ui.screen.reviews.MyReviewsScreen
+import com.coffeepeek.admin.ui.screen.roaster.AddRoasterScreen
+import com.coffeepeek.admin.ui.screen.roaster.RoasterDetailScreen
+import com.coffeepeek.admin.ui.screen.profile.CityScreen
+import com.coffeepeek.admin.ui.screen.profile.ThemeScreen
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +30,7 @@ import com.coffeepeek.admin.ui.screen.main.MainScreen
 import com.coffeepeek.admin.ui.screen.review.CreateReviewScreen
 import com.coffeepeek.admin.ui.screen.review.EditReviewScreen
 import com.coffeepeek.admin.ui.screen.shop.ShopDetailScreen
+import com.coffeepeek.admin.ui.screen.shop.ShopReportScreen
 import com.coffeepeek.admin.utils.ErrorHandler
 import com.coffeepeek.admin.utils.LoadingHandler
 import kotlinx.coroutines.CoroutineScope
@@ -72,11 +78,16 @@ object Navigator {
 
         // Inner screens (add here + in the graph in MainScreen)
         @Serializable data class ShopDetail(val shopId: String) : Screen
+        @Serializable data class ReportShop(val shopId: String, val shopTitle: String) : Screen
         @Serializable data object AddShop : Screen
+        @Serializable data object AddRoaster : Screen
+        @Serializable data class RoasterDetail(val roasterId: String) : Screen
         @Serializable data object EditProfile : Screen
         @Serializable data object Favorites : Screen
         @Serializable data object MyReviews : Screen
         @Serializable data object VisitedPlaces : Screen
+        @Serializable data object CitySettings : Screen
+        @Serializable data object ThemeSettings : Screen
         @Serializable data class CreateReview(val shopId: String) : Screen
         @Serializable data class ReviewEdit(val reviewId: String) : Screen
     }
@@ -116,13 +127,18 @@ object Navigator {
         is Screen.Register,
         is Screen.Main,
         is Screen.ShopDetail,
+        is Screen.ReportShop,
         is Screen.AddShop,
+        is Screen.AddRoaster,
+        is Screen.RoasterDetail,
         is Screen.EditProfile,
         is Screen.CreateReview,
         is Screen.ReviewEdit,
         is Screen.Favorites,
         is Screen.MyReviews,
-        is Screen.VisitedPlaces -> true
+        is Screen.VisitedPlaces,
+        is Screen.CitySettings,
+        is Screen.ThemeSettings -> true
         else -> false
     }
 
@@ -139,6 +155,10 @@ object Navigator {
 
     fun popBack() {
         navigatorScope.launch { _navigationEvents.emit(NavEvent.PopBack) }
+    }
+
+    fun closeAuth() {
+        popBack()
     }
 
     /** Pop current screen, then navigate (ordered in one coroutine). */
@@ -162,8 +182,6 @@ object Navigator {
             message = errorMessage ?: "",
             onDismiss = { ErrorHandler.clearError() }
         )
-        LoadingDialog(show = loading)
-
         LaunchedEffect(isLoggedIn) {
             if (!isLoggedIn) {
                 ErrorHandler.clearError()
@@ -171,11 +189,16 @@ object Navigator {
             }
         }
 
-        BaseNavigator(isLoggedIn = isLoggedIn)
+        Box(modifier = Modifier.fillMaxSize()) {
+            key(isLoggedIn) {
+                BaseNavigator()
+            }
+            LoadingDialog(show = loading)
+        }
     }
 
     @Composable
-    private fun BaseNavigator(isLoggedIn: Boolean) {
+    private fun BaseNavigator() {
         val nav = rememberNavController()
 
         LaunchedEffect(Unit) {
@@ -193,12 +216,11 @@ object Navigator {
             }.launchIn(this)
         }
 
-        key(isLoggedIn) {
-            NavHost(
-                navController = nav,
-                startDestination = if (isLoggedIn) Screen.Main else Screen.Auth,
-                modifier = Modifier.fillMaxSize(),
-            ) {
+        NavHost(
+            navController = nav,
+            startDestination = Screen.Main,
+            modifier = Modifier.fillMaxSize(),
+        ) {
                 composable<Screen.Auth> { AuthScreen() }
                 composable<Screen.Register> { RegisterScreen() }
                 composable<Screen.Main> { MainScreen() }
@@ -206,7 +228,16 @@ object Navigator {
                     val route = backStack.toRoute<Screen.ShopDetail>()
                     ShopDetailScreen(shopId = route.shopId)
                 }
+                composable<Screen.ReportShop> { backStack ->
+                    val route = backStack.toRoute<Screen.ReportShop>()
+                    ShopReportScreen(shopId = route.shopId, shopTitle = route.shopTitle)
+                }
                 composable<Screen.AddShop> { AddShopScreen() }
+                composable<Screen.AddRoaster> { AddRoasterScreen() }
+                composable<Screen.RoasterDetail> { backStack ->
+                    val route = backStack.toRoute<Screen.RoasterDetail>()
+                    RoasterDetailScreen(roasterId = route.roasterId)
+                }
                 composable<Screen.EditProfile> { EditProfileScreen() }
                 composable<Screen.CreateReview> { backStack ->
                     val route = backStack.toRoute<Screen.CreateReview>()
@@ -219,7 +250,8 @@ object Navigator {
                 composable<Screen.Favorites> { FavoritesScreen() }
                 composable<Screen.MyReviews> { MyReviewsScreen() }
                 composable<Screen.VisitedPlaces> { VisitedPlacesScreen() }
-            }
+                composable<Screen.CitySettings> { CityScreen() }
+                composable<Screen.ThemeSettings> { ThemeScreen() }
         }
     }
 }

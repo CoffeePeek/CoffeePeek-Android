@@ -10,7 +10,7 @@
 
 - Регистрация и вход (email/пароль, Google Sign-In)
 - Лента кофеен с пагинацией
-- Карта с Yandex MapKit
+- Карта OpenStreetMap на MapLibre
 - Карточка кофейни: фото, контакты, расписание, отзывы
 - Избранное, чек-ины (публичные и приватные), создание и редактирование отзывов
 - Профиль: аватар, статистика, тема оформления
@@ -42,7 +42,6 @@ cp local.properties.example local.properties
 |------|------------|
 | `sdk.dir` | Путь к Android SDK |
 | `API_BASE_URL` | URL backend API |
-| `MAPKIT_API_KEY` | Yandex MapKit |
 | `GOOGLE_WEB_CLIENT_ID` | Google Sign-In (опционально) |
 
 Полная инструкция для контрибьюторов: **[CONTRIBUTING.md](./CONTRIBUTING.md)**
@@ -73,7 +72,7 @@ CoffeePeek-Android/
 ├── composeApp/              UI, ViewModel, навигация, тема, Koin
 │   └── src/
 │       ├── commonMain/      Compose UI и общая логика
-│       ├── androidMain/     MapKit, Google Auth, Android-специфика
+│       ├── androidMain/     MapLibre, Google Auth, Android-специфика
 │       └── iosMain/         MapKit, Keychain, PhotosUI, CoreLocation
 ├── iosApp/                  SwiftUI-оболочка и Xcode-проект
 ├── modules/
@@ -113,4 +112,5 @@ CoffeePeek-Android/
 
 - [CONTRIBUTING.md](./CONTRIBUTING.md) — онбординг, стиль кода, PR
 - [docs/FIREBASE_CD.md](./docs/FIREBASE_CD.md) — настройка CD через Firebase App Distribution (без Play Console)
+- [docs/ANDROID_APK_CD.md](./docs/ANDROID_APK_CD.md) — публикация stable и versioned APK на VPS
 - [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/)

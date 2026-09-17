@@ -1,10 +1,7 @@
 package com.coffeepeek.admin.ui.screen.shop
 
 import com.coffeepeek.admin.ui.icons.CpIcons
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,12 +24,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -58,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -71,29 +71,33 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coffeepeek.composeapp.generated.resources.Res
-import coffeepeek.composeapp.generated.resources.maskot_happy
 import coffeepeek.composeapp.generated.resources.maskot_with_book
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.component.CoffeeShopImage
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
+import com.coffeepeek.admin.ui.component.CheckInDisplayCard
+import com.coffeepeek.admin.ui.component.ReviewDisplayCard
+import com.coffeepeek.admin.utils.currentLocalDayOfWeek
 import com.coffeepeek.admin.ui.component.PriceBynRow
+import com.coffeepeek.admin.ui.component.PriceBynIcon
 import com.coffeepeek.admin.ui.component.priceRangeLevel
 import com.coffeepeek.admin.ui.component.FullScreenImageDialog
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.screen.review.CreateReviewBottomSheet
+import com.coffeepeek.admin.ui.screen.review.EditReviewBottomSheet
 import com.coffeepeek.admin.utils.OpenInBrowser
-import com.coffeepeek.admin.utils.formatOneDecimal
+import com.coffeepeek.domain.model.CatalogItem
+import com.coffeepeek.domain.model.CheckIn
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.Review
-import com.coffeepeek.domain.model.ReviewRating
 import com.coffeepeek.domain.model.ShopContact
 import com.coffeepeek.domain.model.ShopMenu
 import com.coffeepeek.domain.model.ShopMenuItem
 import com.coffeepeek.domain.model.ShopSchedule
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
 import com.coffeepeek.admin.di.platformViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -117,11 +121,33 @@ fun ShopDetailScreen(shopId: String) {
     }
 
     if (state.showCheckInSheet) {
-        CheckInBottomSheet(
-            isLoading = state.isCheckInLoading,
-            onDismiss = vm::dismissCheckInSheet,
-            onSubmit = vm::checkIn,
-        )
+        state.checkInDraft?.let { draft ->
+            CheckInBottomSheet(
+                draft = draft,
+                isLoading = state.isCheckInLoading,
+                onDismiss = vm::dismissCheckInSheet,
+                onDraftChange = vm::updateCheckInDraft,
+                onSubmit = vm::checkIn,
+                placeName = state.details?.shop?.title,
+            )
+        }
+    }
+
+    if (state.showReviewSheet) {
+        val reviewId = state.editingReviewId
+        if (reviewId == null) {
+            CreateReviewBottomSheet(
+                shopId = shopId,
+                placeName = state.details?.shop?.title,
+                onDismiss = vm::dismissReviewSheet,
+            )
+        } else {
+            EditReviewBottomSheet(
+                reviewId = reviewId,
+                placeName = state.details?.shop?.title,
+                onDismiss = vm::dismissReviewSheet,
+            )
+        }
     }
 
     val details = state.details
@@ -129,7 +155,14 @@ fun ShopDetailScreen(shopId: String) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = {
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(bottom = floatingActionsClearance),
+                )
+            },
             containerColor = MaterialTheme.colorScheme.background,
         ) { padding ->
             when {
@@ -165,6 +198,7 @@ fun ShopDetailScreen(shopId: String) {
                 details != null -> {
                     ShopDetailContent(
                         details = details,
+                        isLoggedIn = state.isLoggedIn,
                         modifier = Modifier.padding(padding),
                         bottomContentPadding = floatingActionsClearance,
                         isFavoriteLoading = state.isFavoriteLoading,
@@ -172,8 +206,10 @@ fun ShopDetailScreen(shopId: String) {
                         onShare = vm::shareShop,
                         onOpenOnMap = vm::openOnMap,
                         onCopyPhone = vm::copyPhone,
+                        onReportIncorrectData = vm::openReportIncorrectData,
                         onBack = Navigator::popBack,
                         onReviewPhotoClick = { previewImageUrl = it },
+                        onReviewHelpfulClick = vm::toggleHelpful,
                     )
                 }
             }
@@ -182,10 +218,9 @@ fun ShopDetailScreen(shopId: String) {
         if (details != null) {
             ShopDetailBottomBar(
                 isCheckInLoading = state.isCheckInLoading,
-                isVisited = details.isVisited,
                 canOpenRoute = details.location?.latitude != null &&
                     details.location?.longitude != null,
-                onRoute = vm::openRouteInYandexMaps,
+                onRoute = vm::openRoute,
                 onReview = vm::openReviewAction,
                 onCheckIn = vm::openCheckInSheet,
                 modifier = Modifier.align(Alignment.BottomCenter),
@@ -198,6 +233,7 @@ fun ShopDetailScreen(shopId: String) {
 @Composable
 private fun ShopDetailContent(
     details: CoffeeShopDetails,
+    isLoggedIn: Boolean,
     modifier: Modifier = Modifier,
     bottomContentPadding: Dp = CpDimens.spacing4,
     isFavoriteLoading: Boolean = false,
@@ -205,8 +241,10 @@ private fun ShopDetailContent(
     onShare: () -> Unit = {},
     onOpenOnMap: () -> Unit = {},
     onCopyPhone: (String) -> Unit = {},
+    onReportIncorrectData: () -> Unit = {},
     onBack: () -> Unit = {},
     onReviewPhotoClick: (String) -> Unit = {},
+    onReviewHelpfulClick: (String) -> Unit = {},
 ) {
     val shop = details.shop
     val photos = details.photos.filter { it.isNotBlank() }.ifEmpty {
@@ -226,6 +264,7 @@ private fun ShopDetailContent(
                 isFavoriteLoading = isFavoriteLoading,
                 onToggleFavorite = onToggleFavorite,
                 onShare = onShare,
+                onPhotoClick = onReviewPhotoClick,
             )
         }
 
@@ -262,15 +301,21 @@ private fun ShopDetailContent(
             }
         }
 
-        item {
-            DescriptionSection(description = details.description)
+        details.description?.trim()?.takeIf { it.isNotBlank() }?.let { description ->
+            item {
+                DescriptionSection(description = description)
+            }
         }
 
-        item {
-            MenuSection(
-                menu = details.menu,
-                onPhotoClick = onReviewPhotoClick,
-            )
+        details.menu?.takeIf { menu ->
+            groupedPresentItems(menu.items).isNotEmpty() || menu.photos.isNotEmpty()
+        }?.let { menu ->
+            item {
+                MenuSection(
+                    menu = menu,
+                    onPhotoClick = onReviewPhotoClick,
+                )
+            }
         }
 
         if (details.schedules.isNotEmpty()) {
@@ -279,10 +324,24 @@ private fun ShopDetailContent(
             }
         }
 
-        catalogSection(title = "Способы заваривания", items = details.brewMethods)
-        catalogSection(title = "Кофейные зёрна", items = details.coffeeBeans)
-        catalogSection(title = "Обжарщики", items = details.roasters)
-        catalogSection(title = "Оборудование", items = details.equipment)
+        if (
+            details.brewMethods.isNotEmpty() ||
+            details.coffeeBeans.isNotEmpty() ||
+            details.roasters.isNotEmpty() ||
+            details.equipment.isNotEmpty()
+        ) {
+            item {
+                CoffeeDetailsSection(
+                    brewMethods = details.brewMethods,
+                    coffeeBeans = details.coffeeBeans,
+                    roasters = details.roasters,
+                    equipment = details.equipment,
+                    onRoasterClick = {
+                        Navigator.navigate(Navigator.Screen.RoasterDetail(it))
+                    },
+                )
+            }
+        }
 
         details.contact?.let { contact ->
             if (contact.hasAny()) {
@@ -295,10 +354,22 @@ private fun ShopDetailContent(
             }
         }
 
+        if (details.userCheckIns.isNotEmpty()) {
+            item {
+                CheckInsSection(
+                    checkIns = details.userCheckIns,
+                    onPhotoClick = onReviewPhotoClick,
+                )
+            }
+        }
+
         item {
             ReviewsSection(
                 reviews = details.reviews,
+                shopTitle = shop.title,
+                isLoggedIn = isLoggedIn,
                 onReviewPhotoClick = onReviewPhotoClick,
+                onReviewHelpfulClick = onReviewHelpfulClick,
             )
         }
 
@@ -315,6 +386,10 @@ private fun ShopDetailContent(
             }
         }
 
+        item {
+            ReportIncorrectDataAction(onClick = onReportIncorrectData)
+        }
+
         item { Spacer(Modifier.height(CpDimens.spacing6)) }
     }
 }
@@ -328,6 +403,7 @@ private fun ShopHeroImage(
     isFavoriteLoading: Boolean,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
+    onPhotoClick: (String) -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -338,11 +414,14 @@ private fun ShopHeroImage(
         if (photos.size <= 1) {
             val coverUrl = photos.firstOrNull()
             if (!coverUrl.isNullOrBlank()) {
-                KamelImage(
-                    resource = asyncPainterResource(coverUrl),
+                CoffeeShopImage(
+                    imageUrl = coverUrl,
                     contentDescription = title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
+                    placeholderLabelSize = 24.sp,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable { onPhotoClick(coverUrl) },
                 )
             } else {
                 CoffeeShopPlaceholderImage(
@@ -351,7 +430,11 @@ private fun ShopHeroImage(
                 )
             }
         } else {
-            PhotoGallery(photos = photos, title = title)
+            PhotoGallery(
+                photos = photos,
+                title = title,
+                onPhotoClick = onPhotoClick,
+            )
         }
 
         Box(
@@ -431,6 +514,7 @@ private fun HeaderActionButtons(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ShopMetaRow(
     rating: Double?,
@@ -440,55 +524,51 @@ private fun ShopMetaRow(
     priceRange: String?,
 ) {
     val statusGreen = Color(0xFF4ADE80)
-    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+    ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                .clip(RoundedCornerShape(CpDimens.radiusSm))
+                .background(CpColor.PrimaryTint10)
+                .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing1),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
         ) {
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(CpDimens.radiusSm))
-                    .background(CpColor.PrimaryTint10)
-                    .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing1),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-            ) {
-                Icon(
-                    imageVector = CpIcons.StarFilled,
-                    contentDescription = null,
-                    tint = CpColor.Primary,
-                    modifier = Modifier.size(14.dp),
-                )
-                Text(
-                    text = formatOneDecimal(rating ?: 0.0),
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                    color = CpColor.Primary,
-                )
-            }
-            Text(
-                text = reviewCountLabel(reviewCount),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textDecoration = TextDecoration.Underline,
+            Icon(
+                imageVector = CpIcons.StarFilled,
+                contentDescription = null,
+                tint = CpColor.Primary,
+                modifier = Modifier.size(14.dp),
             )
-            if (isNew) {
-                StatusBadgeChip(text = "Новая", textColor = statusGreen)
-            }
-            StatusBadgeChip(
-                text = if (isOpen) "Открыта" else "Закрыта",
-                textColor = if (isOpen) statusGreen else CpColor.Error,
-                backgroundColor = if (isOpen) {
-                    CpColor.Success.copy(alpha = 0.2f)
-                } else {
-                    CpColor.Error.copy(alpha = 0.2f)
-                },
+            Text(
+                text = "%.1f".format(rating ?: 0.0),
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                color = CpColor.Primary,
             )
         }
+        Text(
+            text = reviewCountLabel(reviewCount),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textDecoration = TextDecoration.Underline,
+        )
+        if (isNew) {
+            StatusBadgeChip(text = "Новая", textColor = statusGreen)
+        }
+        StatusBadgeChip(
+            text = if (isOpen) "Открыта" else "Закрыта",
+            textColor = if (isOpen) statusGreen else CpColor.Error,
+            backgroundColor = if (isOpen) {
+                CpColor.Success.copy(alpha = 0.2f)
+            } else {
+                CpColor.Error.copy(alpha = 0.2f)
+            },
+        )
         priceRangeLevel(priceRange)?.let { level ->
-            PriceBynRow(level = level)
+            PriceBynRow(level = level, iconSize = 13.dp)
         }
     }
 }
@@ -596,45 +676,74 @@ private fun HeroIconButton(
 @Composable
 private fun CollapsibleScheduleSection(schedules: List<ShopSchedule>) {
     var expanded by remember { mutableStateOf(false) }
-    val preview = schedules.firstOrNull()?.let { schedule ->
-        "${dayOfWeekLabel(schedule.dayOfWeek)}: ${scheduleSummary(schedule)}"
-    } ?: "Раскрыть расписание"
+    val currentDay = remember { currentLocalDayOfWeek() }
+    val orderedSchedules = remember(schedules) {
+        schedules.sortedBy { schedule ->
+            if (schedule.dayOfWeek == 0) 7 else schedule.dayOfWeek
+        }
+    }
 
-    SectionCard(title = "Режим работы") {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = !expanded },
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                if (!expanded) {
-                    Text(
-                        text = preview,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CpDimens.spacing4, vertical = 6.dp),
+        shape = RoundedCornerShape(CpDimens.radius2xl),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    ) {
+        Column(modifier = Modifier.padding(CpDimens.spacing4)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(CpDimens.radiusMd))
+                        .background(CpColor.PrimaryTint10),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = CpIcons.Time,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
+                Spacer(Modifier.width(CpDimens.spacing3))
+                Text(
+                    text = "Часы работы",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    imageVector = if (expanded) CpIcons.ChevronUp else CpIcons.ChevronDown,
+                    contentDescription = if (expanded) "Скрыть часы работы" else "Показать часы работы",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
             }
-            Icon(
-                imageVector = if (expanded) CpIcons.ChevronUp else CpIcons.ChevronDown,
-                contentDescription = if (expanded) "Скрыть" else "Показать",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
 
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(animationSpec = tween(200)),
-            exit = shrinkVertically(animationSpec = tween(200)),
-        ) {
-            Column(
-                modifier = Modifier.padding(top = CpDimens.spacing2),
-                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-            ) {
-                schedules.forEach { schedule ->
-                    ScheduleRow(schedule)
+            if (expanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 56.dp, top = CpDimens.spacing2),
+                    verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                ) {
+                    orderedSchedules.forEach { schedule ->
+                        ScheduleRow(
+                            schedule = schedule,
+                            isCurrentDay = schedule.dayOfWeek == currentDay,
+                        )
+                    }
                 }
             }
         }
@@ -646,55 +755,70 @@ private fun ContactsSection(
     contact: ShopContact,
     onCopyPhone: (String) -> Unit,
 ) {
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing2),
-        shape = RoundedCornerShape(CpDimens.radius2xl),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing4),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
-        Column(
-            modifier = Modifier.padding(CpDimens.spacing4),
-            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
-        ) {
-            SectionTitle("Контакты", barColor = CpColor.GoldWarm)
-            Column(verticalArrangement = Arrangement.spacedBy(11.dp)) {
-                contact.phone?.takeIf { it.isNotBlank() }?.let { phone ->
-                    PhoneContactPill(
-                        phone = phone,
-                        onCall = { OpenInBrowser.openInBrowser("tel:$phone") },
-                        onCopy = { onCopyPhone(phone) },
-                    )
-                }
-                contact.instagram?.let {
-                    formatInstagramLink(it)?.let { instagram ->
-                        ContactPill(
-                            icon = CpIcons.Instagram,
-                            text = instagramLabel(instagram),
-                            onClick = { OpenInBrowser.openInBrowser(instagram.targetUrl) },
-                        )
-                    }
-                }
-                contact.website?.let {
-                    formatWebsiteLink(it)?.let { website ->
-                        ContactPill(
-                            icon = CpIcons.Globe,
-                            text = website.displayText,
-                            onClick = { OpenInBrowser.openInBrowser(website.targetUrl) },
-                        )
-                    }
-                }
-                contact.email?.takeIf { it.isNotBlank() }?.let { email ->
+        SectionTitle("Контакты")
+        Column(verticalArrangement = Arrangement.spacedBy(11.dp)) {
+            contact.phone?.takeIf { it.isNotBlank() }?.let { phone ->
+                PhoneContactPill(
+                    phone = phone,
+                    onCall = { OpenInBrowser.openInBrowser("tel:$phone") },
+                    onCopy = { onCopyPhone(phone) },
+                )
+            }
+            contact.instagram?.let {
+                formatInstagramLink(it)?.let { instagram ->
                     ContactPill(
-                        icon = CpIcons.Email,
-                        text = email,
-                        onClick = { OpenInBrowser.openInBrowser("mailto:$email") },
+                        icon = CpIcons.Instagram,
+                        text = instagramLabel(instagram),
+                        onClick = { OpenInBrowser.openInBrowser(instagram.targetUrl) },
                     )
                 }
             }
+            contact.website?.let {
+                formatWebsiteLink(it)?.let { website ->
+                    ContactPill(
+                        icon = CpIcons.Globe,
+                        text = website.displayText,
+                        onClick = { OpenInBrowser.openInBrowser(website.targetUrl) },
+                    )
+                }
+            }
+            contact.email?.takeIf { it.isNotBlank() }?.let { email ->
+                ContactPill(
+                    icon = CpIcons.Email,
+                    text = email,
+                    onClick = { OpenInBrowser.openInBrowser("mailto:$email") },
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun ReportIncorrectDataAction(onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing2),
+        shape = RoundedCornerShape(CpDimens.radiusLg),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outline,
+        ),
+    ) {
+        Icon(
+            imageVector = CpIcons.Error,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(CpDimens.spacing2))
+        Text("Сообщить о неточности")
     }
 }
 
@@ -748,31 +872,46 @@ private fun PhoneContactPill(
 @Composable
 private fun ReviewsSection(
     reviews: List<Review>,
+    shopTitle: String,
+    isLoggedIn: Boolean,
     onReviewPhotoClick: (String) -> Unit,
+    onReviewHelpfulClick: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = CpDimens.spacing4)
             .padding(top = CpDimens.spacing6, bottom = CpDimens.spacing3),
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing6),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        SectionTitle("Отзывы клиентов", barColor = CpColor.Primary)
+        SectionTitle("Отзывы")
         if (reviews.isEmpty()) {
             EmptyMascotState(
                 mascot = Res.drawable.maskot_with_book,
-                message = "Пока нет отзывов",
+                message = "Станьте первым, кто оценит и оставит отзыв о своём посещении $shopTitle",
             )
         } else {
-            Column(
+            LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
             ) {
-                reviews.forEachIndexed { index, review ->
-                    ReviewCard(review, onReviewPhotoClick)
-                    if (index < reviews.lastIndex) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                items(
+                    count = reviews.size,
+                    key = { index -> reviews[index].id },
+                ) { index ->
+                    val review = reviews[index]
+                    val isBlurred = shouldBlurReview(isLoggedIn, index)
+                    Box(
+                        modifier = Modifier
+                            .width(320.dp)
+                            .then(if (isBlurred) Modifier.blur(5.dp) else Modifier),
+                    ) {
+                        ReviewCard(
+                            review = review,
+                            modifier = Modifier.fillMaxWidth(),
+                            onPhotoClick = if (isBlurred) ({}) else onReviewPhotoClick,
+                            onHelpfulClick = if (isBlurred) null else ({ onReviewHelpfulClick(review.id) }),
+                        )
                     }
                 }
             }
@@ -781,91 +920,155 @@ private fun ReviewsSection(
 }
 
 @Composable
-private fun DescriptionSection(description: String?) {
-    SectionCard(title = "Описание") {
-        val text = description?.trim().orEmpty()
-        if (text.isNotBlank()) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        } else {
-            EmptyMascotState(
-                mascot = Res.drawable.maskot_happy,
-                message = "Пока нет описания",
-            )
+private fun CheckInsSection(
+    checkIns: List<CheckIn>,
+    onPhotoClick: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CpDimens.spacing4)
+            .padding(top = CpDimens.spacing6, bottom = CpDimens.spacing3),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+    ) {
+        SectionTitle("Мои чекины")
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+        ) {
+            items(checkIns, key = { it.id }) { checkIn ->
+                CheckInDisplayCard(
+                    checkIn = checkIn,
+                    showShopName = false,
+                    onPhotoClick = onPhotoClick,
+                    modifier = Modifier.width(320.dp),
+                )
+            }
         }
+    }
+}
+
+internal fun shouldBlurReview(isLoggedIn: Boolean, reviewIndex: Int): Boolean =
+    !isLoggedIn && reviewIndex > 0
+
+@Composable
+private fun OutlinedContentCard(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(CpDimens.radius2xl),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    ) {
+        Column(
+            modifier = Modifier.padding(CpDimens.spacing4),
+            content = content,
+        )
+    }
+}
+
+@Composable
+private fun DescriptionSection(description: String) {
+    SectionCard(title = "Описание") {
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
 @Composable
 private fun MenuSection(
-    menu: ShopMenu?,
+    menu: ShopMenu,
     onPhotoClick: (String) -> Unit,
 ) {
-    SectionCard(title = "Меню") {
-        if (menu == null) {
-            EmptyMascotState(
-                mascot = Res.drawable.maskot_with_book,
-                message = "Меню пока нет",
-            )
-            return@SectionCard
-        }
+    val capturedLabel = menu.capturedAtUtc?.let(::formatMenuDate)
+    val updatedLabel = menu.updatedAtUtc?.let(::formatMenuDate)
+    val groups = groupedPresentItems(menu.items)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CpDimens.spacing4, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+    ) {
+        SectionTitle("Меню")
+        OutlinedContentCard {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+                verticalAlignment = Alignment.Top,
+            ) {
+                if (groups.isNotEmpty()) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        groups.forEachIndexed { index, (_, drinks) ->
+                            if (index > 0) {
+                                Spacer(Modifier.height(CpDimens.spacing2))
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f),
+                                )
+                                Spacer(Modifier.height(CpDimens.spacing2))
+                            }
+                            drinks.forEach { drink -> MenuDrinkRow(drink) }
+                        }
+                    }
+                }
 
-        val capturedLabel = menu.capturedAtUtc?.let(::formatMenuDate)
-        val updatedLabel = menu.updatedAtUtc?.let(::formatMenuDate)
+                if (menu.photos.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier.width(104.dp),
+                        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                    ) {
+                        menu.photos.forEach { photo ->
+                            CoffeeShopImage(
+                                imageUrl = photo.fullUrl,
+                                contentDescription = "Фотография меню",
+                                contentScale = ContentScale.Crop,
+                                placeholderLabelSize = 14.sp,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(104.dp)
+                                    .clip(RoundedCornerShape(CpDimens.radiusMd))
+                                    .clickable { onPhotoClick(photo.fullUrl) },
+                            )
+                        }
+                        MenuFreshness(capturedLabel, updatedLabel)
+                    }
+                }
+            }
+
+            if (menu.photos.isEmpty()) {
+                MenuFreshness(
+                    capturedLabel = capturedLabel,
+                    updatedLabel = updatedLabel,
+                    modifier = Modifier.padding(top = CpDimens.spacing3),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MenuFreshness(
+    capturedLabel: String?,
+    updatedLabel: String?,
+    modifier: Modifier = Modifier,
+) {
+    if (capturedLabel.isNullOrBlank() && updatedLabel.isNullOrBlank()) return
+    Column(modifier = modifier) {
         if (!capturedLabel.isNullOrBlank()) {
             Text(
                 text = "Актуально на $capturedLabel",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (!updatedLabel.isNullOrBlank() && updatedLabel != capturedLabel) {
-                Text(
-                    text = "Обновлено $updatedLabel",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(Modifier.height(CpDimens.spacing3))
         }
-
-        val groups = groupedPresentItems(menu.items)
-        groups.forEachIndexed { index, (title, drinks) ->
-            if (index > 0) Spacer(Modifier.height(CpDimens.spacing3))
+        if (!updatedLabel.isNullOrBlank() && updatedLabel != capturedLabel) {
             Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface,
+                text = "Обновлено $updatedLabel",
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(CpDimens.spacing2))
-            drinks.forEach { drink ->
-                MenuDrinkRow(drink)
-            }
-        }
-
-        if (menu.photos.isNotEmpty()) {
-            Spacer(Modifier.height(CpDimens.spacing4))
-            Text(
-                text = "Фото меню",
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.height(CpDimens.spacing2))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-                itemsIndexed(menu.photos, key = { index, photo -> photo.id.ifBlank { photo.fullUrl + index } }) { _, photo ->
-                    KamelImage(
-                        resource = asyncPainterResource(photo.fullUrl),
-                        contentDescription = "Фото меню",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(96.dp)
-                            .clip(RoundedCornerShape(CpDimens.radiusMd))
-                            .clickable { onPhotoClick(photo.fullUrl) },
-                    )
-                }
-            }
         }
     }
 }
@@ -876,21 +1079,39 @@ private fun MenuDrinkRow(item: ShopMenuItem) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = CpDimens.spacing1),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = item.nameRu.ifBlank { item.nameEn.ifBlank { item.slug } },
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f).padding(end = CpDimens.spacing3),
+            modifier = Modifier.weight(1f).padding(end = CpDimens.spacing2),
         )
         item.price?.let { price ->
-            Text(
-                text = formatMenuPrice(price, item.currency),
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = formatMenuAmount(price),
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (item.currency.isBlank() || item.currency.equals("BYN", ignoreCase = true)) {
+                    PriceBynIcon(
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        contentDescription = "Белорусский рубль",
+                    )
+                } else {
+                    Text(
+                        text = item.currency,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
         }
     }
 }
@@ -986,7 +1207,6 @@ private fun AddressCard(
 @Composable
 private fun ShopDetailBottomBar(
     isCheckInLoading: Boolean,
-    isVisited: Boolean,
     canOpenRoute: Boolean,
     onRoute: () -> Unit,
     onReview: () -> Unit,
@@ -1014,7 +1234,7 @@ private fun ShopDetailBottomBar(
         BottomBarAction(
             icon = CpIcons.Check,
             label = "Чекин",
-            enabled = !isCheckInLoading && !isVisited,
+            enabled = !isCheckInLoading,
             isLoading = isCheckInLoading,
             onClick = onCheckIn,
             modifier = Modifier.weight(1f),
@@ -1097,35 +1317,45 @@ private fun BottomBarAction(
     }
 }
 
-private fun scheduleSummary(schedule: ShopSchedule): String = when {
-    schedule.isClosed -> "Выходной"
-    schedule.intervals.isEmpty() -> "—"
-    else -> schedule.intervals.joinToString(", ") { interval ->
-        "${formatTime(interval.openTime)}–${formatTime(interval.closeTime)}"
-    }
-}
-
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun PhotoGallery(photos: List<String>, title: String) {
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(0.dp),
-        horizontalArrangement = Arrangement.spacedBy(0.dp),
-    ) {
-        items(photos) { url ->
-            Box(
+private fun PhotoGallery(
+    photos: List<String>,
+    title: String,
+    onPhotoClick: (String) -> Unit,
+) {
+    val pagerState = rememberPagerState(pageCount = { photos.size })
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        HorizontalPager(
+            modifier = Modifier.fillMaxSize(),
+            state = pagerState,
+        ) { page ->
+            val photoUrl = photos[page]
+            CoffeeShopImage(
+                imageUrl = photoUrl,
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                placeholderLabelSize = 24.sp,
                 modifier = Modifier
-                    .width(320.dp)
-                    .height(240.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-            ) {
-                KamelImage(
-                    resource = asyncPainterResource(url),
-                    contentDescription = title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+                    .fillMaxSize()
+                    .clickable { onPhotoClick(photoUrl) },
+            )
+        }
+        Surface(
+            shape = RoundedCornerShape(999.dp),
+            color = Color.Black.copy(alpha = 0.48f),
+            tonalElevation = 0.dp,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(CpDimens.spacing3),
+        ) {
+            Text(
+                text = "${pagerState.currentPage + 1} / ${photos.size}",
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = Color.White,
+                modifier = Modifier.padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing1),
+            )
         }
     }
 }
@@ -1162,7 +1392,7 @@ private fun RatingBlock(rating: Double?, reviewCount: Int) {
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    text = formatOneDecimal(rating),
+                    text = "%.1f".format(rating),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -1197,45 +1427,198 @@ private fun LocationRow(address: String) {
 }
 
 @Composable
-private fun ScheduleRow(schedule: ShopSchedule) {
+private fun ScheduleRow(
+    schedule: ShopSchedule,
+    isCurrentDay: Boolean,
+) {
+    val contentColor = if (isCurrentDay) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                CpIcons.Time,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(14.dp),
-            )
-            Spacer(Modifier.width(CpDimens.spacing1))
-            Text(
-                text = dayOfWeekLabel(schedule.dayOfWeek),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.width(120.dp),
-            )
+        Text(
+            text = shortDayOfWeekLabel(schedule.dayOfWeek),
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = if (isCurrentDay) FontWeight.SemiBold else FontWeight.Normal,
+            ),
+            color = contentColor,
+            modifier = Modifier.width(36.dp),
+        )
+        when {
+            schedule.isClosed -> {
+                Text(
+                    text = "Выходной",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = if (isCurrentDay) FontWeight.SemiBold else FontWeight.Normal,
+                    ),
+                    color = contentColor,
+                )
+            }
+            schedule.intervals.isEmpty() -> {
+                Text(
+                    text = "—",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = contentColor,
+                )
+            }
+            else -> {
+                Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1)) {
+                    schedule.intervals.forEach { interval ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            ScheduleTimeText(
+                                text = formatTime(interval.openTime),
+                                color = contentColor,
+                                emphasized = isCurrentDay,
+                                modifier = Modifier.width(58.dp),
+                            )
+                            ScheduleTimeText(
+                                text = "–",
+                                color = contentColor,
+                                emphasized = isCurrentDay,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.width(20.dp),
+                            )
+                            ScheduleTimeText(
+                                text = formatTime(interval.closeTime),
+                                color = contentColor,
+                                emphasized = isCurrentDay,
+                                modifier = Modifier.width(58.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScheduleTimeText(
+    text: String,
+    color: Color,
+    emphasized: Boolean,
+    modifier: Modifier = Modifier,
+    textAlign: TextAlign = TextAlign.Start,
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium.copy(
+            fontWeight = if (emphasized) FontWeight.SemiBold else FontWeight.Normal,
+        ),
+        color = color,
+        textAlign = textAlign,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun CoffeeDetailsSection(
+    brewMethods: List<String>,
+    coffeeBeans: List<String>,
+    roasters: List<CatalogItem>,
+    equipment: List<String>,
+    onRoasterClick: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CpDimens.spacing4, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+    ) {
+        RoasterDetailGroup(roasters, onRoasterClick)
+        CatalogDetailGroup("Методы заваривания", brewMethods)
+        CatalogDetailGroup("Кофе", coffeeBeans)
+        CatalogDetailGroup("Оборудование", equipment)
+    }
+}
+
+@Composable
+private fun RoasterDetailGroup(
+    items: List<CatalogItem>,
+    onRoasterClick: (String) -> Unit,
+) {
+    if (items.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3)) {
+        SectionTitle("Обжарщики")
+        OutlinedContentCard {
+            Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3)) {
+                items.forEach { item ->
+                    RoasterLinkRow(
+                        item = item,
+                        onClick = { onRoasterClick(item.id) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RoasterLinkRow(
+    item: CatalogItem,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(CpDimens.radiusLg))
+            .clickable(onClick = onClick)
+            .padding(vertical = CpDimens.spacing1),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(CpDimens.radiusMd)),
+        ) {
+            val photoUrl = item.photoUrl?.takeIf(String::isNotBlank)
+            if (photoUrl != null) {
+                CoffeeShopImage(
+                    imageUrl = photoUrl,
+                    contentDescription = "Фото обжарщика ${item.name}",
+                    placeholderLabelSize = 7.sp,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                CoffeeShopPlaceholderImage(
+                    labelSize = 7.sp,
+                    contentDescription = "Фото обжарщика ${item.name} отсутствует",
+                )
+            }
         }
         Text(
-            text = when {
-                schedule.isClosed -> "Выходной"
-                schedule.intervals.isEmpty() -> "—"
-                else -> schedule.intervals.joinToString(", ") { interval ->
-                    "${formatTime(interval.openTime)}–${formatTime(interval.closeTime)}"
-                }
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = item.name,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+            ),
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = CpIcons.ChevronRight,
+            contentDescription = "Открыть обжарщика ${item.name}",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
         )
     }
 }
 
-private fun LazyListScope.catalogSection(title: String, items: List<String>) {
+@Composable
+private fun CatalogDetailGroup(
+    title: String,
+    items: List<String>,
+) {
     if (items.isEmpty()) return
-    item {
-        SectionCard(title = title) {
+    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3)) {
+        SectionTitle(title)
+        OutlinedContentCard {
             TagFlow(items = items)
         }
     }
@@ -1276,13 +1659,16 @@ private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Un
 @Composable
 private fun InfoChip(
     text: String,
-    containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    textColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    containerColor: Color = CpColor.GoldWarmSoft,
+    textColor: Color = CpColor.GoldWarmHover,
+    onClick: (() -> Unit)? = null,
 ) {
+    var modifier = Modifier
+        .clip(RoundedCornerShape(CpDimens.radiusSm))
+        .background(containerColor)
+    if (onClick != null) modifier = modifier.clickable(onClick = onClick)
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(CpDimens.radiusSm))
-            .background(containerColor)
+        modifier = modifier
             .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
     ) {
         Text(
@@ -1311,26 +1697,12 @@ private fun ShopBadge(text: String, color: Color) {
 }
 
 @Composable
-private fun SectionTitle(
-    title: String,
-    barColor: Color = CpColor.GoldWarm,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(width = 6.dp, height = 32.dp)
-                .clip(RoundedCornerShape(999.dp))
-                .background(barColor),
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
+private fun SectionTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.headlineSmall,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
 }
 
 @Composable
@@ -1411,110 +1783,17 @@ private fun ContactRow(
 }
 
 @Composable
-private fun ReviewCard(review: Review, onPhotoClick: (String) -> Unit) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = review.username.ifBlank { "Пользователь" },
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                if (review.createdAt.isNotBlank()) {
-                    Text(
-                        text = formatReviewDate(review.createdAt),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                Icon(
-                    CpIcons.StarFilled,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(13.dp),
-                )
-                Text(
-                    text = formatOneDecimal(review.rating.average),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-        }
-
-        ReviewRatingBreakdown(review.rating)
-
-        if (review.header.isNotBlank()) {
-            Text(
-                text = review.header,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(top = CpDimens.spacing1),
-            )
-        }
-        if (review.comment.isNotBlank()) {
-            Text(
-                text = review.comment,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp),
-            )
-        }
-
-        if (review.photoUrls.isNotEmpty()) {
-            Spacer(Modifier.height(CpDimens.spacing2))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-                items(review.photoUrls) { url ->
-                    KamelImage(
-                        resource = asyncPainterResource(url),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(RoundedCornerShape(CpDimens.radiusSm))
-                            .clickable { onPhotoClick(url) },
-                    )
-                }
-            }
-        }
-
-        HorizontalDivider(
-            modifier = Modifier.padding(top = CpDimens.spacing2),
-            color = MaterialTheme.colorScheme.outlineVariant,
-        )
-    }
-}
-
-@Composable
-private fun ReviewRatingBreakdown(rating: ReviewRating) {
-    if (rating.place == 0 && rating.service == 0 && rating.coffee == 0) return
-    Spacer(Modifier.height(CpDimens.spacing1))
-    Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3)) {
-        RatingPill("Место", rating.place)
-        RatingPill("Сервис", rating.service)
-        RatingPill("Кофе", rating.coffee)
-    }
-}
-
-@Composable
-private fun RatingPill(label: String, value: Int) {
-    if (value <= 0) return
-    Text(
-        text = "$label: $value",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .clip(RoundedCornerShape(CpDimens.radiusSm))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = CpDimens.spacing2, vertical = 2.dp),
+private fun ReviewCard(
+    review: Review,
+    modifier: Modifier = Modifier,
+    onPhotoClick: (String) -> Unit,
+    onHelpfulClick: (() -> Unit)?,
+) {
+    ReviewDisplayCard(
+        review = review,
+        modifier = modifier,
+        onPhotoClick = onPhotoClick,
+        onHelpfulClick = onHelpfulClick,
     )
 }
 
@@ -1592,15 +1871,15 @@ private fun prettyLinkText(value: String): String {
         .ifBlank { value }
 }
 
-private fun dayOfWeekLabel(day: Int): String = when (day) {
-    0 -> "Воскресенье"
-    1 -> "Понедельник"
-    2 -> "Вторник"
-    3 -> "Среда"
-    4 -> "Четверг"
-    5 -> "Пятница"
-    6 -> "Суббота"
-    else -> "День $day"
+private fun shortDayOfWeekLabel(day: Int): String = when (day) {
+    0 -> "Вс"
+    1 -> "Пн"
+    2 -> "Вт"
+    3 -> "Ср"
+    4 -> "Чт"
+    5 -> "Пт"
+    6 -> "Сб"
+    else -> "—"
 }
 
 private fun formatTime(raw: String): String {
@@ -1617,12 +1896,11 @@ private fun formatReviewDate(raw: String): String {
 
 private fun formatMenuDate(raw: String): String = formatReviewDate(raw)
 
-private fun formatMenuPrice(price: Double, currency: String): String {
+private fun formatMenuAmount(price: Double): String {
     val cents = kotlin.math.round(price * 100.0).toLong()
     val whole = cents / 100
     val frac = kotlin.math.abs(cents % 100)
-    val amount = "$whole,${frac.toString().padStart(2, '0')}"
-    return "$amount ${currency.ifBlank { "BYN" }}"
+    return "$whole,${frac.toString().padStart(2, '0')}"
 }
 
 private fun groupedPresentItems(items: List<ShopMenuItem>): List<Pair<String, List<ShopMenuItem>>> {
