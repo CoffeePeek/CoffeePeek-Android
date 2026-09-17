@@ -2,6 +2,7 @@ package com.coffeepeek.admin.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,12 +13,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -81,27 +82,30 @@ fun PhotoAttachmentsSection(
                 modifier = Modifier.padding(bottom = CpDimens.spacing2),
             ) {
                 photos.forEachIndexed { index, photo ->
-                    Box(
-                        modifier = Modifier
-                            .size(96.dp)
-                            .clip(photoShape)
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outline,
-                                shape = photoShape,
-                            ),
-                    ) {
+                    // Outer box is NOT clipped so the delete badge can overhang the corner and stay visible.
+                    Box(modifier = Modifier.size(96.dp)) {
                         CpImage(
                             data = photo.bytes,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(photoShape)
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    shape = photoShape,
+                                ),
                             contentScale = ContentScale.Crop,
                         )
-                        IconButton(
-                            onClick = { onRemovePhoto(index) },
+                        Box(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
-                                .size(28.dp)
-                                .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(50)),
+                                .offset(x = 6.dp, y = (-6).dp)
+                                .size(24.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(Color.Black.copy(alpha = 0.75f))
+                                .border(1.5.dp, Color.White, RoundedCornerShape(50))
+                                .clickable { onRemovePhoto(index) },
+                            contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 CpIcons.Close,
