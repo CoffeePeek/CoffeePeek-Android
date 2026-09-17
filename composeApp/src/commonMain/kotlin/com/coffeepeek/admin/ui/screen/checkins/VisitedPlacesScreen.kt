@@ -1,5 +1,7 @@
 package com.coffeepeek.admin.ui.screen.checkins
 
+import com.coffeepeek.admin.ui.component.CpTopBar
+
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,17 +55,7 @@ fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = platformViewModel()) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Чекины") },
-                navigationIcon = {
-                    IconButton(onClick = { Navigator.popBack() }) {
-                        Icon(CpIcons.Back, contentDescription = "Назад")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+            CpTopBar("Чекины")
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->

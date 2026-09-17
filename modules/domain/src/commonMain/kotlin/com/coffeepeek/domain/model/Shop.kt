@@ -89,6 +89,8 @@ data class ScheduleInterval(
 
 data class Review(
     val id: String,
+    // Moderation record this review is linked to; null means there's no pending moderation entry to edit.
+    val moderationReviewId: String? = null,
     val shopId: String = "",
     val userId: String = "",
     val username: String,

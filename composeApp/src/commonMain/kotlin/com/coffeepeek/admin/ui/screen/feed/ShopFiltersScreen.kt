@@ -1,5 +1,7 @@
 package com.coffeepeek.admin.ui.screen.feed
 
+import com.coffeepeek.admin.ui.component.CpTopBar
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -92,37 +94,20 @@ fun ShopFiltersScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .statusBarsPadding()
                             .navigationBarsPadding(),
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = CpDimens.spacing2, vertical = CpDimens.spacing2),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            IconButton(onClick = { dismissAnimated() }) {
-                                Icon(
-                                    imageVector = CpIcons.Back,
-                                    contentDescription = "Назад",
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-                            Text(
-                                text = "Фильтры",
-                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(1f),
-                            )
-                            TextButton(
-                                onClick = {
-                                    draft = draft.clearSelections()
-                                },
-                                enabled = draft.activeFilterCount > 0,
-                            ) {
-                                Text("Сбросить")
-                            }
-                        }
+                        CpTopBar(
+                            title = "Фильтры",
+                            onBack = { dismissAnimated() },
+                            actions = {
+                                TextButton(
+                                    onClick = { draft = draft.clearSelections() },
+                                    enabled = draft.activeFilterCount > 0,
+                                ) {
+                                    Text("Сбросить")
+                                }
+                            },
+                        )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
                         Column(

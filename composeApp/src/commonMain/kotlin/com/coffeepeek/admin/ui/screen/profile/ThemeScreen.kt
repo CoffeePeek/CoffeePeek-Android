@@ -1,5 +1,7 @@
 package com.coffeepeek.admin.ui.screen.profile
 
+import com.coffeepeek.admin.ui.component.CpTopBar
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -46,17 +48,7 @@ fun ThemeScreen() {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Тема") },
-                navigationIcon = {
-                    IconButton(onClick = Navigator::popBack) {
-                        Icon(CpIcons.Back, contentDescription = "Назад")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                ),
-            )
+            CpTopBar("Тема")
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->

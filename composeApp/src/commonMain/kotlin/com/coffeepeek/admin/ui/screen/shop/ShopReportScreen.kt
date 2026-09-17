@@ -1,5 +1,7 @@
 package com.coffeepeek.admin.ui.screen.shop
 
+import com.coffeepeek.admin.ui.component.CpTopBar
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -46,17 +48,7 @@ fun ShopReportScreen(shopId: String, shopTitle: String) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Сообщить о неточности") },
-                navigationIcon = {
-                    IconButton(onClick = Navigator::popBack) {
-                        Icon(CpIcons.Back, contentDescription = "Назад")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+            CpTopBar("Сообщить о неточности")
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { contentPadding ->

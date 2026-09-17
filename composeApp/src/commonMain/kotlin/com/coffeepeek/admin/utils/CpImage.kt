@@ -6,8 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
-import coffeepeek.composeapp.generated.resources.Res
-import coffeepeek.composeapp.generated.resources.image_not_available
 import com.coffeepeek.admin.locator.Constants
 import com.coffeepeek.admin.utils.DrawableExt.toPainterResource
 import io.kamel.core.Resource
@@ -18,7 +16,8 @@ import org.jetbrains.compose.resources.DrawableResource
 fun CpImage(
     data: Any,
     placeholder: DrawableResource? = null,
-    error: DrawableResource? = Res.drawable.image_not_available,
+    // ponytail: image_not_available.png was deleted; null → neutral color fallback in rememberCpImagePainter.
+    error: DrawableResource? = null,
     contentScale: ContentScale = ContentScale.Crop,
     modifier: Modifier = Modifier,
     contentDescription: String? = null,

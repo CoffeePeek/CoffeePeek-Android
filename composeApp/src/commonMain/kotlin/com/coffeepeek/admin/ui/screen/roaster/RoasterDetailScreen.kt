@@ -1,5 +1,7 @@
 package com.coffeepeek.admin.ui.screen.roaster
 
+import com.coffeepeek.admin.ui.component.CpCircularBackButton
+
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -321,16 +323,15 @@ private fun RoasterHero(
             }
         }
 
-        IconButton(
+        CpCircularBackButton(
             onClick = onBack,
+            containerColor = Color.Black.copy(alpha = 0.45f),
+            tint = Color.White,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .statusBarsPadding()
-                .padding(CpDimens.spacing2)
-                .background(Color.Black.copy(alpha = 0.45f), CircleShape),
-        ) {
-            Icon(CpIcons.Back, contentDescription = "Назад", tint = Color.White)
-        }
+                .padding(CpDimens.spacing2),
+        )
     }
 }
 

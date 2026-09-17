@@ -1,5 +1,9 @@
 package com.coffeepeek.admin.ui.screen.favorites
 
+import com.coffeepeek.admin.ui.screen.feed.ShopCard
+
+import com.coffeepeek.admin.ui.component.CpTopBar
+
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,17 +52,7 @@ fun FavoritesScreen(vm: FavoritesViewModel = platformViewModel()) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Избранное") },
-                navigationIcon = {
-                    IconButton(onClick = { Navigator.popBack() }) {
-                        Icon(CpIcons.Back, contentDescription = "Назад")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+            CpTopBar("Избранное")
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -85,9 +79,10 @@ fun FavoritesScreen(vm: FavoritesViewModel = platformViewModel()) {
                 verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
             ) {
                 items(state.shops, key = { it.shop.id }) { details ->
-                    FavoriteShopCard(
-                        details = details,
+                    ShopCard(
+                        shop = details.shop,
                         onClick = { Navigator.navigate(Navigator.Screen.ShopDetail(details.shop.id)) },
+                        onToggleFavorite = { vm.removeFavorite(details.shop) },
                     )
                 }
             }
@@ -95,39 +90,3 @@ fun FavoritesScreen(vm: FavoritesViewModel = platformViewModel()) {
     }
 }
 
-@Composable
-private fun FavoriteShopCard(details: CoffeeShopDetails, onClick: () -> Unit) {
-    val shop = details.shop
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(CpDimens.cardRadius),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(0.dp),
-    ) {
-        Column(modifier = Modifier.padding(CpDimens.spacing3)) {
-            Text(
-                text = shop.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            details.location?.address?.let { address ->
-                androidx.compose.foundation.layout.Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp),
-                ) {
-                    Icon(CpIcons.Location, null, modifier = Modifier.padding(end = 4.dp).then(Modifier), tint = CpColor.Primary)
-                    Text(address, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                }
-            }
-            shop.rating?.takeIf { it > 0 }?.let { rating ->
-                androidx.compose.foundation.layout.Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp),
-                ) {
-                    Icon(CpIcons.StarFilled, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 2.dp).then(Modifier))
-                    Text(formatOneDecimal(rating), style = MaterialTheme.typography.labelMedium)
-                }
-            }
-        }
-    }
-}

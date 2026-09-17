@@ -1,5 +1,7 @@
 package com.coffeepeek.admin.ui.screen.roaster
 
+import com.coffeepeek.admin.ui.component.CpTopBar
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -107,22 +109,7 @@ fun AddRoasterScreen(vm: AddRoasterViewModel = platformViewModel()) {
 
     Scaffold(
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = CpDimens.spacing2, vertical = CpDimens.spacing2),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = Navigator::popBack) {
-                    Icon(CpIcons.Back, contentDescription = "Назад")
-                }
-                Text(
-                    text = "Добавить обжарщика",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
+            CpTopBar("Добавить обжарщика")
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->

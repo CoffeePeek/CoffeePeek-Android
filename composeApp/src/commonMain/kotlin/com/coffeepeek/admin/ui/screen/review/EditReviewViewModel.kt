@@ -25,6 +25,7 @@ data class EditReviewUiState(
     val coffeeRating: Int = 5,
     val existingPhotoUrls: List<String> = emptyList(),
     val newPhotos: List<PickedImage> = emptyList(),
+    val canEdit: Boolean = true,
     val isSubmitting: Boolean = false,
     val headerError: String? = null,
     val commentError: String? = null,
@@ -40,6 +41,8 @@ class EditReviewViewModel(
     private val _state = MutableStateFlow(EditReviewUiState())
     val state = _state.asStateFlow()
     private var shopIdForSync: String? = null
+    // The PUT targets the moderation record, not the published review. Null → nothing to edit.
+    private var moderationReviewId: String? = null
 
     init {
         loadReview()
@@ -58,6 +61,7 @@ class EditReviewViewModel(
                         return@onSuccess
                     }
                     shopIdForSync = review.shopId
+                    moderationReviewId = review.moderationReviewId
                     _state.update {
                         it.copy(
                             isLoading = false,
@@ -67,6 +71,10 @@ class EditReviewViewModel(
                             serviceRating = review.rating.service.coerceIn(1, 5),
                             coffeeRating = review.rating.coffee.coerceIn(1, 5),
                             existingPhotoUrls = review.photoUrls,
+                            canEdit = review.moderationReviewId != null,
+                            error = if (review.moderationReviewId == null) {
+                                "Этот отзыв нельзя редактировать."
+                            } else null,
                         )
                     }
                 }
@@ -105,6 +113,11 @@ class EditReviewViewModel(
     fun submit(onSuccess: () -> Unit = { Navigator.popBack() }) {
         val s = _state.value
         if (s.isSubmitting || s.isLoading) return
+        val moderationId = moderationReviewId
+        if (moderationId == null) {
+            _state.update { it.copy(error = "Этот отзыв нельзя редактировать.") }
+            return
+        }
         val headerError = validateReviewHeader(s.header)
         val commentError = validateReviewComment(s.comment)
         if (headerError != null || commentError != null) {
@@ -120,7 +133,7 @@ class EditReviewViewModel(
         workScope.launch {
             _state.update { it.copy(isSubmitting = true, error = null) }
             reviewRepository.updateReview(
-                reviewId = reviewId,
+                reviewId = moderationId,
                 input = UpdateReviewInput(
                     header = s.header.trim(),
                     comment = s.comment.trim(),

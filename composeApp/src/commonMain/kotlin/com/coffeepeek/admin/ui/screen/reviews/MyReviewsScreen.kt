@@ -1,5 +1,7 @@
 package com.coffeepeek.admin.ui.screen.reviews
 
+import com.coffeepeek.admin.ui.component.CpTopBar
+
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,17 +74,7 @@ fun MyReviewsScreen(vm: MyReviewsViewModel = platformViewModel()) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Мои отзывы") },
-                navigationIcon = {
-                    IconButton(onClick = { Navigator.popBack() }) {
-                        Icon(CpIcons.Back, contentDescription = "Назад")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+            CpTopBar("Мои отзывы")
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->

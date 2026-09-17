@@ -1,5 +1,7 @@
 package com.coffeepeek.admin.ui.screen.review
 
+import com.coffeepeek.admin.ui.component.CpTopBar
+
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,17 +46,7 @@ fun CreateReviewScreen(shopId: String) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Новый отзыв") },
-                navigationIcon = {
-                    IconButton(onClick = { Navigator.popBack() }) {
-                        Icon(CpIcons.Back, contentDescription = "Назад")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+            CpTopBar("Новый отзыв")
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -107,17 +99,7 @@ fun EditReviewScreen(reviewId: String) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Редактировать отзыв") },
-                navigationIcon = {
-                    IconButton(onClick = { Navigator.popBack() }) {
-                        Icon(CpIcons.Back, contentDescription = "Назад")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+            CpTopBar("Редактировать отзыв")
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -179,7 +161,11 @@ fun EditReviewScreen(reviewId: String) {
                         CoffeePeekLoader()
                     }
                 } else {
-                    AppButton(text = "Сохранить изменения", onClick = { vm.submit() })
+                    AppButton(
+                        text = "Сохранить изменения",
+                        onClick = { vm.submit() },
+                        enabled = state.canEdit,
+                    )
                 }
             }
         }

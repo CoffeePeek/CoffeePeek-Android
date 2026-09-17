@@ -383,7 +383,7 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
 }
 
 @Composable
-private fun ShopCard(
+internal fun ShopCard(
     shop: CoffeeShop,
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit,

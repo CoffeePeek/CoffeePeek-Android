@@ -139,6 +139,7 @@ internal object ShopMapper {
 
     fun ReviewDto.toDomain(fileUrls: FileUrlResolver) = Review(
         id = id,
+        moderationReviewId = moderationReviewId,
         shopId = coffeeShopId,
         userId = userId,
         username = username.orEmpty(),

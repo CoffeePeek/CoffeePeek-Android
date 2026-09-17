@@ -1,5 +1,7 @@
 package com.coffeepeek.admin.ui.screen.editprofile
 
+import com.coffeepeek.admin.ui.component.CpTopBar
+
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -88,21 +90,7 @@ fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text("Редактировать профиль", style = MaterialTheme.typography.titleLarge)
-                },
-                navigationIcon = {
-                    IconButton(onClick = { Navigator.popBack() }) {
-                        Icon(CpIcons.Back, contentDescription = "Назад")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
+            CpTopBar("Редактировать профиль")
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
