@@ -40,11 +40,13 @@ class ReviewRepositoryImpl(
         ).getOrThrow()
     }
 
+    // ponytail: UpdateCoffeeShopReviewCommand has no photos field, so input.photos is ignored on
+    // edit. Restore photo upload here + a photos field on the command if the backend adds support.
     override suspend fun updateReview(reviewId: String, input: UpdateReviewInput): Result<Unit> = runCatching {
-        val photos = photoRepository.uploadShopPhotos(input.photos).getOrThrow()
         reviewApiService.updateReview(
             reviewId = reviewId,
             req = UpdateReviewReq(
+                reviewId = reviewId,
                 header = input.header,
                 comment = input.comment,
                 rating = RatingDto(
@@ -52,7 +54,6 @@ class ReviewRepositoryImpl(
                     service = input.serviceRating,
                     coffee = input.coffeeRating,
                 ),
-                photos = photos.toUploadedPhotoReqs().takeIf { it.isNotEmpty() },
             )
         ).getOrThrow()
     }
