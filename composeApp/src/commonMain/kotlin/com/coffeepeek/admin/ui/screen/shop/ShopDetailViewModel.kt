@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 data class ShopDetailUiState(
     val details: CoffeeShopDetails? = null,
     val isLoggedIn: Boolean = false,
+    val currentUserId: String? = null,
     val isLoading: Boolean = false,
     val isFavoriteLoading: Boolean = false,
     val isCheckInLoading: Boolean = false,
@@ -74,11 +75,17 @@ class ShopDetailViewModel(
 
     private suspend fun refreshDetails(showLoading: Boolean) {
         val isLoggedIn = sessionRepository.isLoggedIn()
+        val currentUserId = if (isLoggedIn) sessionRepository.getSession()?.userId else null
         shopRepository.getShopDetails(shopId)
             .mapCatching { enrichWithReviewAccess(it) }
             .onSuccess { details ->
                 _uiState.update {
-                    it.copy(details = details, isLoggedIn = isLoggedIn, isLoading = false)
+                    it.copy(
+                        details = details,
+                        isLoggedIn = isLoggedIn,
+                        currentUserId = currentUserId,
+                        isLoading = false,
+                    )
                 }
             }
             .onFailure { e ->
@@ -142,7 +149,7 @@ class ShopDetailViewModel(
     fun openCheckInSheet() {
         workScope.launch {
             if (!sessionRepository.isLoggedIn()) {
-                _uiState.update { it.copy(actionMessage = "Войдите, чтобы сделать чекин") }
+                Navigator.navigate(Navigator.Screen.Auth)
                 return@launch
             }
             val draft = checkInDraftStore.open(shopId)
@@ -220,7 +227,7 @@ class ShopDetailViewModel(
     fun openCreateReview() {
         workScope.launch {
             if (!sessionRepository.isLoggedIn()) {
-                _uiState.update { it.copy(actionMessage = "Войдите, чтобы оставить отзыв") }
+                Navigator.navigate(Navigator.Screen.Auth)
                 return@launch
             }
             if (!_uiState.value.details?.existingReviewId.isNullOrBlank()) {
@@ -240,7 +247,7 @@ class ShopDetailViewModel(
     fun openReviewAction() {
         workScope.launch {
             if (!sessionRepository.isLoggedIn()) {
-                _uiState.update { it.copy(actionMessage = "Войдите, чтобы оставить отзыв") }
+                Navigator.navigate(Navigator.Screen.Auth)
                 return@launch
             }
             val existingId = _uiState.value.details?.existingReviewId
@@ -273,7 +280,7 @@ class ShopDetailViewModel(
     fun toggleHelpful(reviewId: String) {
         workScope.launch {
             if (!sessionRepository.isLoggedIn()) {
-                _uiState.update { it.copy(actionMessage = "Войдите, чтобы отмечать отзывы") }
+                Navigator.navigate(Navigator.Screen.Auth)
                 return@launch
             }
             val review = _uiState.value.details?.reviews?.firstOrNull { it.id == reviewId } ?: return@launch

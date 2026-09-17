@@ -58,6 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -206,6 +207,7 @@ fun ShopDetailScreen(shopId: String) {
                     ShopDetailContent(
                         details = details,
                         isLoggedIn = state.isLoggedIn,
+                        currentUserId = state.currentUserId,
                         modifier = Modifier.padding(padding),
                         bottomContentPadding = floatingActionsClearance,
                         isFavoriteLoading = state.isFavoriteLoading,
@@ -241,6 +243,7 @@ fun ShopDetailScreen(shopId: String) {
 private fun ShopDetailContent(
     details: CoffeeShopDetails,
     isLoggedIn: Boolean,
+    currentUserId: String? = null,
     modifier: Modifier = Modifier,
     bottomContentPadding: Dp = CpDimens.spacing4,
     isFavoriteLoading: Boolean = false,
@@ -375,6 +378,7 @@ private fun ShopDetailContent(
                 reviews = details.reviews,
                 shopTitle = shop.title,
                 isLoggedIn = isLoggedIn,
+                currentUserId = currentUserId,
                 onReviewPhotoClick = onReviewPhotoClick,
                 onReviewHelpfulClick = onReviewHelpfulClick,
             )
@@ -881,6 +885,7 @@ private fun ReviewsSection(
     reviews: List<Review>,
     shopTitle: String,
     isLoggedIn: Boolean,
+    currentUserId: String?,
     onReviewPhotoClick: (String) -> Unit,
     onReviewHelpfulClick: (String) -> Unit,
 ) {
@@ -898,14 +903,30 @@ private fun ReviewsSection(
                 message = "Станьте первым, кто оценит и оставит отзыв о своём посещении $shopTitle",
             )
         } else if (!isLoggedIn) {
-            // Guests get a single teaser review (no scrolling) and a prompt to sign in for the rest.
-            val teaser = reviews.first()
-            ReviewCard(
-                review = teaser,
-                modifier = Modifier.fillMaxWidth(),
-                onPhotoClick = onReviewPhotoClick,
-                onHelpfulClick = null,
-            )
+            // Guests see the reviews but can't scroll: a plain (clipped) Row shows the first review
+            // clearly and blurs the rest, then a prompt to sign in.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clipToBounds(),
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+            ) {
+                reviews.forEachIndexed { index, review ->
+                    val isBlurred = index > 0
+                    Box(
+                        modifier = Modifier
+                            .width(320.dp)
+                            .then(if (isBlurred) Modifier.blur(5.dp) else Modifier),
+                    ) {
+                        ReviewCard(
+                            review = review,
+                            modifier = Modifier.fillMaxWidth(),
+                            onPhotoClick = if (isBlurred) ({}) else onReviewPhotoClick,
+                            onHelpfulClick = null,
+                        )
+                    }
+                }
+            }
             GuestAuthCard(
                 onLogin = { Navigator.navigate(Navigator.Screen.Auth) },
                 onRegister = { Navigator.navigate(Navigator.Screen.Register) },
@@ -920,12 +941,14 @@ private fun ReviewsSection(
                     key = { index -> reviews[index].id },
                 ) { index ->
                     val review = reviews[index]
+                    val isOwnReview = currentUserId != null && review.userId == currentUserId
                     Box(modifier = Modifier.width(320.dp)) {
                         ReviewCard(
                             review = review,
                             modifier = Modifier.fillMaxWidth(),
                             onPhotoClick = onReviewPhotoClick,
-                            onHelpfulClick = { onReviewHelpfulClick(review.id) },
+                            // No "helpful" on your own review.
+                            onHelpfulClick = if (isOwnReview) null else ({ onReviewHelpfulClick(review.id) }),
                         )
                     }
                 }
