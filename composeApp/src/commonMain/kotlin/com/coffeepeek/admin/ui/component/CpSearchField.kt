@@ -23,9 +23,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.ui.icons.CpIcons
 
@@ -38,6 +40,8 @@ fun CpSearchField(
     placeholder: String,
     modifier: Modifier = Modifier,
     onSearch: () -> Unit = {},
+    fieldHeight: Dp = SearchFieldHeight,
+    shadowElevation: Dp = 0.dp,
 ) {
     val focusManager = LocalFocusManager.current
     val shape = RoundedCornerShape(percent = 50)
@@ -46,7 +50,12 @@ fun CpSearchField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier
-            .height(SearchFieldHeight)
+            .height(fieldHeight)
+            .shadow(
+                elevation = shadowElevation,
+                shape = shape,
+                clip = false,
+            )
             .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface),

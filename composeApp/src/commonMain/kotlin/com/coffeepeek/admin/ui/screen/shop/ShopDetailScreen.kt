@@ -708,13 +708,13 @@ private fun ShopStatsRow(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Icon(
                     imageVector = CpIcons.StarFilled,
                     contentDescription = null,
                     tint = CpColor.Primary,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(20.dp),
                 )
                 Text(
                     text = "%.1f".format(rating ?: 0.0),
@@ -740,11 +740,11 @@ private fun ShopStatsRow(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Box(
                     modifier = Modifier
-                        .size(10.dp)
+                        .size(8.dp)
                         .clip(CircleShape)
                         .background(if (isOpen) CpColor.Success else CpColor.Error),
                 )
@@ -775,7 +775,7 @@ private fun ShopStatsRow(
             showBorder = true,
         ) {
             if (priceLevel != null) {
-                PriceBynRow(level = priceLevel, iconSize = 20.dp)
+                PriceBynRow(level = priceLevel, iconSize = 18.dp)
             } else {
                 Text(
                     text = "—",
@@ -801,7 +801,7 @@ private fun StatCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(
-        modifier = modifier.height(88.dp),
+        modifier = modifier.height(76.dp),
         shape = RoundedCornerShape(CpDimens.radiusLg),
         color = containerColor,
         border = if (showBorder) {
@@ -812,7 +812,10 @@ private fun StatCard(
         tonalElevation = 0.dp,
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing2),
+            modifier = Modifier.padding(
+                horizontal = CpDimens.spacing2,
+                vertical = CpDimens.spacing1,
+            ),
             verticalArrangement = Arrangement.Center,
             content = content,
         )
