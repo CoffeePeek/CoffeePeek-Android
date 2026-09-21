@@ -3,6 +3,7 @@ package com.coffeepeek.admin.ui
 import com.coffeepeek.admin.ui.screen.addshop.AddShopScreen
 import com.coffeepeek.admin.ui.screen.auth.registr.RegisterScreen
 import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesScreen
+import com.coffeepeek.admin.ui.screen.deleteaccount.DeleteAccountPendingScreen
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileScreen
 import com.coffeepeek.admin.ui.screen.favorites.FavoritesScreen
 import com.coffeepeek.admin.ui.screen.reviews.MyReviewsScreen
@@ -46,6 +47,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import kotlinx.serialization.Serializable
 
 private const val ROOT_NAV_ANIMATION_DURATION_MS = 300
@@ -88,6 +90,7 @@ object Navigator {
         @Serializable data object AddRoaster : Screen
         @Serializable data class RoasterDetail(val roasterId: String) : Screen
         @Serializable data object EditProfile : Screen
+        @Serializable data object DeleteAccountPending : Screen
         @Serializable data object Favorites : Screen
         @Serializable data object MyReviews : Screen
         @Serializable data object VisitedPlaces : Screen
@@ -110,12 +113,18 @@ object Navigator {
     private val _pendingTabSelection = MutableStateFlow<Screen?>(null)
     val pendingTabSelection = _pendingTabSelection.asStateFlow()
 
+    private val _openLoginAfterSessionEnd = MutableStateFlow(false)
+
     fun consumeMapFocus() {
         _pendingMapFocus.value = null
     }
 
     fun consumeTabSelection() {
         _pendingTabSelection.value = null
+    }
+
+    fun openLoginAfterSessionEnd() {
+        _openLoginAfterSessionEnd.value = true
     }
 
     fun openShopOnMap(shopId: String, latitude: Double, longitude: Double, title: String) {
@@ -137,6 +146,7 @@ object Navigator {
         is Screen.AddRoaster,
         is Screen.RoasterDetail,
         is Screen.EditProfile,
+        is Screen.DeleteAccountPending,
         is Screen.CreateReview,
         is Screen.ReviewEdit,
         is Screen.Favorites,
@@ -191,6 +201,11 @@ object Navigator {
             if (!isLoggedIn) {
                 ErrorHandler.clearError()
                 LoadingHandler.clearLoading()
+                if (_openLoginAfterSessionEnd.value) {
+                    _openLoginAfterSessionEnd.value = false
+                    yield()
+                    navigate(Screen.Auth)
+                }
             }
         }
 
@@ -280,6 +295,7 @@ object Navigator {
                     RoasterDetailScreen(roasterId = route.roasterId)
                 }
                 composable<Screen.EditProfile> { EditProfileScreen() }
+                composable<Screen.DeleteAccountPending> { DeleteAccountPendingScreen() }
                 composable<Screen.CreateReview> { backStack ->
                     val route = backStack.toRoute<Screen.CreateReview>()
                     CreateReviewScreen(shopId = route.shopId)

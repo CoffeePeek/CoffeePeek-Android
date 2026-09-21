@@ -15,6 +15,7 @@ import com.coffeepeek.admin.ui.screen.addshop.AddShopViewModel
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileViewModel
 import com.coffeepeek.admin.ui.screen.map.MapViewModel
 import com.coffeepeek.admin.ui.screen.profile.ProfileViewModel
+import com.coffeepeek.admin.ui.screen.deleteaccount.DeleteAccountPendingViewModel
 import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesViewModel
 import com.coffeepeek.admin.ui.screen.favorites.FavoritesViewModel
 import com.coffeepeek.admin.ui.screen.review.CreateReviewViewModel
@@ -65,6 +66,7 @@ private fun appModule(settingRepository: com.coffeepeek.room.repository.SettingR
     factory { (shopId: String) -> ShopDetailViewModel(shopId, get(), get(), get(), get(), get(), get()) }
     factory { (shopId: String) -> ShopReportViewModel(shopId, get()) }
     single { ProfileViewModel(get(), get(), get(), get(), get()) }
+    factory { DeleteAccountPendingViewModel(get(), get()) }
     factory { AddShopViewModel(get()) }
     factory { EditProfileViewModel(get()) }
     factory { FavoritesViewModel(get()) }
