@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Badge
@@ -68,6 +69,8 @@ import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CoffeePeekPullToRefresh
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
+import com.coffeepeek.admin.ui.component.PriceBynRow
+import com.coffeepeek.admin.ui.component.priceRangeLevel
 import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.admin.utils.formatOneDecimal
 import androidx.compose.foundation.lazy.LazyColumn
@@ -421,21 +424,21 @@ internal fun ShopCard(
                             .align(Alignment.TopStart)
                             .padding(CpDimens.spacing3)
                             .clip(RoundedCornerShape(CpDimens.radiusLg))
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.94f))
-                            .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing2),
+                            .background(CpColor.DarkSurface.copy(alpha = 0.92f))
+                            .padding(horizontal = CpDimens.spacing3, vertical = 7.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
                     ) {
                         Icon(
                             imageVector = CpIcons.Sparkle,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(15.dp),
+                            tint = CpColor.Primary,
+                            modifier = Modifier.size(14.dp),
                         )
                         Text(
                             text = "Новое",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
@@ -516,16 +519,14 @@ internal fun ShopCard(
 
                 if (shop.brewMethods.isNotEmpty()) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
                     ) {
-                        shop.brewMethods.take(3).forEach { method ->
+                        shop.brewMethods.take(2).forEach { method ->
                             ShopInfoChip(text = method, icon = CpIcons.Coffee)
                         }
-                        if (shop.brewMethods.size > 3) {
-                            ShopInfoChip(text = "+${shop.brewMethods.size - 3}")
+                        if (shop.brewMethods.size > 2) {
+                            ShopInfoChip(text = "+${shop.brewMethods.size - 2}")
                         }
                     }
                 }
@@ -550,31 +551,51 @@ internal fun ShopCard(
                     }
                 }
 
-                val details = buildList {
-                    add(shopTypeLabel(shop.type))
-                    shop.priceRange?.let(::add)
-                    addAll(shop.tags.filterNot { it in shop.brewMethods })
-                }.distinct().take(3)
-                if (details.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
-                            text = details.joinToString("  ·  "),
+                            text = shopTypeLabel(shop.type),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
                         )
-                        Icon(
-                            imageVector = CpIcons.ChevronRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp),
-                        )
+                        priceRangeLevel(shop.priceRange)?.let { level ->
+                            DetailSeparator()
+                            PriceBynRow(
+                                level = level,
+                                iconSize = 12.dp,
+                                activeTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        shop.tags
+                            .filterNot { it in shop.brewMethods }
+                            .firstOrNull()
+                            ?.let { tag ->
+                                DetailSeparator()
+                                Text(
+                                    text = tag,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false),
+                                )
+                            }
                     }
+                    Icon(
+                        imageVector = CpIcons.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
                 }
             }
         }
@@ -628,9 +649,15 @@ private fun OpenStatusBadge(isOpen: Boolean, modifier: Modifier = Modifier) {
 private fun ShopInfoChip(text: String, icon: ImageVector? = null) {
     Row(
         modifier = Modifier
+            .widthIn(max = 112.dp)
             .clip(RoundedCornerShape(CpDimens.radiusLg))
-            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.68f))
-            .padding(horizontal = CpDimens.spacing3, vertical = 7.dp),
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant,
+                shape = RoundedCornerShape(CpDimens.radiusLg),
+            )
+            .padding(horizontal = CpDimens.spacing2, vertical = 5.dp),
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -638,21 +665,31 @@ private fun ShopInfoChip(text: String, icon: ImageVector? = null) {
             Icon(
                 imageVector = it,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(15.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(13.dp),
             )
         }
         Text(
             text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
 
+@Composable
+private fun DetailSeparator() {
+    Text(
+        text = "·",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
 private fun shopTypeLabel(type: String): String = when (type) {
-    com.coffeepeek.domain.model.CoffeeShopType.SPECIALTY -> "Спешелти кофе"
+    com.coffeepeek.domain.model.CoffeeShopType.SPECIALTY -> "Specialty"
     com.coffeepeek.domain.model.CoffeeShopType.CAFE -> "Кафе"
     else -> "Кофейня"
 }
