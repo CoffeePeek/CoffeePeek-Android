@@ -525,7 +525,7 @@ private fun SettingsSection(
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             border = BorderStroke(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
+                color = MaterialTheme.colorScheme.outlineVariant,
             ),
         ) {
             content()

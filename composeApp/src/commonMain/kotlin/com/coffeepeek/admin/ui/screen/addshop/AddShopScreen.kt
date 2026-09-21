@@ -73,6 +73,7 @@ import com.coffeepeek.admin.ui.component.priceLevelValue
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.component.CpCircularBackButton
 import com.coffeepeek.admin.ui.component.PhotoAttachmentsSection
 import com.coffeepeek.admin.utils.MAX_MENU_PHOTOS
 import com.coffeepeek.admin.utils.MAX_SHOP_PHOTOS
@@ -258,22 +259,12 @@ private fun AddShopHeader(
                 .height(36.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Box(
+            CpCircularBackButton(
+                onClick = onBack,
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .clickable(onClick = onBack),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = CpIcons.ChevronLeft,
-                    contentDescription = "Назад",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+                    .size(36.dp),
+            )
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,

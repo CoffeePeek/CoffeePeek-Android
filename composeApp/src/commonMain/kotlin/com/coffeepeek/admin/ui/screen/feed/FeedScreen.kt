@@ -59,6 +59,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -293,9 +294,10 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                         item {
                             Column(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = CpDimens.spacing8),
+                                    .fillParentMaxSize()
+                                    .padding(horizontal = CpDimens.spacing4),
                                 horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
                             ) {
                                 Image(
                                     painter = painterResource(Res.drawable.maskot_with_magnifying_glass),
@@ -306,16 +308,20 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                                 Spacer(Modifier.height(CpDimens.spacing3))
                                 if (state.query.isNotBlank()) {
                                     Text(
-                                        "Не удалось найти кофеню?",
+                                        "Не удалось найти кофейню?",
+                                        modifier = Modifier.fillMaxWidth(),
                                         style = MaterialTheme.typography.headlineSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface,
+                                        textAlign = TextAlign.Center,
                                     )
                                     Spacer(Modifier.height(CpDimens.spacing2))
                                     Text(
                                         "Поделись с сообществом своими любимыми кофейнями",
+                                        modifier = Modifier.fillMaxWidth(),
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center,
                                     )
                                     Spacer(Modifier.height(CpDimens.spacing4))
                                     Button(
@@ -324,14 +330,17 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                                             containerColor = MaterialTheme.colorScheme.primary,
                                             contentColor = MaterialTheme.colorScheme.onPrimary,
                                         ),
+                                        shape = RoundedCornerShape(CpDimens.buttonRadius),
                                     ) {
                                         Text("Добавить кофейню")
                                     }
                                 } else {
                                     Text(
                                         "Ничего не найдено",
+                                        modifier = Modifier.fillMaxWidth(),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center,
                                     )
                                     Spacer(Modifier.height(CpDimens.spacing2))
                                     TextButton(onClick = vm::clearFilters) {

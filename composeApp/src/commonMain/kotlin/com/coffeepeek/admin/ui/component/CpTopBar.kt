@@ -45,7 +45,7 @@ fun CpTopBar(
         navigationIcon = { onBack?.let { CpCircularBackButton(onClick = it) } },
         actions = actions,
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.background,
         ),
         modifier = modifier,
     )
@@ -56,19 +56,19 @@ fun CpTopBar(
 fun CpCircularBackButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
     tint: Color = MaterialTheme.colorScheme.onSurface,
 ) {
     Box(
         modifier = modifier
-            .size(40.dp)
+            .size(36.dp)
             .clip(CircleShape)
             .background(containerColor)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = CpIcons.Back,
+            imageVector = CpIcons.ChevronLeft,
             contentDescription = "Назад",
             tint = tint,
             modifier = Modifier.size(20.dp),
