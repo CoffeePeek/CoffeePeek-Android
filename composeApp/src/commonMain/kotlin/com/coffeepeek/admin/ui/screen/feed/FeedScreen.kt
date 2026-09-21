@@ -305,14 +305,14 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                                 Spacer(Modifier.height(CpDimens.spacing3))
                                 if (state.query.isNotBlank()) {
                                     Text(
-                                        "Couldn't find a shop?",
+                                        "Не удалось найти кофеню?",
                                         style = MaterialTheme.typography.headlineSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface,
                                     )
                                     Spacer(Modifier.height(CpDimens.spacing2))
                                     Text(
-                                        "Share your favorite shops with the community.",
+                                        "Поделись с сообществом своими любимыми кофейнями",
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -324,7 +324,7 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                                             contentColor = MaterialTheme.colorScheme.onPrimary,
                                         ),
                                     ) {
-                                        Text("Submit shop")
+                                        Text("Добавить кофейню")
                                     }
                                 } else {
                                     Text(
@@ -487,6 +487,33 @@ internal fun ShopCard(
                         onClick = onToggleFavorite,
                     )
                 }
+
+                shop.roasterPhotoUrl?.takeIf(String::isNotBlank)?.let { logoUrl ->
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(CpDimens.spacing3)
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(CpDimens.radiusMd))
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                                shape = RoundedCornerShape(CpDimens.radiusMd),
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CoffeeShopImage(
+                            imageUrl = logoUrl,
+                            contentDescription = "Логотип обжарщика",
+                            contentScale = ContentScale.Fit,
+                            placeholderLabelSize = 5.sp,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(4.dp),
+                        )
+                    }
+                }
             }
 
             Column(
@@ -571,7 +598,7 @@ internal fun ShopCard(
                             DetailSeparator()
                             PriceBynRow(
                                 level = level,
-                                iconSize = 12.dp,
+                                iconSize = 8.dp,
                                 activeTint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }

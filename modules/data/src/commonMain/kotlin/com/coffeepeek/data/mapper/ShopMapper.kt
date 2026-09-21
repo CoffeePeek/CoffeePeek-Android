@@ -40,9 +40,10 @@ internal object ShopMapper {
         isVisited = isVisited,
         reviewCount = reviewCount,
         tags = extractBackendTags(tags, shopTags)
-            .ifEmpty { (brewMethods + roasters + beans).mapNotNull { it.name?.takeIf(String::isNotBlank) } }
+            .ifEmpty { (brewMethods + beans).mapNotNull { it.name?.takeIf(String::isNotBlank) } }
             .take(3),
         brewMethods = brewMethods.mapNotNull { it.name?.takeIf(String::isNotBlank) },
+        roasterPhotoUrl = roasters.firstNotNullOfOrNull { it.photoUrl?.takeIf(String::isNotBlank) },
         type = parseShopType(type, coffeeFocus),
     )
 
@@ -62,11 +63,12 @@ internal object ShopMapper {
             reviewCount = reviewCount,
             tags = extractBackendTags(tags, shopTags)
                 .ifEmpty {
-                    (brewMethods + roasters + coffeeBeans)
+                    (brewMethods + coffeeBeans)
                         .mapNotNull { it.name?.takeIf(String::isNotBlank) }
                 }
                 .take(3),
             brewMethods = brewMethods.mapNotNull { it.name?.takeIf(String::isNotBlank) },
+            roasterPhotoUrl = roasters.firstNotNullOfOrNull { it.photoUrl?.takeIf(String::isNotBlank) },
             type = parseShopType(type, coffeeFocus),
         ),
         cityId = cityId,
