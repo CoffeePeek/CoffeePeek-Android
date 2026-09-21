@@ -68,7 +68,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -276,7 +275,11 @@ private fun ShopDetailContent(
         contentPadding = PaddingValues(bottom = bottomContentPadding + CpDimens.spacing4),
     ) {
         item {
-            Box {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clipToBounds(),
+            ) {
                 ShopHeroImage(
                     photos = photos,
                     title = shop.title,
@@ -306,12 +309,12 @@ private fun ShopDetailContent(
                     .padding(top = CpDimens.spacing5, bottom = CpDimens.spacing4),
                 verticalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
             ) {
-                ShopMetaRow(
+                ShopStatsRow(
                     rating = shop.rating,
                     reviewCount = shop.reviewCount,
-                    isNew = details.isNew,
                     isOpen = shop.isOpen,
                     priceRange = shop.priceRange,
+                    schedules = details.schedules,
                 )
                 if (shop.tags.isNotEmpty()) {
                     ShopTagRow(tags = shop.tags)
@@ -674,84 +677,144 @@ private fun HeaderActionButtons(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ShopMetaRow(
+private fun ShopStatsRow(
     rating: Double?,
     reviewCount: Int,
-    isNew: Boolean,
     isOpen: Boolean,
     priceRange: String?,
+    schedules: List<ShopSchedule>,
 ) {
-    val statusGreen = Color(0xFF4ADE80)
-    FlowRow(
+    val currentDay = remember { currentLocalDayOfWeek() }
+    val todaySchedule = remember(schedules, currentDay) {
+        schedules.firstOrNull { it.dayOfWeek == currentDay }
+    }
+    val closingTime = todaySchedule
+        ?.takeUnless { it.isClosed }
+        ?.intervals
+        ?.lastOrNull()
+        ?.closeTime
+        ?.let(::formatTime)
+        ?.takeIf { it.isNotBlank() }
+    val priceLevel = priceRangeLevel(priceRange)
+
+    Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
     ) {
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(CpDimens.radiusSm))
-                .background(CpColor.PrimaryTint10)
-                .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing1),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+        StatCard(
+            modifier = Modifier.weight(1f),
+            containerColor = CpColor.PrimaryTint10,
         ) {
-            Icon(
-                imageVector = CpIcons.StarFilled,
-                contentDescription = null,
-                tint = CpColor.Primary,
-                modifier = Modifier.size(14.dp),
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            ) {
+                Icon(
+                    imageVector = CpIcons.StarFilled,
+                    contentDescription = null,
+                    tint = CpColor.Primary,
+                    modifier = Modifier.size(24.dp),
+                )
+                Text(
+                    text = "%.1f".format(rating ?: 0.0),
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
             Text(
-                text = "%.1f".format(rating ?: 0.0),
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                color = CpColor.Primary,
+                text = reviewCountLabel(reviewCount),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
             )
         }
-        Text(
-            text = reviewCountLabel(reviewCount),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textDecoration = TextDecoration.Underline,
-        )
-        if (isNew) {
-            StatusBadgeChip(text = "Новая", textColor = statusGreen)
-        }
-        StatusBadgeChip(
-            text = if (isOpen) "Открыта" else "Закрыта",
-            textColor = if (isOpen) statusGreen else CpColor.Error,
-            backgroundColor = if (isOpen) {
-                CpColor.Success.copy(alpha = 0.2f)
+
+        StatCard(
+            modifier = Modifier.weight(1f),
+            containerColor = if (isOpen) {
+                CpColor.Success.copy(alpha = 0.12f)
             } else {
-                CpColor.Error.copy(alpha = 0.2f)
+                CpColor.Error.copy(alpha = 0.1f)
             },
-        )
-        priceRangeLevel(priceRange)?.let { level ->
-            PriceBynRow(level = level, iconSize = 13.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(if (isOpen) CpColor.Success else CpColor.Error),
+                )
+                Text(
+                    text = if (isOpen) "Открыта" else "Закрыта",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = if (isOpen) CpColor.Success else CpColor.Error,
+                    maxLines = 1,
+                )
+            }
+            Text(
+                text = when {
+                    todaySchedule?.isClosed == true -> "Сегодня выходной"
+                    isOpen && closingTime != null -> "до $closingTime"
+                    closingTime != null -> "сегодня до $closingTime"
+                    else -> "Сегодня"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        StatCard(
+            modifier = Modifier.weight(1f),
+            containerColor = MaterialTheme.colorScheme.surface,
+            showBorder = true,
+        ) {
+            if (priceLevel != null) {
+                PriceBynRow(level = priceLevel, iconSize = 20.dp)
+            } else {
+                Text(
+                    text = "—",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            Text(
+                text = "Средний чек",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
         }
     }
 }
 
 @Composable
-private fun StatusBadgeChip(
-    text: String,
-    textColor: Color,
-    backgroundColor: Color = CpColor.Success.copy(alpha = 0.2f),
+private fun StatCard(
+    modifier: Modifier = Modifier,
+    containerColor: Color,
+    showBorder: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(CpDimens.radiusSm))
-            .background(backgroundColor)
-            .padding(horizontal = CpDimens.spacing2, vertical = CpDimens.spacing1),
+    Surface(
+        modifier = modifier.height(88.dp),
+        shape = RoundedCornerShape(CpDimens.radiusLg),
+        color = containerColor,
+        border = if (showBorder) {
+            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        } else {
+            null
+        },
+        tonalElevation = 0.dp,
     ) {
-        Text(
-            text = text.uppercase(),
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.6.sp,
-            ),
-            color = textColor,
+        Column(
+            modifier = Modifier.padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing2),
+            verticalArrangement = Arrangement.Center,
+            content = content,
         )
     }
 }
@@ -1252,22 +1315,47 @@ private fun MenuSection(
                 }
 
                 menu.photos.firstOrNull()?.let { photo ->
-                    Column(
-                        modifier = Modifier.width(104.dp),
-                        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+                    Box(
+                        modifier = Modifier
+                            .width(124.dp)
+                            .height(248.dp)
+                            .clip(RoundedCornerShape(CpDimens.radiusMd))
+                            .clickable {
+                                if (menu.photos.size > 1) {
+                                    onShowAllPhotos()
+                                } else {
+                                    onPhotoClick(photo.fullUrl)
+                                }
+                            },
                     ) {
                         CoffeeShopImage(
                             imageUrl = photo.fullUrl,
                             contentDescription = "Фотография меню",
                             contentScale = ContentScale.Crop,
                             placeholderLabelSize = 14.sp,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(104.dp)
-                                .clip(RoundedCornerShape(CpDimens.radiusMd))
-                                .clickable { onPhotoClick(photo.fullUrl) },
+                            modifier = Modifier.fillMaxSize(),
                         )
-                        MenuFreshness(capturedLabel, updatedLabel)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            Color.Transparent,
+                                            Color.Black.copy(alpha = 0.72f),
+                                        ),
+                                    )
+                                ),
+                        )
+                        MenuFreshness(
+                            capturedLabel = capturedLabel,
+                            updatedLabel = updatedLabel,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(CpDimens.spacing2),
+                            contentColor = Color.White,
+                        )
                     }
                 }
             }
@@ -1288,21 +1376,22 @@ private fun MenuFreshness(
     capturedLabel: String?,
     updatedLabel: String?,
     modifier: Modifier = Modifier,
+    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
     if (capturedLabel.isNullOrBlank() && updatedLabel.isNullOrBlank()) return
     Column(modifier = modifier) {
         if (!capturedLabel.isNullOrBlank()) {
             Text(
                 text = "Актуально на $capturedLabel",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, lineHeight = 14.sp),
+                color = contentColor,
             )
         }
         if (!updatedLabel.isNullOrBlank() && updatedLabel != capturedLabel) {
             Text(
                 text = "Обновлено $updatedLabel",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, lineHeight = 14.sp),
+                color = contentColor,
             )
         }
     }

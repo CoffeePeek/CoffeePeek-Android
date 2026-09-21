@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -46,6 +47,7 @@ fun CpSearchField(
         onValueChange = onValueChange,
         modifier = modifier
             .height(SearchFieldHeight)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface),
         singleLine = true,

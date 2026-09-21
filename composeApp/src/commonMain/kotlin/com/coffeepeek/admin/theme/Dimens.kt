@@ -39,7 +39,7 @@ object CpDimens {
     // ── Auth ──────────────────────────────────────────────────────────────────
     val authCardRadius      = 24.dp
     val authCardPadding     = 40.dp
-    val authFieldHeight     = 40.dp
+    val authFieldHeight     = 50.dp
     val authFieldRadius     = 12.dp
     val authPrimaryBtnHeight = 48.dp
     val authMascotSize      = 128.dp
