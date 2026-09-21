@@ -82,6 +82,9 @@ import coffeepeek.composeapp.generated.resources.brew_v60
 import coffeepeek.composeapp.generated.resources.maskot_with_book
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+import com.coffeepeek.admin.location.distanceToShopMeters
+import com.coffeepeek.admin.location.formatDistance
+import com.coffeepeek.admin.location.rememberPermittedUserLocation
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
@@ -119,6 +122,7 @@ private val ReviewCardMaxWidth = 320.dp
 fun ShopDetailScreen(shopId: String) {
     val vm: ShopDetailViewModel = platformViewModel(parameters = { parametersOf(shopId) })
     val state by vm.uiState.collectAsState()
+    val userLocation = rememberPermittedUserLocation()
     val snackbarHostState = remember { SnackbarHostState() }
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
 
@@ -164,6 +168,7 @@ fun ShopDetailScreen(shopId: String) {
     }
 
     val details = state.details
+    val distance = formatDistance(distanceToShopMeters(userLocation, details?.location))
     val floatingActionsClearance = 72.dp
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -211,6 +216,7 @@ fun ShopDetailScreen(shopId: String) {
                 details != null -> {
                     ShopDetailContent(
                         details = details,
+                        distance = distance,
                         isLoggedIn = state.isLoggedIn,
                         currentUserId = state.currentUserId,
                         modifier = Modifier.padding(padding),
@@ -250,6 +256,7 @@ fun ShopDetailScreen(shopId: String) {
 @Composable
 private fun ShopDetailContent(
     details: CoffeeShopDetails,
+    distance: String?,
     isLoggedIn: Boolean,
     currentUserId: String? = null,
     modifier: Modifier = Modifier,
@@ -284,6 +291,7 @@ private fun ShopDetailContent(
                     photos = photos,
                     title = shop.title,
                     address = details.location?.address ?: shop.address,
+                    distance = distance,
                     shopType = shop.type,
                     canOpenMap = details.location?.latitude != null &&
                         details.location?.longitude != null,
@@ -409,6 +417,7 @@ private fun ShopHeroImage(
     photos: List<String>,
     title: String,
     address: String?,
+    distance: String?,
     shopType: String,
     canOpenMap: Boolean,
     onOpenOnMap: () -> Unit,
@@ -466,6 +475,7 @@ private fun ShopHeroImage(
         HeroShopDetails(
             title = title,
             address = address,
+            distance = distance,
             canOpenMap = canOpenMap,
             onOpenOnMap = onOpenOnMap,
             modifier = Modifier
@@ -532,6 +542,7 @@ private fun HeroTopActions(
 private fun HeroShopDetails(
     title: String,
     address: String?,
+    distance: String?,
     canOpenMap: Boolean,
     onOpenOnMap: () -> Unit,
     modifier: Modifier = Modifier,
@@ -582,6 +593,24 @@ private fun HeroShopDetails(
                         modifier = Modifier.size(16.dp),
                     )
                 }
+            }
+        }
+        distance?.let { label ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = CpIcons.Location,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(CpDimens.spacing1))
+                Text(
+                    text = "$label от вас",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }

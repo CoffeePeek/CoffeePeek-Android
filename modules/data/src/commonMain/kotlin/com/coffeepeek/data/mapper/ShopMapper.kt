@@ -45,6 +45,7 @@ internal object ShopMapper {
         brewMethods = brewMethods.mapNotNull { it.name?.takeIf(String::isNotBlank) },
         roasterPhotoUrls = roasters.mapNotNull { it.photoUrl?.takeIf(String::isNotBlank) }.distinct(),
         type = parseShopType(type, coffeeFocus),
+        location = location?.toDomain(),
     )
 
     fun CoffeeShopDetailsDto.toDomain(fileUrls: FileUrlResolver) = CoffeeShopDetails(
@@ -70,16 +71,11 @@ internal object ShopMapper {
             brewMethods = brewMethods.mapNotNull { it.name?.takeIf(String::isNotBlank) },
             roasterPhotoUrls = roasters.mapNotNull { it.photoUrl?.takeIf(String::isNotBlank) }.distinct(),
             type = parseShopType(type, coffeeFocus),
+            location = location?.toDomain(),
         ),
         cityId = cityId,
         description = description,
-        location = location?.let {
-            com.coffeepeek.domain.model.ShopLocation(
-                address = it.address,
-                latitude = it.latitude,
-                longitude = it.longitude,
-            )
-        },
+        location = location?.toDomain(),
         isVisited = isVisited,
         isNew = isNew,
         canCreateReview = canCreateReview,
@@ -140,6 +136,13 @@ internal object ShopMapper {
         },
         menu = menu?.toDomain(),
     )
+
+    private fun com.coffeepeek.api.model.response.shop.LocationDto.toDomain() =
+        com.coffeepeek.domain.model.ShopLocation(
+            address = address,
+            latitude = latitude,
+            longitude = longitude,
+        )
 
     fun ReviewDto.toDomain(fileUrls: FileUrlResolver) = Review(
         id = id,

@@ -15,6 +15,8 @@ data class LocalFavoriteShopDto(
     val priceRange: String? = null,
     val photoUrl: String? = null,
     val address: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val isOpen: Boolean = false,
     val tags: List<String> = emptyList(),
     val brewMethods: List<String> = emptyList(),
@@ -37,8 +39,9 @@ data class LocalFavoriteShopDto(
             tags = tags,
             brewMethods = brewMethods,
             roasterPhotoUrls = roasterPhotoUrls.ifEmpty { listOfNotNull(roasterPhotoUrl) },
+            location = savedLocation(),
         ),
-        location = address?.let { ShopLocation(address = it) },
+        location = savedLocation(),
     )
 
     companion object {
@@ -51,6 +54,8 @@ data class LocalFavoriteShopDto(
             priceRange = shop.priceRange,
             photoUrl = shop.photoUrl,
             address = address ?: shop.address,
+            latitude = shop.location?.latitude,
+            longitude = shop.location?.longitude,
             isOpen = shop.isOpen,
             tags = shop.tags,
             brewMethods = shop.brewMethods,
@@ -58,4 +63,11 @@ data class LocalFavoriteShopDto(
             roasterPhotoUrls = shop.roasterPhotoUrls,
         )
     }
+
+    private fun savedLocation(): ShopLocation? =
+        if (address != null || latitude != null || longitude != null) {
+            ShopLocation(address = address, latitude = latitude, longitude = longitude)
+        } else {
+            null
+        }
 }

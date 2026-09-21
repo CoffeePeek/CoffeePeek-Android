@@ -59,6 +59,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.coffeepeek.admin.location.distanceToShopMeters
+import com.coffeepeek.admin.location.formatDistance
+import com.coffeepeek.admin.location.rememberPermittedUserLocation
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
@@ -84,6 +87,7 @@ import com.coffeepeek.admin.di.platformViewModel
 fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
     val state by vm.uiState.collectAsState()
     val listState = rememberLazyListState()
+    val userLocation = rememberPermittedUserLocation()
 
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -348,6 +352,7 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                         items(state.visibleShops, key = { it.id }) { shop ->
                             ShopCard(
                                 shop = shop,
+                                distance = formatDistance(distanceToShopMeters(userLocation, shop.location)),
                                 onClick = { Navigator.navigate(Navigator.Screen.ShopDetail(shop.id)) },
                                 onToggleFavorite = { vm.toggleFavorite(shop) },
                             )
@@ -375,6 +380,7 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
 @Composable
 internal fun ShopCard(
     shop: CoffeeShop,
+    distance: String? = null,
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit,
 ) {
@@ -561,8 +567,11 @@ internal fun ShopCard(
                     }
                 }
 
-                val address = shop.address
-                if (!address.isNullOrBlank()) {
+                val locationSummary = listOfNotNull(
+                    shop.address?.takeIf { it.isNotBlank() },
+                    distance?.let { "$it от вас" },
+                ).joinToString(" • ")
+                if (locationSummary.isNotBlank()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             CpIcons.Location,
@@ -572,7 +581,7 @@ internal fun ShopCard(
                         )
                         Spacer(Modifier.width(2.dp))
                         Text(
-                            text = address,
+                            text = locationSummary,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,

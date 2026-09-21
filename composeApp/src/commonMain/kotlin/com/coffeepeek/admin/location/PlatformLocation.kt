@@ -6,6 +6,7 @@ data class GeoPoint(
 )
 
 expect object PlatformLocation {
+    fun hasPermission(): Boolean
     suspend fun getLastKnownLocation(): GeoPoint?
     suspend fun reverseGeocode(latitude: Double, longitude: Double): String?
 }

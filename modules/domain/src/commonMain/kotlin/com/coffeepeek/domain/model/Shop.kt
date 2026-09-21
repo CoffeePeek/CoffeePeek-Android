@@ -17,6 +17,7 @@ data class CoffeeShop(
     val brewMethods: List<String> = emptyList(),
     val roasterPhotoUrls: List<String> = emptyList(),
     val type: String = CoffeeShopType.COFFEE_BAR,
+    val location: ShopLocation? = null,
 )
 
 data class CoffeeShopDetails(

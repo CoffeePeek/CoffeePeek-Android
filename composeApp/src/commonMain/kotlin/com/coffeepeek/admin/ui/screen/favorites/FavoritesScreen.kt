@@ -1,8 +1,10 @@
 package com.coffeepeek.admin.ui.screen.favorites
 
-import com.coffeepeek.admin.ui.screen.feed.ShopCard
-
+import com.coffeepeek.admin.location.distanceToShopMeters
+import com.coffeepeek.admin.location.formatDistance
+import com.coffeepeek.admin.location.rememberPermittedUserLocation
 import com.coffeepeek.admin.ui.component.CpTopBar
+import com.coffeepeek.admin.ui.screen.feed.ShopCard
 
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.clickable
@@ -49,6 +51,7 @@ import com.coffeepeek.admin.di.platformViewModel
 @Composable
 fun FavoritesScreen(vm: FavoritesViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
+    val userLocation = rememberPermittedUserLocation()
 
     Scaffold(
         topBar = {
@@ -81,6 +84,7 @@ fun FavoritesScreen(vm: FavoritesViewModel = platformViewModel()) {
                 items(state.shops, key = { it.shop.id }) { details ->
                     ShopCard(
                         shop = details.shop,
+                        distance = formatDistance(distanceToShopMeters(userLocation, details.location)),
                         onClick = { Navigator.navigate(Navigator.Screen.ShopDetail(details.shop.id)) },
                         onToggleFavorite = { vm.removeFavorite(details.shop) },
                     )
@@ -89,4 +93,3 @@ fun FavoritesScreen(vm: FavoritesViewModel = platformViewModel()) {
         }
     }
 }
-
