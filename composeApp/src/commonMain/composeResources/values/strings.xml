@@ -73,4 +73,14 @@
     <string name="terms_link">условия использования</string>
     <string name="terms_and"> и даю согласие на </string>
     <string name="privacy_link">обработку персональных данных</string>
+
+    <string name="delete_account">Удалить аккаунт</string>
+    <string name="delete_account_dialog_title">Удалить аккаунт?</string>
+    <string name="delete_account_dialog_text">Мы отправим письмо со ссылкой для подтверждения. Аккаунт останется активным, пока вы не подтвердите удаление в браузере.</string>
+    <string name="delete_account_dialog_confirm">Удалить</string>
+    <string name="delete_account_pending_title">Письмо отправлено</string>
+    <string name="delete_account_pending_subtitle">Мы отправили ссылку на %1$s. Откройте письмо в браузере и подтвердите удаление аккаунта.</string>
+    <string name="delete_account_pending_wait_hint">После подтверждения вы автоматически выйдете из приложения.</string>
+    <string name="delete_account_pending_resend">Отправить письмо ещё раз</string>
+    <string name="delete_account_pending_resend_wait">Повторная отправка пока недоступна</string>
 </resources>
