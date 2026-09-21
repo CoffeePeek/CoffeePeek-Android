@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -102,6 +103,7 @@ import com.coffeepeek.admin.utils.OpenInBrowser
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CheckIn
 import com.coffeepeek.domain.model.CoffeeShopDetails
+import com.coffeepeek.domain.model.CoffeeShopType
 import com.coffeepeek.domain.model.Review
 import com.coffeepeek.domain.model.ShopContact
 import com.coffeepeek.domain.model.ShopMenu
@@ -220,6 +222,9 @@ fun ShopDetailScreen(shopId: String) {
                         onOpenOnMap = vm::openOnMap,
                         onCopyPhone = vm::copyPhone,
                         onReportIncorrectData = vm::openReportIncorrectData,
+                        onOpenMenuGallery = {
+                            Navigator.navigate(Navigator.Screen.ShopMenuGallery(shopId))
+                        },
                         onBack = Navigator::popBack,
                         onReviewPhotoClick = { previewImageUrl = it },
                         onReviewHelpfulClick = vm::toggleHelpful,
@@ -256,6 +261,7 @@ private fun ShopDetailContent(
     onOpenOnMap: () -> Unit = {},
     onCopyPhone: (String) -> Unit = {},
     onReportIncorrectData: () -> Unit = {},
+    onOpenMenuGallery: () -> Unit = {},
     onBack: () -> Unit = {},
     onReviewPhotoClick: (String) -> Unit = {},
     onReviewHelpfulClick: (String) -> Unit = {},
@@ -270,16 +276,26 @@ private fun ShopDetailContent(
         contentPadding = PaddingValues(bottom = bottomContentPadding + CpDimens.spacing4),
     ) {
         item {
-            ShopHeroImage(
-                photos = photos,
-                title = shop.title,
-                onBack = onBack,
-                isFavorite = shop.isFavorite,
-                isFavoriteLoading = isFavoriteLoading,
-                onToggleFavorite = onToggleFavorite,
-                onShare = onShare,
-                onPhotoClick = onReviewPhotoClick,
-            )
+            Box {
+                ShopHeroImage(
+                    photos = photos,
+                    title = shop.title,
+                    address = details.location?.address ?: shop.address,
+                    shopType = shop.type,
+                    canOpenMap = details.location?.latitude != null &&
+                        details.location?.longitude != null,
+                    onOpenOnMap = onOpenOnMap,
+                    onPhotoClick = onReviewPhotoClick,
+                )
+                HeroTopActions(
+                    onBack = onBack,
+                    isFavorite = shop.isFavorite,
+                    isFavoriteLoading = isFavoriteLoading,
+                    onToggleFavorite = onToggleFavorite,
+                    onShare = onShare,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                )
+            }
         }
 
         item {
@@ -290,25 +306,13 @@ private fun ShopDetailContent(
                     .padding(top = CpDimens.spacing5, bottom = CpDimens.spacing4),
                 verticalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-                    Text(
-                        text = shop.title,
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontSize = 30.sp,
-                            lineHeight = 36.sp,
-                            letterSpacing = (-0.75).sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    ShopMetaRow(
-                        rating = shop.rating,
-                        reviewCount = shop.reviewCount,
-                        isNew = details.isNew,
-                        isOpen = shop.isOpen,
-                        priceRange = shop.priceRange,
-                    )
-                }
+                ShopMetaRow(
+                    rating = shop.rating,
+                    reviewCount = shop.reviewCount,
+                    isNew = details.isNew,
+                    isOpen = shop.isOpen,
+                    priceRange = shop.priceRange,
+                )
                 if (shop.tags.isNotEmpty()) {
                     ShopTagRow(tags = shop.tags)
                 }
@@ -328,6 +332,7 @@ private fun ShopDetailContent(
                 MenuSection(
                     menu = menu,
                     onPhotoClick = onReviewPhotoClick,
+                    onShowAllPhotos = onOpenMenuGallery,
                 )
             }
         }
@@ -388,19 +393,6 @@ private fun ShopDetailContent(
             )
         }
 
-        val address = details.location?.address ?: shop.address
-        val lat = details.location?.latitude
-        val lon = details.location?.longitude
-        if (!address.isNullOrBlank() || (lat != null && lon != null)) {
-            item {
-                AddressCard(
-                    address = address,
-                    canOpenMap = lat != null && lon != null,
-                    onOpenOnMap = onOpenOnMap,
-                )
-            }
-        }
-
         item {
             ReportIncorrectDataAction(onClick = onReportIncorrectData)
         }
@@ -413,17 +405,22 @@ private fun ShopDetailContent(
 private fun ShopHeroImage(
     photos: List<String>,
     title: String,
-    onBack: () -> Unit,
-    isFavorite: Boolean,
-    isFavoriteLoading: Boolean,
-    onToggleFavorite: () -> Unit,
-    onShare: () -> Unit,
+    address: String?,
+    shopType: String,
+    canOpenMap: Boolean,
+    onOpenOnMap: () -> Unit,
     onPhotoClick: (String) -> Unit,
 ) {
+    var currentPhotoIndex by remember(photos) { mutableStateOf(0) }
+    val heroShape = RoundedCornerShape(
+        bottomStart = CpDimens.radius3xl,
+        bottomEnd = CpDimens.radius3xl,
+    )
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(240.dp)
+            .height(300.dp)
+            .clip(heroShape)
             .background(MaterialTheme.colorScheme.surfaceVariant),
     ) {
         if (photos.size <= 1) {
@@ -449,6 +446,7 @@ private fun ShopHeroImage(
                 photos = photos,
                 title = title,
                 onPhotoClick = onPhotoClick,
+                onPageChanged = { currentPhotoIndex = it },
             )
         }
 
@@ -462,32 +460,179 @@ private fun ShopHeroImage(
                 )
         )
 
-        Row(
+        HeroShopDetails(
+            title = title,
+            address = address,
+            canOpenMap = canOpenMap,
+            onOpenOnMap = onOpenOnMap,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(CpDimens.spacing3),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
+                .align(Alignment.BottomStart)
+                .padding(start = CpDimens.spacing4, end = 116.dp, bottom = CpDimens.spacing4),
+        )
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = CpDimens.spacing4, bottom = CpDimens.spacing4),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
         ) {
-            HeroIconButton(
-                onClick = onBack,
-                enabled = true,
-                isLoading = false,
-                contentDescription = "Назад",
-            ) {
-                Icon(
-                    imageVector = CpIcons.Back,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
+            ShopTypeBadge(shopType = shopType)
+            if (photos.isNotEmpty()) {
+                PhotoCounter(
+                    current = currentPhotoIndex + 1,
+                    total = photos.size,
                 )
             }
-            HeaderActionButtons(
-                isFavorite = isFavorite,
-                isFavoriteLoading = isFavoriteLoading,
-                onToggleFavorite = onToggleFavorite,
-                onShare = onShare,
+        }
+    }
+}
+
+@Composable
+private fun HeroTopActions(
+    onBack: () -> Unit,
+    isFavorite: Boolean,
+    isFavoriteLoading: Boolean,
+    onToggleFavorite: () -> Unit,
+    onShare: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(CpDimens.spacing3),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top,
+    ) {
+        HeroIconButton(
+            onClick = onBack,
+            enabled = true,
+            isLoading = false,
+            contentDescription = "Назад",
+        ) {
+            Icon(
+                imageVector = CpIcons.Back,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
             )
         }
+        HeaderActionButtons(
+            isFavorite = isFavorite,
+            isFavoriteLoading = isFavoriteLoading,
+            onToggleFavorite = onToggleFavorite,
+            onShare = onShare,
+        )
+    }
+}
+
+@Composable
+private fun HeroShopDetails(
+    title: String,
+    address: String?,
+    canOpenMap: Boolean,
+    onOpenOnMap: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontSize = 28.sp,
+                lineHeight = 32.sp,
+                letterSpacing = (-0.5).sp,
+                fontWeight = FontWeight.Bold,
+            ),
+            color = Color.White,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        val addressLabel = address?.takeIf { it.isNotBlank() }
+            ?: if (canOpenMap) "Показать на карте" else null
+        addressLabel?.let { label ->
+            Row(
+                modifier = Modifier.clickable(enabled = canOpenMap, onClick = onOpenOnMap),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = CpIcons.Location,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(CpDimens.spacing1))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (canOpenMap) {
+                    Icon(
+                        imageVector = CpIcons.ChevronRight,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShopTypeBadge(shopType: String) {
+    val label = when (shopType) {
+        CoffeeShopType.SPECIALTY -> "SPECIALTY"
+        CoffeeShopType.CAFE -> "КАФЕ"
+        else -> "КОФЕЙНЯ"
+    }
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = Color.Black.copy(alpha = 0.48f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, CpColor.Primary),
+        tonalElevation = 0.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = CpDimens.spacing2, vertical = CpDimens.spacing1),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+        ) {
+            Icon(
+                imageVector = CpIcons.Coffee,
+                contentDescription = null,
+                tint = CpColor.Primary,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp,
+                ),
+                color = Color.White,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PhotoCounter(current: Int, total: Int) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = Color.Black.copy(alpha = 0.48f),
+        tonalElevation = 0.dp,
+    ) {
+        Text(
+            text = "$current / $total",
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = Color.White,
+            modifier = Modifier.padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing1),
+        )
     }
 }
 
@@ -697,6 +842,11 @@ private fun CollapsibleScheduleSection(schedules: List<ShopSchedule>) {
             if (schedule.dayOfWeek == 0) 7 else schedule.dayOfWeek
         }
     }
+    val todayHours = remember(schedules, currentDay) {
+        schedules.firstOrNull { it.dayOfWeek == currentDay }
+            ?.let(::formatScheduleHours)
+            ?: "—"
+    }
 
     Card(
         modifier = Modifier
@@ -738,6 +888,17 @@ private fun CollapsibleScheduleSection(schedules: List<ShopSchedule>) {
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
+                if (!expanded) {
+                    Text(
+                        text = todayHours,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 132.dp),
+                    )
+                    Spacer(Modifier.width(CpDimens.spacing2))
+                }
                 Icon(
                     imageVector = if (expanded) CpIcons.ChevronUp else CpIcons.ChevronDown,
                     contentDescription = if (expanded) "Скрыть часы работы" else "Показать часы работы",
@@ -1028,6 +1189,7 @@ private fun DescriptionSection(description: String) {
 private fun MenuSection(
     menu: ShopMenu,
     onPhotoClick: (String) -> Unit,
+    onShowAllPhotos: () -> Unit,
 ) {
     val capturedLabel = menu.capturedAtUtc?.let(::formatMenuDate)
     val updatedLabel = menu.updatedAtUtc?.let(::formatMenuDate)
@@ -1038,7 +1200,36 @@ private fun MenuSection(
             .padding(horizontal = CpDimens.spacing4, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
-        SectionTitle("Меню")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                SectionTitle("Меню")
+            }
+            if (menu.photos.size > 1) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(CpDimens.radiusSm))
+                        .clickable(onClick = onShowAllPhotos)
+                        .padding(horizontal = CpDimens.spacing2, vertical = CpDimens.spacing1),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+                ) {
+                    Text(
+                        text = "Смотреть всё",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Icon(
+                        imageVector = CpIcons.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        }
         OutlinedContentCard {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1060,24 +1251,22 @@ private fun MenuSection(
                     }
                 }
 
-                if (menu.photos.isNotEmpty()) {
+                menu.photos.firstOrNull()?.let { photo ->
                     Column(
                         modifier = Modifier.width(104.dp),
                         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
                     ) {
-                        menu.photos.forEach { photo ->
-                            CoffeeShopImage(
-                                imageUrl = photo.fullUrl,
-                                contentDescription = "Фотография меню",
-                                contentScale = ContentScale.Crop,
-                                placeholderLabelSize = 14.sp,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(104.dp)
-                                    .clip(RoundedCornerShape(CpDimens.radiusMd))
-                                    .clickable { onPhotoClick(photo.fullUrl) },
-                            )
-                        }
+                        CoffeeShopImage(
+                            imageUrl = photo.fullUrl,
+                            contentDescription = "Фотография меню",
+                            contentScale = ContentScale.Crop,
+                            placeholderLabelSize = 14.sp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(104.dp)
+                                .clip(RoundedCornerShape(CpDimens.radiusMd))
+                                .clickable { onPhotoClick(photo.fullUrl) },
+                        )
                         MenuFreshness(capturedLabel, updatedLabel)
                     }
                 }
@@ -1369,40 +1558,27 @@ private fun PhotoGallery(
     photos: List<String>,
     title: String,
     onPhotoClick: (String) -> Unit,
+    onPageChanged: (Int) -> Unit,
 ) {
     val pagerState = rememberPagerState(pageCount = { photos.size })
+    LaunchedEffect(pagerState.currentPage) {
+        onPageChanged(pagerState.currentPage)
+    }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        HorizontalPager(
-            modifier = Modifier.fillMaxSize(),
-            state = pagerState,
-        ) { page ->
-            val photoUrl = photos[page]
-            CoffeeShopImage(
-                imageUrl = photoUrl,
-                contentDescription = title,
-                contentScale = ContentScale.Crop,
-                placeholderLabelSize = 24.sp,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable { onPhotoClick(photoUrl) },
-            )
-        }
-        Surface(
-            shape = RoundedCornerShape(999.dp),
-            color = Color.Black.copy(alpha = 0.48f),
-            tonalElevation = 0.dp,
+    HorizontalPager(
+        modifier = Modifier.fillMaxSize(),
+        state = pagerState,
+    ) { page ->
+        val photoUrl = photos[page]
+        CoffeeShopImage(
+            imageUrl = photoUrl,
+            contentDescription = title,
+            contentScale = ContentScale.Crop,
+            placeholderLabelSize = 24.sp,
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(CpDimens.spacing3),
-        ) {
-            Text(
-                text = "${pagerState.currentPage + 1} / ${photos.size}",
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = Color.White,
-                modifier = Modifier.padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing1),
-            )
-        }
+                .fillMaxSize()
+                .clickable { onPhotoClick(photoUrl) },
+        )
     }
 }
 
@@ -1989,6 +2165,14 @@ private fun shortDayOfWeekLabel(day: Int): String = when (day) {
 private fun formatTime(raw: String): String {
     if (raw.isBlank()) return raw
     return raw.split(":").take(2).joinToString(":")
+}
+
+private fun formatScheduleHours(schedule: ShopSchedule): String = when {
+    schedule.isClosed -> "Выходной"
+    schedule.intervals.isEmpty() -> "—"
+    else -> schedule.intervals.joinToString(", ") { interval ->
+        "${formatTime(interval.openTime)}–${formatTime(interval.closeTime)}"
+    }
 }
 
 private fun formatReviewDate(raw: String): String {
