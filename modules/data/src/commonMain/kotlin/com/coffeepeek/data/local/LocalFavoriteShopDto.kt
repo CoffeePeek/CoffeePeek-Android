@@ -18,7 +18,9 @@ data class LocalFavoriteShopDto(
     val isOpen: Boolean = false,
     val tags: List<String> = emptyList(),
     val brewMethods: List<String> = emptyList(),
+    // Kept for compatibility with favorites saved before multiple roaster logos were supported.
     val roasterPhotoUrl: String? = null,
+    val roasterPhotoUrls: List<String> = emptyList(),
 ) {
     fun toDomain(): CoffeeShopDetails = CoffeeShopDetails(
         shop = CoffeeShop(
@@ -34,7 +36,7 @@ data class LocalFavoriteShopDto(
             isFavorite = true,
             tags = tags,
             brewMethods = brewMethods,
-            roasterPhotoUrl = roasterPhotoUrl,
+            roasterPhotoUrls = roasterPhotoUrls.ifEmpty { listOfNotNull(roasterPhotoUrl) },
         ),
         location = address?.let { ShopLocation(address = it) },
     )
@@ -52,7 +54,8 @@ data class LocalFavoriteShopDto(
             isOpen = shop.isOpen,
             tags = shop.tags,
             brewMethods = shop.brewMethods,
-            roasterPhotoUrl = shop.roasterPhotoUrl,
+            roasterPhotoUrl = shop.roasterPhotoUrls.firstOrNull(),
+            roasterPhotoUrls = shop.roasterPhotoUrls,
         )
     }
 }

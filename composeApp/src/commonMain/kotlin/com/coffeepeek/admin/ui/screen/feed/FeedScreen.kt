@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -488,30 +489,43 @@ internal fun ShopCard(
                     )
                 }
 
-                shop.roasterPhotoUrl?.takeIf(String::isNotBlank)?.let { logoUrl ->
+                val visibleRoasterLogos = shop.roasterPhotoUrls
+                    .filter(String::isNotBlank)
+                    .distinct()
+                    .take(3)
+                if (visibleRoasterLogos.isNotEmpty()) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(CpDimens.spacing3)
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(CpDimens.radiusMd))
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant,
-                                shape = RoundedCornerShape(CpDimens.radiusMd),
-                            ),
-                        contentAlignment = Alignment.Center,
+                            .width(36.dp + 22.dp * (visibleRoasterLogos.size - 1))
+                            .height(36.dp),
                     ) {
-                        CoffeeShopImage(
-                            imageUrl = logoUrl,
-                            contentDescription = "Логотип обжарщика",
-                            contentScale = ContentScale.Fit,
-                            placeholderLabelSize = 5.sp,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(4.dp),
-                        )
+                        visibleRoasterLogos.forEachIndexed { index, logoUrl ->
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = 22.dp * index)
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(CpDimens.radiusMd))
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f))
+                                    .border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outlineVariant,
+                                        shape = RoundedCornerShape(CpDimens.radiusMd),
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CoffeeShopImage(
+                                    imageUrl = logoUrl,
+                                    contentDescription = "Логотип обжарщика ${index + 1}",
+                                    contentScale = ContentScale.Fit,
+                                    placeholderLabelSize = 5.sp,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(4.dp),
+                                )
+                            }
+                        }
                     }
                 }
             }

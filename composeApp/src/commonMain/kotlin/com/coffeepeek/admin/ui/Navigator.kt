@@ -10,7 +10,9 @@ import com.coffeepeek.admin.ui.screen.roaster.AddRoasterScreen
 import com.coffeepeek.admin.ui.screen.roaster.RoasterDetailScreen
 import com.coffeepeek.admin.ui.screen.profile.CityScreen
 import com.coffeepeek.admin.ui.screen.profile.ThemeScreen
-import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -45,6 +47,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+
+private const val ROOT_NAV_ANIMATION_DURATION_MS = 300
 
 object Navigator {
 
@@ -221,8 +225,42 @@ object Navigator {
             navController = nav,
             startDestination = Screen.Main,
             modifier = Modifier.fillMaxSize(),
-            exitTransition = { ExitTransition.None },
-            popExitTransition = { ExitTransition.None },
+            enterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(
+                        durationMillis = ROOT_NAV_ANIMATION_DURATION_MS,
+                        easing = FastOutSlowInEasing,
+                    ),
+                )
+            },
+            exitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(
+                        durationMillis = ROOT_NAV_ANIMATION_DURATION_MS,
+                        easing = FastOutSlowInEasing,
+                    ),
+                )
+            },
+            popEnterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(
+                        durationMillis = ROOT_NAV_ANIMATION_DURATION_MS,
+                        easing = FastOutSlowInEasing,
+                    ),
+                )
+            },
+            popExitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(
+                        durationMillis = ROOT_NAV_ANIMATION_DURATION_MS,
+                        easing = FastOutSlowInEasing,
+                    ),
+                )
+            },
         ) {
                 composable<Screen.Auth> { AuthScreen() }
                 composable<Screen.Register> { RegisterScreen() }

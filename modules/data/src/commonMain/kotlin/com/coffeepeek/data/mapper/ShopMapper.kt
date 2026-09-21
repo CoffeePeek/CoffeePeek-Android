@@ -43,7 +43,7 @@ internal object ShopMapper {
             .ifEmpty { (brewMethods + beans).mapNotNull { it.name?.takeIf(String::isNotBlank) } }
             .take(3),
         brewMethods = brewMethods.mapNotNull { it.name?.takeIf(String::isNotBlank) },
-        roasterPhotoUrl = roasters.firstNotNullOfOrNull { it.photoUrl?.takeIf(String::isNotBlank) },
+        roasterPhotoUrls = roasters.mapNotNull { it.photoUrl?.takeIf(String::isNotBlank) }.distinct(),
         type = parseShopType(type, coffeeFocus),
     )
 
@@ -68,7 +68,7 @@ internal object ShopMapper {
                 }
                 .take(3),
             brewMethods = brewMethods.mapNotNull { it.name?.takeIf(String::isNotBlank) },
-            roasterPhotoUrl = roasters.firstNotNullOfOrNull { it.photoUrl?.takeIf(String::isNotBlank) },
+            roasterPhotoUrls = roasters.mapNotNull { it.photoUrl?.takeIf(String::isNotBlank) }.distinct(),
             type = parseShopType(type, coffeeFocus),
         ),
         cityId = cityId,

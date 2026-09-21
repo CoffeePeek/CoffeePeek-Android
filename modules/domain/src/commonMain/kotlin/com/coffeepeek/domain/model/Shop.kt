@@ -15,7 +15,7 @@ data class CoffeeShop(
     val isVisited: Boolean = false,
     val tags: List<String> = emptyList(),
     val brewMethods: List<String> = emptyList(),
-    val roasterPhotoUrl: String? = null,
+    val roasterPhotoUrls: List<String> = emptyList(),
     val type: String = CoffeeShopType.COFFEE_BAR,
 )
 

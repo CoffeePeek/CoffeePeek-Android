@@ -3,6 +3,7 @@ package com.coffeepeek.admin.ui.screen.profile
 import com.coffeepeek.admin.ui.component.GuestAuthCard
 
 import com.coffeepeek.admin.ui.icons.CpIcons
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -522,6 +523,10 @@ private fun SettingsSection(
             shape = RoundedCornerShape(CpDimens.cardRadius),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
+            ),
         ) {
             content()
         }
@@ -604,9 +609,9 @@ private fun AppVersionFooter() {
 @Composable
 private fun SettingsDivider() {
     HorizontalDivider(
-        modifier = Modifier.padding(start = CpDimens.settingsDividerStart),
-        color = MaterialTheme.colorScheme.outlineVariant,
-        thickness = 0.5.dp,
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f),
+        thickness = 1.dp,
     )
 }
 
