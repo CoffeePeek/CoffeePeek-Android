@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -108,6 +109,9 @@ import com.coffeepeek.domain.model.ShopMenuItem
 import com.coffeepeek.domain.model.ShopSchedule
 import com.coffeepeek.admin.di.platformViewModel
 import org.koin.core.parameter.parametersOf
+
+private val GuestReviewPeekWidth = 56.dp
+private val ReviewCardMaxWidth = 320.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -905,25 +909,31 @@ private fun ReviewsSection(
         } else if (!isLoggedIn) {
             // Guests see the reviews but can't scroll: a plain (clipped) Row shows the first review
             // clearly and blurs the rest, then a prompt to sign in.
-            Row(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clipToBounds(),
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
             ) {
-                reviews.forEachIndexed { index, review ->
-                    val isBlurred = index > 0
-                    Box(
-                        modifier = Modifier
-                            .width(320.dp)
-                            .then(if (isBlurred) Modifier.blur(5.dp) else Modifier),
-                    ) {
-                        ReviewCard(
-                            review = review,
-                            modifier = Modifier.fillMaxWidth(),
-                            onPhotoClick = if (isBlurred) ({}) else onReviewPhotoClick,
-                            onHelpfulClick = null,
-                        )
+                val peekWidth = if (reviews.size > 1) GuestReviewPeekWidth else 0.dp
+                val itemSpacing = if (reviews.size > 1) CpDimens.spacing3 else 0.dp
+                val cardWidth = (maxWidth - itemSpacing - peekWidth)
+                    .coerceAtMost(ReviewCardMaxWidth)
+
+                Row(horizontalArrangement = Arrangement.spacedBy(itemSpacing)) {
+                    reviews.forEachIndexed { index, review ->
+                        val isBlurred = index > 0
+                        Box(
+                            modifier = Modifier
+                                .width(cardWidth)
+                                .then(if (isBlurred) Modifier.blur(5.dp) else Modifier),
+                        ) {
+                            ReviewCard(
+                                review = review,
+                                modifier = Modifier.fillMaxWidth(),
+                                onPhotoClick = if (isBlurred) ({}) else onReviewPhotoClick,
+                                onHelpfulClick = null,
+                            )
+                        }
                     }
                 }
             }
@@ -942,7 +952,7 @@ private fun ReviewsSection(
                 ) { index ->
                     val review = reviews[index]
                     val isOwnReview = currentUserId != null && review.userId == currentUserId
-                    Box(modifier = Modifier.width(320.dp)) {
+                    Box(modifier = Modifier.width(ReviewCardMaxWidth)) {
                         ReviewCard(
                             review = review,
                             modifier = Modifier.fillMaxWidth(),
