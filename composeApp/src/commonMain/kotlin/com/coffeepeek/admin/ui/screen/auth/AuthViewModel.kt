@@ -1,9 +1,8 @@
 package com.coffeepeek.admin.ui.screen.auth
 
-import coffeepeek.composeapp.generated.resources.Res
-import coffeepeek.composeapp.generated.resources.no_login
 import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.utils.localizedLoginError
 import com.coffeepeek.admin.utils.validateEmailRequired
 import com.coffeepeek.admin.utils.validatePasswordRequired
 import com.coffeepeek.domain.repository.AuthRepository
@@ -18,14 +17,17 @@ class AuthViewModel(
     private val _password = MutableStateFlow("")
     private val _emailError = MutableStateFlow<String?>(null)
     private val _passwordError = MutableStateFlow<String?>(null)
+    private val _loginError = MutableStateFlow<String?>(null)
 
     val email = _email.asStateFlow()
     val password = _password.asStateFlow()
     val emailError = _emailError.asStateFlow()
     val passwordError = _passwordError.asStateFlow()
+    val loginError = _loginError.asStateFlow()
 
     fun onEmailChange(newValue: String) {
         _email.value = newValue
+        _loginError.value = null
         if (_emailError.value != null) {
             _emailError.value = validateEmailRequired(newValue)
         }
@@ -33,6 +35,7 @@ class AuthViewModel(
 
     fun onPasswordChange(newValue: String) {
         _password.value = newValue
+        _loginError.value = null
         if (_passwordError.value != null) {
             _passwordError.value = validatePasswordRequired(newValue)
         }
@@ -45,20 +48,22 @@ class AuthViewModel(
         val passwordErr = validatePasswordRequired(passwordValue)
         _emailError.value = emailErr
         _passwordError.value = passwordErr
+        _loginError.value = null
         if (emailErr != null || passwordErr != null) return
 
         launchRequest(
-            errorMessage = Res.string.no_login,
             onSuccess = { Navigator.navigate(Navigator.Screen.Main) },
+            onError = { error -> _loginError.value = localizedLoginError(error.message) },
         ) {
             authRepository.login(emailValue, passwordValue).getOrThrow()
         }
     }
 
     fun onGoogleLogin(idToken: String) {
+        _loginError.value = null
         launchRequest(
-            errorMessage = Res.string.no_login,
             onSuccess = { Navigator.navigate(Navigator.Screen.Main) },
+            onError = { error -> _loginError.value = localizedLoginError(error.message) },
         ) {
             authRepository.googleLogin(idToken).getOrThrow()
         }
@@ -67,5 +72,10 @@ class AuthViewModel(
     fun clearFieldErrors() {
         _emailError.value = null
         _passwordError.value = null
+        _loginError.value = null
+    }
+
+    fun onGoogleLoginError(message: String) {
+        _loginError.value = localizedLoginError(message)
     }
 }

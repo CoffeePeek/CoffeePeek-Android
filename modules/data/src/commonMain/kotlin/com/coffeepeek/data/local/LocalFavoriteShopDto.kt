@@ -17,6 +17,7 @@ data class LocalFavoriteShopDto(
     val address: String? = null,
     val isOpen: Boolean = false,
     val tags: List<String> = emptyList(),
+    val brewMethods: List<String> = emptyList(),
 ) {
     fun toDomain(): CoffeeShopDetails = CoffeeShopDetails(
         shop = CoffeeShop(
@@ -31,6 +32,7 @@ data class LocalFavoriteShopDto(
             isOpen = isOpen,
             isFavorite = true,
             tags = tags,
+            brewMethods = brewMethods,
         ),
         location = address?.let { ShopLocation(address = it) },
     )
@@ -47,6 +49,7 @@ data class LocalFavoriteShopDto(
             address = address ?: shop.address,
             isOpen = shop.isOpen,
             tags = shop.tags,
+            brewMethods = shop.brewMethods,
         )
     }
 }

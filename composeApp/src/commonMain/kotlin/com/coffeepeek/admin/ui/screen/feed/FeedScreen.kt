@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Badge
@@ -69,8 +68,6 @@ import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CoffeePeekPullToRefresh
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
-import com.coffeepeek.admin.ui.component.PriceBynRow
-import com.coffeepeek.admin.ui.component.priceRangeLevel
 import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.admin.utils.formatOneDecimal
 import androidx.compose.foundation.lazy.LazyColumn
@@ -390,18 +387,17 @@ internal fun ShopCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(CpDimens.cardRadius),
+        shape = RoundedCornerShape(CpDimens.radiusXl),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column {
-            // ── Фото ────────────────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1.45f)
-                    .clip(RoundedCornerShape(topStart = CpDimens.cardRadius, topEnd = CpDimens.cardRadius))
+                    .aspectRatio(2f)
+                    .clip(RoundedCornerShape(topStart = CpDimens.radiusXl, topEnd = CpDimens.radiusXl))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
             ) {
                 val photoUrl = shop.photoUrl
@@ -419,107 +415,123 @@ internal fun ShopCard(
                         contentDescription = "Фото ${shop.title} отсутствует",
                     )
                 }
+                if (shop.isNew) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(CpDimens.spacing3)
+                            .clip(RoundedCornerShape(CpDimens.radiusLg))
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.94f))
+                            .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing2),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+                    ) {
+                        Icon(
+                            imageVector = CpIcons.Sparkle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(15.dp),
+                        )
+                        Text(
+                            text = "Новое",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+
                 Row(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .fillMaxWidth()
-                        .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing2),
-                    horizontalArrangement = Arrangement.End,
+                        .padding(CpDimens.spacing3),
+                    horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    priceRangeLevel(shop.priceRange)?.let { level ->
-                        PriceBynRow(
-                            level = level,
-                            iconSize = 16.dp,
-                            activeTint = CpColor.Primary,
-                        )
-                    }
-                    FavoriteIconBadge(
-                        isFavorite = shop.isFavorite,
-                        onClick = onToggleFavorite,
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
-
-                if (shop.tags.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .fillMaxWidth()
-                            .padding(CpDimens.spacing3),
-                        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-                    ) {
-                        shop.tags.take(3).forEach { tag ->
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(CpDimens.radiusSm))
-                                    .background(CpColor.Primary.copy(alpha = 0.82f))
-                                    .widthIn(max = 104.dp)
-                                    .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
-                            ) {
+                    val rating = shop.rating
+                    if (rating != null && rating > 0) {
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(CpDimens.radiusLg))
+                                .background(Color.Black.copy(alpha = 0.68f))
+                                .padding(horizontal = CpDimens.spacing2, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = CpIcons.StarFilled,
+                                contentDescription = null,
+                                tint = CpColor.Primary,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = formatOneDecimal(rating),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            if (shop.reviewCount > 0) {
                                 Text(
-                                    text = tag,
+                                    text = "(${shop.reviewCount})",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = CpColor.DarkTextOnPrimary,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                    color = Color.White.copy(alpha = 0.82f),
                                 )
                             }
                         }
                     }
+                    FavoriteIconBadge(
+                        isFavorite = shop.isFavorite,
+                        onClick = onToggleFavorite,
+                    )
                 }
             }
 
-            // ── Инфо ─────────────────────────────────────────────────────
-            Column(modifier = Modifier.padding(CpDimens.spacing3)) {
+            Column(
+                modifier = Modifier.padding(
+                    start = CpDimens.spacing4,
+                    top = CpDimens.spacing3,
+                    end = CpDimens.spacing4,
+                    bottom = CpDimens.spacing4,
+                ),
+                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = shop.title,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
-                    if (shop.isOpen) {
-                        OpenStatusBadge()
-                    }
+                    OpenStatusBadge(
+                        isOpen = shop.isOpen,
+                        modifier = Modifier.padding(start = CpDimens.spacing2),
+                    )
                 }
 
-                val rating = shop.rating
-                if (rating != null && rating > 0) {
-                    Spacer(Modifier.height(4.dp))
+                if (shop.brewMethods.isNotEmpty()) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
                     ) {
-                        Icon(
-                            CpIcons.StarFilled,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp),
-                        )
-                        Text(
-                            text = formatOneDecimal(rating),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        if (shop.reviewCount > 0) {
-                            Text(
-                                text = "(${shop.reviewCount})",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                        shop.brewMethods.take(3).forEach { method ->
+                            ShopInfoChip(text = method, icon = CpIcons.Coffee)
+                        }
+                        if (shop.brewMethods.size > 3) {
+                            ShopInfoChip(text = "+${shop.brewMethods.size - 3}")
                         }
                     }
                 }
 
                 val address = shop.address
                 if (!address.isNullOrBlank()) {
-                    Spacer(Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             CpIcons.Location,
@@ -533,6 +545,34 @@ internal fun ShopCard(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
+                val details = buildList {
+                    add(shopTypeLabel(shop.type))
+                    shop.priceRange?.let(::add)
+                    addAll(shop.tags.filterNot { it in shop.brewMethods })
+                }.distinct().take(3)
+                if (details.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = details.joinToString("  ·  "),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Icon(
+                            imageVector = CpIcons.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
                         )
                     }
                 }
@@ -545,33 +585,76 @@ internal fun ShopCard(
 private fun FavoriteIconBadge(
     isFavorite: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    Icon(
-        imageVector = if (isFavorite) CpIcons.FavoriteFilled else CpIcons.Favorite,
-        contentDescription = if (isFavorite) "Убрать из избранного" else "Добавить в избранное",
-        tint = if (isFavorite) CpColor.Error else Color.White,
-        modifier = modifier
-            .size(22.dp)
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(RoundedCornerShape(CpDimens.radiusLg))
+            .background(Color.Black.copy(alpha = 0.68f))
             .clickable(onClick = onClick),
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = if (isFavorite) CpIcons.FavoriteFilled else CpIcons.Favorite,
+            contentDescription = if (isFavorite) "Убрать из избранного" else "Добавить в избранное",
+            tint = if (isFavorite) CpColor.Error else Color.White,
+            modifier = Modifier.size(22.dp),
+        )
+    }
 }
 
 @Composable
-private fun OpenStatusBadge() {
-    Box(
-        modifier = Modifier
+private fun OpenStatusBadge(isOpen: Boolean, modifier: Modifier = Modifier) {
+    val color = if (isOpen) CpColor.Success else MaterialTheme.colorScheme.error
+    Row(
+        modifier = modifier
             .clip(RoundedCornerShape(CpDimens.radiusSm))
-            .background(CpColor.Success.copy(alpha = 0.18f))
-            .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
+            .background(color.copy(alpha = 0.14f))
+            .padding(horizontal = CpDimens.spacing2, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(color))
         Text(
-            text = "ОТКРЫТО",
+            text = if (isOpen) "ОТКРЫТО" else "ЗАКРЫТО",
             style = MaterialTheme.typography.labelSmall,
-            color = CpColor.Success,
+            color = color,
             fontWeight = FontWeight.Bold,
         )
     }
+}
+
+@Composable
+private fun ShopInfoChip(text: String, icon: ImageVector? = null) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(CpDimens.radiusLg))
+            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.68f))
+            .padding(horizontal = CpDimens.spacing3, vertical = 7.dp),
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        icon?.let {
+            Icon(
+                imageVector = it,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(15.dp),
+            )
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            maxLines = 1,
+        )
+    }
+}
+
+private fun shopTypeLabel(type: String): String = when (type) {
+    com.coffeepeek.domain.model.CoffeeShopType.SPECIALTY -> "Спешелти кофе"
+    com.coffeepeek.domain.model.CoffeeShopType.CAFE -> "Кафе"
+    else -> "Кофейня"
 }
 
 @Composable

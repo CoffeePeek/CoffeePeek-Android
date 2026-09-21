@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.ui.screen.auth
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -46,6 +47,7 @@ object AuthScreen {
         val password by vm.password.collectAsState()
         val emailError by vm.emailError.collectAsState()
         val passwordError by vm.passwordError.collectAsState()
+        val loginError by vm.loginError.collectAsState()
 
         AuthScreenScaffold(
             mascot = AuthMascot.Laptop,
@@ -78,7 +80,11 @@ object AuthScreen {
             if (isGoogleSignInConfigured()) {
                 GoogleSignInButton(
                     onResult = { result ->
-                        handleGoogleSignInResult(result, vm::onGoogleLogin)
+                        handleGoogleSignInResult(
+                            result = result,
+                            onSuccess = vm::onGoogleLogin,
+                            onFailure = vm::onGoogleLoginError,
+                        )
                     },
                 )
                 Spacer(modifier = Modifier.height(14.dp))
@@ -107,6 +113,17 @@ object AuthScreen {
                 errorText = passwordError,
             )
 
+            AnimatedVisibility(visible = loginError != null) {
+                Text(
+                    text = loginError.orEmpty(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                )
+            }
+
             val forgotSoon = stringResource(Res.string.forgot_password_soon)
             Row(
                 modifier = Modifier
@@ -131,7 +148,6 @@ object AuthScreen {
             AuthPrimaryButton(
                 text = stringResource(Res.string.login),
                 onClick = { vm.onLoginClick() },
-                enabled = password.isNotEmpty(),
             )
 
             AuthFooterRow(

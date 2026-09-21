@@ -42,6 +42,7 @@ internal object ShopMapper {
         tags = extractBackendTags(tags, shopTags)
             .ifEmpty { (brewMethods + roasters + beans).mapNotNull { it.name?.takeIf(String::isNotBlank) } }
             .take(3),
+        brewMethods = brewMethods.mapNotNull { it.name?.takeIf(String::isNotBlank) },
         type = parseShopType(type, coffeeFocus),
     )
 
@@ -65,6 +66,7 @@ internal object ShopMapper {
                         .mapNotNull { it.name?.takeIf(String::isNotBlank) }
                 }
                 .take(3),
+            brewMethods = brewMethods.mapNotNull { it.name?.takeIf(String::isNotBlank) },
             type = parseShopType(type, coffeeFocus),
         ),
         cityId = cityId,

@@ -1617,8 +1617,11 @@ private fun RoasterLinkRow(
                 CoffeeShopImage(
                     imageUrl = photoUrl,
                     contentDescription = "Фото обжарщика ${item.name}",
+                    contentScale = ContentScale.Fit,
                     placeholderLabelSize = 7.sp,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(CpDimens.spacing1),
                 )
             } else {
                 CoffeeShopPlaceholderImage(

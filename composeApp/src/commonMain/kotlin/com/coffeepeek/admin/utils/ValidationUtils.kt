@@ -5,9 +5,9 @@ private val PHONE_REGEX = "^[+]?[\\d\\s()-]{7,20}$".toRegex()
 private val URL_REGEX = "^(https?://).+".toRegex(RegexOption.IGNORE_CASE)
 
 // Сообщения синхронизированы с composeResources/values/strings.xml
-private const val MSG_EMAIL_REQUIRED = "Введите email!"
-private const val MSG_EMAIL_INVALID = "Некорректный формат email!"
-private const val MSG_PASSWORD_REQUIRED = "Введите пароль!"
+private const val MSG_EMAIL_REQUIRED = "Введите email"
+private const val MSG_EMAIL_INVALID = "Введите корректный email"
+private const val MSG_PASSWORD_REQUIRED = "Введите пароль"
 private const val MSG_PHONE_INVALID = "Некорректный формат телефона"
 private const val MSG_URL_INVALID = "Укажите ссылку с http:// или https://"
 private const val MSG_INSTAGRAM_INVALID = "Некорректный Instagram"
@@ -56,6 +56,37 @@ fun validatePasswordRequired(password: String, minLength: Int = 6): String? = wh
     password.isBlank() -> MSG_PASSWORD_REQUIRED
     password.length < minLength -> "Пароль должен содержать как минимум $minLength символов"
     else -> null
+}
+
+fun localizedLoginError(message: String?): String {
+    val normalized = message.orEmpty().lowercase()
+    return when {
+        listOf(
+            "unauthorized",
+            "invalid credential",
+            "invalid login",
+            "incorrect password",
+            "wrong password",
+            "user not found",
+            "неверн",
+            "неправильн",
+            "не найден",
+        ).any(normalized::contains) -> "Неверный email или пароль"
+
+        listOf(
+            "timeout",
+            "timed out",
+            "network",
+            "connect",
+            "socket",
+            "host",
+            "internet",
+            "сеть",
+            "соединен",
+        ).any(normalized::contains) -> "Не удалось подключиться. Проверьте интернет-соединение"
+
+        else -> "Не удалось войти. Проверьте email и пароль"
+    }
 }
 
 fun validateOptionalEmail(email: String): String? {
