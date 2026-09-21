@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,8 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,8 +50,6 @@ import coffeepeek.composeapp.generated.resources.maskot_happy
 import coffeepeek.composeapp.generated.resources.maskot_with_laptop
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
-import com.coffeepeek.admin.theme.ThemeManager
-import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.icons.CpIcons
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -147,14 +142,6 @@ fun AuthScreenScaffold(
         }
 
         // Above the scroll column so clicks are not swallowed.
-        AuthThemeToggle(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .statusBarsPadding()
-                .padding(top = 20.dp, end = 20.dp)
-                .zIndex(2f),
-            isDark = isDark,
-        )
         AuthCloseButton(
             onClick = onClose,
             isDark = isDark,
@@ -260,42 +247,6 @@ fun AuthWordmark(modifier: Modifier = Modifier) {
         textAlign = TextAlign.Center,
         modifier = modifier.fillMaxWidth(),
     )
-}
-
-@Composable
-fun AuthThemeToggle(
-    isDark: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val themeMode by ThemeManager.themeMode.collectAsState()
-    val isSystemDark = isSystemInDarkTheme()
-    val currentlyDark = when (themeMode) {
-        ThemeMode.SYSTEM -> isSystemDark
-        ThemeMode.LIGHT -> false
-        ThemeMode.DARK -> true
-    }
-
-    Box(
-        modifier = modifier
-            .size(CpDimens.authThemeToggleSize)
-            .clip(CircleShape)
-            .background(
-                if (isDark) CpColor.DarkSurface.copy(alpha = 0.75f)
-                else CpColor.LightSurface.copy(alpha = 0.9f),
-            )
-            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-            .clickable {
-                ThemeManager.setTheme(if (currentlyDark) ThemeMode.LIGHT else ThemeMode.DARK)
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = if (currentlyDark) CpIcons.ThemeLight else CpIcons.ThemeDark,
-            contentDescription = null,
-            tint = CpColor.Primary,
-            modifier = Modifier.size(20.dp),
-        )
-    }
 }
 
 @Composable

@@ -30,8 +30,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -39,8 +37,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.WindowInsets
@@ -56,9 +52,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -70,6 +64,7 @@ import com.coffeepeek.admin.ui.component.CoffeeShopImage
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CoffeePeekPullToRefresh
+import com.coffeepeek.admin.ui.component.CpSearchField
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
 import com.coffeepeek.admin.ui.component.PriceBynRow
 import com.coffeepeek.admin.ui.component.priceRangeLevel
@@ -87,7 +82,6 @@ import com.coffeepeek.admin.di.platformViewModel
 fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
     val state by vm.uiState.collectAsState()
     val listState = rememberLazyListState()
-    val focusManager = LocalFocusManager.current
 
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -130,54 +124,12 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
                     ) {
-                        OutlinedTextField(
+                        CpSearchField(
                             value = state.query,
                             onValueChange = vm::onQueryChange,
+                            placeholder = "Поиск кофейни…",
                             modifier = Modifier
-                                .weight(1f)
-                                .height(52.dp),
-                            shape = RoundedCornerShape(CpDimens.radiusMd),
-                            placeholder = {
-                                Text(
-                                    "Поиск кофейни…",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    CpIcons.Search,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            trailingIcon = if (state.query.isNotEmpty()) {
-                                {
-                                    IconButton(onClick = { vm.onQueryChange("") }) {
-                                        Icon(
-                                            CpIcons.Close,
-                                            contentDescription = "Очистить поиск",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                }
-                            } else {
-                                null
-                            },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Search,
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onSearch = { focusManager.clearFocus() },
-                            ),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                            ),
-                            textStyle = MaterialTheme.typography.bodyLarge,
+                                .weight(1f),
                         )
                         BadgedBox(
                             badge = {

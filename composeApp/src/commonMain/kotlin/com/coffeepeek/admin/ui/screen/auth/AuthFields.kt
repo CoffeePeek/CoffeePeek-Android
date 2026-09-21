@@ -71,7 +71,7 @@ fun AuthTextField(
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = CpDimens.authFieldHeight),
+                .height(CpDimens.authFieldHeight),
             shape = RoundedCornerShape(CpDimens.authFieldRadius),
             isError = isError,
             singleLine = true,
@@ -80,7 +80,7 @@ fun AuthTextField(
                 focusedContainerColor = if (isDark) CpColor.AuthInputDark else Color.White,
                 unfocusedContainerColor = if (isDark) CpColor.AuthInputDark else Color.White,
                 errorContainerColor = if (isDark) CpColor.AuthInputDark else Color.White,
-                focusedBorderColor = gold,
+                focusedBorderColor = if (isDark) CpColor.DarkBorder else Color(0x66A07B36),
                 unfocusedBorderColor = if (isDark) CpColor.DarkBorder else Color(0x66A07B36),
                 errorBorderColor = MaterialTheme.colorScheme.error,
                 cursorColor = gold,

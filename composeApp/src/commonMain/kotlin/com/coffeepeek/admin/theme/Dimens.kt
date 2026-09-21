@@ -32,14 +32,14 @@ object CpDimens {
     val buttonRadius    = 12.dp
 
     // ── Input ─────────────────────────────────────────────────────────────────
-    val inputMinHeight  = 52.dp
+    val inputMinHeight  = 40.dp
     val inputPadding    = 16.dp
     val inputRadius     = 26.dp
 
     // ── Auth ──────────────────────────────────────────────────────────────────
     val authCardRadius      = 24.dp
     val authCardPadding     = 40.dp
-    val authFieldHeight     = 50.dp
+    val authFieldHeight     = 40.dp
     val authFieldRadius     = 12.dp
     val authPrimaryBtnHeight = 48.dp
     val authMascotSize      = 128.dp

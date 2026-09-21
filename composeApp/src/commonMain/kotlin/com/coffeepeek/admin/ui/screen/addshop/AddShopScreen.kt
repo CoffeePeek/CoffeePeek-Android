@@ -1037,7 +1037,7 @@ private fun AppOutlinedField(
                 keyboardType = keyboardType,
             ),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor   = MaterialTheme.colorScheme.primary,
+                focusedBorderColor   = MaterialTheme.colorScheme.outline,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 errorBorderColor     = MaterialTheme.colorScheme.error,
                 focusedContainerColor   = MaterialTheme.colorScheme.surface,
@@ -1121,7 +1121,7 @@ private fun CityDropdown(
             isError = error != null,
             shape = menuShape,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor   = MaterialTheme.colorScheme.primary,
+                focusedBorderColor   = MaterialTheme.colorScheme.outline,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 errorBorderColor     = MaterialTheme.colorScheme.error,
                 focusedContainerColor   = MaterialTheme.colorScheme.surface,

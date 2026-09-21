@@ -29,8 +29,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -42,8 +40,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -60,10 +56,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -74,6 +68,7 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopImage
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.component.CpSearchField
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
 import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.domain.model.CatalogItem
@@ -85,7 +80,6 @@ import com.coffeepeek.admin.di.platformViewModel
 @Composable
 fun MapScreen(vm: MapViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
-    val focusManager = LocalFocusManager.current
     val pendingFocus by Navigator.pendingMapFocus.collectAsState()
     val pendingFocusShop = pendingFocus?.let { focus ->
         MapShop(
@@ -131,57 +125,15 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
             onLocationPermissionDenied = {},
         )
 
-        OutlinedTextField(
+        CpSearchField(
             value = state.query,
             onValueChange = vm::onQueryChange,
+            placeholder = "Поиск кофейни…",
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
                 .fillMaxWidth()
-                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3)
-                .height(52.dp),
-            shape = RoundedCornerShape(CpDimens.radiusMd),
-            placeholder = {
-                Text(
-                    "Поиск кофейни…",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-            leadingIcon = {
-                Icon(
-                    CpIcons.Search,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-            trailingIcon = if (state.query.isNotEmpty()) {
-                {
-                    IconButton(onClick = { vm.onQueryChange("") }) {
-                        Icon(
-                            CpIcons.Close,
-                            contentDescription = "Очистить поиск",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            } else {
-                null
-            },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Search,
-            ),
-            keyboardActions = KeyboardActions(
-                onSearch = { focusManager.clearFocus() },
-            ),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-            ),
-            textStyle = MaterialTheme.typography.bodyLarge,
+                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
         )
 
         if (state.isTruncated) {
@@ -189,7 +141,7 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .statusBarsPadding()
-                    .padding(top = 80.dp, start = CpDimens.spacing4, end = CpDimens.spacing4),
+                    .padding(top = 60.dp, start = CpDimens.spacing4, end = CpDimens.spacing4),
                 shape = RoundedCornerShape(CpDimens.radiusMd),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 3.dp,
@@ -212,7 +164,7 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
                 .align(Alignment.TopEnd)
                 .statusBarsPadding()
                 .padding(
-                    top = if (state.isTruncated) 132.dp else 84.dp,
+                    top = if (state.isTruncated) 112.dp else 64.dp,
                     end = CpDimens.spacing4,
                 ),
             verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
@@ -448,38 +400,11 @@ private fun MapFiltersDialog(
                             .padding(horizontal = CpDimens.spacing5, vertical = CpDimens.spacing4),
                         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
                     ) {
-                        OutlinedTextField(
+                        CpSearchField(
                             value = state.query,
                             onValueChange = onQueryChange,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            singleLine = true,
-                            placeholder = { Text("Поиск кофейни…") },
-                            leadingIcon = { Icon(CpIcons.Search, contentDescription = null) },
-                            trailingIcon = if (state.query.isNotEmpty()) {
-                                {
-                                    IconButton(onClick = { onQueryChange("") }) {
-                                        Icon(
-                                            CpIcons.Close,
-                                            contentDescription = "Очистить поиск",
-                                        )
-                                    }
-                                }
-                            } else {
-                                null
-                            },
-                            shape = RoundedCornerShape(CpDimens.inputRadius),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                                focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-                                unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
+                            placeholder = "Поиск кофейни…",
+                            modifier = Modifier.fillMaxWidth(),
                         )
                         FilterSection("Цена") {
                             CompactPriceFilter(

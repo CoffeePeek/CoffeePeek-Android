@@ -4,7 +4,7 @@ import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -56,7 +56,7 @@ fun AppTextField(
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = CpDimens.inputMinHeight),
+                .height(CpDimens.inputMinHeight),
             shape = RoundedCornerShape(CpDimens.inputRadius),
             isError = isError,
             colors = OutlinedTextFieldDefaults.colors(
@@ -64,7 +64,7 @@ fun AppTextField(
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 disabledContainerColor  = MaterialTheme.colorScheme.surfaceVariant,
                 errorContainerColor     = MaterialTheme.colorScheme.surface,
-                focusedBorderColor      = MaterialTheme.colorScheme.primary,
+                focusedBorderColor      = MaterialTheme.colorScheme.outline,
                 unfocusedBorderColor    = MaterialTheme.colorScheme.outline,
                 errorBorderColor        = MaterialTheme.colorScheme.error,
                 cursorColor             = MaterialTheme.colorScheme.primary,
