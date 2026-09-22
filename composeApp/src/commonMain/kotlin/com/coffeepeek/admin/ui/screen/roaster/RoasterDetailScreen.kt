@@ -92,8 +92,16 @@ fun RoasterDetailScreen(roasterId: String) {
                         text = state.error ?: "Ошибка загрузки",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Button(onClick = vm::load) { Text("Повторить") }
-                    OutlinedButton(onClick = Navigator::popBack) { Text("Назад") }
+                    Button(
+                        onClick = vm::load,
+                        modifier = Modifier.height(CpDimens.buttonHeight),
+                        shape = RoundedCornerShape(percent = 50),
+                    ) { Text("Повторить") }
+                    OutlinedButton(
+                        onClick = Navigator::popBack,
+                        modifier = Modifier.height(CpDimens.buttonHeight),
+                        shape = RoundedCornerShape(percent = 50),
+                    ) { Text("Назад") }
                 }
             }
 

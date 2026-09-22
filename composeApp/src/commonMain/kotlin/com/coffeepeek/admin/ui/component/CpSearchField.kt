@@ -29,9 +29,10 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.icons.CpIcons
 
-private val SearchFieldHeight = 36.dp
+private val SearchFieldHeight = CpDimens.buttonHeight
 
 @Composable
 fun CpSearchField(

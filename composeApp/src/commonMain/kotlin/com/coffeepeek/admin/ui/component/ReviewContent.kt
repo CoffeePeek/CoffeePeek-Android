@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -73,7 +74,11 @@ fun ReviewTextInput(
     singleLine: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(CpDimens.radiusMd)
+    val shape = if (singleLine) {
+        RoundedCornerShape(percent = 50)
+    } else {
+        RoundedCornerShape(CpDimens.buttonRadius)
+    }
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
@@ -82,6 +87,7 @@ fun ReviewTextInput(
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         modifier = modifier
             .fillMaxWidth()
+            .then(if (singleLine) Modifier.height(CpDimens.buttonHeight) else Modifier)
             .clip(shape)
             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f))
             .border(
@@ -89,16 +95,21 @@ fun ReviewTextInput(
                 color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
                 shape = shape,
             )
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = if (singleLine) 0.dp else 12.dp),
         decorationBox = { innerTextField ->
-            if (value.isEmpty()) {
-                Text(
-                    text = placeholder,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                )
+            Box(
+                modifier = if (singleLine) Modifier.fillMaxSize() else Modifier,
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                if (value.isEmpty()) {
+                    Text(
+                        text = placeholder,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    )
+                }
+                innerTextField()
             }
-            innerTextField()
         },
     )
 }
@@ -368,10 +379,11 @@ private fun HelpfulButton(
     val tint = if (isHelpful) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(CpDimens.radius2xl))
+            .height(CpDimens.buttonHeight)
+            .clip(RoundedCornerShape(percent = 50))
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-            .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing2),
+            .padding(horizontal = CpDimens.spacing3),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
     ) {

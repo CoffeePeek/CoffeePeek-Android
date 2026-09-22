@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -174,8 +175,9 @@ fun ShopFiltersScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(CpDimens.spacing4),
-                            shape = RoundedCornerShape(CpDimens.radiusLg),
+                                .padding(CpDimens.spacing4)
+                                .height(CpDimens.buttonHeight),
+                            shape = RoundedCornerShape(percent = 50),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = CpColor.Primary,
                                 contentColor = CpColor.DarkTextOnPrimary,

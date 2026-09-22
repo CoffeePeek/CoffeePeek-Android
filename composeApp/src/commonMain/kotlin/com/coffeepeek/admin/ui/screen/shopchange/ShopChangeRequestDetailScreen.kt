@@ -53,7 +53,7 @@ fun ShopChangeRequestDetailScreen(requestId: String, isModerator: Boolean) {
                     modifier = Modifier.fillMaxWidth().height(140.dp),
                     placeholder = { Text("Причина отклонения") },
                     supportingText = { Text("${state.rejectComment.length}/500") },
-                    shape = RoundedCornerShape(CpDimens.radiusMd),
+                    shape = RoundedCornerShape(CpDimens.buttonRadius),
                 )
             },
             confirmButton = {
@@ -87,7 +87,11 @@ fun ShopChangeRequestDetailScreen(requestId: String, isModerator: Boolean) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Заявка не найдена", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(CpDimens.spacing3))
-                    Button(onClick = vm::refresh) { Text("Повторить") }
+                    Button(
+                        onClick = vm::refresh,
+                        modifier = Modifier.height(CpDimens.buttonHeight),
+                        shape = RoundedCornerShape(percent = 50),
+                    ) { Text("Повторить") }
                 }
             }
             else -> Column(
@@ -108,7 +112,8 @@ fun ShopChangeRequestDetailScreen(requestId: String, isModerator: Boolean) {
                 if (isModerator && request.status == ModerationStatus.Pending) {
                     OutlinedButton(
                         onClick = vm::openEditor,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
+                        shape = RoundedCornerShape(percent = 50),
                         enabled = !state.isWorking,
                     ) {
                         Text("Исправить заявку")
@@ -120,7 +125,8 @@ fun ShopChangeRequestDetailScreen(requestId: String, isModerator: Boolean) {
                     )
                     OutlinedButton(
                         onClick = vm::showRejectDialog,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
+                        shape = RoundedCornerShape(percent = 50),
                         enabled = !state.isWorking,
                     ) {
                         Text("Отклонить")

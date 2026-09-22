@@ -93,6 +93,7 @@ fun ShopReportScreen(shopId: String, shopTitle: String) {
                     minLines = 3,
                     maxLines = 6,
                     isError = state.error != null,
+                    shape = RoundedCornerShape(CpDimens.buttonRadius),
                 )
             }
 

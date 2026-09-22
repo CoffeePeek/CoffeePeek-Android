@@ -28,6 +28,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -53,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -129,6 +131,7 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
             value = state.query,
             onValueChange = vm::onQueryChange,
             placeholder = "Поиск кофейни…",
+            fieldHeight = CpDimens.buttonHeight,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
@@ -195,13 +198,14 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
                     .align(Alignment.BottomCenter)
                     .padding(
                         bottom = navClearance + if (state.selectedShop == null) 32.dp else 148.dp,
-                    ),
-                shape = RoundedCornerShape(CpDimens.radius2xl),
+                    )
+                    .height(CpDimens.buttonHeight),
+                shape = RoundedCornerShape(percent = 50),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.onSurface,
                     contentColor = MaterialTheme.colorScheme.surface,
                 ),
-                contentPadding = PaddingValues(horizontal = CpDimens.spacing5, vertical = CpDimens.spacing3),
+                contentPadding = PaddingValues(horizontal = CpDimens.spacing5),
             ) {
                 Text("Искать в этой области", style = MaterialTheme.typography.labelLarge)
             }
@@ -289,8 +293,8 @@ private fun MapZoneCard(
             }
             Button(
                 onClick = onShowShops,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(CpDimens.buttonRadius),
+                modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
+                shape = RoundedCornerShape(percent = 50),
             ) {
                 Text("Показать кофейни")
             }
@@ -316,12 +320,12 @@ private fun MapControlButton(
     content: @Composable () -> Unit,
 ) {
     Surface(
-        modifier = modifier.size(44.dp),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 4.dp,
-        shadowElevation = 6.dp,
+        modifier = modifier.size(CpDimens.buttonHeight),
+        shape = CircleShape,
+        color = Color.White,
+        contentColor = Color(0xFF1C1C1C),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
         onClick = onClick,
         content = {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
@@ -464,12 +468,13 @@ private fun MapFiltersDialog(
                         }
                         Button(
                             onClick = onApply,
-                            shape = RoundedCornerShape(CpDimens.buttonRadius),
+                            modifier = Modifier.height(CpDimens.buttonHeight),
+                            shape = RoundedCornerShape(percent = 50),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary,
                             ),
-                            contentPadding = PaddingValues(horizontal = CpDimens.spacing5, vertical = CpDimens.spacing3),
+                            contentPadding = PaddingValues(horizontal = CpDimens.spacing5),
                         ) {
                             Text("Готово", style = MaterialTheme.typography.labelLarge)
                         }
@@ -511,11 +516,11 @@ private fun SingleSelectMenu(
             onClick = { expanded = true },
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = CpDimens.selectMinHeight)
+                .height(CpDimens.buttonHeight)
                 .onGloballyPositioned { coordinates ->
                     anchorWidth = with(density) { coordinates.size.width.toDp() }
                 },
-            shape = RoundedCornerShape(CpDimens.selectRadius),
+            shape = RoundedCornerShape(percent = 50),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             colors = ButtonDefaults.outlinedButtonColors(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -633,11 +638,11 @@ private fun CatalogMultiSelectMenu(
             onClick = { expanded = true },
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = CpDimens.selectMinHeight)
+                .height(CpDimens.buttonHeight)
                 .onGloballyPositioned { coordinates ->
                     anchorWidth = with(density) { coordinates.size.width.toDp() }
                 },
-            shape = RoundedCornerShape(CpDimens.selectRadius),
+            shape = RoundedCornerShape(percent = 50),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             colors = ButtonDefaults.outlinedButtonColors(
                 containerColor = MaterialTheme.colorScheme.surface,

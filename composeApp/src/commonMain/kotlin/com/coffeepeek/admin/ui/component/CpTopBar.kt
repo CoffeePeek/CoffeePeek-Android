@@ -63,7 +63,7 @@ fun CpCircularBackButton(
 ) {
     Box(
         modifier = modifier
-            .size(36.dp)
+            .size(CpDimens.buttonHeight)
             .clip(CircleShape)
             .background(containerColor)
             .clickable(onClick = onClick),

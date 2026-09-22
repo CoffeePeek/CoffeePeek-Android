@@ -69,6 +69,8 @@ fun FavoritesScreen(vm: FavoritesViewModel = platformViewModel()) {
                     Spacer(Modifier.height(CpDimens.spacing3))
                     Button(
                         onClick = { vm.load(force = true) },
+                        modifier = Modifier.height(CpDimens.buttonHeight),
+                        shape = RoundedCornerShape(percent = 50),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     ) { Text("Повторить") }
                 }

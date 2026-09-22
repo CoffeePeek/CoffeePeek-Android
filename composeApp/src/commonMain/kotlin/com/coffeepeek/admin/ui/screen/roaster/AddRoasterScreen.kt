@@ -207,7 +207,7 @@ fun AddRoasterScreen(vm: AddRoasterViewModel = platformViewModel()) {
             Button(
                 onClick = vm::submit,
                 enabled = state.canSubmit,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+                modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -251,7 +251,9 @@ private fun RoasterField(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (singleLine) Modifier.height(CpDimens.buttonHeight) else Modifier),
             placeholder = { Text(placeholder) },
             leadingIcon = leadingIcon?.let { icon ->
                 { Icon(icon, contentDescription = null) }
@@ -260,7 +262,11 @@ private fun RoasterField(
             minLines = minLines,
             isError = error != null,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            shape = RoundedCornerShape(CpDimens.radiusMd),
+            shape = if (singleLine) {
+                RoundedCornerShape(percent = 50)
+            } else {
+                RoundedCornerShape(CpDimens.buttonRadius)
+            },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -293,9 +299,9 @@ private fun RoasterCityPicker(
             onClick = { expanded = true },
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 52.dp)
+                .height(CpDimens.buttonHeight)
                 .onGloballyPositioned { anchorWidth = with(density) { it.size.width.toDp() } },
-            shape = RoundedCornerShape(CpDimens.radiusMd),
+            shape = RoundedCornerShape(percent = 50),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             colors = ButtonDefaults.outlinedButtonColors(
                 containerColor = MaterialTheme.colorScheme.surface,

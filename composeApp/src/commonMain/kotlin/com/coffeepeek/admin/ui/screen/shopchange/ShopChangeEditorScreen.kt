@@ -139,7 +139,7 @@ private fun DescriptionEditor(state: ShopChangeEditorUiState, vm: ShopChangeEdit
         placeholder = { Text("Расскажите о кофейне") },
         isError = state.descriptionError != null,
         supportingText = { Text("${state.description.length}/1000") },
-        shape = RoundedCornerShape(CpDimens.radiusMd),
+        shape = RoundedCornerShape(CpDimens.buttonRadius),
         colors = fieldColors(),
     )
 }
@@ -163,18 +163,27 @@ private fun ContactField(
     error: String?,
     keyboardType: KeyboardType = KeyboardType.Text,
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onChange,
-        modifier = Modifier.fillMaxWidth(),
-        label = { Text(label) },
-        isError = error != null,
-        supportingText = error?.let { { Text(it) } },
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        singleLine = true,
-        shape = RoundedCornerShape(CpDimens.radiusMd),
-        colors = fieldColors(),
-    )
+    Column {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onChange,
+            modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
+            placeholder = { Text(label) },
+            isError = error != null,
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            singleLine = true,
+            shape = RoundedCornerShape(percent = 50),
+            colors = fieldColors(),
+        )
+        if (error != null) {
+            Text(
+                text = error,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(start = CpDimens.spacing2, top = CpDimens.spacing1),
+            )
+        }
+    }
 }
 
 @Composable
@@ -318,11 +327,11 @@ private fun MenuEditor(state: ShopChangeEditorUiState, vm: ShopChangeEditorViewM
                 OutlinedTextField(
                     value = row.priceText,
                     onValueChange = { value -> vm.updateMenuRow(row.slug) { it.copy(priceText = value) } },
-                    modifier = Modifier.weight(1f),
-                    label = { Text("Цена") },
+                    modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
+                    placeholder = { Text("Цена") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = RoundedCornerShape(CpDimens.radiusMd),
+                    shape = RoundedCornerShape(percent = 50),
                     colors = fieldColors(),
                 )
                 OutlinedTextField(
@@ -330,11 +339,11 @@ private fun MenuEditor(state: ShopChangeEditorUiState, vm: ShopChangeEditorViewM
                     onValueChange = { value ->
                         vm.updateMenuRow(row.slug) { it.copy(volumeText = value.filter(Char::isDigit)) }
                     },
-                    modifier = Modifier.weight(1f),
-                    label = { Text("мл") },
+                    modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
+                    placeholder = { Text("мл") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(CpDimens.radiusMd),
+                    shape = RoundedCornerShape(percent = 50),
                     colors = fieldColors(),
                 )
             }

@@ -10,10 +10,10 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-/** Chip / small controls — matches web filter tags (~16dp). */
+/** Buttons and single-line fields use a pill; larger surfaces keep their own radii. */
 private val CpShapes = Shapes(
-    extraSmall = RoundedCornerShape(CpDimens.radiusSm),
-    small = RoundedCornerShape(CpDimens.radiusLg),
+    extraSmall = RoundedCornerShape(percent = 50),
+    small = RoundedCornerShape(percent = 50),
     medium = RoundedCornerShape(CpDimens.radiusMd),
     large = RoundedCornerShape(CpDimens.radiusLg),
     extraLarge = RoundedCornerShape(CpDimens.radius2xl),

@@ -164,7 +164,11 @@ fun AddShopScreen(vm: AddShopViewModel = platformViewModel()) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(state.catalogsError ?: "Ошибка", color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(CpDimens.spacing3))
-                    Button(onClick = { vm.loadCatalogs() }) { Text("Повторить") }
+                    Button(
+                        onClick = { vm.loadCatalogs() },
+                        modifier = Modifier.height(CpDimens.buttonHeight),
+                        shape = RoundedCornerShape(percent = 50),
+                    ) { Text("Повторить") }
                 }
             }
             return@Scaffold
@@ -256,14 +260,12 @@ private fun AddShopHeader(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(36.dp),
+                .height(CpDimens.buttonHeight),
             contentAlignment = Alignment.Center,
         ) {
             CpCircularBackButton(
                 onClick = onBack,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .size(36.dp),
+                modifier = Modifier.align(Alignment.CenterStart),
             )
             Text(
                 text = title,
@@ -383,8 +385,8 @@ private fun StepBasic(
                     FilledIconButton(
                         onClick = vm::openLocationPicker,
                         enabled = !state.isResolvingAddress,
-                        modifier = Modifier.size(40.dp),
-                        shape = RoundedCornerShape(CpDimens.radiusSm),
+                        modifier = Modifier.size(CpDimens.buttonHeight),
+                        shape = CircleShape,
                         colors = IconButtonDefaults.filledIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -488,7 +490,8 @@ private fun StepPhotos(
             OutlinedButton(
                 onClick = photoPicker.pickFromGallery,
                 enabled = !isPhotoLoading,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
+                shape = RoundedCornerShape(percent = 50),
             ) {
                 Icon(CpIcons.Gallery, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(CpDimens.spacing1))
@@ -497,7 +500,8 @@ private fun StepPhotos(
             OutlinedButton(
                 onClick = photoPicker.takePhoto,
                 enabled = !isPhotoLoading,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
+                shape = RoundedCornerShape(percent = 50),
             ) {
                 Icon(CpIcons.Camera, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(CpDimens.spacing1))
@@ -740,10 +744,10 @@ private fun TimeAdjuster(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .clip(RoundedCornerShape(CpDimens.radiusMd))
+                .clip(RoundedCornerShape(percent = 50))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
         ) {
-            IconButton(onClick = onDecrease, modifier = Modifier.size(40.dp)) {
+            IconButton(onClick = onDecrease, modifier = Modifier.size(CpDimens.buttonHeight)) {
                 Icon(CpIcons.ChevronLeft, "Раньше", modifier = Modifier.size(20.dp))
             }
             Text(
@@ -751,7 +755,7 @@ private fun TimeAdjuster(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = CpDimens.spacing2),
             )
-            IconButton(onClick = onIncrease, modifier = Modifier.size(40.dp)) {
+            IconButton(onClick = onIncrease, modifier = Modifier.size(CpDimens.buttonHeight)) {
                 Icon(CpIcons.ChevronRight, "Позже", modifier = Modifier.size(20.dp))
             }
         }
@@ -1004,11 +1008,18 @@ private fun AppOutlinedField(
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
+        val singleLine = maxLines <= 1
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(CpDimens.radiusMd),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (singleLine) Modifier.height(CpDimens.buttonHeight) else Modifier),
+            shape = if (singleLine) {
+                RoundedCornerShape(percent = 50)
+            } else {
+                RoundedCornerShape(CpDimens.buttonRadius)
+            },
             placeholder = {
                 Text(
                     placeholder,
@@ -1072,9 +1083,9 @@ private fun SingleValueField(value: String) {
         value = value,
         onValueChange = {},
         readOnly = true,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
         textStyle = MaterialTheme.typography.bodyLarge,
-        shape = RoundedCornerShape(CpDimens.radiusMd),
+        shape = RoundedCornerShape(percent = 50),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.outline,
             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -1102,7 +1113,7 @@ private fun CityDropdown(
             value = selected?.name ?: "",
             onValueChange = {},
             readOnly = true,
-            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
+            modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight).clickable { expanded = true },
             placeholder = {
                 Text(
                     "Выберите город",
@@ -1119,7 +1130,7 @@ private fun CityDropdown(
                 )
             },
             isError = error != null,
-            shape = menuShape,
+            shape = RoundedCornerShape(percent = 50),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor   = MaterialTheme.colorScheme.outline,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,

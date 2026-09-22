@@ -308,11 +308,6 @@ class ShopDetailViewModel(
         }
     }
 
-    fun openReportIncorrectData() {
-        val shopTitle = _uiState.value.details?.shop?.title.orEmpty()
-        Navigator.navigate(Navigator.Screen.ReportShop(shopId = shopId, shopTitle = shopTitle))
-    }
-
     fun openSuggestChange() {
         if (!_uiState.value.isLoggedIn) {
             Navigator.navigate(Navigator.Screen.Auth)

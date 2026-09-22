@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -66,7 +68,13 @@ fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = platformViewModel()) {
             state.error != null && state.checkIns.isEmpty() -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(state.error ?: "Ошибка", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Button(onClick = vm::refresh, modifier = Modifier.padding(top = CpDimens.spacing3)) {
+                    Button(
+                        onClick = vm::refresh,
+                        modifier = Modifier
+                            .padding(top = CpDimens.spacing3)
+                            .height(CpDimens.buttonHeight),
+                        shape = RoundedCornerShape(percent = 50),
+                    ) {
                         Text("Попробовать снова")
                     }
                 }

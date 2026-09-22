@@ -50,7 +50,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -137,8 +136,7 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                                 onValueChange = vm::onQueryChange,
                                 placeholder = "Поиск кофейни…",
                                 modifier = Modifier.weight(1f),
-                                fieldHeight = 44.dp,
-                                shadowElevation = 4.dp,
+                                fieldHeight = CpDimens.buttonHeight,
                             )
                             BadgedBox(
                                 badge = {
@@ -151,12 +149,7 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(44.dp)
-                                        .shadow(
-                                            elevation = 4.dp,
-                                            shape = CircleShape,
-                                            clip = false,
-                                        )
+                                        .size(CpDimens.buttonHeight)
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.surface)
                                         .border(
@@ -254,12 +247,14 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Spacer(Modifier.height(CpDimens.spacing3))
-                                Button(
-                                    onClick = vm::refresh,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                    ),
-                                ) { Text("Попробовать снова") }
+                    Button(
+                        onClick = vm::refresh,
+                        modifier = Modifier.height(CpDimens.buttonHeight),
+                        shape = RoundedCornerShape(percent = 50),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                        ),
+                    ) { Text("Попробовать снова") }
                             }
                         }
                     }
@@ -312,11 +307,12 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                                     Spacer(Modifier.height(CpDimens.spacing4))
                                     Button(
                                         onClick = { Navigator.navigate(Navigator.Screen.AddShop) },
+                                        modifier = Modifier.height(CpDimens.buttonHeight),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = MaterialTheme.colorScheme.primary,
                                             contentColor = MaterialTheme.colorScheme.onPrimary,
                                         ),
-                                        shape = RoundedCornerShape(CpDimens.buttonRadius),
+                                        shape = RoundedCornerShape(percent = 50),
                                     ) {
                                         Text("Добавить кофейню")
                                     }
@@ -390,7 +386,7 @@ internal fun ShopCard(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(CpDimens.radiusXl),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column {
@@ -818,16 +814,12 @@ private fun DesignFilterChip(
 
     Row(
         modifier = Modifier
-            .shadow(
-                elevation = if (selected) 5.dp else 3.dp,
-                shape = shape,
-                clip = false,
-            )
+            .height(CpDimens.buttonHeight)
             .clip(shape)
             .background(bg)
             .border(width = 1.dp, color = borderColor, shape = shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {

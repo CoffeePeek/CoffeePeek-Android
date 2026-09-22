@@ -116,6 +116,8 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                     Spacer(Modifier.height(CpDimens.spacing3))
                     Button(
                         onClick = vm::refreshProfile,
+                        modifier = Modifier.height(CpDimens.buttonHeight),
+                        shape = RoundedCornerShape(percent = 50),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                         ),
@@ -658,11 +660,12 @@ private fun LogoutDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         confirmButton = {
             Button(
                 onClick = onConfirm,
+                modifier = Modifier.height(CpDimens.buttonHeight),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = CpColor.Error,
                     contentColor   = Color.White,
                 ),
-                shape = RoundedCornerShape(CpDimens.buttonRadius),
+                shape = RoundedCornerShape(percent = 50),
             ) {
                 Text("Выйти", style = MaterialTheme.typography.labelLarge)
             }

@@ -199,6 +199,8 @@ fun ShopDetailScreen(shopId: String) {
                             Spacer(Modifier.height(CpDimens.spacing3))
                             Button(
                                 onClick = vm::load,
+                                modifier = Modifier.height(CpDimens.buttonHeight),
+                                shape = CircleShape,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
                                 ),
@@ -224,7 +226,6 @@ fun ShopDetailScreen(shopId: String) {
                         onCheckIn = vm::openCheckInSheet,
                         onOpenOnMap = vm::openOnMap,
                         onCopyPhone = vm::copyPhone,
-                        onReportIncorrectData = vm::openReportIncorrectData,
                         onSuggestChange = vm::openSuggestChange,
                         onOpenMenuGallery = {
                             Navigator.navigate(Navigator.Screen.ShopMenuGallery(shopId))
@@ -257,7 +258,6 @@ private fun ShopDetailContent(
     onCheckIn: () -> Unit = {},
     onOpenOnMap: () -> Unit = {},
     onCopyPhone: (String) -> Unit = {},
-    onReportIncorrectData: () -> Unit = {},
     onSuggestChange: () -> Unit = {},
     onOpenMenuGallery: () -> Unit = {},
     onBack: () -> Unit = {},
@@ -296,6 +296,7 @@ private fun ShopDetailContent(
                     isFavoriteLoading = isFavoriteLoading,
                     onToggleFavorite = onToggleFavorite,
                     onShare = onShare,
+                    onSuggestChange = onSuggestChange,
                     modifier = Modifier.align(Alignment.TopCenter),
                 )
             }
@@ -406,14 +407,6 @@ private fun ShopDetailContent(
             )
         }
 
-        item {
-            SuggestShopChangeAction(onClick = onSuggestChange)
-        }
-
-        item {
-            ReportIncorrectDataAction(onClick = onReportIncorrectData)
-        }
-
         item { Spacer(Modifier.height(CpDimens.spacing6)) }
     }
 }
@@ -514,6 +507,7 @@ private fun HeroTopActions(
     isFavoriteLoading: Boolean,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
+    onSuggestChange: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -540,6 +534,7 @@ private fun HeroTopActions(
             isFavoriteLoading = isFavoriteLoading,
             onToggleFavorite = onToggleFavorite,
             onShare = onShare,
+            onSuggestChange = onSuggestChange,
         )
     }
 }
@@ -680,11 +675,24 @@ private fun HeaderActionButtons(
     isFavoriteLoading: Boolean,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
+    onSuggestChange: () -> Unit,
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        HeroIconButton(
+            onClick = onSuggestChange,
+            enabled = true,
+            isLoading = false,
+            contentDescription = "Предложить правку",
+        ) {
+            Icon(
+                imageVector = CpIcons.NoteEdit,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+        }
         HeroIconButton(
             onClick = onToggleFavorite,
             enabled = !isFavoriteLoading,
@@ -912,10 +920,10 @@ private fun HeroIconButton(
     content: @Composable () -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(CpDimens.radiusMd),
+        shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 0.dp,
-        modifier = Modifier.size(42.dp),
+        modifier = Modifier.size(CpDimens.buttonHeight),
     ) {
         IconButton(
             onClick = onClick,
@@ -1077,52 +1085,6 @@ private fun ContactsSection(
 }
 
 @Composable
-private fun SuggestShopChangeAction(onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing2),
-        shape = RoundedCornerShape(CpDimens.radiusLg),
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outline,
-        ),
-    ) {
-        Icon(
-            imageVector = CpIcons.NoteEdit,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(Modifier.width(CpDimens.spacing2))
-        Text("Предложить правку")
-    }
-}
-
-@Composable
-private fun ReportIncorrectDataAction(onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing2),
-        shape = RoundedCornerShape(CpDimens.radiusLg),
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outline,
-        ),
-    ) {
-        Icon(
-            imageVector = CpIcons.Error,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(Modifier.width(CpDimens.spacing2))
-        Text("Сообщить о неточности")
-    }
-}
-
-@Composable
 private fun PhoneContactPill(
     phone: String,
     onCall: () -> Unit,
@@ -1131,7 +1093,7 @@ private fun PhoneContactPill(
     Row(
         modifier = Modifier
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
-            .height(42.dp),
+            .height(CpDimens.buttonHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
@@ -1157,7 +1119,7 @@ private fun PhoneContactPill(
         }
         IconButton(
             onClick = onCopy,
-            modifier = Modifier.size(40.dp),
+            modifier = Modifier.size(CpDimens.buttonHeight),
         ) {
             Icon(
                 imageVector = CpIcons.Copy,
@@ -1577,8 +1539,8 @@ private fun AddressCard(
             if (canOpenMap) {
                 OutlinedButton(
                     onClick = onOpenOnMap,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(CpDimens.radiusLg),
+                    modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
+                    shape = CircleShape,
                 ) {
                     Icon(CpIcons.Map, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(CpDimens.spacing2))
@@ -1630,10 +1592,10 @@ private fun RouteIconButton(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(999.dp)
+    val shape = CircleShape
     Box(
         modifier = Modifier
-            .size(42.dp)
+            .size(CpDimens.buttonHeight)
             .shadow(elevation = 8.dp, shape = shape, clip = false)
             .clip(shape)
             .background(
@@ -1666,10 +1628,10 @@ private fun BottomBarAction(
     } else {
         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
     }
-    val shape = RoundedCornerShape(999.dp)
+    val shape = CircleShape
     Row(
         modifier = modifier
-            .height(42.dp)
+            .height(CpDimens.buttonHeight)
             .shadow(elevation = 8.dp, shape = shape, clip = false)
             .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .clip(shape)

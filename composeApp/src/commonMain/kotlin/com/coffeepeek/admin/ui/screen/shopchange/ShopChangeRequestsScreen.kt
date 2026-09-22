@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -71,7 +72,11 @@ fun ShopChangeRequestsScreen(isModeratorQueue: Boolean) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(state.error ?: "Ошибка", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(CpDimens.spacing3))
-                    Button(onClick = vm::refresh) { Text("Попробовать снова") }
+                    Button(
+                        onClick = vm::refresh,
+                        modifier = Modifier.height(CpDimens.buttonHeight),
+                        shape = RoundedCornerShape(percent = 50),
+                    ) { Text("Попробовать снова") }
                 }
             }
             state.items.isEmpty() -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {

@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -137,7 +138,7 @@ fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
             OutlinedTextField(
                 value = state.username,
                 onValueChange = vm::onUsernameChange,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
                 placeholder = {
                     Text(
                         "Ваше имя",
@@ -152,7 +153,7 @@ fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
                     capitalization = KeyboardCapitalization.Words,
                     imeAction = ImeAction.Next,
                 ),
-                shape = RoundedCornerShape(CpDimens.radiusMd),
+                shape = RoundedCornerShape(percent = 50),
                 colors = fieldColors(),
             )
             FieldFooter(
@@ -183,7 +184,7 @@ fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
                     capitalization = KeyboardCapitalization.Sentences,
                     imeAction = ImeAction.Default,
                 ),
-                shape = RoundedCornerShape(CpDimens.radiusMd),
+                shape = RoundedCornerShape(CpDimens.buttonRadius),
                 colors = fieldColors(),
             )
             FieldFooter(
@@ -323,10 +324,20 @@ private fun AvatarPickerSection(
         Spacer(Modifier.height(CpDimens.spacing2))
 
         Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-            TextButton(onClick = onPickFromGallery, enabled = !isLoading) {
+            OutlinedButton(
+                onClick = onPickFromGallery,
+                enabled = !isLoading,
+                modifier = Modifier.height(CpDimens.buttonHeight),
+                shape = RoundedCornerShape(percent = 50),
+            ) {
                 Text("Галерея", style = MaterialTheme.typography.labelLarge)
             }
-            TextButton(onClick = onTakePhoto, enabled = !isLoading) {
+            OutlinedButton(
+                onClick = onTakePhoto,
+                enabled = !isLoading,
+                modifier = Modifier.height(CpDimens.buttonHeight),
+                shape = RoundedCornerShape(percent = 50),
+            ) {
                 Text("Камера", style = MaterialTheme.typography.labelLarge)
             }
         }
@@ -402,11 +413,12 @@ private fun DeleteAccountDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         confirmButton = {
             Button(
                 onClick = onConfirm,
+                modifier = Modifier.height(CpDimens.buttonHeight),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = CpColor.Error,
                     contentColor = Color.White,
                 ),
-                shape = RoundedCornerShape(CpDimens.buttonRadius),
+                shape = RoundedCornerShape(percent = 50),
             ) {
                 Text("Удалить", style = MaterialTheme.typography.labelLarge)
             }

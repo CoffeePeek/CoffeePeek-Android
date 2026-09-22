@@ -127,7 +127,8 @@ fun PhotoAttachmentsSection(
                 OutlinedButton(
                     onClick = photoPicker.pickFromGallery,
                     enabled = !isPhotoLoading,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
+                    shape = RoundedCornerShape(percent = 50),
                 ) {
                     Icon(CpIcons.Gallery, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(CpDimens.spacing1))
@@ -136,7 +137,8 @@ fun PhotoAttachmentsSection(
                 OutlinedButton(
                     onClick = photoPicker.takePhoto,
                     enabled = !isPhotoLoading,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
+                    shape = RoundedCornerShape(percent = 50),
                 ) {
                     Icon(CpIcons.Camera, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(CpDimens.spacing1))

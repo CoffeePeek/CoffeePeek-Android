@@ -1,5 +1,8 @@
 package com.coffeepeek.admin.ui.component
 
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButtonDefaults
@@ -9,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.coffeepeek.admin.theme.CpColor
+import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.theme.Theme
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.material3.Icon as MaterialIcon
@@ -25,8 +29,8 @@ object Buttons {
     ) {
         Button(
             onClick = onclick,
-            modifier = modifier,
-            shape = Theme.shape,
+            modifier = modifier.height(CpDimens.buttonHeight),
+            shape = RoundedCornerShape(percent = 50),
             colors = ButtonDefaults.buttonColors().copy(
                 containerColor = CpColor.Primary
             )
@@ -46,7 +50,7 @@ object Buttons {
             enabled = enabled,
             shape = Theme.shape,
             colors = IconButtonDefaults.iconButtonColors(containerColor = backgroundColor),
-            modifier = modifier,
+            modifier = modifier.size(CpDimens.buttonHeight),
         ) {
             MaterialIcon(
                 imageVector = imageVector,
