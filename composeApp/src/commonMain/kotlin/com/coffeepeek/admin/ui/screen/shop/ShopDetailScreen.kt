@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -69,7 +68,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coffeepeek.composeapp.generated.resources.Res
@@ -169,16 +167,11 @@ fun ShopDetailScreen(shopId: String) {
 
     val details = state.details
     val distance = formatDistance(distanceToShopMeters(userLocation, details?.location))
-    val floatingActionsClearance = 72.dp
-
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             snackbarHost = {
                 SnackbarHost(
                     hostState = snackbarHostState,
-                    modifier = Modifier
-                        .navigationBarsPadding()
-                        .padding(bottom = floatingActionsClearance),
                 )
             },
             containerColor = MaterialTheme.colorScheme.background,
@@ -220,10 +213,15 @@ fun ShopDetailScreen(shopId: String) {
                         isLoggedIn = state.isLoggedIn,
                         currentUserId = state.currentUserId,
                         modifier = Modifier.padding(padding),
-                        bottomContentPadding = floatingActionsClearance,
                         isFavoriteLoading = state.isFavoriteLoading,
+                        isCheckInLoading = state.isCheckInLoading,
                         onToggleFavorite = vm::toggleFavorite,
                         onShare = vm::shareShop,
+                        canOpenRoute = details.location?.latitude != null &&
+                            details.location?.longitude != null,
+                        onRoute = vm::openRoute,
+                        onReview = vm::openReviewAction,
+                        onCheckIn = vm::openCheckInSheet,
                         onOpenOnMap = vm::openOnMap,
                         onCopyPhone = vm::copyPhone,
                         onReportIncorrectData = vm::openReportIncorrectData,
@@ -238,18 +236,6 @@ fun ShopDetailScreen(shopId: String) {
                 }
             }
         }
-
-        if (details != null) {
-            ShopDetailBottomBar(
-                isCheckInLoading = state.isCheckInLoading,
-                canOpenRoute = details.location?.latitude != null &&
-                    details.location?.longitude != null,
-                onRoute = vm::openRoute,
-                onReview = vm::openReviewAction,
-                onCheckIn = vm::openCheckInSheet,
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
-        }
     }
 }
 
@@ -261,10 +247,14 @@ private fun ShopDetailContent(
     isLoggedIn: Boolean,
     currentUserId: String? = null,
     modifier: Modifier = Modifier,
-    bottomContentPadding: Dp = CpDimens.spacing4,
     isFavoriteLoading: Boolean = false,
+    isCheckInLoading: Boolean = false,
     onToggleFavorite: () -> Unit = {},
     onShare: () -> Unit = {},
+    canOpenRoute: Boolean = false,
+    onRoute: () -> Unit = {},
+    onReview: () -> Unit = {},
+    onCheckIn: () -> Unit = {},
     onOpenOnMap: () -> Unit = {},
     onCopyPhone: (String) -> Unit = {},
     onReportIncorrectData: () -> Unit = {},
@@ -281,7 +271,7 @@ private fun ShopDetailContent(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = bottomContentPadding + CpDimens.spacing4),
+        contentPadding = PaddingValues(bottom = CpDimens.spacing4),
     ) {
         item {
             Box(
@@ -309,6 +299,16 @@ private fun ShopDetailContent(
                     modifier = Modifier.align(Alignment.TopCenter),
                 )
             }
+        }
+
+        item {
+            ShopDetailActionBar(
+                isCheckInLoading = isCheckInLoading,
+                canOpenRoute = canOpenRoute,
+                onRoute = onRoute,
+                onReview = onReview,
+                onCheckIn = onCheckIn,
+            )
         }
 
         item {
@@ -1590,18 +1590,16 @@ private fun AddressCard(
 }
 
 @Composable
-private fun ShopDetailBottomBar(
+private fun ShopDetailActionBar(
     isCheckInLoading: Boolean,
     canOpenRoute: Boolean,
     onRoute: () -> Unit,
     onReview: () -> Unit,
     onCheckIn: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
             .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing3),
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
         verticalAlignment = Alignment.CenterVertically,
