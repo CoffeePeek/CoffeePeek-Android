@@ -23,7 +23,6 @@ import kotlinx.coroutines.launch
 
 data class ProfileUiState(
     val isLoggedIn: Boolean = false,
-    val canModerate: Boolean = false,
     val email: String = "",
     val displayName: String = "",
     val about: String? = null,
@@ -157,7 +156,6 @@ class ProfileViewModel(
                         _uiState.update {
                             it.copy(
                                 isLoggedIn = true,
-                                canModerate = sessionRepository.hasModeratorAccess(),
                                 isLoading = true,
                             )
                         }
@@ -174,7 +172,6 @@ class ProfileViewModel(
         _uiState.update {
             it.copy(
                 isLoggedIn = true,
-                canModerate = sessionRepository.hasModeratorAccess(),
                 email = profile.email,
                 displayName = profile.userName,
                 about = profile.about,

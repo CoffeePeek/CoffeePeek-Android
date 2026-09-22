@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -14,8 +13,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,42 +25,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.di.platformViewModel
 import com.coffeepeek.admin.theme.CpDimens
-import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CpTopBar
-import com.coffeepeek.domain.model.ModerationStatus
 import com.coffeepeek.domain.model.ShopChangePayload
 import org.koin.core.parameter.parametersOf
 
 @Composable
-fun ShopChangeRequestDetailScreen(requestId: String, isModerator: Boolean) {
+fun ShopChangeRequestDetailScreen(requestId: String) {
     val vm: ShopChangeRequestDetailViewModel = platformViewModel(
-        parameters = { parametersOf(requestId, isModerator) },
+        parameters = { parametersOf(requestId) },
     )
     val state by vm.state.collectAsState()
-
-    if (state.showRejectDialog) {
-        AlertDialog(
-            onDismissRequest = vm::hideRejectDialog,
-            title = { Text("Отклонить заявку") },
-            text = {
-                OutlinedTextField(
-                    value = state.rejectComment,
-                    onValueChange = vm::onRejectCommentChange,
-                    modifier = Modifier.fillMaxWidth().height(140.dp),
-                    placeholder = { Text("Причина отклонения") },
-                    supportingText = { Text("${state.rejectComment.length}/500") },
-                    shape = RoundedCornerShape(CpDimens.buttonRadius),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = vm::reject, enabled = !state.isWorking) { Text("Отклонить") }
-            },
-            dismissButton = {
-                TextButton(onClick = vm::hideRejectDialog) { Text("Отмена") }
-            },
-        )
-    }
 
     state.error?.let { err ->
         AlertDialog(
@@ -109,29 +81,6 @@ fun ShopChangeRequestDetailScreen(requestId: String, isModerator: Boolean) {
                     Text("Причина отклонения: $reason", color = MaterialTheme.colorScheme.error)
                 }
                 PayloadSummary(request.payload)
-                if (isModerator && request.status == ModerationStatus.Pending) {
-                    OutlinedButton(
-                        onClick = vm::openEditor,
-                        modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
-                        shape = RoundedCornerShape(percent = 50),
-                        enabled = !state.isWorking,
-                    ) {
-                        Text("Исправить заявку")
-                    }
-                    AppButton(
-                        text = "Одобрить",
-                        onClick = vm::approve,
-                        enabled = !state.isWorking,
-                    )
-                    OutlinedButton(
-                        onClick = vm::showRejectDialog,
-                        modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
-                        shape = RoundedCornerShape(percent = 50),
-                        enabled = !state.isWorking,
-                    ) {
-                        Text("Отклонить")
-                    }
-                }
                 Spacer(Modifier.height(CpDimens.spacing4))
             }
         }

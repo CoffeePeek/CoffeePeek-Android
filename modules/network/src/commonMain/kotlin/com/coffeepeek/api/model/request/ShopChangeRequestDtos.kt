@@ -85,12 +85,6 @@ data class UpdateShopChangeRequestBody(
 )
 
 @Serializable
-data class DecideShopChangeRequestBody(
-    @SerialName("status") val status: ModerationStatusDto,
-    @SerialName("comment") val comment: String? = null,
-)
-
-@Serializable
 data class ShopChangeRequestDto(
     @SerialName("id") val id: String,
     @SerialName("shopId") val shopId: String,

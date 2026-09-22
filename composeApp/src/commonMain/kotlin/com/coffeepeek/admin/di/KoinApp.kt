@@ -74,12 +74,10 @@ private fun appModule(settingRepository: com.coffeepeek.room.repository.SettingR
     factory { (shopId: String) -> ShopReportViewModel(shopId, get()) }
     factory { (shopId: String) -> SuggestShopChangeViewModel(shopId, get()) }
     factory { (shopId: String, section: ShopChangeSection, requestId: String) ->
-        ShopChangeEditorViewModel(shopId, section, requestId, get(), get(), get())
+        ShopChangeEditorViewModel(shopId, section, requestId, get(), get())
     }
-    factory { (isModeratorQueue: Boolean) -> ShopChangeRequestsViewModel(isModeratorQueue, get()) }
-    factory { (requestId: String, isModerator: Boolean) ->
-        ShopChangeRequestDetailViewModel(requestId, isModerator, get())
-    }
+    factory { ShopChangeRequestsViewModel(get()) }
+    factory { (requestId: String) -> ShopChangeRequestDetailViewModel(requestId, get()) }
     single { ProfileViewModel(get(), get(), get(), get(), get()) }
     factory { DeleteAccountPendingViewModel(get(), get()) }
     factory { AddShopViewModel(get()) }

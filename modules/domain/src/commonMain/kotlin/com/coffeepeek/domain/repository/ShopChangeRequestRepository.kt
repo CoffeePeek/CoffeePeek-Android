@@ -15,14 +15,6 @@ interface ShopChangeRequestRepository {
         shopId: String? = null,
         section: ShopChangeSection? = null,
     ): Result<PagedResult<ShopChangeRequest>>
-    suspend fun getQueue(
-        page: Int,
-        pageSize: Int,
-        status: ModerationStatus? = null,
-        shopId: String? = null,
-        section: ShopChangeSection? = null,
-    ): Result<PagedResult<ShopChangeRequest>>
     suspend fun getById(id: String): Result<ShopChangeRequest>
     suspend fun update(id: String, draft: ShopChangeDraft): Result<ShopChangeRequest>
-    suspend fun decide(id: String, status: ModerationStatus, comment: String? = null): Result<Unit>
 }

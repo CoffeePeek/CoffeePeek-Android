@@ -16,5 +16,4 @@ interface SessionRepository {
     suspend fun warmCache()
     fun observeSession(): Flow<Session?>
     suspend fun isLoggedIn(): Boolean
-    fun hasModeratorAccess(): Boolean
 }

@@ -77,12 +77,6 @@ class SessionRepositoryImpl(
     override suspend fun isLoggedIn(): Boolean =
         isActiveSession(peekSession() ?: getSession())
 
-    override fun hasModeratorAccess(): Boolean {
-        val session = peekSession() ?: return false
-        if (!isActiveSession(session)) return false
-        return JwtUtils.hasModeratorAccess(session.accessToken)
-    }
-
     private fun AuthResp.toSession() = Session(
         accessToken = accessToken,
         refreshToken = refreshToken,

@@ -4,7 +4,6 @@ import com.coffeepeek.api.utils.JsonExt
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 
 class ShopChangeRequestContractTest {
 
@@ -41,20 +40,6 @@ class ShopChangeRequestContractTest {
         assertContains(encoded, "\"phoneNumber\":\"+375291234567\"")
         assertContains(encoded, "\"email\":null")
         assertContains(encoded, "\"instagramLink\":\"@coffee\"")
-    }
-
-    @Test
-    fun decideRejectBodyRequiresCommentField() {
-        val encoded = json.encodeToString(
-            DecideShopChangeRequestBody.serializer(),
-            DecideShopChangeRequestBody(
-                status = ModerationStatusDto.Rejected,
-                comment = "Фотография относится к другой кофейне",
-            ),
-        )
-        assertContains(encoded, "\"status\":\"Rejected\"")
-        assertContains(encoded, "\"comment\":\"Фотография относится к другой кофейне\"")
-        assertFalse("\"Pending\"" in encoded)
     }
 
     @Test

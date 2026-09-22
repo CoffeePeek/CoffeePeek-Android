@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -29,7 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -98,15 +95,6 @@ private fun RowScope.FloatingNavBarItem(item: FloatingNavItem) {
         animationSpec = tween(180),
         label = "floating-nav-content",
     )
-    val indicatorColor by animateColorAsState(
-        targetValue = if (item.selected) {
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-        } else {
-            Color.Transparent
-        },
-        animationSpec = tween(180),
-        label = "floating-nav-indicator",
-    )
 
     Column(
         modifier = Modifier
@@ -121,20 +109,12 @@ private fun RowScope.FloatingNavBarItem(item: FloatingNavItem) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(width = 46.dp, height = 26.dp)
-                .clip(CircleShape)
-                .background(indicatorColor),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = item.icon,
-                contentDescription = item.title,
-                tint = contentColor,
-                modifier = Modifier.size(20.dp),
-            )
-        }
+        Icon(
+            imageVector = item.icon,
+            contentDescription = item.title,
+            tint = contentColor,
+            modifier = Modifier.size(22.dp),
+        )
         Text(
             text = item.title,
             style = MaterialTheme.typography.labelSmall.copy(

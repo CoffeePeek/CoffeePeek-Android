@@ -1,7 +1,6 @@
 package com.coffeepeek.data.repository
 
 import com.coffeepeek.api.model.request.CreateShopChangeRequestBody
-import com.coffeepeek.api.model.request.DecideShopChangeRequestBody
 import com.coffeepeek.api.model.request.UpdateShopChangeRequestBody
 import com.coffeepeek.api.service.ShopChangeRequestApiService
 import com.coffeepeek.data.mapper.toDomain
@@ -44,15 +43,6 @@ class ShopChangeRequestRepositoryImpl(
     ): Result<PagedResult<ShopChangeRequest>> =
         api.getMine(page, pageSize, status?.toDto(), shopId, section?.toDto()).map { it.toDomain() }
 
-    override suspend fun getQueue(
-        page: Int,
-        pageSize: Int,
-        status: ModerationStatus?,
-        shopId: String?,
-        section: ShopChangeSection?,
-    ): Result<PagedResult<ShopChangeRequest>> =
-        api.getAll(page, pageSize, status?.toDto(), shopId, section?.toDto()).map { it.toDomain() }
-
     override suspend fun getById(id: String): Result<ShopChangeRequest> =
         api.getById(id).map { it.toDomain() }
 
@@ -66,18 +56,6 @@ class ShopChangeRequestRepositoryImpl(
             ),
         ).getOrThrow().toDomain()
     }
-
-    override suspend fun decide(
-        id: String,
-        status: ModerationStatus,
-        comment: String?,
-    ): Result<Unit> = api.decide(
-        id,
-        DecideShopChangeRequestBody(
-            status = status.toDto(),
-            comment = comment,
-        ),
-    )
 
     private suspend fun ShopChangeDraft.toPayload(): ShopChangePayload = when (section) {
         ShopChangeSection.Description -> ShopChangePayload(description = description)

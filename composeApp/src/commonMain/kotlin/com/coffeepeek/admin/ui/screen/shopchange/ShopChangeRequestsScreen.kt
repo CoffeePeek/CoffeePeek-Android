@@ -36,13 +36,10 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CpTopBar
 import com.coffeepeek.domain.model.ShopChangeRequest
-import org.koin.core.parameter.parametersOf
 
 @Composable
-fun ShopChangeRequestsScreen(isModeratorQueue: Boolean) {
-    val vm: ShopChangeRequestsViewModel = platformViewModel(
-        parameters = { parametersOf(isModeratorQueue) },
-    )
+fun ShopChangeRequestsScreen() {
+    val vm: ShopChangeRequestsViewModel = platformViewModel()
     val state by vm.state.collectAsState()
     val listState = rememberLazyListState()
     val shouldLoadMore by remember {
@@ -57,7 +54,7 @@ fun ShopChangeRequestsScreen(isModeratorQueue: Boolean) {
 
     Scaffold(
         topBar = {
-            CpTopBar(if (isModeratorQueue) "Заявки на правки" else "Мои правки")
+            CpTopBar("Мои правки")
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -81,7 +78,7 @@ fun ShopChangeRequestsScreen(isModeratorQueue: Boolean) {
             }
             state.items.isEmpty() -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Text(
-                    text = if (isModeratorQueue) "Нет заявок на модерации" else "Вы ещё не отправляли правки",
+                    text = "Вы ещё не отправляли правки",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -94,10 +91,7 @@ fun ShopChangeRequestsScreen(isModeratorQueue: Boolean) {
                 items(state.items, key = { it.id }) { request ->
                     RequestCard(request) {
                         Navigator.navigate(
-                            Navigator.Screen.ShopChangeRequestDetail(
-                                requestId = request.id,
-                                isModerator = isModeratorQueue,
-                            ),
+                            Navigator.Screen.ShopChangeRequestDetail(requestId = request.id),
                         )
                     }
                 }

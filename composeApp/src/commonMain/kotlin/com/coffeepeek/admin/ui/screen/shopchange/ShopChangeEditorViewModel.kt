@@ -40,7 +40,6 @@ data class ShopChangeEditorUiState(
     val shopTitle: String = "",
     val isLoading: Boolean = true,
     val isSubmitting: Boolean = false,
-    val isModerator: Boolean = false,
     val requestStatus: ModerationStatus? = null,
     val error: String? = null,
     val description: String = "",
@@ -88,7 +87,6 @@ class ShopChangeEditorViewModel(
     requestIdRaw: String,
     private val shopRepository: ShopRepository,
     private val changeRepository: ShopChangeRequestRepository,
-    private val sessionRepository: com.coffeepeek.domain.repository.SessionRepository,
 ) : BaseViewModel() {
 
     private val requestId = requestIdRaw.ifBlank { null }
@@ -105,7 +103,6 @@ class ShopChangeEditorViewModel(
             it.copy(
                 isLoading = true,
                 error = null,
-                isModerator = sessionRepository.hasModeratorAccess(),
             )
         }
         val catalogs = shopRepository.getCatalogs().getOrElse { e ->

@@ -31,6 +31,7 @@ import com.coffeepeek.admin.ui.component.ProvideFloatingNavClearance
 import com.coffeepeek.admin.ui.screen.feed.FeedScreen
 import com.coffeepeek.admin.ui.screen.map.MapScreen
 import com.coffeepeek.admin.ui.screen.profile.ProfileScreen
+import com.coffeepeek.admin.ui.screen.profile.SettingsScreen
 import com.coffeepeek.admin.ui.icons.CpIcons
 
 data class BottomNavItem(
@@ -99,6 +100,12 @@ fun MainScreen() {
             graph = Navigator.Screen.ProfileGraph,
             startScreen = Navigator.Screen.ProfileTab,
         ),
+        BottomNavItem(
+            title = "Настройки",
+            icon = CpIcons.Settings,
+            graph = Navigator.Screen.SettingsGraph,
+            startScreen = Navigator.Screen.SettingsTab,
+        ),
     )
 
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
@@ -130,6 +137,10 @@ fun MainScreen() {
 
                 navigation<Navigator.Screen.ProfileGraph>(startDestination = Navigator.Screen.ProfileTab) {
                     composable<Navigator.Screen.ProfileTab> { ProfileScreen() }
+                }
+
+                navigation<Navigator.Screen.SettingsGraph>(startDestination = Navigator.Screen.SettingsTab) {
+                    composable<Navigator.Screen.SettingsTab> { SettingsScreen() }
                 }
             }
 

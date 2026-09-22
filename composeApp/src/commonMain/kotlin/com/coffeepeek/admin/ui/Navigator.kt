@@ -82,11 +82,13 @@ object Navigator {
         @Serializable data object FeedGraph : Screen
         @Serializable data object MapGraph : Screen
         @Serializable data object ProfileGraph : Screen
+        @Serializable data object SettingsGraph : Screen
 
         // Tabs
         @Serializable data object FeedTab : Screen
         @Serializable data object MapTab : Screen
         @Serializable data object ProfileTab : Screen
+        @Serializable data object SettingsTab : Screen
 
         // Inner screens (add here + in the graph in MainScreen)
         @Serializable data class ShopDetail(val shopId: String) : Screen
@@ -99,10 +101,8 @@ object Navigator {
             val requestId: String = "",
         ) : Screen
         @Serializable data object MyShopChanges : Screen
-        @Serializable data object ModeratorShopChanges : Screen
         @Serializable data class ShopChangeRequestDetail(
             val requestId: String,
-            val isModerator: Boolean = false,
         ) : Screen
         @Serializable data object AddShop : Screen
         @Serializable data object AddRoaster : Screen
@@ -164,7 +164,6 @@ object Navigator {
         is Screen.SuggestShopChange,
         is Screen.ShopChangeEditor,
         is Screen.MyShopChanges,
-        is Screen.ModeratorShopChanges,
         is Screen.ShopChangeRequestDetail,
         is Screen.AddShop,
         is Screen.AddRoaster,
@@ -328,14 +327,10 @@ object Navigator {
                         requestId = route.requestId,
                     )
                 }
-                composable<Screen.MyShopChanges> { ShopChangeRequestsScreen(isModeratorQueue = false) }
-                composable<Screen.ModeratorShopChanges> { ShopChangeRequestsScreen(isModeratorQueue = true) }
+                composable<Screen.MyShopChanges> { ShopChangeRequestsScreen() }
                 composable<Screen.ShopChangeRequestDetail> { backStack ->
                     val route = backStack.toRoute<Screen.ShopChangeRequestDetail>()
-                    ShopChangeRequestDetailScreen(
-                        requestId = route.requestId,
-                        isModerator = route.isModerator,
-                    )
+                    ShopChangeRequestDetailScreen(requestId = route.requestId)
                 }
                 composable<Screen.AddShop> { AddShopScreen() }
                 composable<Screen.AddRoaster> { AddRoasterScreen() }

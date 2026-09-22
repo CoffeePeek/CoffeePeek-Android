@@ -1,7 +1,6 @@
 package com.coffeepeek.admin.ui.screen.shopchange
 
 import com.coffeepeek.admin.base.BaseViewModel
-import com.coffeepeek.domain.model.ModerationStatus
 import com.coffeepeek.domain.model.ShopChangeRequest
 import com.coffeepeek.domain.repository.ShopChangeRequestRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +20,6 @@ data class ShopChangeRequestsUiState(
 )
 
 class ShopChangeRequestsViewModel(
-    private val isModeratorQueue: Boolean,
     private val repository: ShopChangeRequestRepository,
 ) : BaseViewModel() {
 
@@ -39,11 +37,7 @@ class ShopChangeRequestsViewModel(
             _state.update {
                 it.copy(isLoading = reset, isLoadingMore = !reset, error = null)
             }
-            val result = if (isModeratorQueue) {
-                repository.getQueue(page, PAGE_SIZE, status = ModerationStatus.Pending)
-            } else {
-                repository.getMine(page, PAGE_SIZE)
-            }
+            val result = repository.getMine(page, PAGE_SIZE)
             result
                 .onSuccess { pageResult ->
                     _state.update { state ->

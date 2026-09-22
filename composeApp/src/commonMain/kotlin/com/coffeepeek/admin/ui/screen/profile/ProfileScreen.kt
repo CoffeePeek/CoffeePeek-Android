@@ -3,7 +3,6 @@ package com.coffeepeek.admin.ui.screen.profile
 import com.coffeepeek.admin.ui.component.GuestAuthCard
 
 import com.coffeepeek.admin.ui.icons.CpIcons
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,9 +25,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -46,34 +42,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.coffeepeek.admin.config.AppConfig
-import com.coffeepeek.admin.legal.LegalUrls
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
-import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
-import com.coffeepeek.admin.ui.component.SettingsIconBadge
-import com.coffeepeek.admin.ui.component.SettingsIconColors
+import com.coffeepeek.admin.ui.component.SettingsDivider
 import com.coffeepeek.admin.ui.component.SettingsIconPalette
+import com.coffeepeek.admin.ui.component.SettingsRow
+import com.coffeepeek.admin.ui.component.SettingsSection
 import com.coffeepeek.admin.utils.CpImage
-import com.coffeepeek.admin.utils.COFFEEPEEK_SHARE_TEXT
-import com.coffeepeek.admin.utils.OpenInBrowser
-import com.coffeepeek.admin.utils.ShareHelper
 import org.koin.compose.koinInject
 
 @Composable
 fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
     val state by vm.uiState.collectAsState()
-    val themeMode by vm.themeMode.collectAsState()
-    val cities by vm.cities.collectAsState()
-    val selectedCityId by vm.selectedCityId.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     if (showLogoutDialog) {
@@ -160,27 +147,6 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
 
             Spacer(Modifier.height(CpDimens.spacing4))
 
-            // ── Добавить ──────────────────────────────────────────────────────
-            SettingsSection(title = if (state.isLoggedIn) "Добавить" else "Внести вклад") {
-                SettingsRow(
-                    icon = CpIcons.Add,
-                    label = "Добавить кофейню",
-                    description = "Предложить новое место для CoffeePeek",
-                    iconColors = SettingsIconPalette.Gold,
-                    onClick = { Navigator.navigate(Navigator.Screen.AddShop) },
-                )
-                SettingsDivider()
-                SettingsRow(
-                    icon = CpIcons.CoffeeBean,
-                    label = "Добавить обжарщика",
-                    description = "Помогите сообществу открыть новых обжарщиков",
-                    iconColors = SettingsIconPalette.Mint,
-                    onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
-                )
-            }
-
-            // ── Моя активность ─────────────────────────────────────────────────
-            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
             SettingsSection(title = "Моя активность") {
                 SettingsRow(
                     icon = CpIcons.Favorite,
@@ -217,71 +183,8 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 }
             }
 
-            if (state.canModerate) {
-                Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
-                SettingsSection(title = "Модерация") {
-                    SettingsRow(
-                        icon = CpIcons.CheckCircle,
-                        label = "Заявки на правки",
-                        description = "Просмотр, правка и решение по заявкам пользователей",
-                        iconColors = SettingsIconPalette.Violet,
-                        onClick = { Navigator.navigate(Navigator.Screen.ModeratorShopChanges) },
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
-
-            // ── Настройки ─────────────────────────────────────────────────────
-            SettingsSection(title = "Настройки") {
-                SettingsRow(
-                    icon = CpIcons.Location,
-                    label = "Город",
-                    description = "Определяет, какие кофейни показывать в первую очередь",
-                    iconColors = SettingsIconPalette.Aqua,
-                    trailing = {
-                        CityValue(
-                            cityName = cities.firstOrNull { it.id == selectedCityId }?.name,
-                        )
-                    },
-                    onClick = { Navigator.navigate(Navigator.Screen.CitySettings) },
-                )
-                SettingsDivider()
-                SettingsRow(
-                    icon = themeMode.icon(),
-                    label = "Тема",
-                    description = "Настройте внешний вид приложения",
-                    iconColors = SettingsIconPalette.Violet,
-                    trailing = { ThemeValue(themeMode) },
-                    onClick = { Navigator.navigate(Navigator.Screen.ThemeSettings) },
-                )
-            }
-
-            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
-
-            SettingsSection(
-                title = "Другие настройки",
-                description = "Управление полезными дополнениями, отзывы в App Store и настройки конфиденциальности",
-            ) {
-                SettingsRow(
-                    icon = CpIcons.Lock,
-                    label = "Политика использования",
-                    iconColors = SettingsIconPalette.Emerald,
-                    onClick = { OpenInBrowser.openInBrowser(LegalUrls.TERMS) },
-                )
-                SettingsDivider()
-                SettingsRow(
-                    icon = CpIcons.Share,
-                    label = "Поделиться",
-                    iconColors = SettingsIconPalette.BrightCyan,
-                    onClick = { ShareHelper.shareText(COFFEEPEEK_SHARE_TEXT) },
-                )
-            }
-
-            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
-
-            // ── Выход ─────────────────────────────────────────────────────────
             if (state.isLoggedIn) {
+                Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
                 Button(
                     onClick = { showLogoutDialog = true },
                     modifier = Modifier
@@ -307,7 +210,6 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 }
             }
 
-            AppVersionFooter()
             Spacer(Modifier.height(CpDimens.spacing8 + LocalFloatingNavClearance.current))
         }
     }
@@ -461,183 +363,6 @@ private fun StatBadge(count: Int, label: String, modifier: Modifier = Modifier) 
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-}
-
-// ── Настройки города и темы ───────────────────────────────────────────────────
-
-private fun ThemeMode.label() = when (this) {
-    ThemeMode.SYSTEM -> "Авто"
-    ThemeMode.LIGHT  -> "Светлая"
-    ThemeMode.DARK   -> "Тёмная"
-}
-
-private fun ThemeMode.icon() = when (this) {
-    ThemeMode.SYSTEM -> CpIcons.ThemeSystem
-    ThemeMode.LIGHT  -> CpIcons.ThemeLight
-    ThemeMode.DARK   -> CpIcons.ThemeDark
-}
-
-@Composable
-private fun CityValue(cityName: String?) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-    ) {
-        Text(
-            text = cityName ?: "Выберите",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Icon(
-            imageVector = CpIcons.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(CpDimens.settingsIconSize),
-        )
-    }
-}
-
-@Composable
-private fun ThemeValue(current: ThemeMode) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-    ) {
-        Text(
-            text = current.label(),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-        )
-        Icon(
-            imageVector = CpIcons.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(18.dp),
-        )
-    }
-}
-
-// ── Общие компоненты ──────────────────────────────────────────────────────────
-
-@Composable
-private fun SettingsSection(
-    title: String,
-    description: String? = null,
-    content: @Composable () -> Unit,
-) {
-    Column(modifier = Modifier.padding(horizontal = CpDimens.settingsPagePadding)) {
-        Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            letterSpacing = androidx.compose.ui.unit.TextUnit(0.08f, androidx.compose.ui.unit.TextUnitType.Em),
-        )
-        if (description != null) {
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = CpDimens.spacing1),
-            )
-        }
-        Spacer(Modifier.height(CpDimens.spacing2))
-        Card(
-            shape = RoundedCornerShape(CpDimens.cardRadius),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            border = BorderStroke(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-            ),
-        ) {
-            content()
-        }
-    }
-}
-
-@Composable
-private fun SettingsRow(
-    icon: ImageVector,
-    label: String,
-    description: String? = null,
-    onClick: () -> Unit,
-    showArrow: Boolean = true,
-    iconColors: SettingsIconColors = SettingsIconPalette.Cyan,
-    trailing: @Composable (() -> Unit)? = null,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(
-                horizontal = CpDimens.settingsRowPaddingH,
-                vertical = CpDimens.settingsRowPaddingV,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        SettingsIconBadge(icon = icon, colors = iconColors)
-        Spacer(Modifier.width(CpDimens.spacing3))
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (description != null) {
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        Spacer(Modifier.width(CpDimens.spacing2))
-        if (trailing != null) {
-            trailing()
-        } else if (showArrow) {
-            Icon(
-                imageVector = CpIcons.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(CpDimens.settingsIconSize),
-            )
-        }
-    }
-}
-
-@Composable
-private fun AppVersionFooter() {
-    Text(
-        text = "Версия ${AppConfig.versionName}",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                start = CpDimens.settingsPagePadding,
-                top = CpDimens.spacing4,
-                end = CpDimens.settingsPagePadding,
-            ),
-    )
-}
-
-@Composable
-private fun SettingsDivider() {
-    HorizontalDivider(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f),
-        thickness = 1.dp,
-    )
 }
 
 // ── Диалог выхода ─────────────────────────────────────────────────────────────

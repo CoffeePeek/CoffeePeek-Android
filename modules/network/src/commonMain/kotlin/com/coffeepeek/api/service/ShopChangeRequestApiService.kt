@@ -2,7 +2,6 @@ package com.coffeepeek.api.service
 
 import com.coffeepeek.api.model.ApiResponse
 import com.coffeepeek.api.model.request.CreateShopChangeRequestBody
-import com.coffeepeek.api.model.request.DecideShopChangeRequestBody
 import com.coffeepeek.api.model.request.ModerationStatusDto
 import com.coffeepeek.api.model.request.ShopChangeRequestDto
 import com.coffeepeek.api.model.request.ShopChangeRequestPageDto
@@ -44,24 +43,6 @@ class ShopChangeRequestApiService(private val client: HttpClient) {
         status = status,
         shopId = shopId,
         section = section,
-        submittedByUserId = null,
-    )
-
-    suspend fun getAll(
-        page: Int,
-        pageSize: Int,
-        status: ModerationStatusDto? = null,
-        shopId: String? = null,
-        section: ShopChangeSectionDto? = null,
-        submittedByUserId: String? = null,
-    ): Result<ShopChangeRequestPageDto> = getPage(
-        path = "/api/ShopChangeRequests",
-        page = page,
-        pageSize = pageSize,
-        status = status,
-        shopId = shopId,
-        section = section,
-        submittedByUserId = submittedByUserId,
     )
 
     suspend fun getById(id: String): Result<ShopChangeRequestDto> = runCatching {
@@ -84,16 +65,6 @@ class ShopChangeRequestApiService(private val client: HttpClient) {
         apiResponse.data
     }
 
-    suspend fun decide(id: String, body: DecideShopChangeRequestBody): Result<Unit> = runCatching {
-        val response = client.putResult("/api/ShopChangeRequests/$id/status") {
-            setJsonBody(body)
-        }.getOrThrow()
-        val apiResponse = response.body<ApiResponse<Unit>>()
-        if (!response.status.isSuccess() || !apiResponse.isSuccess) {
-            throw ApiException(apiResponse.message)
-        }
-    }
-
     private suspend fun getPage(
         path: String,
         page: Int,
@@ -101,7 +72,6 @@ class ShopChangeRequestApiService(private val client: HttpClient) {
         status: ModerationStatusDto?,
         shopId: String?,
         section: ShopChangeSectionDto?,
-        submittedByUserId: String?,
     ): Result<ShopChangeRequestPageDto> = runCatching {
         val response = client.getResult(path) {
             parameter("page", page)
@@ -109,7 +79,6 @@ class ShopChangeRequestApiService(private val client: HttpClient) {
             status?.let { parameter("status", it.name) }
             shopId?.let { parameter("shopId", it) }
             section?.let { parameter("section", it.name) }
-            submittedByUserId?.let { parameter("submittedByUserId", it) }
         }.getOrThrow()
         val apiResponse = response.body<ApiResponse<ShopChangeRequestPageDto>>()
         if (!apiResponse.isSuccess || apiResponse.data == null) {
