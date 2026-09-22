@@ -2,14 +2,15 @@ package com.coffeepeek.admin.utils
 
 private val EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
 private val PHONE_REGEX = "^[+]?[\\d\\s()-]{7,20}$".toRegex()
-private val URL_REGEX = "^(https?://).+".toRegex(RegexOption.IGNORE_CASE)
+private val URL_REGEX =
+    "^(https?://)?([a-z0-9-]+\\.)+[a-z]{2,}([/?#].*)?$".toRegex(RegexOption.IGNORE_CASE)
 
 // Сообщения синхронизированы с composeResources/values/strings.xml
 private const val MSG_EMAIL_REQUIRED = "Введите email"
 private const val MSG_EMAIL_INVALID = "Введите корректный email"
 private const val MSG_PASSWORD_REQUIRED = "Введите пароль"
 private const val MSG_PHONE_INVALID = "Некорректный формат телефона"
-private const val MSG_URL_INVALID = "Укажите ссылку с http:// или https://"
+private const val MSG_URL_INVALID = "Укажите домен, например coffeepeek.by"
 private const val MSG_INSTAGRAM_INVALID = "Некорректный Instagram"
 
 const val MIN_REVIEW_HEADER_LENGTH = 3

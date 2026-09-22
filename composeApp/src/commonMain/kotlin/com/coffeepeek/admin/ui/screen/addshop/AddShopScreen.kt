@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -69,6 +70,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 import com.coffeepeek.admin.theme.CpColor
@@ -77,7 +79,10 @@ import com.coffeepeek.admin.ui.component.priceLevelValue
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.component.CoffeeShopImage
+import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CpCircularBackButton
+import com.coffeepeek.admin.ui.component.brewMethodIcon
 import com.coffeepeek.admin.ui.component.PhotoAttachmentsSection
 import com.coffeepeek.admin.utils.MAX_MENU_PHOTOS
 import com.coffeepeek.admin.utils.MAX_SHOP_PHOTOS
@@ -88,6 +93,7 @@ import androidx.compose.ui.layout.ContentScale
 import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.PhotoPickerController
 import com.coffeepeek.admin.utils.rememberPhotoPicker
+import org.jetbrains.compose.resources.painterResource
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
 import com.coffeepeek.admin.di.platformViewModel
@@ -782,7 +788,7 @@ private fun StepLegend(
         optional -> Text(
             text = "Необязательно — можно пропустить",
             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = addShopAccentTextColor(),
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = CpDimens.spacing1),
         )
     }
@@ -825,7 +831,7 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
         AppOutlinedField(
             value = state.website,
             onValueChange = vm::onWebsiteChange,
-            placeholder = "https://mycoffee.by",
+            placeholder = "mycoffee.by",
             keyboardType = KeyboardType.Uri,
             errorText = if (state.website.isNotEmpty()) state.websiteError else null,
             leadingIcon = CpIcons.Globe,
@@ -858,31 +864,25 @@ private fun StepFeatures(state: AddShopUiState, vm: AddShopViewModel) {
     )
 
     if (state.brewMethods.isNotEmpty()) {
-        CatalogGroup("Методы приготовления", state.brewMethods, state.selectedBrewMethodIds, vm::toggleBrewMethod)
+        CatalogGroup(
+            title = "Методы приготовления",
+            items = state.brewMethods,
+            selected = state.selectedBrewMethodIds,
+            onToggle = vm::toggleBrewMethod,
+            showBrewIcon = true,
+        )
         Spacer(Modifier.height(CpDimens.spacing4))
     }
     if (state.beans.isNotEmpty()) {
         CatalogGroup("Зерно", state.beans, state.selectedBeanIds, vm::toggleBean)
         Spacer(Modifier.height(CpDimens.spacing4))
     }
-    if (state.roasters.isNotEmpty()) {
-        CatalogGroup("Обжарщики", state.roasters, state.selectedRoasterIds, vm::toggleRoaster)
-    }
-    TextButton(
-        onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
-        colors = ButtonDefaults.textButtonColors(contentColor = addShopAccentTextColor()),
-    ) {
-        Icon(
-            imageVector = CpIcons.Add,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(Modifier.width(CpDimens.spacing1))
-        Text(
-            "Нет нужного? Добавить обжарщика",
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-        )
-    }
+    RoasterPicker(
+        items = state.roasters,
+        selected = state.selectedRoasterIds,
+        onToggle = vm::toggleRoaster,
+        onAdd = { Navigator.navigate(Navigator.Screen.AddRoaster) },
+    )
     Spacer(Modifier.height(CpDimens.spacing4))
     if (state.equipment.isNotEmpty()) {
         CatalogGroup("Оборудование", state.equipment, state.selectedEquipmentIds, vm::toggleEquipment)
@@ -899,75 +899,204 @@ private fun CatalogGroup(
     selected: Set<String>,
     onToggle: (String) -> Unit,
     visibleLimit: Int = CATALOG_VISIBLE_LIMIT,
+    showBrewIcon: Boolean = false,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val hiddenCount = (items.size - visibleLimit).coerceAtLeast(0)
     val visibleItems = if (expanded || hiddenCount == 0) items else items.take(visibleLimit)
 
+    CatalogHeader(title)
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+    ) {
+        visibleItems.forEach { item ->
+            val isSelected = item.id in selected
+            CatalogBadge(
+                name = item.name,
+                selected = isSelected,
+                onClick = { onToggle(item.id) },
+                leading = if (showBrewIcon) {
+                    {
+                        Icon(
+                            painter = painterResource(brewMethodIcon(item.name)),
+                            contentDescription = null,
+                            tint = catalogBadgeContentColor(isSelected),
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                } else {
+                    null
+                },
+            )
+        }
+    }
+    if (hiddenCount > 0) {
+        CatalogExpandButton(
+            expanded = expanded,
+            hiddenCount = hiddenCount,
+            onClick = { expanded = !expanded },
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RoasterPicker(
+    items: List<CatalogItem>,
+    selected: Set<String>,
+    onToggle: (String) -> Unit,
+    onAdd: () -> Unit,
+    visibleLimit: Int = CATALOG_VISIBLE_LIMIT,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val hiddenCount = (items.size - visibleLimit).coerceAtLeast(0)
+    val visibleItems = if (expanded || hiddenCount == 0) items else items.take(visibleLimit)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = CpDimens.spacing2),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Обжарщики",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(
+            onClick = onAdd,
+            contentPadding = PaddingValues(horizontal = CpDimens.spacing2, vertical = 0.dp),
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+        ) {
+            Icon(
+                imageVector = CpIcons.Add,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(CpDimens.spacing1))
+            Text(
+                text = "Нет нужного?",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                maxLines = 1,
+            )
+        }
+    }
+    if (visibleItems.isNotEmpty()) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        ) {
+            visibleItems.forEach { item ->
+                val isSelected = item.id in selected
+                CatalogBadge(
+                    name = item.name,
+                    selected = isSelected,
+                    onClick = { onToggle(item.id) },
+                    leading = {
+                        RoasterAvatar(item)
+                    },
+                )
+            }
+        }
+    }
+    if (hiddenCount > 0) {
+        CatalogExpandButton(
+            expanded = expanded,
+            hiddenCount = hiddenCount,
+            onClick = { expanded = !expanded },
+        )
+    }
+}
+
+@Composable
+private fun CatalogHeader(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
         color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.padding(bottom = CpDimens.spacing2),
     )
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-        visibleItems.forEach { item ->
-            val isSelected = item.id in selected
-            FilterChip(
-                selected = isSelected,
-                onClick = { onToggle(item.id) },
-                label = {
-                    Text(
-                        item.name,
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                    )
-                },
-                leadingIcon = if (isSelected) {
-                    { Icon(CpIcons.Check, null, modifier = Modifier.size(14.dp)) }
-                } else null,
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    labelColor = MaterialTheme.colorScheme.onSurface,
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = isSelected,
-                    borderColor = MaterialTheme.colorScheme.outlineVariant,
-                    selectedBorderColor = Color.Transparent,
-                ),
-                shape = RoundedCornerShape(CpDimens.buttonRadius),
-            )
-        }
+}
+
+@Composable
+private fun CatalogBadge(
+    name: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    leading: (@Composable () -> Unit)? = null,
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(CpDimens.radiusSm))
+            .background(if (selected) CpColor.Primary else CpColor.GoldWarmSoft)
+            .clickable(onClick = onClick)
+            .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
+    ) {
+        leading?.invoke()
+        Text(
+            text = name,
+            style = MaterialTheme.typography.labelMedium,
+            color = catalogBadgeContentColor(selected),
+            maxLines = 1,
+        )
     }
-    if (hiddenCount > 0) {
-        TextButton(
-            onClick = { expanded = !expanded },
-            colors = ButtonDefaults.textButtonColors(contentColor = addShopAccentTextColor()),
-        ) {
-            Icon(
-                imageVector = if (expanded) CpIcons.ChevronUp else CpIcons.ChevronDown,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
+}
+
+@Composable
+private fun RoasterAvatar(item: CatalogItem) {
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .clip(CircleShape),
+    ) {
+        val photoUrl = item.photoUrl?.takeIf(String::isNotBlank)
+        if (photoUrl != null) {
+            CoffeeShopImage(
+                imageUrl = photoUrl,
+                contentDescription = item.name,
+                contentScale = ContentScale.Crop,
+                placeholderLabelSize = 6.sp,
+                modifier = Modifier.fillMaxSize(),
             )
-            Spacer(Modifier.width(CpDimens.spacing1))
-            Text(
-                text = if (expanded) "Скрыть" else "Ещё $hiddenCount",
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+        } else {
+            CoffeeShopPlaceholderImage(
+                labelSize = 6.sp,
+                contentDescription = item.name,
             )
         }
     }
 }
 
+private fun catalogBadgeContentColor(selected: Boolean) =
+    if (selected) CpColor.DarkTextOnPrimary else CpColor.GoldWarmHover
+
 @Composable
-private fun addShopAccentTextColor(): Color =
-    if (MaterialTheme.colorScheme.background.luminance() > 0.5f) {
-        CpColor.AccentTextLight
-    } else {
-        CpColor.AccentTextDark
+private fun CatalogExpandButton(
+    expanded: Boolean,
+    hiddenCount: Int,
+    onClick: () -> Unit,
+) {
+    TextButton(
+        onClick = onClick,
+        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
+        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+    ) {
+        Icon(
+            imageVector = if (expanded) CpIcons.ChevronUp else CpIcons.ChevronDown,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(CpDimens.spacing1))
+        Text(
+            text = if (expanded) "Скрыть" else "Ещё $hiddenCount",
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+        )
     }
+}
 
 // ── Переиспользуемые компоненты ───────────────────────────────────────────────
 
