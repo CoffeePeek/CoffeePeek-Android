@@ -17,11 +17,13 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -68,6 +70,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coffeepeek.composeapp.generated.resources.Res
@@ -167,11 +170,16 @@ fun ShopDetailScreen(shopId: String) {
 
     val details = state.details
     val distance = formatDistance(distanceToShopMeters(userLocation, details?.location))
+    val floatingActionsClearance = 72.dp
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             snackbarHost = {
                 SnackbarHost(
                     hostState = snackbarHostState,
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(bottom = floatingActionsClearance),
                 )
             },
             containerColor = MaterialTheme.colorScheme.background,
@@ -213,27 +221,42 @@ fun ShopDetailScreen(shopId: String) {
                         isLoggedIn = state.isLoggedIn,
                         currentUserId = state.currentUserId,
                         modifier = Modifier.padding(padding),
-                        isFavoriteLoading = state.isFavoriteLoading,
-                        isCheckInLoading = state.isCheckInLoading,
-                        onToggleFavorite = vm::toggleFavorite,
-                        onShare = vm::shareShop,
-                        canOpenRoute = details.location?.latitude != null &&
-                            details.location?.longitude != null,
-                        onRoute = vm::openRoute,
-                        onReview = vm::openReviewAction,
-                        onCheckIn = vm::openCheckInSheet,
+                        bottomContentPadding = floatingActionsClearance,
                         onOpenOnMap = vm::openOnMap,
                         onCopyPhone = vm::copyPhone,
                         onReportIncorrectData = vm::openReportIncorrectData,
                         onOpenMenuGallery = {
                             Navigator.navigate(Navigator.Screen.ShopMenuGallery(shopId))
                         },
-                        onBack = Navigator::popBack,
                         onReviewPhotoClick = { previewImageUrl = it },
                         onReviewHelpfulClick = vm::toggleHelpful,
                     )
                 }
             }
+        }
+
+        if (details != null) {
+            HeroTopActions(
+                onBack = Navigator::popBack,
+                isFavorite = details.shop.isFavorite,
+                isFavoriteLoading = state.isFavoriteLoading,
+                onToggleFavorite = vm::toggleFavorite,
+                onShare = vm::shareShop,
+                onEdit = vm::openReportIncorrectData,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding(),
+            )
+
+            ShopDetailBottomBar(
+                isCheckInLoading = state.isCheckInLoading,
+                canOpenRoute = details.location?.latitude != null &&
+                    details.location?.longitude != null,
+                onRoute = vm::openRoute,
+                onReview = vm::openReviewAction,
+                onCheckIn = vm::openCheckInSheet,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
         }
     }
 }
@@ -246,19 +269,11 @@ private fun ShopDetailContent(
     isLoggedIn: Boolean,
     currentUserId: String? = null,
     modifier: Modifier = Modifier,
-    isFavoriteLoading: Boolean = false,
-    isCheckInLoading: Boolean = false,
-    onToggleFavorite: () -> Unit = {},
-    onShare: () -> Unit = {},
-    canOpenRoute: Boolean = false,
-    onRoute: () -> Unit = {},
-    onReview: () -> Unit = {},
-    onCheckIn: () -> Unit = {},
+    bottomContentPadding: Dp = CpDimens.spacing4,
     onOpenOnMap: () -> Unit = {},
     onCopyPhone: (String) -> Unit = {},
     onReportIncorrectData: () -> Unit = {},
     onOpenMenuGallery: () -> Unit = {},
-    onBack: () -> Unit = {},
     onReviewPhotoClick: (String) -> Unit = {},
     onReviewHelpfulClick: (String) -> Unit = {},
 ) {
@@ -269,7 +284,7 @@ private fun ShopDetailContent(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = CpDimens.spacing4),
+        contentPadding = PaddingValues(bottom = bottomContentPadding + CpDimens.spacing4),
     ) {
         item {
             Box(
@@ -288,25 +303,7 @@ private fun ShopDetailContent(
                     onOpenOnMap = onOpenOnMap,
                     onPhotoClick = onReviewPhotoClick,
                 )
-                HeroTopActions(
-                    onBack = onBack,
-                    isFavorite = shop.isFavorite,
-                    isFavoriteLoading = isFavoriteLoading,
-                    onToggleFavorite = onToggleFavorite,
-                    onShare = onShare,
-                    modifier = Modifier.align(Alignment.TopCenter),
-                )
             }
-        }
-
-        item {
-            ShopDetailActionBar(
-                isCheckInLoading = isCheckInLoading,
-                canOpenRoute = canOpenRoute,
-                onRoute = onRoute,
-                onReview = onReview,
-                onCheckIn = onCheckIn,
-            )
         }
 
         item {
@@ -508,6 +505,7 @@ private fun HeroTopActions(
     isFavoriteLoading: Boolean,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
+    onEdit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -534,6 +532,7 @@ private fun HeroTopActions(
             isFavoriteLoading = isFavoriteLoading,
             onToggleFavorite = onToggleFavorite,
             onShare = onShare,
+            onEdit = onEdit,
         )
     }
 }
@@ -674,11 +673,24 @@ private fun HeaderActionButtons(
     isFavoriteLoading: Boolean,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
+    onEdit: () -> Unit,
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        HeroIconButton(
+            onClick = onEdit,
+            enabled = true,
+            isLoading = false,
+            contentDescription = "Редактировать данные кофейни",
+        ) {
+            Icon(
+                imageVector = CpIcons.Edit,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+        }
         HeroIconButton(
             onClick = onToggleFavorite,
             enabled = !isFavoriteLoading,
@@ -1561,16 +1573,18 @@ private fun AddressCard(
 }
 
 @Composable
-private fun ShopDetailActionBar(
+private fun ShopDetailBottomBar(
     isCheckInLoading: Boolean,
     canOpenRoute: Boolean,
     onRoute: () -> Unit,
     onReview: () -> Unit,
     onCheckIn: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .navigationBarsPadding()
             .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing3),
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
         verticalAlignment = Alignment.CenterVertically,
