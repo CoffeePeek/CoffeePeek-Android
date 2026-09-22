@@ -1889,18 +1889,16 @@ private fun RoasterLinkRow(
         Box(
             modifier = Modifier
                 .size(56.dp)
-                .clip(RoundedCornerShape(CpDimens.radiusMd)),
+                .clip(CircleShape),
         ) {
             val photoUrl = item.photoUrl?.takeIf(String::isNotBlank)
             if (photoUrl != null) {
                 CoffeeShopImage(
                     imageUrl = photoUrl,
                     contentDescription = "Фото обжарщика ${item.name}",
-                    contentScale = ContentScale.Fit,
+                    contentScale = ContentScale.Crop,
                     placeholderLabelSize = 7.sp,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(CpDimens.spacing1),
+                    modifier = Modifier.fillMaxSize(),
                 )
             } else {
                 CoffeeShopPlaceholderImage(

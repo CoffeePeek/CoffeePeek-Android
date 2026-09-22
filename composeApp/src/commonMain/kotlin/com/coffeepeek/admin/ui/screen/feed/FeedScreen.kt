@@ -66,6 +66,7 @@ import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopImage
+import com.coffeepeek.admin.ui.component.brewMethodIcon
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CoffeePeekPullToRefresh
@@ -79,6 +80,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import com.coffeepeek.domain.model.CoffeeShop
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.maskot_with_magnifying_glass
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import com.coffeepeek.admin.di.platformViewModel
 
@@ -529,23 +531,21 @@ internal fun ShopCard(
                                 modifier = Modifier
                                     .offset(x = 22.dp * index)
                                     .size(36.dp)
-                                    .clip(RoundedCornerShape(CpDimens.radiusMd))
+                                    .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f))
                                     .border(
                                         width = 1.dp,
                                         color = MaterialTheme.colorScheme.outlineVariant,
-                                        shape = RoundedCornerShape(CpDimens.radiusMd),
+                                        shape = CircleShape,
                                     ),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 CoffeeShopImage(
                                     imageUrl = logoUrl,
                                     contentDescription = "Логотип обжарщика ${index + 1}",
-                                    contentScale = ContentScale.Fit,
+                                    contentScale = ContentScale.Crop,
                                     placeholderLabelSize = 5.sp,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(4.dp),
+                                    modifier = Modifier.fillMaxSize(),
                                 )
                             }
                         }
@@ -587,7 +587,7 @@ internal fun ShopCard(
                         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
                     ) {
                         shop.brewMethods.take(2).forEach { method ->
-                            ShopInfoChip(text = method, icon = CpIcons.Coffee)
+                            ShopInfoChip(text = method, brewIcon = brewMethodIcon(method))
                         }
                         if (shop.brewMethods.size > 2) {
                             ShopInfoChip(text = "+${shop.brewMethods.size - 2}")
@@ -713,7 +713,10 @@ private fun OpenStatusBadge(isOpen: Boolean, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ShopInfoChip(text: String, icon: ImageVector? = null) {
+private fun ShopInfoChip(
+    text: String,
+    brewIcon: DrawableResource? = null,
+) {
     Row(
         modifier = Modifier
             .widthIn(max = 112.dp)
@@ -728,9 +731,9 @@ private fun ShopInfoChip(text: String, icon: ImageVector? = null) {
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        icon?.let {
+        brewIcon?.let {
             Icon(
-                imageVector = it,
+                painter = painterResource(it),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(13.dp),
