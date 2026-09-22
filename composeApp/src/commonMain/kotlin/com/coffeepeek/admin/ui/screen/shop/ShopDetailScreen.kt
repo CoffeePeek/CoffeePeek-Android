@@ -575,20 +575,12 @@ private fun HeroShopDetails(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                if (canOpenMap) {
-                    Icon(
-                        imageVector = CpIcons.ChevronRight,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
             }
         }
         distance?.let { label ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = CpIcons.Location,
+                    imageVector = CpIcons.Distance,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(18.dp),

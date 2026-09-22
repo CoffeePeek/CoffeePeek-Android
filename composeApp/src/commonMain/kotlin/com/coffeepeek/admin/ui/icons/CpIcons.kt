@@ -42,6 +42,7 @@ import com.adamglin.phosphoricons.regular.Monitor
 import com.adamglin.phosphoricons.regular.NavigationArrow
 import com.adamglin.phosphoricons.regular.NotePencil
 import com.adamglin.phosphoricons.regular.PencilSimple
+import com.adamglin.phosphoricons.regular.PersonSimpleWalk
 import com.adamglin.phosphoricons.regular.Phone
 import com.adamglin.phosphoricons.regular.Plus
 import com.adamglin.phosphoricons.regular.ShareNetwork
@@ -91,6 +92,7 @@ object CpIcons {
     val Menu: ImageVector get() = PhosphorIcons.Regular.ForkKnife
     val MyLocation: ImageVector get() = Location
     val Navigation: ImageVector get() = PhosphorIcons.Regular.NavigationArrow
+    val Distance: ImageVector get() = PhosphorIcons.Regular.PersonSimpleWalk
     val Photo: ImageVector get() = PhosphorIcons.Regular.ImageSquare
     val Profile: ImageVector get() = PhosphorIcons.Regular.User
     val Review: ImageVector get() = PhosphorIcons.Regular.ChatCenteredText
