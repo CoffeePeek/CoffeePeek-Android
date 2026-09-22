@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.coffeepeek.admin.location.NEARBY_RADIUS_METERS
 import com.coffeepeek.admin.location.distanceToShopMeters
 import com.coffeepeek.admin.location.formatDistance
 import com.coffeepeek.admin.location.rememberPermittedUserLocation
@@ -87,6 +88,24 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
     val state by vm.uiState.collectAsState()
     val listState = rememberLazyListState()
     val userLocation = rememberPermittedUserLocation()
+    val displayedShops = if (state.filters.nearbyOnly && userLocation != null) {
+        state.visibleShops
+            .mapNotNull { shop ->
+                val meters = distanceToShopMeters(userLocation, shop.location) ?: return@mapNotNull null
+                if (meters > NEARBY_RADIUS_METERS) null else shop to meters
+            }
+            .sortedBy { it.second }
+            .map { it.first }
+    } else {
+        state.visibleShops
+    }
+    val fillingNearby = state.filters.nearbyOnly &&
+        userLocation != null &&
+        displayedShops.size < 8 &&
+        state.hasMore &&
+        state.shops.isNotEmpty() &&
+        !state.isLoading &&
+        !state.isRefreshing
 
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -101,6 +120,9 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
     }
     LaunchedEffect(shouldLoadMore) {
         if (shouldLoadMore) vm.loadMore()
+    }
+    LaunchedEffect(fillingNearby, state.currentPage, state.isLoadingMore) {
+        if (fillingNearby && !state.isLoadingMore) vm.loadMore()
     }
 
     Scaffold(
@@ -175,6 +197,8 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                         }
                         Spacer(modifier = Modifier.height(CpDimens.spacing2))
                         FeedQuickFilterBar(
+                            nearbyOnly = state.filters.nearbyOnly,
+                            showNearby = userLocation != null,
                             openOnly = state.filters.openOnly,
                             newOnly = state.filters.newOnly,
                             visitedOnly = state.filters.visitedOnly,
@@ -183,6 +207,7 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                             onToggleNew = vm::toggleNewOnly,
                             onToggleVisited = vm::toggleVisitedOnly,
                             onToggleFavorites = vm::toggleFavoritesOnly,
+                            onToggleNearby = vm::toggleNearbyOnly,
                             coffeeFocusId = state.filters.coffeeFocus,
                             onCoffeeFocusChange = { id ->
                                 vm.setCoffeeFocus(
@@ -260,7 +285,12 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                     }
                 }
             }
-            state.visibleShops.isEmpty() && !state.isLoading && !state.isRefreshing -> {
+            fillingNearby && displayedShops.isEmpty() -> {
+                Box(contentModifier, contentAlignment = Alignment.Center) {
+                    CoffeePeekLoader()
+                }
+            }
+            state.visibleShops.isEmpty() && displayedShops.isEmpty() && !fillingNearby && !state.isLoading && !state.isRefreshing -> {
                 CoffeePeekPullToRefresh(
                     listState = listState,
                     isRefreshing = state.isRefreshing,
@@ -347,7 +377,7 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                         contentPadding = listContentPadding,
                         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
                     ) {
-                        items(state.visibleShops, key = { it.id }) { shop ->
+                        items(displayedShops, key = { it.id }) { shop ->
                             ShopCard(
                                 shop = shop,
                                 distance = formatDistance(distanceToShopMeters(userLocation, shop.location)),
@@ -733,6 +763,8 @@ private fun shopTypeLabel(type: String): String = when (type) {
 
 @Composable
 private fun FeedQuickFilterBar(
+    nearbyOnly: Boolean,
+    showNearby: Boolean,
     openOnly: Boolean,
     newOnly: Boolean,
     visitedOnly: Boolean,
@@ -741,6 +773,7 @@ private fun FeedQuickFilterBar(
     onToggleNew: () -> Unit,
     onToggleVisited: () -> Unit,
     onToggleFavorites: () -> Unit,
+    onToggleNearby: () -> Unit,
     coffeeFocusId: String?,
     onCoffeeFocusChange: (String) -> Unit,
 ) {
@@ -752,6 +785,14 @@ private fun FeedQuickFilterBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
     ) {
+        if (showNearby) {
+            DesignFilterChip(
+                label = "Рядом",
+                selected = nearbyOnly,
+                onClick = onToggleNearby,
+                leadingIcon = CpIcons.Distance,
+            )
+        }
         DesignFilterChip(
             label = "Открыто",
             selected = openOnly,

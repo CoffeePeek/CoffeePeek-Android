@@ -33,6 +33,7 @@ data class FeedFiltersUi(
     val newOnly: Boolean = false,
     val visitedOnly: Boolean = false,
     val favoritesOnly: Boolean = false,
+    val nearbyOnly: Boolean = false,
     val priceRange: Int? = null,
     val minRating: Double? = null,
     val roasterIds: Set<String> = emptySet(),
@@ -49,6 +50,7 @@ data class FeedFiltersUi(
             if (newOnly) count++
             if (visitedOnly) count++
             if (favoritesOnly) count++
+            if (nearbyOnly) count++
             if (priceRange != null) count++
             if (minRating != null) count++
             count += roasterIds.size + beanIds.size + equipmentIds.size +
@@ -225,6 +227,10 @@ class FeedViewModel(
             }
             _uiState.update { it.copy(filters = it.filters.copy(favoritesOnly = !it.filters.favoritesOnly)) }
         }
+    }
+
+    fun toggleNearbyOnly() {
+        _uiState.update { it.copy(filters = it.filters.copy(nearbyOnly = !it.filters.nearbyOnly)) }
     }
 
     fun setPriceRange(priceRange: Int?) {

@@ -24,6 +24,7 @@ class FeedFiltersUiTest {
             coffeeFocus = "specialty",
             openOnly = true,
             newOnly = true,
+            nearbyOnly = true,
             priceRange = 2,
             roasterIds = setOf("roaster-1"),
             beanIds = setOf("bean-1"),
