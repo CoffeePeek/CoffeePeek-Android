@@ -16,6 +16,7 @@ import com.coffeepeek.domain.model.ReviewRating
 import com.coffeepeek.domain.model.ShopMenu
 import com.coffeepeek.domain.model.ShopMenuItem
 import com.coffeepeek.domain.model.ShopMenuPhoto
+import com.coffeepeek.domain.model.ShopPhoto
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -81,6 +82,11 @@ internal object ShopMapper {
         canCreateReview = canCreateReview,
         existingReviewId = existingReviewId,
         photos = photos.mapNotNull { it.fullUrl },
+        shopPhotos = photos.mapNotNull { photo ->
+            val id = photo.id.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val url = photo.fullUrl?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            ShopPhoto(id = id, fullUrl = url, sortIndex = photo.sortIndex)
+        }.sortedBy { it.sortIndex },
         reviews = reviews.map { it.toDomain(fileUrls) },
         userCheckIns = userCheckIns.map { checkIn ->
             CheckIn(
@@ -112,6 +118,9 @@ internal object ShopMapper {
             )
         },
         brewMethods = brewMethods.mapNotNull { it.name?.takeIf(String::isNotBlank) },
+        brewMethodItems = brewMethods.map {
+            CatalogItem(id = it.id, name = it.name.orEmpty(), slug = it.slug, photoUrl = it.photoUrl)
+        },
         coffeeBeans = coffeeBeans.mapNotNull { it.name?.takeIf(String::isNotBlank) },
         roasters = roasters.map {
             CatalogItem(
@@ -122,6 +131,10 @@ internal object ShopMapper {
             )
         },
         equipment = equipments.mapNotNull { it.name?.takeIf(String::isNotBlank) },
+        equipmentItems = equipments.map {
+            CatalogItem(id = it.id, name = it.name.orEmpty(), slug = it.slug, photoUrl = it.photoUrl)
+        },
+        tagItems = parseTagItems(shopTags).ifEmpty { parseTagItems(tags) },
         schedules = schedules.orEmpty().map { schedule ->
             com.coffeepeek.domain.model.ShopSchedule(
                 dayOfWeek = parseDayOfWeek(schedule.dayOfWeek),
@@ -190,6 +203,7 @@ internal object ShopMapper {
         availability = availability,
         price = price.toDoubleOrNull(),
         currency = currency.ifBlank { "BYN" },
+        volumeMl = volumeMl.toIntOrNull(),
     )
 
     fun parseShopType(type: JsonElement?, coffeeFocus: JsonElement? = null): String {
@@ -232,6 +246,29 @@ internal object ShopMapper {
             else -> token.toIntOrNull()?.coerceIn(0, 6) ?: 0
         }
     }
+
+    private fun JsonElement?.toIntOrNull(): Int? {
+        val primitive = this as? JsonPrimitive ?: return null
+        primitive.contentOrNull?.trim()?.toIntOrNull()?.let { return it }
+        return primitive.doubleOrNull?.toInt()
+    }
+
+    private fun parseTagItems(raw: JsonElement?): List<CatalogItem> {
+        val array = raw as? JsonArray ?: return emptyList()
+        return array.mapNotNull { item ->
+            val obj = item as? JsonObject ?: return@mapNotNull null
+            val id = obj.readString("id") ?: return@mapNotNull null
+            if (id.isBlank()) return@mapNotNull null
+            CatalogItem(
+                id = id,
+                name = obj.readTagName().orEmpty(),
+                slug = obj.readString("slug").orEmpty(),
+            )
+        }.distinctBy { it.id }
+    }
+
+    private fun JsonObject.readString(key: String): String? =
+        (this[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
 
     private fun extractBackendTags(vararg rawCandidates: JsonElement?): List<String> {
         val parsed = rawCandidates

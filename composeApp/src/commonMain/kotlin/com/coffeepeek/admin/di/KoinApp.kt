@@ -27,6 +27,11 @@ import com.coffeepeek.admin.ui.screen.shop.ShopDetailViewModel
 import com.coffeepeek.admin.ui.screen.shop.CheckInDraftStore
 import com.coffeepeek.admin.ui.screen.shop.ShopMenuGalleryViewModel
 import com.coffeepeek.admin.ui.screen.shop.ShopReportViewModel
+import com.coffeepeek.admin.ui.screen.shopchange.ShopChangeEditorViewModel
+import com.coffeepeek.admin.ui.screen.shopchange.ShopChangeRequestDetailViewModel
+import com.coffeepeek.admin.ui.screen.shopchange.ShopChangeRequestsViewModel
+import com.coffeepeek.admin.ui.screen.shopchange.SuggestShopChangeViewModel
+import com.coffeepeek.domain.model.ShopChangeSection
 import com.coffeepeek.admin.di.imageModule
 import com.coffeepeek.data.di.dataModule
 import org.koin.core.context.startKoin
@@ -67,6 +72,14 @@ private fun appModule(settingRepository: com.coffeepeek.room.repository.SettingR
     factory { (shopId: String) -> ShopDetailViewModel(shopId, get(), get(), get(), get(), get(), get()) }
     factory { (shopId: String) -> ShopMenuGalleryViewModel(shopId, get()) }
     factory { (shopId: String) -> ShopReportViewModel(shopId, get()) }
+    factory { (shopId: String) -> SuggestShopChangeViewModel(shopId, get()) }
+    factory { (shopId: String, section: ShopChangeSection, requestId: String) ->
+        ShopChangeEditorViewModel(shopId, section, requestId, get(), get(), get())
+    }
+    factory { (isModeratorQueue: Boolean) -> ShopChangeRequestsViewModel(isModeratorQueue, get()) }
+    factory { (requestId: String, isModerator: Boolean) ->
+        ShopChangeRequestDetailViewModel(requestId, isModerator, get())
+    }
     single { ProfileViewModel(get(), get(), get(), get(), get()) }
     factory { DeleteAccountPendingViewModel(get(), get()) }
     factory { AddShopViewModel(get()) }

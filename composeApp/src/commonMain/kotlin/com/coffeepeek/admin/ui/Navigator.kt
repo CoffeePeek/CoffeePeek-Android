@@ -36,6 +36,10 @@ import com.coffeepeek.admin.ui.screen.review.EditReviewScreen
 import com.coffeepeek.admin.ui.screen.shop.ShopDetailScreen
 import com.coffeepeek.admin.ui.screen.shop.ShopMenuGalleryScreen
 import com.coffeepeek.admin.ui.screen.shop.ShopReportScreen
+import com.coffeepeek.admin.ui.screen.shopchange.ShopChangeEditorScreen
+import com.coffeepeek.admin.ui.screen.shopchange.ShopChangeRequestDetailScreen
+import com.coffeepeek.admin.ui.screen.shopchange.ShopChangeRequestsScreen
+import com.coffeepeek.admin.ui.screen.shopchange.SuggestShopChangeScreen
 import com.coffeepeek.admin.utils.ErrorHandler
 import com.coffeepeek.admin.utils.LoadingHandler
 import kotlinx.coroutines.CoroutineScope
@@ -88,6 +92,18 @@ object Navigator {
         @Serializable data class ShopDetail(val shopId: String) : Screen
         @Serializable data class ShopMenuGallery(val shopId: String) : Screen
         @Serializable data class ReportShop(val shopId: String, val shopTitle: String) : Screen
+        @Serializable data class SuggestShopChange(val shopId: String) : Screen
+        @Serializable data class ShopChangeEditor(
+            val shopId: String,
+            val section: String,
+            val requestId: String = "",
+        ) : Screen
+        @Serializable data object MyShopChanges : Screen
+        @Serializable data object ModeratorShopChanges : Screen
+        @Serializable data class ShopChangeRequestDetail(
+            val requestId: String,
+            val isModerator: Boolean = false,
+        ) : Screen
         @Serializable data object AddShop : Screen
         @Serializable data object AddRoaster : Screen
         @Serializable data class RoasterDetail(val roasterId: String) : Screen
@@ -145,6 +161,11 @@ object Navigator {
         is Screen.ShopDetail,
         is Screen.ShopMenuGallery,
         is Screen.ReportShop,
+        is Screen.SuggestShopChange,
+        is Screen.ShopChangeEditor,
+        is Screen.MyShopChanges,
+        is Screen.ModeratorShopChanges,
+        is Screen.ShopChangeRequestDetail,
         is Screen.AddShop,
         is Screen.AddRoaster,
         is Screen.RoasterDetail,
@@ -294,6 +315,27 @@ object Navigator {
                 composable<Screen.ReportShop> { backStack ->
                     val route = backStack.toRoute<Screen.ReportShop>()
                     ShopReportScreen(shopId = route.shopId, shopTitle = route.shopTitle)
+                }
+                composable<Screen.SuggestShopChange> { backStack ->
+                    val route = backStack.toRoute<Screen.SuggestShopChange>()
+                    SuggestShopChangeScreen(shopId = route.shopId)
+                }
+                composable<Screen.ShopChangeEditor> { backStack ->
+                    val route = backStack.toRoute<Screen.ShopChangeEditor>()
+                    ShopChangeEditorScreen(
+                        shopId = route.shopId,
+                        sectionName = route.section,
+                        requestId = route.requestId,
+                    )
+                }
+                composable<Screen.MyShopChanges> { ShopChangeRequestsScreen(isModeratorQueue = false) }
+                composable<Screen.ModeratorShopChanges> { ShopChangeRequestsScreen(isModeratorQueue = true) }
+                composable<Screen.ShopChangeRequestDetail> { backStack ->
+                    val route = backStack.toRoute<Screen.ShopChangeRequestDetail>()
+                    ShopChangeRequestDetailScreen(
+                        requestId = route.requestId,
+                        isModerator = route.isModerator,
+                    )
                 }
                 composable<Screen.AddShop> { AddShopScreen() }
                 composable<Screen.AddRoaster> { AddRoasterScreen() }

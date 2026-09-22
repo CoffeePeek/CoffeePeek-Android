@@ -203,6 +203,29 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                     iconColors = SettingsIconPalette.Sky,
                     onClick = { Navigator.navigate(Navigator.Screen.VisitedPlaces) },
                 )
+                if (state.isLoggedIn) {
+                    SettingsDivider()
+                    SettingsRow(
+                        icon = CpIcons.NoteEdit,
+                        label = "Мои правки кофеен",
+                        description = "Заявки, которые вы отправили на модерацию",
+                        iconColors = SettingsIconPalette.Gold,
+                        onClick = { Navigator.navigate(Navigator.Screen.MyShopChanges) },
+                    )
+                }
+            }
+
+            if (state.canModerate) {
+                Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
+                SettingsSection(title = "Модерация") {
+                    SettingsRow(
+                        icon = CpIcons.CheckCircle,
+                        label = "Заявки на правки",
+                        description = "Просмотр, правка и решение по заявкам пользователей",
+                        iconColors = SettingsIconPalette.Violet,
+                        onClick = { Navigator.navigate(Navigator.Screen.ModeratorShopChanges) },
+                    )
+                }
             }
 
             Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
