@@ -29,6 +29,7 @@ import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppVersionFooter
+import com.coffeepeek.admin.ui.component.GuestAuthCard
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
 import com.coffeepeek.admin.ui.component.SettingsDivider
 import com.coffeepeek.admin.ui.component.SettingsIconPalette
@@ -42,6 +43,7 @@ import org.koin.compose.koinInject
 
 @Composable
 fun SettingsScreen(vm: ProfileViewModel = koinInject()) {
+    val profile by vm.uiState.collectAsState()
     val themeMode by vm.themeMode.collectAsState()
     val cities by vm.cities.collectAsState()
     val selectedCityId by vm.selectedCityId.collectAsState()
@@ -69,22 +71,30 @@ fun SettingsScreen(vm: ProfileViewModel = koinInject()) {
                     ),
             )
 
-            SettingsSection(
-                title = "Другие настройки",
-                description = "Управление полезными дополнениями, отзывы в App Store и настройки конфиденциальности",
-            ) {
+            if (!profile.isLoggedIn) {
+                GuestAuthCard(
+                    onLogin = { Navigator.navigate(Navigator.Screen.Auth) },
+                    onRegister = { Navigator.navigate(Navigator.Screen.Register) },
+                    modifier = Modifier.padding(horizontal = CpDimens.settingsPagePadding),
+                )
+                Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
+            }
+
+            SettingsSection(title = "Добавить") {
                 SettingsRow(
-                    icon = CpIcons.Lock,
-                    label = "Политика использования",
-                    iconColors = SettingsIconPalette.Emerald,
-                    onClick = { OpenInBrowser.openInBrowser(LegalUrls.TERMS) },
+                    icon = CpIcons.Add,
+                    label = "Добавить кофейню",
+                    description = "Предложить новое место для CoffeePeek",
+                    iconColors = SettingsIconPalette.Gold,
+                    onClick = { Navigator.navigate(Navigator.Screen.AddShop) },
                 )
                 SettingsDivider()
                 SettingsRow(
-                    icon = CpIcons.Share,
-                    label = "Поделиться",
-                    iconColors = SettingsIconPalette.BrightCyan,
-                    onClick = { ShareHelper.shareText(COFFEEPEEK_SHARE_TEXT) },
+                    icon = CpIcons.CoffeeBean,
+                    label = "Добавить обжарщика",
+                    description = "Помогите сообществу открыть новых обжарщиков",
+                    iconColors = SettingsIconPalette.Mint,
+                    onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
                 )
             }
 
@@ -116,21 +126,22 @@ fun SettingsScreen(vm: ProfileViewModel = koinInject()) {
 
             Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
 
-            SettingsSection(title = "Добавить") {
+            SettingsSection(
+                title = "Другие настройки",
+                description = "Управление полезными дополнениями, отзывы в App Store и настройки конфиденциальности",
+            ) {
                 SettingsRow(
-                    icon = CpIcons.Add,
-                    label = "Добавить кофейню",
-                    description = "Предложить новое место для CoffeePeek",
-                    iconColors = SettingsIconPalette.Gold,
-                    onClick = { Navigator.navigate(Navigator.Screen.AddShop) },
+                    icon = CpIcons.Lock,
+                    label = "Политика использования",
+                    iconColors = SettingsIconPalette.Emerald,
+                    onClick = { OpenInBrowser.openInBrowser(LegalUrls.TERMS) },
                 )
                 SettingsDivider()
                 SettingsRow(
-                    icon = CpIcons.CoffeeBean,
-                    label = "Добавить обжарщика",
-                    description = "Помогите сообществу открыть новых обжарщиков",
-                    iconColors = SettingsIconPalette.Mint,
-                    onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
+                    icon = CpIcons.Share,
+                    label = "Поделиться",
+                    iconColors = SettingsIconPalette.BrightCyan,
+                    onClick = { ShareHelper.shareText(COFFEEPEEK_SHARE_TEXT) },
                 )
             }
 

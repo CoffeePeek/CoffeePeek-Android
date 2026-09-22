@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 
 @Composable
 fun AppTextField(
@@ -51,13 +52,14 @@ fun AppTextField(
             modifier = Modifier.padding(bottom = 6.dp, start = 4.dp),
         )
 
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(CpDimens.inputMinHeight),
             shape = RoundedCornerShape(CpDimens.inputRadius),
+            contentPadding = CpDimens.singleLineFieldContentPadding,
             isError = isError,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor   = MaterialTheme.colorScheme.surface,

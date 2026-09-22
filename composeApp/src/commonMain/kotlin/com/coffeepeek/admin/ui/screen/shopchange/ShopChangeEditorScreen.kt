@@ -44,6 +44,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.di.platformViewModel
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CpTopBar
@@ -164,7 +165,7 @@ private fun ContactField(
     keyboardType: KeyboardType = KeyboardType.Text,
 ) {
     Column {
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = value,
             onValueChange = onChange,
             modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
@@ -172,6 +173,7 @@ private fun ContactField(
             isError = error != null,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             singleLine = true,
+            contentPadding = CpDimens.singleLineFieldContentPadding,
             shape = RoundedCornerShape(percent = 50),
             colors = fieldColors(),
         )
@@ -324,17 +326,18 @@ private fun MenuEditor(state: ShopChangeEditorUiState, vm: ShopChangeEditorViewM
             }
             Spacer(Modifier.height(CpDimens.spacing2))
             Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = row.priceText,
                     onValueChange = { value -> vm.updateMenuRow(row.slug) { it.copy(priceText = value) } },
                     modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
                     placeholder = { Text("Цена") },
                     singleLine = true,
+                    contentPadding = CpDimens.singleLineFieldContentPadding,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     shape = RoundedCornerShape(percent = 50),
                     colors = fieldColors(),
                 )
-                OutlinedTextField(
+                CompactOutlinedTextField(
                     value = row.volumeText,
                     onValueChange = { value ->
                         vm.updateMenuRow(row.slug) { it.copy(volumeText = value.filter(Char::isDigit)) }
@@ -342,6 +345,7 @@ private fun MenuEditor(state: ShopChangeEditorUiState, vm: ShopChangeEditorViewM
                     modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
                     placeholder = { Text("мл") },
                     singleLine = true,
+                    contentPadding = CpDimens.singleLineFieldContentPadding,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(percent = 50),
                     colors = fieldColors(),

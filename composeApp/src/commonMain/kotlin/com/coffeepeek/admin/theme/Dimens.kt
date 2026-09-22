@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.theme
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.dp
 
 object CpDimens {
@@ -36,6 +37,8 @@ object CpDimens {
     val inputMinHeight  = controlHeight
     val inputPadding    = 16.dp
     val inputRadius     = buttonRadius
+    /** Vertical padding is zero so a 44.dp field does not clip the text line. */
+    val singleLineFieldContentPadding = PaddingValues(horizontal = inputPadding, vertical = 0.dp)
 
     // ── Auth ──────────────────────────────────────────────────────────────────
     val authCardRadius      = 24.dp

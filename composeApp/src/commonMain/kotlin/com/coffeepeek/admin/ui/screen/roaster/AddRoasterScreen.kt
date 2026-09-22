@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.sp
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.maskot_happy
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
@@ -248,7 +249,7 @@ private fun RoasterField(
             color = if (error != null) MaterialTheme.colorScheme.error
             else MaterialTheme.colorScheme.onSurface,
         )
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier
@@ -259,6 +260,11 @@ private fun RoasterField(
                 { Icon(icon, contentDescription = null) }
             },
             singleLine = singleLine,
+            contentPadding = if (singleLine) {
+                CpDimens.singleLineFieldContentPadding
+            } else {
+                OutlinedTextFieldDefaults.contentPadding()
+            },
             minLines = minLines,
             isError = error != null,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),

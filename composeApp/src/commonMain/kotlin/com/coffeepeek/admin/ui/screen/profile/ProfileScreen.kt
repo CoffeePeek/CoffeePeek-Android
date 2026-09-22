@@ -1,7 +1,6 @@
 package com.coffeepeek.admin.ui.screen.profile
 
 import com.coffeepeek.admin.ui.component.GuestAuthCard
-
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

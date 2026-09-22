@@ -67,6 +67,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
 import com.coffeepeek.admin.ui.component.priceLevelValue
@@ -1009,7 +1010,7 @@ private fun AppOutlinedField(
 ) {
     Column(modifier = modifier) {
         val singleLine = maxLines <= 1
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier
@@ -1030,6 +1031,11 @@ private fun AppOutlinedField(
             textStyle = MaterialTheme.typography.bodyLarge,
             isError = errorText != null,
             singleLine = maxLines <= 1,
+            contentPadding = if (singleLine) {
+                CpDimens.singleLineFieldContentPadding
+            } else {
+                OutlinedTextFieldDefaults.contentPadding()
+            },
             minLines = minLines,
             maxLines = maxLines,
             leadingIcon = leadingIcon?.let { icon ->
@@ -1079,12 +1085,13 @@ private fun AppOutlinedField(
 
 @Composable
 private fun SingleValueField(value: String) {
-    OutlinedTextField(
+    CompactOutlinedTextField(
         value = value,
         onValueChange = {},
         readOnly = true,
         modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
         textStyle = MaterialTheme.typography.bodyLarge,
+        contentPadding = CpDimens.singleLineFieldContentPadding,
         shape = RoundedCornerShape(percent = 50),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -1109,7 +1116,7 @@ private fun CityDropdown(
     var expanded by remember { mutableStateOf(false) }
     val menuShape = RoundedCornerShape(CpDimens.selectRadius)
     Box {
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = selected?.name ?: "",
             onValueChange = {},
             readOnly = true,
@@ -1131,6 +1138,7 @@ private fun CityDropdown(
             },
             isError = error != null,
             shape = RoundedCornerShape(percent = 50),
+            contentPadding = CpDimens.singleLineFieldContentPadding,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor   = MaterialTheme.colorScheme.outline,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,

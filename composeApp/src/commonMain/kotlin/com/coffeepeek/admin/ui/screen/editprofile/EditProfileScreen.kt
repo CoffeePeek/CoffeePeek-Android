@@ -55,6 +55,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.rememberPhotoPicker
@@ -135,7 +136,7 @@ fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
 
             // ── Имя пользователя ─────────────────────────────────────────────
             FieldLabel("Имя пользователя")
-            OutlinedTextField(
+            CompactOutlinedTextField(
                 value = state.username,
                 onValueChange = vm::onUsernameChange,
                 modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
@@ -149,6 +150,7 @@ fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
                 textStyle = MaterialTheme.typography.bodyLarge,
                 isError = state.username.isNotEmpty() && state.usernameError != null,
                 singleLine = true,
+                contentPadding = CpDimens.singleLineFieldContentPadding,
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Words,
                     imeAction = ImeAction.Next,
