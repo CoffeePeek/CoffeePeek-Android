@@ -313,6 +313,14 @@ class ShopDetailViewModel(
         Navigator.navigate(Navigator.Screen.ReportShop(shopId = shopId, shopTitle = shopTitle))
     }
 
+    fun openSuggestChange() {
+        if (!_uiState.value.isLoggedIn) {
+            Navigator.navigate(Navigator.Screen.Auth)
+            return
+        }
+        Navigator.navigate(Navigator.Screen.SuggestShopChange(shopId))
+    }
+
     fun openOnMap() {
         val details = _uiState.value.details ?: return
         val location = details.location ?: return

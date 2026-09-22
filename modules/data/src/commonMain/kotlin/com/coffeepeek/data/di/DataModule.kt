@@ -11,6 +11,7 @@ import com.coffeepeek.data.repository.PhotoRepositoryImpl
 import com.coffeepeek.data.repository.ReviewRepositoryImpl
 import com.coffeepeek.data.repository.RoasterRepositoryImpl
 import com.coffeepeek.data.repository.SessionRepositoryImpl
+import com.coffeepeek.data.repository.ShopChangeRequestRepositoryImpl
 import com.coffeepeek.data.repository.ShopIssueReportRepositoryImpl
 import com.coffeepeek.data.repository.ShopRepositoryImpl
 import com.coffeepeek.data.repository.UserRepositoryImpl
@@ -24,6 +25,7 @@ import com.coffeepeek.domain.repository.PhotoRepository
 import com.coffeepeek.domain.repository.ReviewRepository
 import com.coffeepeek.domain.repository.RoasterRepository
 import com.coffeepeek.domain.repository.SessionRepository
+import com.coffeepeek.domain.repository.ShopChangeRequestRepository
 import com.coffeepeek.domain.repository.ShopIssueReportRepository
 import com.coffeepeek.domain.repository.ShopRepository
 import com.coffeepeek.domain.repository.UserRepository
@@ -93,6 +95,7 @@ fun dataModule(
     single { get<CoffeePeekRepo>().checkInApiService }
     single { get<CoffeePeekRepo>().shopIssueReportApiService }
     single { get<CoffeePeekRepo>().roasterApiService }
+    single { get<CoffeePeekRepo>().shopChangeRequestApiService }
     single<PhotoRepository> { PhotoRepositoryImpl(get()) }
     single<AuthRepository> { AuthRepositoryImpl(get(), get(), get()) }
     single<FavoriteRepository> { FavoriteRepositoryImpl(database) }
@@ -102,4 +105,5 @@ fun dataModule(
     single<CheckInRepository> { CheckInRepositoryImpl(get(), get(), get()) }
     single<ShopIssueReportRepository> { ShopIssueReportRepositoryImpl(get()) }
     single<RoasterRepository> { RoasterRepositoryImpl(get(), get(), get()) }
+    single<ShopChangeRequestRepository> { ShopChangeRequestRepositoryImpl(get(), get()) }
 }

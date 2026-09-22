@@ -30,13 +30,17 @@ data class CoffeeShopDetails(
     val canCreateReview: Boolean? = null,
     val existingReviewId: String? = null,
     val photos: List<String> = emptyList(),
+    val shopPhotos: List<ShopPhoto> = emptyList(),
     val reviews: List<Review> = emptyList(),
     val userCheckIns: List<CheckIn> = emptyList(),
     val contact: ShopContact? = null,
     val brewMethods: List<String> = emptyList(),
+    val brewMethodItems: List<CatalogItem> = emptyList(),
     val coffeeBeans: List<String> = emptyList(),
     val roasters: List<CatalogItem> = emptyList(),
     val equipment: List<String> = emptyList(),
+    val equipmentItems: List<CatalogItem> = emptyList(),
+    val tagItems: List<CatalogItem> = emptyList(),
     val schedules: List<ShopSchedule> = emptyList(),
     val menu: ShopMenu? = null,
 )
@@ -57,6 +61,7 @@ data class ShopMenuItem(
     val availability: String,
     val price: Double? = null,
     val currency: String = "BYN",
+    val volumeMl: Int? = null,
 )
 
 data class ShopMenuPhoto(

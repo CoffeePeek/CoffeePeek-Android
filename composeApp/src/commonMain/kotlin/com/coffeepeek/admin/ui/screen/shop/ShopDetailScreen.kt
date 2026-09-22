@@ -225,6 +225,7 @@ fun ShopDetailScreen(shopId: String) {
                         onOpenOnMap = vm::openOnMap,
                         onCopyPhone = vm::copyPhone,
                         onReportIncorrectData = vm::openReportIncorrectData,
+                        onSuggestChange = vm::openSuggestChange,
                         onOpenMenuGallery = {
                             Navigator.navigate(Navigator.Screen.ShopMenuGallery(shopId))
                         },
@@ -273,6 +274,7 @@ private fun ShopDetailContent(
     onOpenOnMap: () -> Unit = {},
     onCopyPhone: (String) -> Unit = {},
     onReportIncorrectData: () -> Unit = {},
+    onSuggestChange: () -> Unit = {},
     onOpenMenuGallery: () -> Unit = {},
     onReviewPhotoClick: (String) -> Unit = {},
     onReviewHelpfulClick: (String) -> Unit = {},
@@ -399,6 +401,10 @@ private fun ShopDetailContent(
                 onReviewPhotoClick = onReviewPhotoClick,
                 onReviewHelpfulClick = onReviewHelpfulClick,
             )
+        }
+
+        item {
+            SuggestShopChangeAction(onClick = onSuggestChange)
         }
 
         item {
@@ -1079,6 +1085,29 @@ private fun ContactsSection(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SuggestShopChangeAction(onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing2),
+        shape = RoundedCornerShape(CpDimens.radiusLg),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outline,
+        ),
+    ) {
+        Icon(
+            imageVector = CpIcons.NoteEdit,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(CpDimens.spacing2))
+        Text("Предложить правку")
     }
 }
 
