@@ -144,7 +144,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 )
             }
 
-            Spacer(Modifier.height(CpDimens.spacing4))
+            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
 
             SettingsSection(title = "Моя активность") {
                 SettingsRow(
@@ -223,8 +223,9 @@ private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
             .fillMaxWidth()
             .statusBarsPadding()
             .padding(
-                horizontal = CpDimens.settingsPagePadding,
-                vertical = CpDimens.spacing4,
+                start = CpDimens.settingsPagePadding,
+                top = CpDimens.spacing4,
+                end = CpDimens.settingsPagePadding,
             ),
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
@@ -327,20 +328,23 @@ private fun GuestLoginHeader(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(
-                horizontal = CpDimens.settingsPagePadding,
-                vertical = CpDimens.spacing4,
-            ),
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+            .statusBarsPadding(),
     ) {
         Text(
             text = "Аккаунт",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(
+                horizontal = CpDimens.settingsPagePadding,
+                vertical = CpDimens.spacing4,
+            ),
         )
-        GuestAuthCard(onLogin = onLogin, onRegister = onRegister)
+        GuestAuthCard(
+            onLogin = onLogin,
+            onRegister = onRegister,
+            modifier = Modifier.padding(horizontal = CpDimens.settingsPagePadding),
+        )
     }
 }
 

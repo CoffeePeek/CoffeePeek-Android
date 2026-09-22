@@ -44,12 +44,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
@@ -365,36 +368,38 @@ private fun StepBasic(
     Spacer(Modifier.height(CpDimens.spacing4))
 
     FormField(label = "Адрес", required = true) {
-        AppOutlinedField(
-            value = state.address,
-            onValueChange = vm::onAddressChange,
-            placeholder = "Улица, дом, корпус",
-            errorText = if (state.address.isNotEmpty()) state.addressError else null,
-            leadingIcon = CpIcons.Navigation,
-            trailingContent = {
-                Row(
-                    modifier = Modifier.padding(end = CpDimens.spacing1),
-                    verticalAlignment = Alignment.CenterVertically,
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            verticalAlignment = Alignment.Top,
+        ) {
+            AppOutlinedField(
+                value = state.address,
+                onValueChange = vm::onAddressChange,
+                placeholder = "Улица, дом, корпус",
+                errorText = if (state.address.isNotEmpty()) state.addressError else null,
+                leadingIcon = CpIcons.Navigation,
+                modifier = Modifier.weight(1f),
+            )
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                FilledIconButton(
+                    onClick = vm::openLocationPicker,
+                    enabled = !state.isResolvingAddress,
+                    modifier = Modifier.size(CpDimens.buttonHeight),
+                    shape = CircleShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                        disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+                    ),
                 ) {
                     if (state.isResolvingAddress) {
                         CoffeePeekLoader(
                             modifier = Modifier.size(18.dp),
                             strokeWidth = 2.dp,
                         )
-                        Spacer(Modifier.width(CpDimens.spacing1))
-                    }
-                    FilledIconButton(
-                        onClick = vm::openLocationPicker,
-                        enabled = !state.isResolvingAddress,
-                        modifier = Modifier.size(CpDimens.buttonHeight),
-                        shape = CircleShape,
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
-                        ),
-                    ) {
+                    } else {
                         Icon(
                             imageVector = CpIcons.Map,
                             contentDescription = "Выбрать на карте",
@@ -402,8 +407,8 @@ private fun StepBasic(
                         )
                     }
                 }
-            },
-        )
+            }
+        }
         state.locationHint?.let { hint ->
             Spacer(Modifier.height(CpDimens.spacing2))
             Text(

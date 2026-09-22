@@ -8,7 +8,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldColors
@@ -20,7 +19,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.Dp
 import com.coffeepeek.admin.theme.CpDimens
 
 /**
@@ -63,10 +61,7 @@ fun CompactOutlinedTextField(
     }
     val cursorColor = if (isError) colors.errorCursorColor else colors.cursorColor
 
-    CompositionLocalProvider(
-        LocalTextSelectionColors provides colors.textSelectionColors,
-        LocalMinimumInteractiveComponentSize provides Dp.Unspecified,
-    ) {
+    CompositionLocalProvider(LocalTextSelectionColors provides colors.textSelectionColors) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
