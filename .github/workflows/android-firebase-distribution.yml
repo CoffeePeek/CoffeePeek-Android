@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-debug-apk:
+  build-apk:
     runs-on: ubuntu-latest
 
     steps:
@@ -50,30 +50,67 @@ jobs:
 
       - name: Create local.properties for CI builds
         shell: bash
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         run: |
           API_BASE_URL="${{ vars.API_BASE_URL_CI }}"
           if [ -z "$API_BASE_URL" ]; then
+            if [ "${{ github.event_name }}" != "pull_request" ]; then
+              echo "API_BASE_URL_CI is required for Firebase tester builds."
+              exit 1
+            fi
             API_BASE_URL="https://example.com/"
           fi
 
-          cat > local.properties <<EOF
-          API_BASE_URL=$API_BASE_URL
-          GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-          EOF
+          if [ "${{ github.event_name }}" != "pull_request" ] && [ -z "$GOOGLE_WEB_CLIENT_ID" ]; then
+            echo "GOOGLE_WEB_CLIENT_ID is required for Firebase tester builds."
+            exit 1
+          fi
+
+          printf 'API_BASE_URL=%s\nGOOGLE_WEB_CLIENT_ID=%s\n' "$API_BASE_URL" "$GOOGLE_WEB_CLIENT_ID" > local.properties
 
       - name: Assemble debug APK
+        if: github.event_name == 'pull_request'
         run: ./gradlew --no-daemon :composeApp:assembleDebug
 
-      - name: Upload debug APK artifact
+      - name: Restore release keystore
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for value in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!value}" ]; then
+              echo "Required Android signing secret $value is empty."
+              exit 1
+            fi
+          done
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/coffeepeek-release.jks"
+
+      - name: Assemble signed release APK
+        if: github.event_name != 'pull_request'
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/coffeepeek-release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon --no-configuration-cache :composeApp:assembleRelease
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: composeapp-debug-apk
-          path: composeApp/build/outputs/apk/debug/*.apk
+          name: composeapp-firebase-apk
+          path: composeApp/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 14
           
   distribute-to-firebase:
-    needs: build-debug-apk
+    needs: build-apk
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
@@ -100,11 +137,11 @@ jobs:
             echo "::notice::Firebase distribution skipped due to missing secrets."
           fi
 
-      - name: Download debug APK artifact
+      - name: Download APK artifact
         if: steps.firebase.outputs.enabled == 'true'
         uses: actions/download-artifact@v4
         with:
-          name: composeapp-debug-apk
+          name: composeapp-firebase-apk
           path: artifacts
 
       - name: Resolve APK path
