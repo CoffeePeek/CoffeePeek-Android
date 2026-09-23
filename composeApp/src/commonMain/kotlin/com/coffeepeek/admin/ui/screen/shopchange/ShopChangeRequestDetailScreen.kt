@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.coffeepeek.admin.utils.utcIsoToLocalDateTime
 import com.coffeepeek.admin.di.platformViewModel
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
@@ -76,7 +77,10 @@ fun ShopChangeRequestDetailScreen(requestId: String) {
             ) {
                 Text(request.section.title(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(request.status.title(), color = MaterialTheme.colorScheme.primary)
-                Text("Создана: ${request.createdAtUtc}", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "Создана: ${utcIsoToLocalDateTime(request.createdAtUtc)}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
                 request.rejectionReason?.takeIf { it.isNotBlank() }?.let { reason ->
                     Text("Причина отклонения: $reason", color = MaterialTheme.colorScheme.error)
                 }

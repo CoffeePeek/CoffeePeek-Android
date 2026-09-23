@@ -8,7 +8,7 @@ import com.coffeepeek.admin.utils.OpenInBrowser
 import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.admin.utils.ReviewSync
 import com.coffeepeek.admin.utils.ShareHelper
-import com.coffeepeek.admin.utils.epochMillisToIsoInstant
+import com.coffeepeek.admin.utils.datePickerMillisToUtcIsoInstant
 import com.coffeepeek.admin.utils.validatePublicCheckInDescription
 import com.coffeepeek.admin.utils.validatePublicCheckInHeader
 import com.coffeepeek.domain.model.CoffeeShopDetails
@@ -194,7 +194,7 @@ class ShopDetailViewModel(
                     shopId = shopId,
                     header = draft.header.trim().takeIf { draft.isPublic },
                     note = draft.note.trim().takeIf { it.isNotEmpty() },
-                    visitedAtIso = epochMillisToIsoInstant(draft.visitMillis),
+                    visitedAtIso = datePickerMillisToUtcIsoInstant(draft.visitMillis),
                     isPublic = draft.isPublic,
                     placeRating = draft.placeRating,
                     serviceRating = draft.serviceRating,

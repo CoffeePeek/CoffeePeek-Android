@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.coffeepeek.admin.utils.utcIsoToLocalDate
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.checkin_rating_atmosphere
 import coffeepeek.composeapp.generated.resources.checkin_rating_coffee
@@ -580,7 +581,7 @@ private fun ReviewQuote(comment: String) {
 }
 
 private fun formatReviewDisplayDate(raw: String): String {
-    val datePart = raw.substringBefore('T').ifBlank { raw }
+    val datePart = utcIsoToLocalDate(raw)
     val parts = datePart.split('-')
     if (parts.size != 3) return datePart
     val month = when (parts[1].toIntOrNull()) {

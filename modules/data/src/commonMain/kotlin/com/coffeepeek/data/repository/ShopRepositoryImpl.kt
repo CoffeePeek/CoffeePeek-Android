@@ -8,6 +8,7 @@ import com.coffeepeek.api.service.ShopApiService
 import com.coffeepeek.data.mapper.ShopMapper.parseShopType
 import com.coffeepeek.data.mapper.ShopMapper.toDomain
 import com.coffeepeek.data.util.FileUrlResolver
+import com.coffeepeek.data.time.localSchedulesToUtc
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CoffeeDrinkDefinition
@@ -218,7 +219,7 @@ class ShopRepositoryImpl(
                         instagramLink = input.instagram?.takeIf { it.isNotBlank() },
                     )
                 } else null,
-                schedules = input.schedules.takeIf { it.isNotEmpty() }?.map { schedule ->
+                schedules = localSchedulesToUtc(input.schedules).takeIf { it.isNotEmpty() }?.map { schedule ->
                     ScheduleReq(
                         dayOfWeek = schedule.dayOfWeek.toApiDayOfWeek(),
                         isClosed = schedule.isClosed,

@@ -73,6 +73,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.coffeepeek.admin.utils.utcIsoToLocalDate
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.maskot_with_book
 import org.jetbrains.compose.resources.DrawableResource
@@ -1135,8 +1136,6 @@ private fun ReviewsSection(
                 message = "Станьте первым, кто оценит и оставит отзыв о своём посещении $shopTitle",
             )
         } else if (!isLoggedIn) {
-            // Guests see the reviews but can't scroll: a plain (clipped) Row shows the first review
-            // clearly and blurs the rest, then a prompt to sign in.
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1147,8 +1146,12 @@ private fun ReviewsSection(
                 val cardWidth = (maxWidth - itemSpacing - peekWidth)
                     .coerceAtMost(ReviewCardMaxWidth)
 
-                Row(horizontalArrangement = Arrangement.spacedBy(itemSpacing)) {
-                    reviews.forEachIndexed { index, review ->
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(itemSpacing)) {
+                    items(
+                        count = reviews.size,
+                        key = { index -> reviews[index].id },
+                    ) { index ->
+                        val review = reviews[index]
                         val isBlurred = index > 0
                         Box(
                             modifier = Modifier
@@ -2253,7 +2256,7 @@ private fun formatScheduleHours(schedule: ShopSchedule): String = when {
 }
 
 private fun formatReviewDate(raw: String): String {
-    val datePart = raw.substringBefore('T').ifBlank { raw }
+    val datePart = utcIsoToLocalDate(raw)
     val parts = datePart.split('-')
     if (parts.size != 3) return datePart
     return "${parts[2]}.${parts[1]}.${parts[0]}"

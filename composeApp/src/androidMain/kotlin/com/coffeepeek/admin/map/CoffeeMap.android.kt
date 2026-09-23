@@ -225,8 +225,11 @@ actual fun CoffeeMap(
             lifecycleOwner.lifecycle.removeObserver(observer)
             animations.cancel()
             stop()
-            mapView.onDestroy()
         }
+    }
+
+    DisposableEffect(mapView) {
+        onDispose { mapView.onDestroy() }
     }
 
     DisposableEffect(map) {

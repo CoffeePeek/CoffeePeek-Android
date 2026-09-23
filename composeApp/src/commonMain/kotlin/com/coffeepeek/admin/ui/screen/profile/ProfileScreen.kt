@@ -118,8 +118,22 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .verticalScroll(rememberScrollState()),
         ) {
+            Text(
+                text = "Профиль",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = CpDimens.settingsPagePadding,
+                        vertical = CpDimens.spacing4,
+                    ),
+            )
+
             state.refreshError?.let { refreshError ->
                 Text(
                     text = refreshError,
@@ -221,10 +235,8 @@ private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .statusBarsPadding()
             .padding(
                 start = CpDimens.settingsPagePadding,
-                top = CpDimens.spacing4,
                 end = CpDimens.settingsPagePadding,
             ),
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
@@ -327,19 +339,8 @@ private fun GuestLoginHeader(
 ) {
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding(),
+            .fillMaxWidth(),
     ) {
-        Text(
-            text = "Аккаунт",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(
-                horizontal = CpDimens.settingsPagePadding,
-                vertical = CpDimens.spacing4,
-            ),
-        )
         GuestAuthCard(
             onLogin = onLogin,
             onRegister = onRegister,

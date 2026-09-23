@@ -144,12 +144,6 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                             .padding(horizontal = CpDimens.spacing4)
                             .padding(top = CpDimens.spacing3, bottom = CpDimens.spacing2),
                     ) {
-                        Text(
-                            text = "Кофейни рядом",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Spacer(Modifier.height(CpDimens.spacing2))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,

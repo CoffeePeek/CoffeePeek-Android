@@ -1,5 +1,6 @@
 package com.coffeepeek.data.mapper
 
+import com.coffeepeek.data.time.utcSchedulesToLocal
 import com.coffeepeek.api.model.response.shop.CoffeeShopDetailsDto
 import com.coffeepeek.api.model.response.shop.ReviewDto
 import com.coffeepeek.api.model.response.shop.ShopMenuDto
@@ -135,7 +136,7 @@ internal object ShopMapper {
             CatalogItem(id = it.id, name = it.name.orEmpty(), slug = it.slug, photoUrl = it.photoUrl)
         },
         tagItems = parseTagItems(shopTags).ifEmpty { parseTagItems(tags) },
-        schedules = schedules.orEmpty().map { schedule ->
+        schedules = utcSchedulesToLocal(schedules.orEmpty().map { schedule ->
             com.coffeepeek.domain.model.ShopSchedule(
                 dayOfWeek = parseDayOfWeek(schedule.dayOfWeek),
                 isClosed = schedule.isClosed,
@@ -146,7 +147,7 @@ internal object ShopMapper {
                     )
                 },
             )
-        },
+        }),
         menu = menu?.toDomain(),
     )
 

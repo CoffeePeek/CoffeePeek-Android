@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.coffeepeek.admin.utils.utcIsoToLocalDateTime
 import com.coffeepeek.admin.di.platformViewModel
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
@@ -120,7 +121,7 @@ private fun RequestCard(request: ShopChangeRequest, onClick: () -> Unit) {
             Text(request.status.title(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(4.dp))
             Text(
-                text = request.createdAtUtc,
+                text = utcIsoToLocalDateTime(request.createdAtUtc),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
