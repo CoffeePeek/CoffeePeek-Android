@@ -121,8 +121,9 @@ class CreateReviewViewModel(
             }
             return
         }
+        // Flag before launching: a double tap must not start a second request.
+        _state.update { it.copy(isSubmitting = true, error = null) }
         workScope.launch {
-            _state.update { it.copy(isSubmitting = true, error = null) }
             reviewRepository.createReview(
                 CreateReviewInput(
                     shopId = shopId,
@@ -134,9 +135,11 @@ class CreateReviewViewModel(
                     photos = s.photos.map { it.toPendingUpload() },
                 )
             ).onSuccess {
+                // Sent: wipe everything (form, photos, stored draft) so the same review can't be sent twice.
+                // The ViewModel outlives the sheet (keyed per shop), so reopening must show an empty form.
                 drafts.clear(draftKey)
+                _state.value = CreateReviewUiState()
                 ReviewSync.notifyChanged(shopId)
-                _state.update { it.copy(isSubmitting = false) }
                 onSuccess()
             }.onFailure { e ->
                 _state.update { it.copy(isSubmitting = false, error = e.message) }

@@ -10,8 +10,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlin.time.Clock
 import kotlin.time.Duration
@@ -58,8 +59,11 @@ class ReviewDraftStore(
     private val settingRepository: SettingRepository,
 ) {
     // Own scope: a pending debounced save must still land after the sheet's ViewModel is cleared.
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val mutex = Mutex()
+    // Serial dispatcher: save/clear run in call order, so a save issued just before a clear
+    // (e.g. the last keystroke before «Отправить») can never resurrect the draft afterwards.
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val serial = Dispatchers.IO.limitedParallelism(1)
+    private val scope = CoroutineScope(SupervisorJob() + serial)
     private val pendingSaves = mutableMapOf<String, Job>()
     private val photos = mutableMapOf<String, List<PickedImage>>()
 
@@ -79,32 +83,29 @@ class ReviewDraftStore(
         if (draftPhotos.isEmpty()) photos.remove(key) else photos[key] = draftPhotos
         val blank = draft.isBlank(defaultRating) && draftPhotos.isEmpty()
         scope.launch {
-            mutex.withLock {
-                pendingSaves.remove(key)?.cancel()
-                pendingSaves[key] = scope.launch {
-                    delay(SAVE_DEBOUNCE_MS)
-                    if (blank) {
-                        settingRepository.delete(key)
-                    } else {
-                        settingRepository.saveSerializable(key, draft.copy(savedAtEpochMs = nowMs()))
-                    }
+            pendingSaves.remove(key)?.cancel()
+            pendingSaves[key] = scope.launch {
+                delay(SAVE_DEBOUNCE_MS)
+                if (blank) {
+                    settingRepository.delete(key)
+                } else {
+                    settingRepository.saveSerializable(key, draft.copy(savedAtEpochMs = nowMs()))
                 }
             }
         }
     }
 
-    suspend fun clear(key: String) {
-        mutex.withLock { pendingSaves.remove(key)?.cancel() }
+    suspend fun clear(key: String) = withContext(serial) {
+        // Join: if a write is already in flight, let it finish before deleting, so it can't land after.
+        pendingSaves.remove(key)?.cancelAndJoin()
         photos.remove(key)
         settingRepository.delete(key)
     }
 
     /** Logout / account switch: drafts belong to the signed-in user. */
-    suspend fun clearAll() {
-        mutex.withLock {
-            pendingSaves.values.forEach { it.cancel() }
-            pendingSaves.clear()
-        }
+    suspend fun clearAll() = withContext(serial) {
+        pendingSaves.values.forEach { it.cancelAndJoin() }
+        pendingSaves.clear()
         photos.clear()
         settingRepository.readAll()
             .filter { it.key.startsWith(KEY_PREFIX) }

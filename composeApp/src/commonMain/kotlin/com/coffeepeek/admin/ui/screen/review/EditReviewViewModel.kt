@@ -180,8 +180,9 @@ class EditReviewViewModel(
             }
             return
         }
+        // Flag before launching: a double tap must not start a second request.
+        _state.update { it.copy(isSubmitting = true, error = null) }
         workScope.launch {
-            _state.update { it.copy(isSubmitting = true, error = null) }
             reviewRepository.updateReview(
                 reviewId = moderationId,
                 input = UpdateReviewInput(
@@ -193,10 +194,13 @@ class EditReviewViewModel(
                     photos = s.newPhotos.map { it.toPendingUpload() },
                 )
             ).onSuccess {
+                // Saved: drop the draft and the uploaded new photos (re-sending them would duplicate
+                // them), then reload the published version so the form reflects the server state.
                 drafts.clear(draftKey)
+                _state.update { it.copy(isSubmitting = false, newPhotos = emptyList(), draftRestored = false) }
                 shopIdForSync?.let { ReviewSync.notifyChanged(it) }
-                _state.update { it.copy(isSubmitting = false) }
                 onSuccess()
+                loadReview()
             }.onFailure { e ->
                 _state.update { it.copy(isSubmitting = false, error = e.message) }
             }
