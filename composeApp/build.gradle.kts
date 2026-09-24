@@ -53,6 +53,7 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(libs.phosphor.icon)
+            implementation(libs.haze)
 
             implementation(libs.androidx.navigation)
             implementation(libs.androidx.lifecycle.viewmodelCompose)

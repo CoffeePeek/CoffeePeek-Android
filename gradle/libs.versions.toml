@@ -18,12 +18,14 @@ ktor = "3.3.1"
 kamel = "1.0.8"
 maplibre = "13.6.0"
 phosphor-icon = "1.0.0"
+haze = "1.7.1"
 
 room = "2.8.3"
 sqlite = "2.6.1"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 junit = { module = "junit:junit", version.ref = "junit" }

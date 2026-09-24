@@ -65,6 +65,14 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -167,9 +175,11 @@ fun ShopDetailScreen(shopId: String) {
     val details = state.details
     val distance = formatDistance(distanceToShopMeters(userLocation, details?.location))
     val floatingActionsClearance = 72.dp
+    val hazeState = rememberHazeState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
+            modifier = Modifier.hazeSource(hazeState),
             snackbarHost = {
                 SnackbarHost(
                     hostState = snackbarHostState,
@@ -234,6 +244,7 @@ fun ShopDetailScreen(shopId: String) {
 
         if (details != null) {
             HeroTopActions(
+                hazeState = hazeState,
                 onBack = Navigator::popBack,
                 isFavorite = details.shop.isFavorite,
                 isFavoriteLoading = state.isFavoriteLoading,
@@ -492,6 +503,7 @@ private fun ShopHeroImage(
 
 @Composable
 private fun HeroTopActions(
+    hazeState: HazeState,
     onBack: () -> Unit,
     isFavorite: Boolean,
     isFavoriteLoading: Boolean,
@@ -508,6 +520,7 @@ private fun HeroTopActions(
         verticalAlignment = Alignment.Top,
     ) {
         HeroIconButton(
+            hazeState = hazeState,
             onClick = onBack,
             enabled = true,
             isLoading = false,
@@ -520,6 +533,7 @@ private fun HeroTopActions(
             )
         }
         HeaderActionButtons(
+            hazeState = hazeState,
             isFavorite = isFavorite,
             isFavoriteLoading = isFavoriteLoading,
             onToggleFavorite = onToggleFavorite,
@@ -653,6 +667,7 @@ private fun PhotoCounter(current: Int, total: Int) {
 
 @Composable
 private fun HeaderActionButtons(
+    hazeState: HazeState,
     isFavorite: Boolean,
     isFavoriteLoading: Boolean,
     onToggleFavorite: () -> Unit,
@@ -664,6 +679,7 @@ private fun HeaderActionButtons(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         HeroIconButton(
+            hazeState = hazeState,
             onClick = onSuggestChange,
             enabled = true,
             isLoading = false,
@@ -676,6 +692,7 @@ private fun HeaderActionButtons(
             )
         }
         HeroIconButton(
+            hazeState = hazeState,
             onClick = onToggleFavorite,
             enabled = !isFavoriteLoading,
             isLoading = isFavoriteLoading,
@@ -688,6 +705,7 @@ private fun HeaderActionButtons(
             )
         }
         HeroIconButton(
+            hazeState = hazeState,
             onClick = onShare,
             enabled = true,
             isLoading = false,
@@ -895,21 +913,34 @@ private fun MetaDot() {
 
 @Composable
 private fun HeroIconButton(
+    hazeState: HazeState,
     onClick: () -> Unit,
     enabled: Boolean,
     isLoading: Boolean,
     contentDescription: String,
     content: @Composable () -> Unit,
 ) {
-    Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 0.dp,
-        modifier = Modifier.size(CpDimens.buttonHeight),
+    // "Liquid glass": blurs the scrolling content behind the button, tinted with the surface colour.
+    val surface = MaterialTheme.colorScheme.surface
+    Box(
+        modifier = Modifier
+            .size(CpDimens.buttonHeight)
+            .clip(CircleShape)
+            .hazeEffect(
+                state = hazeState,
+                style = HazeStyle(
+                    backgroundColor = surface,
+                    tint = HazeTint(surface.copy(alpha = 0.45f)),
+                    blurRadius = 20.dp,
+                    noiseFactor = 0f,
+                ),
+            )
+            .border(0.5.dp, Color.White.copy(alpha = 0.35f), CircleShape),
     ) {
         IconButton(
             onClick = onClick,
             enabled = enabled,
+            modifier = Modifier.semantics { this.contentDescription = contentDescription },
         ) {
             if (isLoading) {
                 CoffeePeekLoader(
