@@ -171,7 +171,7 @@ class ShopRepositoryImpl(
                 shops = if (focus.isNullOrBlank()) mapped else mapped.filter { it.type == focus },
                 clusters = response.clusters.map { cluster ->
                     MapCluster(
-                        id = cluster.id,
+                        id = cluster.id ?: "${cluster.latitude}:${cluster.longitude}",
                         latitude = cluster.latitude,
                         longitude = cluster.longitude,
                         count = cluster.count,
@@ -192,6 +192,7 @@ class ShopRepositoryImpl(
                         longitude = zone.longitude,
                         radiusMeters = zone.radiusMeters,
                         shopCount = zone.shopCount,
+                        polygon = zone.polygon.map { it.latitude to it.longitude },
                     )
                 },
                 isTruncated = response.isTruncated,

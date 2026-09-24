@@ -112,7 +112,7 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
         CoffeeMap(
             shops = mapShops,
             clusters = state.clusters,
-            zones = state.zones,
+            zones = if (state.showZones) state.zones else emptyList(),
             selectedShopId = selectedShopId,
             onBoundsChanged = vm::onBoundsChanged,
             onShopClick = vm::onShopSelected,
@@ -178,6 +178,17 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
                     CpIcons.MyLocation,
                     contentDescription = "Моё местоположение",
                     modifier = Modifier.size(30.dp),
+                )
+            }
+            MapControlButton(
+                onClick = vm::toggleZones,
+                containerColor = if (state.showZones) MaterialTheme.colorScheme.primary else Color.White,
+                contentColor = if (state.showZones) MaterialTheme.colorScheme.onPrimary else Color(0xFF1C1C1C),
+            ) {
+                Icon(
+                    CpIcons.Map,
+                    contentDescription = if (state.showZones) "Скрыть зоны" else "Показать зоны",
+                    modifier = Modifier.size(26.dp),
                 )
             }
         }
@@ -317,13 +328,15 @@ private fun mapShopCountLabel(count: Int): String {
 private fun MapControlButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    containerColor: Color = Color.White,
+    contentColor: Color = Color(0xFF1C1C1C),
     content: @Composable () -> Unit,
 ) {
     Surface(
         modifier = modifier.size(CpDimens.buttonHeight),
         shape = CircleShape,
-        color = Color.White,
-        contentColor = Color(0xFF1C1C1C),
+        color = containerColor,
+        contentColor = contentColor,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
         onClick = onClick,

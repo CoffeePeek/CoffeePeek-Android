@@ -1,222 +1,209 @@
 package com.coffeepeek.admin.ui.screen.feed
 
-import com.coffeepeek.admin.ui.component.CpTopBar
-
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.unit.sp
 import com.coffeepeek.admin.theme.CpColor
-import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
+import com.coffeepeek.admin.ui.component.priceLevelHint
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.domain.model.CatalogItem
+import kotlinx.coroutines.launch
 
-private const val COLLAPSED_COUNT = 3
+private const val COLLAPSED_COUNT = 5
+private val GroupShape = RoundedCornerShape(12.dp)
+private val RowMinHeight = 44.dp
+private val RowInset = 16.dp
 
+/** iOS-style filter sheet: slides up, swipe down / back discards, «Готово» applies. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopFiltersScreen(
     state: FeedUiState,
     onDismiss: () -> Unit,
     onApply: (FeedFiltersUi) -> Unit,
 ) {
-    var visible by remember { mutableStateOf(false) }
     var draft by remember(state.filters) { mutableStateOf(state.filters) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) { visible = true }
-
-    fun dismissAnimated() {
-        visible = false
+    fun hideThen(action: () -> Unit) {
+        scope.launch { sheetState.hide() }.invokeOnCompletion { action() }
     }
 
-    Dialog(
-        onDismissRequest = { dismissAnimated() },
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnBackPress = true,
-            dismissOnClickOutside = false,
-        ),
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        containerColor = MaterialTheme.colorScheme.background,
+        dragHandle = { SheetGrabber() },
     ) {
-        Box(
+        SheetNavBar(
+            resetEnabled = draft.activeFilterCount > 0,
+            onReset = { draft = draft.clearSelections() },
+            onDone = {
+                onApply(draft)
+                hideThen(onDismiss)
+            },
+        )
+
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f)),
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                .padding(horizontal = RowInset)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            AnimatedVisibility(
-                visible = visible,
-                enter = slideInHorizontally(initialOffsetX = { -it }) + fadeIn(),
-                exit = slideOutHorizontally(targetOffsetX = { -it }) + fadeOut(),
+            GroupSection(
+                title = "Цена",
+                trailing = priceLevelHint(draft.priceRange) ?: "Любая",
             ) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background,
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .navigationBarsPadding(),
-                    ) {
-                        CpTopBar(
-                            title = "Фильтры",
-                            onBack = { dismissAnimated() },
-                            actions = {
-                                TextButton(
-                                    onClick = { draft = draft.clearSelections() },
-                                    enabled = draft.activeFilterCount > 0,
-                                ) {
-                                    Text("Сбросить")
-                                }
-                            },
-                        )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .verticalScroll(rememberScrollState())
-                                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
-                            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
-                        ) {
-                            FilterPriceSection(
-                                selected = draft.priceRange,
-                                onSelect = { value ->
-                                    draft = draft.copy(priceRange = value)
-                                },
-                            )
-                            ExpandableCheckboxSection(
-                                title = "Обжарщики",
-                                items = state.roasters,
-                                selectedIds = draft.roasterIds,
-                                onToggle = { id ->
-                                    draft = draft.copy(roasterIds = draft.roasterIds.toggle(id))
-                                },
-                            )
-                            ExpandableCheckboxSection(
-                                title = "Зёрна",
-                                items = state.beans,
-                                selectedIds = draft.beanIds,
-                                onToggle = { id ->
-                                    draft = draft.copy(beanIds = draft.beanIds.toggle(id))
-                                },
-                            )
-                            ExpandableCheckboxSection(
-                                title = "Оборудование",
-                                items = state.equipment,
-                                selectedIds = draft.equipmentIds,
-                                onToggle = { id ->
-                                    draft = draft.copy(equipmentIds = draft.equipmentIds.toggle(id))
-                                },
-                            )
-                            ExpandableCheckboxSection(
-                                title = "Метод заваривания",
-                                items = state.brewMethods,
-                                selectedIds = draft.brewMethodIds,
-                                onToggle = { id ->
-                                    draft = draft.copy(brewMethodIds = draft.brewMethodIds.toggle(id))
-                                },
-                            )
-                            ExpandableCheckboxSection(
-                                title = "Особенности",
-                                items = ShopTagGroups.amenityTags(state.shopTags),
-                                selectedIds = draft.tagIds,
-                                onToggle = { id ->
-                                    draft = draft.copy(tagIds = draft.tagIds.toggle(id))
-                                },
-                            )
-                        }
-
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-                        Button(
-                            onClick = {
-                                onApply(draft)
-                                dismissAnimated()
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(CpDimens.spacing4)
-                                .height(CpDimens.buttonHeight),
-                            shape = RoundedCornerShape(percent = 50),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = CpColor.Primary,
-                                contentColor = CpColor.DarkTextOnPrimary,
-                            ),
-                        ) {
-                            Text(
-                                text = "Применить",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                            )
-                        }
-                    }
-                }
+                PriceBeanSlider(
+                    selected = draft.priceRange,
+                    onSelect = { draft = draft.copy(priceRange = it) },
+                    showTitle = false,
+                    showHint = false,
+                    modifier = Modifier.padding(horizontal = RowInset, vertical = 8.dp),
+                )
             }
-        }
-
-        LaunchedEffect(visible) {
-            if (!visible) {
-                // Allow exit animation to play, then dismiss dialog host.
-                kotlinx.coroutines.delay(180)
-                onDismiss()
+            CheckmarkSection("Обжарщики", state.roasters, draft.roasterIds) {
+                draft = draft.copy(roasterIds = draft.roasterIds.toggle(it))
+            }
+            CheckmarkSection("Зёрна", state.beans, draft.beanIds) {
+                draft = draft.copy(beanIds = draft.beanIds.toggle(it))
+            }
+            CheckmarkSection("Оборудование", state.equipment, draft.equipmentIds) {
+                draft = draft.copy(equipmentIds = draft.equipmentIds.toggle(it))
+            }
+            CheckmarkSection("Метод заваривания", state.brewMethods, draft.brewMethodIds) {
+                draft = draft.copy(brewMethodIds = draft.brewMethodIds.toggle(it))
+            }
+            CheckmarkSection("Особенности", ShopTagGroups.amenityTags(state.shopTags), draft.tagIds) {
+                draft = draft.copy(tagIds = draft.tagIds.toggle(it))
             }
         }
     }
 }
 
-/** Price section only — Specialty / Кофейня / Кафе live on the feed, not here. */
 @Composable
-private fun FilterPriceSection(
-    selected: Int?,
-    onSelect: (Int?) -> Unit,
-) {
-    PriceBeanSlider(
-        selected = selected,
-        onSelect = onSelect,
+private fun SheetGrabber() {
+    Box(
+        modifier = Modifier
+            .padding(top = 6.dp, bottom = 4.dp)
+            .size(width = 36.dp, height = 5.dp)
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)),
     )
 }
 
 @Composable
-private fun ExpandableCheckboxSection(
+private fun SheetNavBar(
+    resetEnabled: Boolean,
+    onReset: () -> Unit,
+    onDone: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .padding(horizontal = 4.dp),
+    ) {
+        TextButton(
+            onClick = onReset,
+            enabled = resetEnabled,
+            modifier = Modifier.align(Alignment.CenterStart),
+        ) {
+            Text("Сбросить", fontSize = 17.sp, color = if (resetEnabled) CpColor.Primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+        }
+        Text(
+            text = "Фильтры",
+            fontSize = 17.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.align(Alignment.Center),
+        )
+        TextButton(
+            onClick = onDone,
+            modifier = Modifier.align(Alignment.CenterEnd),
+        ) {
+            Text("Готово", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = CpColor.Primary)
+        }
+    }
+}
+
+/** Inset grouped list section: footnote header above a rounded card. */
+@Composable
+private fun GroupSection(
+    title: String,
+    trailing: String? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = RowInset)
+                .padding(bottom = 6.dp),
+        ) {
+            Text(
+                text = title.uppercase(),
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            if (trailing != null) {
+                Text(text = trailing, fontSize = 13.sp, color = CpColor.Primary)
+            }
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(GroupShape)
+                .background(MaterialTheme.colorScheme.surface),
+            content = content,
+        )
+    }
+}
+
+@Composable
+private fun CheckmarkSection(
     title: String,
     items: List<CatalogItem>,
     selectedIds: Set<String>,
@@ -225,97 +212,77 @@ private fun ExpandableCheckboxSection(
     if (items.isEmpty()) return
 
     var expanded by remember { mutableStateOf(false) }
-    val visibleItems = if (expanded || items.size <= COLLAPSED_COUNT) {
-        items
-    } else {
-        items.take(COLLAPSED_COUNT)
-    }
-    val hiddenCount = (items.size - COLLAPSED_COUNT).coerceAtLeast(0)
+    val collapsible = items.size > COLLAPSED_COUNT
+    // Keep selected items visible even when collapsed.
+    val visibleItems = if (expanded || !collapsible) items
+    else (items.take(COLLAPSED_COUNT) + items.filter { it.id in selectedIds }).distinctBy { it.id }
 
-    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        visibleItems.forEach { item ->
-            FilterCheckboxRow(
+    GroupSection(
+        title = title,
+        trailing = selectedIds.count { id -> items.any { it.id == id } }.takeIf { it > 0 }?.let { "Выбрано: $it" },
+    ) {
+        visibleItems.forEachIndexed { index, item ->
+            if (index > 0) RowSeparator()
+            CheckmarkRow(
                 label = item.name,
                 checked = item.id in selectedIds,
-                onClick = { onToggle(item.id) },
+                onToggle = { onToggle(item.id) },
             )
         }
-        if (items.size > COLLAPSED_COUNT) {
-            TextButton(
-                onClick = { expanded = !expanded },
-            ) {
-                Text(
-                    text = if (expanded) "Свернуть" else "Показать ещё ($hiddenCount)",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = CpColor.Primary,
-                )
-            }
+        if (collapsible) {
+            RowSeparator()
+            Text(
+                text = if (expanded) "Свернуть" else "Показать все (${items.size})",
+                fontSize = 17.sp,
+                color = CpColor.Primary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .heightIn(min = RowMinHeight)
+                    .padding(horizontal = RowInset, vertical = 11.dp),
+            )
         }
     }
 }
 
 @Composable
-private fun FilterCheckboxRow(
+private fun CheckmarkRow(
     label: String,
     checked: Boolean,
-    onClick: () -> Unit,
+    onToggle: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 6.dp),
+            .toggleable(value = checked, role = Role.Checkbox, onValueChange = { onToggle() })
+            .heightIn(min = RowMinHeight)
+            .padding(horizontal = RowInset, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RoundedFilterCheckbox(
-            checked = checked,
-            onClick = onClick,
-        )
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (checked) CpColor.Primary else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = CpDimens.spacing2),
+            fontSize = 17.sp,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
         )
-    }
-}
-
-@Composable
-private fun RoundedFilterCheckbox(
-    checked: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val shape = RoundedCornerShape(6.dp)
-    Box(
-        modifier = modifier
-            .size(22.dp)
-            .clip(shape)
-            .background(if (checked) CpColor.Primary else Color.Transparent)
-            .border(
-                width = 1.5.dp,
-                color = if (checked) CpColor.Primary else MaterialTheme.colorScheme.outline,
-                shape = shape,
-            )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
         if (checked) {
             Icon(
                 imageVector = CpIcons.Check,
                 contentDescription = null,
-                tint = CpColor.DarkTextOnPrimary,
-                modifier = Modifier.size(14.dp),
+                tint = CpColor.Primary,
+                modifier = Modifier.size(20.dp),
             )
         }
     }
+}
+
+@Composable
+private fun RowSeparator() {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = RowInset),
+        thickness = 0.5.dp,
+        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+    )
 }
 
 private fun Set<String>.toggle(id: String): Set<String> =

@@ -1,6 +1,10 @@
 package com.coffeepeek.admin.ui.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -126,10 +130,13 @@ fun PriceBeanSlider(
     val filled = (selected ?: 0).coerceIn(0, MAX_PRICE_LEVEL)
     val iconWidth = 14.dp
     val hint = priceLevelHint(selected)
+    // iOS UISlider look: thin track, no tick dots, white round thumb with soft shadow.
     val sliderColors = SliderDefaults.colors(
-        thumbColor = CpColor.Primary,
+        thumbColor = Color.White,
         activeTrackColor = CpColor.Primary,
         inactiveTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+        activeTickColor = Color.Transparent,
+        inactiveTickColor = Color.Transparent,
     )
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -164,17 +171,20 @@ fun PriceBeanSlider(
             colors = sliderColors,
             interactionSource = interactionSource,
             thumb = {
-                SliderDefaults.Thumb(
-                    interactionSource = interactionSource,
-                    colors = sliderColors,
-                    thumbSize = DpSize(width = 3.dp, height = 32.dp),
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .shadow(elevation = 3.dp, shape = CircleShape)
+                        .background(Color.White, CircleShape),
                 )
             },
             track = { sliderState ->
                 SliderDefaults.Track(
                     sliderState = sliderState,
-                    modifier = Modifier.height(6.dp),
+                    modifier = Modifier.height(4.dp),
                     colors = sliderColors,
+                    drawStopIndicator = null,
+                    thumbTrackGapSize = 0.dp,
                 )
             },
         )
@@ -184,7 +194,7 @@ fun PriceBeanSlider(
                 .fillMaxWidth()
                 .height(iconWidth / BYN_ICON_ASPECT),
         ) {
-            val trackInset = 10.dp
+            val trackInset = 14.dp // half the 28dp thumb, so tiers sit under the stops
             val trackWidth = (maxWidth - trackInset * 2).coerceAtLeast(0.dp)
             val scaledIconWidth = iconWidth * BYN_ICON_SCALE
 

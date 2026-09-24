@@ -178,6 +178,8 @@ data class MapCoffeeZone(
     val longitude: Double,
     val radiusMeters: Double,
     val shopCount: Int,
+    // (latitude, longitude); empty → draw a circle from radiusMeters
+    val polygon: List<Pair<Double, Double>> = emptyList(),
 )
 
 data class MapContent(

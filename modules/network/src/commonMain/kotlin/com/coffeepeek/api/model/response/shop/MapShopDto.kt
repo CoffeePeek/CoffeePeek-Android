@@ -28,7 +28,7 @@ data class GetShopsInBoundsResponseDto(
 
 @Serializable
 data class MapClusterDto(
-    @SerialName("id") @JsonNames("Id") val id: String,
+    @SerialName("id") @JsonNames("Id") val id: String? = null,
     @SerialName("latitude") @JsonNames("Latitude") val latitude: Double,
     @SerialName("longitude") @JsonNames("Longitude") val longitude: Double,
     @SerialName("count") @JsonNames("Count") val count: Int,
@@ -46,10 +46,17 @@ data class MapClusterBoundsDto(
 @Serializable
 data class MapCoffeeZoneDto(
     @SerialName("id") @JsonNames("Id") val id: String,
-    @SerialName("name") @JsonNames("Name") val name: String,
+    @SerialName("name") @JsonNames("Name") val name: String = "",
     @SerialName("description") @JsonNames("Description") val description: String = "",
     @SerialName("latitude") @JsonNames("Latitude") val latitude: Double,
     @SerialName("longitude") @JsonNames("Longitude") val longitude: Double,
     @SerialName("radiusMeters") @JsonNames("RadiusMeters") val radiusMeters: Double,
     @SerialName("shopCount") @JsonNames("ShopCount") val shopCount: Int,
+    @SerialName("polygon") @JsonNames("Polygon") val polygon: List<MapZonePointDto> = emptyList(),
+)
+
+@Serializable
+data class MapZonePointDto(
+    @SerialName("latitude") @JsonNames("Latitude") val latitude: Double,
+    @SerialName("longitude") @JsonNames("Longitude") val longitude: Double,
 )

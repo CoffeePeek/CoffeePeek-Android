@@ -536,7 +536,7 @@ private fun syncMapMarkers(
     zones.forEach { zone ->
         val polygon = map.addPolygon(
             PolygonOptions()
-                .addAll(zoneCirclePoints(zone))
+                .addAll(zoneOutline(zone))
                 .fillColor(if (isDarkTheme) 0x33EAB308 else 0x26EAB308)
                 .strokeColor(if (isDarkTheme) 0x99EAB308.toInt() else 0xB3CA8A04.toInt()),
         )
@@ -663,6 +663,10 @@ private fun zoomToBounds(
         CLUSTER_TAP_ANIMATION_MS.toInt(),
     )
 }
+
+private fun zoneOutline(zone: MapCoffeeZone): List<LatLng> =
+    if (zone.polygon.size >= 3) zone.polygon.map { (lat, lon) -> LatLng(lat, lon) }
+    else zoneCirclePoints(zone)
 
 private fun zoneCirclePoints(zone: MapCoffeeZone, pointCount: Int = 48): List<LatLng> {
     val latitudeDegrees = zone.radiusMeters / 111_320.0

@@ -40,6 +40,7 @@ data class MapUiState(
     val shops: List<MapShop> = emptyList(),
     val clusters: List<MapCluster> = emptyList(),
     val zones: List<MapCoffeeZone> = emptyList(),
+    val showZones: Boolean = true,
     val selectedShop: MapShop? = null,
     val selectedZone: MapCoffeeZone? = null,
     val selectedShopDetails: CoffeeShopDetails? = null,
@@ -154,6 +155,10 @@ class MapViewModel(
             )
         }
         pauseBoundsUpdates(700)
+    }
+
+    fun toggleZones() {
+        _state.update { it.copy(showZones = !it.showZones, selectedZone = null) }
     }
 
     fun clearZoneSelection() {
