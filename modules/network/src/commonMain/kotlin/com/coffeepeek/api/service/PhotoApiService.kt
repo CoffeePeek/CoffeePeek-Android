@@ -41,6 +41,10 @@ class PhotoApiService(
         requests: List<PhotoRequestDto>,
     ): Result<List<GenerateUploadUrlDto>> = requestPhotoUploadUrls("/api/Photos/shop", requests)
 
+    suspend fun requestReviewPhotoUploadUrls(
+        requests: List<PhotoRequestDto>,
+    ): Result<List<GenerateUploadUrlDto>> = requestPhotoUploadUrls("/api/Photos/review", requests)
+
     suspend fun requestMenuPhotoUploadUrls(
         requests: List<PhotoRequestDto>,
     ): Result<List<GenerateUploadUrlDto>> = requestPhotoUploadUrls("/api/Photos/menu", requests)
@@ -70,6 +74,8 @@ class PhotoApiService(
         uploadUrl: String,
         bytes: ByteArray,
         contentType: String,
+        // Signed into /review presigned URLs; must be sent verbatim or MinIO returns 403.
+        tagging: String? = null,
     ): Result<Unit> = runCatching {
         UploadUrlValidator.requirePublicUploadUrl(uploadUrl)
         val response = uploadClient.put(uploadUrl) {
@@ -77,6 +83,7 @@ class PhotoApiService(
                 remove(HttpHeaders.Accept)
                 remove(HttpHeaders.AcceptCharset)
                 append(HttpHeaders.ContentType, contentType)
+                tagging?.let { append("x-amz-tagging", it) }
             }
             setBody(bytes)
         }

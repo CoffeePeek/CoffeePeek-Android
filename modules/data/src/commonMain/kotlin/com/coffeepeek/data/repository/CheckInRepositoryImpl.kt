@@ -31,7 +31,7 @@ class CheckInRepositoryImpl(
             null
         }
 
-        val uploadedPhotos = photoRepository.uploadShopPhotos(input.photos)
+        val uploadedPhotos = photoRepository.uploadReviewPhotos(input.photos)
             .getOrThrow()
             .toUploadedPhotoReqs()
             .takeIf { it.isNotEmpty() }
