@@ -1,6 +1,8 @@
 package com.coffeepeek.admin.ui.screen.review
 
 import com.coffeepeek.admin.base.BaseViewModel
+import com.coffeepeek.admin.settings.ReviewDraft
+import com.coffeepeek.admin.settings.ReviewDraftStore
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.MAX_REVIEW_PHOTOS
 import com.coffeepeek.admin.utils.PickedImage
@@ -26,6 +28,8 @@ data class EditReviewUiState(
     val existingPhotoUrls: List<String> = emptyList(),
     val newPhotos: List<PickedImage> = emptyList(),
     val canEdit: Boolean = true,
+    /** True while the form shows unsaved edits restored from a draft. */
+    val draftRestored: Boolean = false,
     val isSubmitting: Boolean = false,
     val headerError: String? = null,
     val commentError: String? = null,
@@ -36,7 +40,11 @@ class EditReviewViewModel(
     private val reviewId: String,
     private val reviewRepository: ReviewRepository,
     private val sessionRepository: SessionRepository,
+    private val drafts: ReviewDraftStore,
 ) : BaseViewModel() {
+    private val draftKey = ReviewDraftStore.editReviewKey(reviewId)
+    // Published values; a draft is stored only while the form differs from them.
+    private var baseline: ReviewDraft? = null
 
     private val _state = MutableStateFlow(EditReviewUiState())
     val state = _state.asStateFlow()
@@ -62,9 +70,19 @@ class EditReviewViewModel(
                     }
                     shopIdForSync = review.shopId
                     moderationReviewId = review.moderationReviewId
+                    baseline = ReviewDraft(
+                        header = review.header,
+                        comment = review.comment,
+                        placeRating = review.rating.place.coerceIn(1, 5),
+                        serviceRating = review.rating.service.coerceIn(1, 5),
+                        coffeeRating = review.rating.coffee.coerceIn(1, 5),
+                    )
+                    val draft = drafts.load(draftKey)
+                    val draftPhotos = drafts.photos(draftKey)
                     _state.update {
                         it.copy(
                             isLoading = false,
+                            draftRestored = false,
                             header = review.header,
                             comment = review.comment,
                             placeRating = review.rating.place.coerceIn(1, 5),
@@ -72,6 +90,18 @@ class EditReviewViewModel(
                             coffeeRating = review.rating.coffee.coerceIn(1, 5),
                             existingPhotoUrls = review.photoUrls,
                             canEdit = review.moderationReviewId != null,
+                        ).let { loaded ->
+                            if (draft == null && draftPhotos.isEmpty()) return@let loaded
+                            loaded.copy(
+                                header = draft?.header ?: loaded.header,
+                                comment = draft?.comment ?: loaded.comment,
+                                placeRating = draft?.placeRating ?: loaded.placeRating,
+                                serviceRating = draft?.serviceRating ?: loaded.serviceRating,
+                                coffeeRating = draft?.coffeeRating ?: loaded.coffeeRating,
+                                newPhotos = draftPhotos,
+                                draftRestored = true,
+                            )
+                        }.copy(
                             error = if (review.moderationReviewId == null) {
                                 "Этот отзыв нельзя редактировать."
                             } else null,
@@ -84,28 +114,48 @@ class EditReviewViewModel(
         }
     }
 
+    private fun edit(transform: (EditReviewUiState) -> EditReviewUiState) {
+        _state.update(transform)
+        val s = _state.value
+        val current = ReviewDraft(s.header, s.comment, s.placeRating, s.serviceRating, s.coffeeRating)
+        if (current == baseline && s.newPhotos.isEmpty()) {
+            workScope.launch { drafts.clear(draftKey) }
+        } else {
+            // defaultRating = -1: for edits, "blank" is decided by the baseline comparison above.
+            drafts.save(draftKey, current, s.newPhotos, defaultRating = -1)
+        }
+    }
+
     fun onHeaderChange(v: String) {
-        _state.update { it.copy(header = v.take(120), headerError = null) }
+        edit { it.copy(header = v.take(120), headerError = null) }
     }
 
     fun onCommentChange(v: String) {
-        _state.update { it.copy(comment = v.take(2000), commentError = null) }
+        edit { it.copy(comment = v.take(2000), commentError = null) }
     }
-    fun onPlaceRating(v: Int) { _state.update { it.copy(placeRating = v.coerceIn(1, 5)) } }
-    fun onServiceRating(v: Int) { _state.update { it.copy(serviceRating = v.coerceIn(1, 5)) } }
-    fun onCoffeeRating(v: Int) { _state.update { it.copy(coffeeRating = v.coerceIn(1, 5)) } }
+    fun onPlaceRating(v: Int) { edit { it.copy(placeRating = v.coerceIn(1, 5)) } }
+    fun onServiceRating(v: Int) { edit { it.copy(serviceRating = v.coerceIn(1, 5)) } }
+    fun onCoffeeRating(v: Int) { edit { it.copy(coffeeRating = v.coerceIn(1, 5)) } }
+
+    /** Explicit «Удалить черновик»: drop unsaved edits and show the published review again. */
+    fun discardDraft() {
+        workScope.launch {
+            drafts.clear(draftKey)
+            loadReview()
+        }
+    }
 
     fun addPhotos(images: List<PickedImage>) {
         if (images.isEmpty()) return
-        _state.update { state ->
+        edit { state ->
             val remaining = MAX_REVIEW_PHOTOS - state.newPhotos.size
-            if (remaining <= 0) return@update state
+            if (remaining <= 0) return@edit state
             state.copy(newPhotos = state.newPhotos + images.take(remaining))
         }
     }
 
     fun removeNewPhoto(index: Int) {
-        _state.update { state ->
+        edit { state ->
             state.copy(newPhotos = state.newPhotos.filterIndexed { i, _ -> i != index })
         }
     }
@@ -143,6 +193,7 @@ class EditReviewViewModel(
                     photos = s.newPhotos.map { it.toPendingUpload() },
                 )
             ).onSuccess {
+                drafts.clear(draftKey)
                 shopIdForSync?.let { ReviewSync.notifyChanged(it) }
                 _state.update { it.copy(isSubmitting = false) }
                 onSuccess()

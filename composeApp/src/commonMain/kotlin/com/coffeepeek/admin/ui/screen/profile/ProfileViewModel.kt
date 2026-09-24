@@ -2,6 +2,7 @@ package com.coffeepeek.admin.ui.screen.profile
 
 import com.coffeepeek.admin.auth.GoogleAuth
 import com.coffeepeek.admin.settings.CityPreference
+import com.coffeepeek.admin.settings.ReviewDraftStore
 import com.coffeepeek.admin.theme.ThemeManager
 import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.domain.model.City
@@ -46,6 +47,7 @@ class ProfileViewModel(
     private val sessionRepository: SessionRepository,
     private val shopRepository: ShopRepository,
     private val cityPreference: CityPreference,
+    private val reviewDrafts: ReviewDraftStore,
 ) {
     private val workScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -113,6 +115,8 @@ class ProfileViewModel(
         workScope.launch {
             authRepository.logout()
             GoogleAuth.signOut()
+            // Drafts belong to the signed-in user; don't leak them into the next account.
+            reviewDrafts.clearAll()
         }
     }
 

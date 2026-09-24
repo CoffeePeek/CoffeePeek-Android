@@ -18,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -77,6 +78,8 @@ fun CreateReviewBottomSheet(
         onRetry = {},
         onSubmit = { vm.submit(onSuccess = onDismiss) },
         onDismiss = onDismiss,
+        draftRestored = state.draftRestored,
+        onDiscardDraft = vm::discardDraft,
     )
 }
 
@@ -119,6 +122,8 @@ fun EditReviewBottomSheet(
         onRetry = vm::loadReview,
         onSubmit = { vm.submit(onSuccess = onSaved) },
         onDismiss = onDismiss,
+        draftRestored = state.draftRestored,
+        onDiscardDraft = vm::discardDraft,
     )
 }
 
@@ -150,6 +155,8 @@ private fun ReviewEditorBottomSheet(
     onRetry: () -> Unit,
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
+    draftRestored: Boolean = false,
+    onDiscardDraft: () -> Unit = {},
 ) {
     val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
@@ -210,6 +217,9 @@ private fun ReviewEditorBottomSheet(
                         )
                     }
                 }
+                if (draftRestored && !isLoading) {
+                    DraftNotice(onDiscard = onDiscardDraft)
+                }
             }
 
             when {
@@ -263,6 +273,32 @@ private fun ReviewEditorBottomSheet(
                     }
                 }
             }
+        }
+    }
+}
+
+/** Shown when the form was pre-filled from a saved draft (see ReviewDraftStore for the policy). */
+@Composable
+private fun DraftNotice(onDiscard: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = CpIcons.NoteEdit,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.size(CpDimens.spacing1))
+        Text(
+            text = "Черновик восстановлен",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onDiscard) {
+            Text("Удалить черновик", style = MaterialTheme.typography.labelMedium)
         }
     }
 }

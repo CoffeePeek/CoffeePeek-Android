@@ -5,6 +5,7 @@ import com.coffeepeek.admin.locator.Constants
 import com.coffeepeek.admin.locator.Locator
 import com.coffeepeek.admin.theme.ThemeManager
 import com.coffeepeek.admin.settings.CityPreference
+import com.coffeepeek.admin.settings.ReviewDraftStore
 import com.coffeepeek.admin.utils.CustomUrlFetcher
 import com.coffeepeek.api.CoffeePeekClient
 import com.coffeepeek.admin.ui.NavigatorViewModel
@@ -64,6 +65,7 @@ private fun appModule(settingRepository: com.coffeepeek.room.repository.SettingR
     single<CustomUrlFetcher> { createImageUrlFetcher(get<CoffeePeekClient>().client) }
     single { CheckInDraftStore() }
     single { CityPreference(settingRepository) }
+    single { ReviewDraftStore(settingRepository) }
     factory { AuthViewModel(get()) }
     factory { RegisterViewModel(get()) }
     factory { NavigatorViewModel(get()) }
@@ -78,7 +80,7 @@ private fun appModule(settingRepository: com.coffeepeek.room.repository.SettingR
     }
     factory { ShopChangeRequestsViewModel(get()) }
     factory { (requestId: String) -> ShopChangeRequestDetailViewModel(requestId, get()) }
-    single { ProfileViewModel(get(), get(), get(), get(), get()) }
+    single { ProfileViewModel(get(), get(), get(), get(), get(), get()) }
     factory { DeleteAccountPendingViewModel(get(), get()) }
     factory { AddShopViewModel(get()) }
     factory { EditProfileViewModel(get()) }
@@ -87,6 +89,6 @@ private fun appModule(settingRepository: com.coffeepeek.room.repository.SettingR
     factory { VisitedPlacesViewModel(get(), get()) }
     factory { AddRoasterViewModel(get(), get()) }
     factory { (roasterId: String) -> RoasterDetailViewModel(roasterId, get(), get()) }
-    factory { (shopId: String) -> CreateReviewViewModel(shopId, get()) }
-    factory { (reviewId: String) -> EditReviewViewModel(reviewId, get(), get()) }
+    factory { (shopId: String) -> CreateReviewViewModel(shopId, get(), get()) }
+    factory { (reviewId: String) -> EditReviewViewModel(reviewId, get(), get(), get()) }
 }

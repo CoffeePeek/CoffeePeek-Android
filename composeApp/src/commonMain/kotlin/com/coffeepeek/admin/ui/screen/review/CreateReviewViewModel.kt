@@ -1,6 +1,8 @@
 package com.coffeepeek.admin.ui.screen.review
 
 import com.coffeepeek.admin.base.BaseViewModel
+import com.coffeepeek.admin.settings.ReviewDraft
+import com.coffeepeek.admin.settings.ReviewDraftStore
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.utils.MAX_REVIEW_PHOTOS
 import com.coffeepeek.admin.utils.PickedImage
@@ -15,12 +17,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+private const val DEFAULT_RATING = 4
+
 data class CreateReviewUiState(
     val header: String = "",
     val comment: String = "",
-    val placeRating: Int = 4,
-    val serviceRating: Int = 4,
-    val coffeeRating: Int = 4,
+    val placeRating: Int = DEFAULT_RATING,
+    val serviceRating: Int = DEFAULT_RATING,
+    val coffeeRating: Int = DEFAULT_RATING,
+    /** True while the form shows a restored draft; drives the «Черновик» notice. */
+    val draftRestored: Boolean = false,
     val photos: List<PickedImage> = emptyList(),
     val isSubmitting: Boolean = false,
     val headerError: String? = null,
@@ -31,33 +37,71 @@ data class CreateReviewUiState(
 class CreateReviewViewModel(
     private val shopId: String,
     private val reviewRepository: ReviewRepository,
+    private val drafts: ReviewDraftStore,
 ) : BaseViewModel() {
 
     private val _state = MutableStateFlow(CreateReviewUiState())
     val state = _state.asStateFlow()
+    private val draftKey = ReviewDraftStore.newReviewKey(shopId)
+
+    init {
+        workScope.launch {
+            val draft = drafts.load(draftKey)
+            val photos = drafts.photos(draftKey)
+            if (draft == null && photos.isEmpty()) return@launch
+            _state.update {
+                it.copy(
+                    header = draft?.header ?: it.header,
+                    comment = draft?.comment ?: it.comment,
+                    placeRating = draft?.placeRating ?: it.placeRating,
+                    serviceRating = draft?.serviceRating ?: it.serviceRating,
+                    coffeeRating = draft?.coffeeRating ?: it.coffeeRating,
+                    photos = photos,
+                    draftRestored = true,
+                )
+            }
+        }
+    }
+
+    private fun edit(transform: (CreateReviewUiState) -> CreateReviewUiState) {
+        _state.update(transform)
+        val s = _state.value
+        drafts.save(
+            key = draftKey,
+            draft = ReviewDraft(s.header, s.comment, s.placeRating, s.serviceRating, s.coffeeRating),
+            draftPhotos = s.photos,
+            defaultRating = DEFAULT_RATING,
+        )
+    }
 
     fun onHeaderChange(v: String) {
-        _state.update { it.copy(header = v.take(120), headerError = null) }
+        edit { it.copy(header = v.take(120), headerError = null) }
     }
 
     fun onCommentChange(v: String) {
-        _state.update { it.copy(comment = v.take(2000), commentError = null) }
+        edit { it.copy(comment = v.take(2000), commentError = null) }
     }
-    fun onPlaceRating(v: Int) { _state.update { it.copy(placeRating = v.coerceIn(1, 5)) } }
-    fun onServiceRating(v: Int) { _state.update { it.copy(serviceRating = v.coerceIn(1, 5)) } }
-    fun onCoffeeRating(v: Int) { _state.update { it.copy(coffeeRating = v.coerceIn(1, 5)) } }
+    fun onPlaceRating(v: Int) { edit { it.copy(placeRating = v.coerceIn(1, 5)) } }
+    fun onServiceRating(v: Int) { edit { it.copy(serviceRating = v.coerceIn(1, 5)) } }
+    fun onCoffeeRating(v: Int) { edit { it.copy(coffeeRating = v.coerceIn(1, 5)) } }
+
+    /** Explicit «Удалить черновик»: wipe the stored draft and reset the form. */
+    fun discardDraft() {
+        _state.value = CreateReviewUiState()
+        workScope.launch { drafts.clear(draftKey) }
+    }
 
     fun addPhotos(images: List<PickedImage>) {
         if (images.isEmpty()) return
-        _state.update { state ->
+        edit { state ->
             val remaining = MAX_REVIEW_PHOTOS - state.photos.size
-            if (remaining <= 0) return@update state
+            if (remaining <= 0) return@edit state
             state.copy(photos = state.photos + images.take(remaining))
         }
     }
 
     fun removePhoto(index: Int) {
-        _state.update { state ->
+        edit { state ->
             state.copy(photos = state.photos.filterIndexed { i, _ -> i != index })
         }
     }
@@ -90,6 +134,7 @@ class CreateReviewViewModel(
                     photos = s.photos.map { it.toPendingUpload() },
                 )
             ).onSuccess {
+                drafts.clear(draftKey)
                 ReviewSync.notifyChanged(shopId)
                 _state.update { it.copy(isSubmitting = false) }
                 onSuccess()
