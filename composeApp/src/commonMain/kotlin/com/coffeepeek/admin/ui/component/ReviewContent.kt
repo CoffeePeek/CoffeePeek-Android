@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -575,46 +574,30 @@ private const val REVIEW_COLLAPSED_LINES = 4
 private fun ReviewQuote(reviewId: String, comment: String, padToCollapsedLines: Boolean) {
     var expanded by rememberSaveable(reviewId) { mutableStateOf(false) }
     var overflows by remember(comment) { mutableStateOf(false) }
-    Row(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "“",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.65f),
-            modifier = Modifier.width(28.dp),
+            text = comment,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = if (expanded) Int.MAX_VALUE else REVIEW_COLLAPSED_LINES,
+            minLines = if (padToCollapsedLines && !expanded) REVIEW_COLLAPSED_LINES else 1,
+            overflow = TextOverflow.Ellipsis,
+            onTextLayout = { if (!expanded) overflows = it.hasVisualOverflow },
+            modifier = Modifier.animateContentSize(),
         )
-        Column(modifier = Modifier.weight(1f)) {
+        if (overflows || expanded) {
             Text(
-                text = comment,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = if (expanded) Int.MAX_VALUE else REVIEW_COLLAPSED_LINES,
-                minLines = if (padToCollapsedLines && !expanded) REVIEW_COLLAPSED_LINES else 1,
-                overflow = TextOverflow.Ellipsis,
-                onTextLayout = { if (!expanded) overflows = it.hasVisualOverflow },
-                modifier = Modifier.animateContentSize(),
+                text = if (expanded) "Свернуть" else "Читать полностью",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(top = CpDimens.spacing1)
+                    .clip(RoundedCornerShape(CpDimens.radiusSm))
+                    .clickable(role = Role.Button) { expanded = !expanded }
+                    .padding(vertical = CpDimens.spacing1),
             )
-            if (overflows || expanded) {
-                Text(
-                    text = if (expanded) "Свернуть" else "Читать полностью",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .padding(top = CpDimens.spacing1)
-                        .clip(RoundedCornerShape(CpDimens.radiusSm))
-                        .clickable(role = Role.Button) { expanded = !expanded }
-                        .padding(vertical = CpDimens.spacing1),
-                )
-            }
         }
-        Text(
-            text = "”",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.65f),
-            modifier = Modifier.width(20.dp),
-        )
     }
 }
 

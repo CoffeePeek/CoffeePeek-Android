@@ -1164,8 +1164,11 @@ private fun ReviewsSection(
             ) {
                 val peekWidth = if (reviews.size > 1) GuestReviewPeekWidth else 0.dp
                 val itemSpacing = if (reviews.size > 1) CpDimens.spacing3 else 0.dp
-                val cardWidth = (maxWidth - itemSpacing - peekWidth)
-                    .coerceAtMost(ReviewCardMaxWidth)
+                val cardWidth = if (reviews.size > 1) {
+                    (maxWidth - itemSpacing - peekWidth).coerceAtMost(ReviewCardMaxWidth)
+                } else {
+                    maxWidth
+                }
 
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(itemSpacing)) {
                     items(
@@ -1184,6 +1187,7 @@ private fun ReviewsSection(
                                 modifier = Modifier.fillMaxWidth(),
                                 onPhotoClick = if (isBlurred) ({}) else onReviewPhotoClick,
                                 onHelpfulClick = null,
+                                equalizeHeight = reviews.size > 1,
                             )
                         }
                     }
@@ -1204,13 +1208,20 @@ private fun ReviewsSection(
                 ) { index ->
                     val review = reviews[index]
                     val isOwnReview = currentUserId != null && review.userId == currentUserId
-                    Box(modifier = Modifier.width(ReviewCardMaxWidth)) {
+                    Box(
+                        modifier = if (reviews.size > 1) {
+                            Modifier.width(ReviewCardMaxWidth)
+                        } else {
+                            Modifier.fillParentMaxWidth()
+                        },
+                    ) {
                         ReviewCard(
                             review = review,
                             modifier = Modifier.fillMaxWidth(),
                             onPhotoClick = onReviewPhotoClick,
                             // No "helpful" on your own review.
                             onHelpfulClick = if (isOwnReview) null else ({ onReviewHelpfulClick(review.id) }),
+                            equalizeHeight = reviews.size > 1,
                         )
                     }
                 }
@@ -1241,7 +1252,7 @@ private fun CheckInsSection(
                     checkIn = checkIn,
                     showShopName = false,
                     onPhotoClick = onPhotoClick,
-                    modifier = Modifier.width(320.dp),
+                    modifier = if (checkIns.size > 1) Modifier.width(320.dp) else Modifier.fillParentMaxWidth(),
                 )
             }
         }
@@ -2117,13 +2128,14 @@ private fun ReviewCard(
     modifier: Modifier = Modifier,
     onPhotoClick: (String) -> Unit,
     onHelpfulClick: (() -> Unit)?,
+    equalizeHeight: Boolean,
 ) {
     ReviewDisplayCard(
         review = review,
         modifier = modifier,
         onPhotoClick = onPhotoClick,
         onHelpfulClick = onHelpfulClick,
-        equalizeHeight = true,
+        equalizeHeight = equalizeHeight,
     )
 }
 
