@@ -1,5 +1,11 @@
 package com.coffeepeek.admin.ui.screen.auth
 
+import com.coffeepeek.admin.ui.component.GlassIconButton
+import com.coffeepeek.admin.ui.component.liquidGlass
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -80,11 +86,15 @@ fun AuthScreenScaffold(
         0.dp
     }
 
+    val glassHaze = rememberHazeState()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(bg),
     ) {
+        // Blur source for the glass close button.
+        Box(Modifier.fillMaxSize().hazeSource(glassHaze)) {
         AuthAmbientBackground(isDark = isDark)
 
         Column(
@@ -140,11 +150,12 @@ fun AuthScreenScaffold(
 
             Spacer(modifier = Modifier.height(CpDimens.spacing8))
         }
+        }
 
         // Above the scroll column so clicks are not swallowed.
         AuthCloseButton(
             onClick = onClose,
-            isDark = isDark,
+            hazeState = glassHaze,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .statusBarsPadding()
@@ -157,24 +168,18 @@ fun AuthScreenScaffold(
 @Composable
 private fun AuthCloseButton(
     onClick: () -> Unit,
-    isDark: Boolean,
+    hazeState: HazeState,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .size(CpDimens.authThemeToggleSize)
-            .clip(CircleShape)
-            .background(
-                if (isDark) CpColor.DarkSurface.copy(alpha = 0.88f)
-                else CpColor.LightSurface.copy(alpha = 0.96f),
-            )
-            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
+    GlassIconButton(
+        onClick = onClick,
+        contentDescription = "Закрыть",
+        hazeState = hazeState,
+        modifier = modifier,
     ) {
         Icon(
             imageVector = CpIcons.Close,
-            contentDescription = "Закрыть",
+            contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(20.dp),
         )
@@ -286,24 +291,26 @@ fun AuthFooterRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onBack != null) {
+            // Glass capsule back button. No backdrop blur here: it sits inside the blur source.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .height(CpDimens.buttonHeight)
+                    .liquidGlass(RoundedCornerShape(percent = 50), hazeState = null, shadowElevation = 3.dp)
                     .clickable(onClick = onBack)
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                    .padding(start = 12.dp, end = 16.dp),
             ) {
                 Icon(
-                    imageVector = CpIcons.Back,
+                    imageVector = CpIcons.ChevronLeft,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(18.dp),
                 )
                 Spacer(modifier = Modifier.size(4.dp))
                 Text(
                     text = "Назад",
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
         } else {

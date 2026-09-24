@@ -63,10 +63,7 @@ object Buttons {
     fun BackButton(
         onClick: () -> Unit
     ){
-        IconButton(
-            imageVector = CpIcons.Back,
-            onClick = onClick
-        )
+        CpCircularBackButton(onClick = onClick)
     }
 
 

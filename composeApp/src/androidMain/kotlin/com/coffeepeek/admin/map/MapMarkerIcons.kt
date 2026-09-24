@@ -313,8 +313,8 @@ internal object MapMarkerIcons {
             height / 2f,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
-                strokeWidth = 1f * density
-                color = if (isDarkTheme) 0x59C9B8A3 else 0x668C7A66
+                strokeWidth = 1.5f * density
+                color = if (isDarkTheme) 0xCCD2A26E.toInt() else 0xCCB07A45.toInt()
             },
         )
         val textY = rect.centerY() - (textPaint.descent() + textPaint.ascent()) / 2f

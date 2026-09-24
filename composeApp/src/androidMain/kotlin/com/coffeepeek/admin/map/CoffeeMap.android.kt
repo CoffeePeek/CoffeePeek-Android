@@ -613,11 +613,11 @@ private fun syncSelectionPulse(
 
 private data class ZonePalette(val color: String, val fillOpacity: Float, val lineOpacity: Float)
 
-// Muted taupe instead of brand yellow: zones are context, shops are the content.
+// Muted caramel: clearly visible, but calmer than the brand-yellow pins (zones are context, shops are content).
 private fun zonePalette(isDarkTheme: Boolean) = if (isDarkTheme) {
-    ZonePalette(color = "#C9B8A3", fillOpacity = 0.07f, lineOpacity = 0.35f)
+    ZonePalette(color = "#D2A26E", fillOpacity = 0.16f, lineOpacity = 0.75f)
 } else {
-    ZonePalette(color = "#8C7A66", fillOpacity = 0.08f, lineOpacity = 0.40f)
+    ZonePalette(color = "#B07A45", fillOpacity = 0.18f, lineOpacity = 0.80f)
 }
 
 /** Zone + pulse layers, inserted below MapLibre's marker layer so shop pins always draw on top. */
@@ -641,7 +641,7 @@ private fun addOverlayLayers(style: Style, isDarkTheme: Boolean) {
         LineLayer(ZONE_LINE_LAYER, ZONE_SOURCE).withProperties(
             lineColor(palette.color),
             lineOpacity(palette.lineOpacity),
-            lineWidth(1.5f),
+            lineWidth(2f),
         ),
     )
     add(
