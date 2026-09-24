@@ -2123,6 +2123,7 @@ private fun ReviewCard(
         modifier = modifier,
         onPhotoClick = onPhotoClick,
         onHelpfulClick = onHelpfulClick,
+        equalizeHeight = true,
     )
 }
 

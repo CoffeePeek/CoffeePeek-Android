@@ -23,6 +23,9 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.max
 
 data class MapFiltersUi(
     val cityId: String? = null,
@@ -95,6 +98,9 @@ class MapViewModel(
     private var suppressBoundsUpdates = false
     private var isCityReady = false
     private var zonesCityId: String? = null
+    // Area actually requested last time (visible bounds + prefetch margin) and its zoom level.
+    private var loadedArea: MapBounds? = null
+    private var loadedZoomLevel: Int? = null
 
     init {
         loadCatalogs()
@@ -110,8 +116,7 @@ class MapViewModel(
     }
 
     fun onBoundsChanged(bounds: MapBounds, zoom: Float) {
-        if (suppressBoundsUpdates) return
-        boundsJob?.cancel()
+        // Always remember the latest viewport — even while paused — so it can be loaded afterwards.
         _state.update {
             it.copy(
                 pendingBounds = bounds,
@@ -119,6 +124,11 @@ class MapViewModel(
                 showSearchArea = false,
             )
         }
+        if (suppressBoundsUpdates) return
+        // Small pans inside the prefetched area at the same zoom level need no new request.
+        val area = loadedArea
+        if (area != null && area.contains(bounds) && loadedZoomLevel == zoom.toInt()) return
+        boundsJob?.cancel()
         loadBounds(bounds, zoom)
     }
 
@@ -310,6 +320,8 @@ class MapViewModel(
     private fun loadBounds(bounds: MapBounds, zoom: Float) {
         if (!isCityReady) return
         boundsJob?.cancel()
+        // Filters/query may have changed: until this request succeeds, the old area isn't trusted.
+        loadedArea = null
         boundsJob = workScope.launch {
             delay(250)
             _state.update {
@@ -324,8 +336,10 @@ class MapViewModel(
             }
             val state = _state.value
             val filters = state.filters
+            // Request a wider area than visible, so panning a few km shows already-loaded shops.
+            val requestArea = bounds.expandedForPrefetch()
             val result = shopRepository.getMapContent(
-                bounds = bounds,
+                bounds = requestArea,
                 zoom = zoom,
                 filters = ShopFilters(
                     query = state.query.takeIf { it.isNotBlank() },
@@ -342,6 +356,8 @@ class MapViewModel(
             )
             currentCoroutineContext().ensureActive()
             result.onSuccess { content ->
+                    loadedArea = requestArea
+                    loadedZoomLevel = zoom.toInt()
                     _state.update { current ->
                         val merged = mergeShops(content.shops, current.selectedShop)
                         // The API only returns zones for the current viewport, so zooming in used to drop
@@ -425,6 +441,11 @@ class MapViewModel(
             } finally {
                 suppressBoundsUpdates = false
             }
+            // Camera moves during the pause were only recorded; load where the camera ended up.
+            val current = _state.value
+            val bounds = current.pendingBounds ?: return@launch
+            val zoom = current.pendingZoom ?: return@launch
+            onBoundsChanged(bounds, zoom)
         }
     }
 
@@ -449,3 +470,28 @@ internal fun formatMapHoursSummary(schedules: List<ShopSchedule>): String? {
     val close = interval.closeTime.split(":").take(2).joinToString(":")
     return "$open – $close"
 }
+
+private const val KM_PER_DEGREE_LAT = 111.32
+private const val PREFETCH_MIN_MARGIN_KM = 3.0
+private const val PREFETCH_VIEWPORT_FRACTION = 0.5
+
+/**
+ * Visible bounds padded on every side by half a viewport, but at least [minMarginKm], so moving
+ * the map a couple of km stays inside the loaded area.
+ * ponytail: ignores the antimeridian (fine for city maps); larger areas raise isTruncated sooner.
+ */
+internal fun MapBounds.expandedForPrefetch(minMarginKm: Double = PREFETCH_MIN_MARGIN_KM): MapBounds {
+    val midLat = (minLat + maxLat) / 2.0
+    val kmPerDegreeLon = KM_PER_DEGREE_LAT * cos(midLat * PI / 180.0).coerceAtLeast(0.01)
+    val latMargin = max((maxLat - minLat) * PREFETCH_VIEWPORT_FRACTION, minMarginKm / KM_PER_DEGREE_LAT)
+    val lonMargin = max((maxLon - minLon) * PREFETCH_VIEWPORT_FRACTION, minMarginKm / kmPerDegreeLon)
+    return MapBounds(
+        minLat = (minLat - latMargin).coerceAtLeast(-85.0),
+        minLon = (minLon - lonMargin).coerceAtLeast(-180.0),
+        maxLat = (maxLat + latMargin).coerceAtMost(85.0),
+        maxLon = (maxLon + lonMargin).coerceAtMost(180.0),
+    )
+}
+
+internal fun MapBounds.contains(other: MapBounds): Boolean =
+    other.minLat >= minLat && other.maxLat <= maxLat && other.minLon >= minLon && other.maxLon <= maxLon

@@ -327,6 +327,12 @@ actual fun CoffeeMap(
                 }
                 activeMap.moveCamera(CameraUpdateFactory.newLatLngZoom(initialTarget, initialZoom.toDouble()))
                 initialCameraApplied = true
+                // Don't wait for a camera-idle event: report the first viewport right away so the
+                // map loads shops on open instead of after the user's first gesture.
+                onBoundsChangedState.value(
+                    activeMap.projection.visibleRegion.latLngBounds.toMapBounds(),
+                    activeMap.cameraPosition.zoom.toFloat(),
+                )
                 location?.takeIf { cameraTarget == null }?.let {
                     onMyLocationFoundState.value(it.latitude, it.longitude)
                 }

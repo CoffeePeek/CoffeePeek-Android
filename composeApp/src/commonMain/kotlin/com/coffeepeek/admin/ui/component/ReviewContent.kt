@@ -1,5 +1,13 @@
 package com.coffeepeek.admin.ui.component
 
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -232,6 +240,8 @@ fun ReviewDisplayCard(
     onPhotoClick: ((String) -> Unit)? = null,
     onEditClick: (() -> Unit)? = null,
     onHelpfulClick: (() -> Unit)? = null,
+    /** Side-by-side rows: pad short comments too, so neighbouring cards end up about the same height. */
+    equalizeHeight: Boolean = false,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -257,10 +267,14 @@ fun ReviewDisplayCard(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
-            if (review.comment.isNotBlank()) ReviewQuote(review.comment)
+            if (review.comment.isNotBlank()) {
+                ReviewQuote(review.id, review.comment, padToCollapsedLines = equalizeHeight)
+            }
 
             ReviewPhotoStrip(
                 photoUrls = review.photoUrls,
@@ -308,7 +322,7 @@ fun CheckInDisplayCard(
                 ReviewScoreRow(rating.average)
             }
             if (checkIn.note.isNotBlank()) {
-                ReviewQuote(checkIn.note)
+                ReviewQuote(checkIn.id, checkIn.note, padToCollapsedLines = false)
             }
             ReviewPhotoStrip(
                 photoUrls = checkIn.photoUrls,
@@ -554,8 +568,13 @@ private fun ReviewScoreRow(average: Double) {
     }
 }
 
+private const val REVIEW_COLLAPSED_LINES = 4
+
+/** Comment clamped to [REVIEW_COLLAPSED_LINES]; long ones get «Читать полностью» to expand in place. */
 @Composable
-private fun ReviewQuote(comment: String) {
+private fun ReviewQuote(reviewId: String, comment: String, padToCollapsedLines: Boolean) {
+    var expanded by rememberSaveable(reviewId) { mutableStateOf(false) }
+    var overflows by remember(comment) { mutableStateOf(false) }
     Row(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "“",
@@ -564,12 +583,31 @@ private fun ReviewQuote(comment: String) {
             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.65f),
             modifier = Modifier.width(28.dp),
         )
-        Text(
-            text = comment,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = comment,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = if (expanded) Int.MAX_VALUE else REVIEW_COLLAPSED_LINES,
+                minLines = if (padToCollapsedLines && !expanded) REVIEW_COLLAPSED_LINES else 1,
+                overflow = TextOverflow.Ellipsis,
+                onTextLayout = { if (!expanded) overflows = it.hasVisualOverflow },
+                modifier = Modifier.animateContentSize(),
+            )
+            if (overflows || expanded) {
+                Text(
+                    text = if (expanded) "Свернуть" else "Читать полностью",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(top = CpDimens.spacing1)
+                        .clip(RoundedCornerShape(CpDimens.radiusSm))
+                        .clickable(role = Role.Button) { expanded = !expanded }
+                        .padding(vertical = CpDimens.spacing1),
+                )
+            }
+        }
         Text(
             text = "”",
             style = MaterialTheme.typography.headlineLarge,
