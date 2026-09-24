@@ -1,5 +1,7 @@
 package com.coffeepeek.admin.ui.screen.main
 
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -131,13 +133,15 @@ fun MainScreen() {
         WindowInsets.navigationBars.getBottom(this).toDp()
     }
     val floatingClearance = systemNavBottom + CpDimens.floatingNavContentClearance
+    val tabBarHaze = rememberHazeState()
 
     ProvideFloatingNavClearance(clearance = floatingClearance) {
         Box(modifier = Modifier.fillMaxSize()) {
             NavHost(
                 navController = bottomNavController,
                 startDestination = Navigator.Screen.FeedGraph,
-                modifier = Modifier.fillMaxSize(),
+                // Tab content scrolls under the glass tab bar and is blurred by it.
+                modifier = Modifier.fillMaxSize().hazeSource(tabBarHaze),
                 enterTransition = { EnterTransition.None },
                 exitTransition = { ExitTransition.None },
                 popEnterTransition = { EnterTransition.None },
@@ -218,6 +222,8 @@ fun MainScreen() {
                         },
                     )
                 },
+                // The native map view can't be sampled for blur → translucent glass fallback there.
+                hazeState = tabBarHaze.takeUnless { isMapVisible },
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }

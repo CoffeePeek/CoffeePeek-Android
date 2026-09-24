@@ -2,7 +2,6 @@ package com.coffeepeek.admin.ui.screen.addshop
 
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -12,7 +11,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -28,18 +26,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,7 +54,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -74,6 +65,13 @@ import androidx.compose.ui.unit.sp
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 import com.coffeepeek.admin.theme.CpColor
+import com.coffeepeek.admin.ui.component.ActionRow
+import com.coffeepeek.admin.ui.component.CheckmarkRow
+import com.coffeepeek.admin.ui.component.CheckmarkSection
+import com.coffeepeek.admin.ui.component.GroupSection
+import com.coffeepeek.admin.ui.component.RowSeparator
+import com.coffeepeek.admin.ui.component.StepperRow
+import com.coffeepeek.admin.ui.component.SwitchRow
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
 import com.coffeepeek.admin.ui.component.priceLevelValue
 import com.coffeepeek.admin.ui.Navigator
@@ -550,169 +548,77 @@ private fun StepPhotos(
 
 // ── Шаг 3: Расписание ─────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalLayoutApi::class)
+private val SCHEDULE_PRESETS = listOf("08:00" to "20:00", "09:00" to "21:00", "10:00" to "22:00")
+
 @Composable
 private fun StepSchedule(state: AddShopUiState, vm: AddShopViewModel) {
     StepLegend(optional = true)
     Text(
-        text = "По умолчанию кофейня открыта каждый день. Укажите общее время и отметьте только закрытые дни.",
-        style = MaterialTheme.typography.bodyMedium,
+        text = "По умолчанию кофейня открыта каждый день.",
+        style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(bottom = CpDimens.spacing4),
     )
 
-    if (!state.usePerDaySchedule) {
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(bottom = CpDimens.spacing3),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing6)) {
+        GroupSection(
+            title = "Режим",
+            footer = "Включите, если в будни и выходные разные часы.",
         ) {
-            Column(Modifier.padding(CpDimens.spacing3)) {
-                Text("Время работы", style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.height(CpDimens.spacing2))
-                TimeAdjuster(
-                    label = "Открытие",
-                    value = state.unifiedOpenTime,
-                    onDecrease = { vm.adjustUnifiedOpen(-30) },
-                    onIncrease = { vm.adjustUnifiedOpen(30) },
-                )
-                Spacer(Modifier.height(CpDimens.spacing2))
-                TimeAdjuster(
-                    label = "Закрытие",
-                    value = state.unifiedCloseTime,
-                    onDecrease = { vm.adjustUnifiedClose(-30) },
-                    onIncrease = { vm.adjustUnifiedClose(30) },
-                )
-                Spacer(Modifier.height(CpDimens.spacing3))
-                Text(
-                    "Быстрый выбор",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(CpDimens.spacing1))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-                    listOf("08:00" to "20:00", "09:00" to "21:00", "10:00" to "22:00").forEach { (open, close) ->
-                        val selected = state.unifiedOpenTime == open && state.unifiedCloseTime == close
-                        FilterChip(
-                            selected = selected,
-                            onClick = { vm.applySchedulePreset(open, close) },
-                            label = { Text("$open – $close", style = MaterialTheme.typography.labelSmall) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            ),
-                        )
-                    }
-                }
-            }
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(bottom = CpDimens.spacing3),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        ) {
-            Column(Modifier.padding(CpDimens.spacing3)) {
-                Text("Закрытые дни", style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Нажмите на день, когда кофейня не работает",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(CpDimens.spacing2))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-                    state.schedules.forEach { day ->
-                        val isClosed = day.dayOfWeek in state.closedDays
-                        FilterChip(
-                            selected = isClosed,
-                            onClick = { vm.toggleClosedDay(day.dayOfWeek) },
-                            label = { Text(day.shortLabel, style = MaterialTheme.typography.labelMedium) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.errorContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onErrorContainer,
-                            ),
-                        )
-                    }
-                }
-                val openCount = 7 - state.closedDays.size
-                Spacer(Modifier.height(CpDimens.spacing2))
-                Text(
-                    "Открыто $openCount из 7 дней",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-    }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text("Разное время по дням", style = MaterialTheme.typography.titleSmall)
-            Text(
-                "Если в будни и выходные разные часы",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            SwitchRow(
+                label = "Разное время по дням",
+                checked = state.usePerDaySchedule,
+                onCheckedChange = vm::setUsePerDaySchedule,
             )
         }
-        ScheduleSwitch(
-            checked = state.usePerDaySchedule,
-            onCheckedChange = vm::setUsePerDaySchedule,
-        )
-    }
 
-    AnimatedVisibility(visible = state.usePerDaySchedule) {
-        Column(modifier = Modifier.padding(top = CpDimens.spacing3)) {
+        if (!state.usePerDaySchedule) {
+            GroupSection(title = "Часы работы") {
+                TimeStepperRow("Открытие", state.unifiedOpenTime) { vm.adjustUnifiedOpen(it) }
+                RowSeparator()
+                TimeStepperRow("Закрытие", state.unifiedCloseTime) { vm.adjustUnifiedClose(it) }
+            }
+
+            GroupSection(title = "Типовые часы") {
+                SCHEDULE_PRESETS.forEachIndexed { index, (open, close) ->
+                    if (index > 0) RowSeparator()
+                    CheckmarkRow(
+                        label = "$open – $close",
+                        checked = state.unifiedOpenTime == open && state.unifiedCloseTime == close,
+                        onToggle = { vm.applySchedulePreset(open, close) },
+                    )
+                }
+            }
+
+            GroupSection(
+                title = "Дни работы",
+                trailing = "${7 - state.closedDays.size} из 7",
+                footer = "Снимите отметку с дней, когда кофейня закрыта.",
+            ) {
+                state.schedules.forEachIndexed { index, day ->
+                    if (index > 0) RowSeparator()
+                    CheckmarkRow(
+                        label = day.label,
+                        checked = day.dayOfWeek !in state.closedDays,
+                        onToggle = { vm.toggleClosedDay(day.dayOfWeek) },
+                    )
+                }
+            }
+        } else {
             state.schedules.forEach { day ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = CpDimens.spacing2),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                ) {
-                    Column(Modifier.padding(CpDimens.spacing3)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(day.label, style = MaterialTheme.typography.titleSmall)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    if (day.isClosed) "Закрыто" else "Открыто",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Spacer(Modifier.width(CpDimens.spacing1))
-                                ScheduleSwitch(
-                                    checked = !day.isClosed,
-                                    onCheckedChange = { open ->
-                                        vm.updateSchedule(day.dayOfWeek) { it.copy(isClosed = !open) }
-                                    },
-                                )
-                            }
-                        }
-                        if (!day.isClosed) {
-                            Spacer(Modifier.height(CpDimens.spacing2))
-                            TimeAdjuster(
-                                label = "Открытие",
-                                value = day.openTime,
-                                onDecrease = { vm.adjustDayOpenTime(day.dayOfWeek, -30) },
-                                onIncrease = { vm.adjustDayOpenTime(day.dayOfWeek, 30) },
-                            )
-                            Spacer(Modifier.height(CpDimens.spacing2))
-                            TimeAdjuster(
-                                label = "Закрытие",
-                                value = day.closeTime,
-                                onDecrease = { vm.adjustDayCloseTime(day.dayOfWeek, -30) },
-                                onIncrease = { vm.adjustDayCloseTime(day.dayOfWeek, 30) },
-                            )
-                        }
+                GroupSection(title = day.label) {
+                    SwitchRow(
+                        label = "Открыто",
+                        checked = !day.isClosed,
+                        onCheckedChange = { open ->
+                            vm.updateSchedule(day.dayOfWeek) { it.copy(isClosed = !open) }
+                        },
+                    )
+                    if (!day.isClosed) {
+                        RowSeparator()
+                        TimeStepperRow("Открытие", day.openTime) { vm.adjustDayOpenTime(day.dayOfWeek, it) }
+                        RowSeparator()
+                        TimeStepperRow("Закрытие", day.closeTime) { vm.adjustDayCloseTime(day.dayOfWeek, it) }
                     }
                 }
             }
@@ -720,58 +626,17 @@ private fun StepSchedule(state: AddShopUiState, vm: AddShopViewModel) {
     }
 }
 
+// ponytail: ±30 min stepper; swap for an iOS-style wheel time picker if 30-min granularity is too coarse.
 @Composable
-private fun ScheduleSwitch(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    val isLight = MaterialTheme.colorScheme.background.luminance() > 0.5f
-    Switch(
-        checked = checked,
-        onCheckedChange = onCheckedChange,
-        colors = SwitchDefaults.colors(
-            checkedThumbColor = if (isLight) CpColor.SwitchCheckedThumbLight else CpColor.SwitchCheckedThumbDark,
-            checkedTrackColor = if (isLight) CpColor.GoldWarm else CpColor.SwitchCheckedTrackDark,
-            checkedBorderColor = if (isLight) CpColor.SwitchCheckedThumbLight else CpColor.SwitchCheckedThumbDark,
-            uncheckedThumbColor = if (isLight) CpColor.LightTextSecondary else CpColor.DarkTextSecondary,
-            uncheckedTrackColor = if (isLight) CpColor.LightBorderHover else CpColor.DarkBorderHover,
-            uncheckedBorderColor = if (isLight) CpColor.LightTextSecondary else CpColor.DarkTextSecondary,
-        ),
+private fun TimeStepperRow(label: String, value: String, onAdjust: (Int) -> Unit) {
+    StepperRow(
+        label = label,
+        value = value,
+        onDecrease = { onAdjust(-30) },
+        onIncrease = { onAdjust(30) },
+        decreaseDescription = "$label на 30 минут раньше",
+        increaseDescription = "$label на 30 минут позже",
     )
-}
-
-@Composable
-private fun TimeAdjuster(
-    label: String,
-    value: String,
-    onDecrease: () -> Unit,
-    onIncrease: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clip(RoundedCornerShape(percent = 50))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-        ) {
-            IconButton(onClick = onDecrease, modifier = Modifier.size(CpDimens.buttonHeight)) {
-                Icon(CpIcons.ChevronLeft, "Раньше", modifier = Modifier.size(20.dp))
-            }
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = CpDimens.spacing2),
-            )
-            IconButton(onClick = onIncrease, modifier = Modifier.size(CpDimens.buttonHeight)) {
-                Icon(CpIcons.ChevronRight, "Позже", modifier = Modifier.size(20.dp))
-            }
-        }
-    }
 }
 
 @Composable
@@ -852,196 +717,57 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
 
 // ── Шаг 3: Особенности ────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StepFeatures(state: AddShopUiState, vm: AddShopViewModel) {
     StepLegend(optional = true)
     Text(
-        text = "Выберите характеристики, которые описывают ваше заведение.",
-        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-        color = MaterialTheme.colorScheme.onSurface,
+        text = "Отметьте то, что есть в заведении.",
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(bottom = CpDimens.spacing4),
     )
 
-    if (state.brewMethods.isNotEmpty()) {
-        CatalogGroup(
+    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing6)) {
+        CheckmarkSection(
             title = "Методы приготовления",
             items = state.brewMethods,
-            selected = state.selectedBrewMethodIds,
+            selectedIds = state.selectedBrewMethodIds,
             onToggle = vm::toggleBrewMethod,
-            showBrewIcon = true,
-        )
-        Spacer(Modifier.height(CpDimens.spacing4))
-    }
-    if (state.beans.isNotEmpty()) {
-        CatalogGroup("Зерно", state.beans, state.selectedBeanIds, vm::toggleBean)
-        Spacer(Modifier.height(CpDimens.spacing4))
-    }
-    RoasterPicker(
-        items = state.roasters,
-        selected = state.selectedRoasterIds,
-        onToggle = vm::toggleRoaster,
-        onAdd = { Navigator.navigate(Navigator.Screen.AddRoaster) },
-    )
-    Spacer(Modifier.height(CpDimens.spacing4))
-    if (state.equipment.isNotEmpty()) {
-        CatalogGroup("Оборудование", state.equipment, state.selectedEquipmentIds, vm::toggleEquipment)
-    }
-}
-
-private const val CATALOG_VISIBLE_LIMIT = 4
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun CatalogGroup(
-    title: String,
-    items: List<CatalogItem>,
-    selected: Set<String>,
-    onToggle: (String) -> Unit,
-    visibleLimit: Int = CATALOG_VISIBLE_LIMIT,
-    showBrewIcon: Boolean = false,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val hiddenCount = (items.size - visibleLimit).coerceAtLeast(0)
-    val visibleItems = if (expanded || hiddenCount == 0) items else items.take(visibleLimit)
-
-    CatalogHeader(title)
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-    ) {
-        visibleItems.forEach { item ->
-            val isSelected = item.id in selected
-            CatalogBadge(
-                name = item.name,
-                selected = isSelected,
-                onClick = { onToggle(item.id) },
-                leading = if (showBrewIcon) {
-                    {
-                        Icon(
-                            painter = painterResource(brewMethodIcon(item.name)),
-                            contentDescription = null,
-                            tint = catalogBadgeContentColor(isSelected),
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                } else {
-                    null
-                },
-            )
-        }
-    }
-    if (hiddenCount > 0) {
-        CatalogExpandButton(
-            expanded = expanded,
-            hiddenCount = hiddenCount,
-            onClick = { expanded = !expanded },
-        )
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun RoasterPicker(
-    items: List<CatalogItem>,
-    selected: Set<String>,
-    onToggle: (String) -> Unit,
-    onAdd: () -> Unit,
-    visibleLimit: Int = CATALOG_VISIBLE_LIMIT,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val hiddenCount = (items.size - visibleLimit).coerceAtLeast(0)
-    val visibleItems = if (expanded || hiddenCount == 0) items else items.take(visibleLimit)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = CpDimens.spacing2),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = "Обжарщики",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        TextButton(
-            onClick = onAdd,
-            contentPadding = PaddingValues(horizontal = CpDimens.spacing2, vertical = 0.dp),
-            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
-        ) {
-            Icon(
-                imageVector = CpIcons.Add,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.width(CpDimens.spacing1))
-            Text(
-                text = "Нет нужного?",
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                maxLines = 1,
-            )
-        }
-    }
-    if (visibleItems.isNotEmpty()) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-        ) {
-            visibleItems.forEach { item ->
-                val isSelected = item.id in selected
-                CatalogBadge(
-                    name = item.name,
-                    selected = isSelected,
-                    onClick = { onToggle(item.id) },
-                    leading = {
-                        RoasterAvatar(item)
-                    },
+            leading = { item ->
+                Icon(
+                    painter = painterResource(brewMethodIcon(item.name)),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp),
                 )
-            }
-        }
-    }
-    if (hiddenCount > 0) {
-        CatalogExpandButton(
-            expanded = expanded,
-            hiddenCount = hiddenCount,
-            onClick = { expanded = !expanded },
+            },
         )
-    }
-}
-
-@Composable
-private fun CatalogHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.padding(bottom = CpDimens.spacing2),
-    )
-}
-
-@Composable
-private fun CatalogBadge(
-    name: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    leading: (@Composable () -> Unit)? = null,
-) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(CpDimens.radiusSm))
-            .background(if (selected) CpColor.Primary else CpColor.GoldWarmSoft)
-            .clickable(onClick = onClick)
-            .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-    ) {
-        leading?.invoke()
-        Text(
-            text = name,
-            style = MaterialTheme.typography.labelMedium,
-            color = catalogBadgeContentColor(selected),
-            maxLines = 1,
+        CheckmarkSection(
+            title = "Зерно",
+            items = state.beans,
+            selectedIds = state.selectedBeanIds,
+            onToggle = vm::toggleBean,
+        )
+        CheckmarkSection(
+            title = "Обжарщики",
+            items = state.roasters,
+            selectedIds = state.selectedRoasterIds,
+            onToggle = vm::toggleRoaster,
+            footer = "Не нашли обжарщика? Добавьте его — он появится в списке после проверки.",
+            leading = { item -> RoasterAvatar(item) },
+            extraRows = {
+                ActionRow(
+                    label = "Добавить обжарщика",
+                    icon = CpIcons.Add,
+                    onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
+                )
+            },
+        )
+        CheckmarkSection(
+            title = "Оборудование",
+            items = state.equipment,
+            selectedIds = state.selectedEquipmentIds,
+            onToggle = vm::toggleEquipment,
         )
     }
 }
@@ -1050,7 +776,7 @@ private fun CatalogBadge(
 private fun RoasterAvatar(item: CatalogItem) {
     Box(
         modifier = Modifier
-            .size(22.dp)
+            .size(28.dp)
             .clip(CircleShape),
     ) {
         val photoUrl = item.photoUrl?.takeIf(String::isNotBlank)
@@ -1068,33 +794,6 @@ private fun RoasterAvatar(item: CatalogItem) {
                 contentDescription = item.name,
             )
         }
-    }
-}
-
-private fun catalogBadgeContentColor(selected: Boolean) =
-    if (selected) CpColor.DarkTextOnPrimary else CpColor.GoldWarmHover
-
-@Composable
-private fun CatalogExpandButton(
-    expanded: Boolean,
-    hiddenCount: Int,
-    onClick: () -> Unit,
-) {
-    TextButton(
-        onClick = onClick,
-        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
-        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
-    ) {
-        Icon(
-            imageVector = if (expanded) CpIcons.ChevronUp else CpIcons.ChevronDown,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(Modifier.width(CpDimens.spacing1))
-        Text(
-            text = if (expanded) "Скрыть" else "Ещё $hiddenCount",
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-        )
     }
 }
 

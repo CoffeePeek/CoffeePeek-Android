@@ -3,19 +3,19 @@ package com.coffeepeek.admin.ui.component
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,12 +27,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
+import dev.chrisbanes.haze.HazeState
 
 /** Extra bottom space so list content / FABs clear the bottom navigation. */
 val LocalFloatingNavClearance = compositionLocalOf { 0.dp }
@@ -54,35 +57,34 @@ data class FloatingNavItem(
     val onClick: () -> Unit,
 )
 
+/** iOS 26-style floating Liquid Glass tab bar. */
 @Composable
 fun FloatingBottomNavBar(
     items: List<FloatingNavItem>,
     modifier: Modifier = Modifier,
+    hazeState: HazeState? = LocalGlassHazeState.current,
 ) {
-    Column(
+    val shape = RoundedCornerShape(percent = 50)
+    Row(
         modifier = modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
             .navigationBarsPadding()
+            .padding(horizontal = CpDimens.spacing4)
+            .padding(bottom = FloatingNavBottomMargin)
+            .fillMaxWidth()
+            .height(CpDimens.floatingNavBarHeight)
+            .liquidGlass(shape, hazeState, shadowElevation = 10.dp)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant,
-            thickness = 1.dp,
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(CpDimens.floatingNavBarHeight)
-                .padding(horizontal = CpDimens.spacing2),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            items.forEach { item ->
-                FloatingNavBarItem(item = item)
-            }
+        items.forEach { item ->
+            FloatingNavBarItem(item = item)
         }
     }
 }
+
+/** Gap between the floating bar and the system navigation area. */
+val FloatingNavBottomMargin = 8.dp
 
 @Composable
 private fun RowScope.FloatingNavBarItem(item: FloatingNavItem) {
@@ -90,28 +92,40 @@ private fun RowScope.FloatingNavBarItem(item: FloatingNavItem) {
         targetValue = if (item.selected) {
             MaterialTheme.colorScheme.primary
         } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
+            MaterialTheme.colorScheme.onSurface
         },
         animationSpec = tween(180),
         label = "floating-nav-content",
+    )
+    val pillColor by animateColorAsState(
+        targetValue = if (item.selected) {
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+        } else {
+            Color.Transparent
+        },
+        animationSpec = tween(220),
+        label = "floating-nav-pill",
     )
 
     Column(
         modifier = Modifier
             .weight(1f)
-            .clip(RoundedCornerShape(CpDimens.radiusXl))
-            .clickable(
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(percent = 50))
+            .background(pillColor)
+            .selectable(
+                selected = item.selected,
+                role = Role.Tab,
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = item.onClick,
-            )
-            .padding(vertical = 2.dp),
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
     ) {
         Icon(
             imageVector = item.icon,
-            contentDescription = item.title,
+            contentDescription = null,
             tint = contentColor,
             modifier = Modifier.size(22.dp),
         )

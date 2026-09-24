@@ -9,7 +9,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.provider.Settings
-import android.view.animation.DecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -47,8 +47,6 @@ import org.maplibre.android.MapLibre
 import org.maplibre.android.annotations.IconFactory
 import org.maplibre.android.annotations.Marker
 import org.maplibre.android.annotations.MarkerOptions
-import org.maplibre.android.annotations.Polygon
-import org.maplibre.android.annotations.PolygonOptions
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
@@ -56,7 +54,28 @@ import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.expressions.Expression.get
 import org.maplibre.android.style.layers.BackgroundLayer
+import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.Layer
+import org.maplibre.android.style.layers.PropertyFactory.circleColor
+import org.maplibre.android.style.layers.PropertyFactory.circleOpacity
+import org.maplibre.android.style.layers.PropertyFactory.circlePitchAlignment
+import org.maplibre.android.style.layers.PropertyFactory.circleRadius
+import org.maplibre.android.style.layers.PropertyFactory.circleStrokeColor
+import org.maplibre.android.style.layers.PropertyFactory.circleStrokeOpacity
+import org.maplibre.android.style.layers.PropertyFactory.circleStrokeWidth
+import org.maplibre.android.style.layers.PropertyFactory.fillOpacity
+import org.maplibre.android.style.layers.PropertyFactory.iconAllowOverlap
+import org.maplibre.android.style.layers.PropertyFactory.iconIgnorePlacement
+import org.maplibre.android.style.layers.PropertyFactory.iconImage
+import org.maplibre.android.style.layers.PropertyFactory.lineOpacity
+import org.maplibre.android.style.layers.PropertyFactory.lineWidth
+import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.FeatureCollection
+import org.maplibre.geojson.Point
+import org.maplibre.geojson.Polygon
 import org.maplibre.android.style.layers.FillLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
@@ -98,18 +117,28 @@ private data class ClusterMark(
     var bounds: MapBounds,
 )
 
-private data class ZoneMark(
-    var marker: Marker,
-    var zone: MapCoffeeZone,
-)
+private const val ZONE_SOURCE = "cp-zones"
+private const val ZONE_LABEL_SOURCE = "cp-zone-labels"
+private const val PULSE_SOURCE = "cp-selected-pulse"
+private const val ZONE_FILL_LAYER = "cp-zones-fill"
+private const val ZONE_LINE_LAYER = "cp-zones-line"
+private const val ZONE_LABEL_LAYER = "cp-zone-labels"
+private const val PULSE_LAYER = "cp-selected-pulse"
+private const val PROP_ZONE_ID = "zoneId"
+private const val PROP_ICON = "icon"
+private const val PULSE_DURATION_MS = 1600L
+private const val PULSE_MIN_RADIUS = 20f
+private const val PULSE_MAX_RADIUS = 38f
 
-private class MarkerAnimations {
-    var pulse: ValueAnimator? = null
-    var pulseMark: Marker? = null
+/** Smooth continuous pulse: animates circle-layer paint props every frame instead of swapping bitmaps. */
+private class SelectionPulse {
+    var animator: ValueAnimator? = null
+    var shopId: String? = null
 
     fun cancel() {
-        pulse?.cancel()
-        pulse = null
+        animator?.cancel()
+        animator = null
+        shopId = null
     }
 }
 
@@ -162,9 +191,8 @@ actual fun CoffeeMap(
     }
     val shopMarks = remember { mutableMapOf<String, ShopMark>() }
     val clusterMarks = remember { mutableMapOf<String, ClusterMark>() }
-    val zoneMarks = remember { mutableMapOf<String, ZoneMark>() }
-    val zonePolygons = remember { mutableMapOf<String, Polygon>() }
-    val animations = remember { MarkerAnimations() }
+    val zonesState = rememberUpdatedState(zones)
+    val animations = remember { SelectionPulse() }
     var map by remember { mutableStateOf<MapLibreMap?>(null) }
     var styleGeneration by remember { mutableIntStateOf(0) }
     var initialCameraApplied by remember { mutableStateOf(false) }
@@ -253,19 +281,24 @@ actual fun CoffeeMap(
                     zoomToBounds(activeMap, mapView.width, mapView.height, cluster.bounds)
                     true
                 } else {
-                    val zone = zoneMarks.values.firstOrNull { it.marker.id == marker.id }
-                    if (zone != null) {
-                        onZoneClickState.value(zone.zone)
-                        true
-                    } else {
-                        false
-                    }
+                    false
                 }
             }
         }
+        // Zones are style layers under the markers; marker taps are consumed first, so shops win.
+        val zoneClickListener = MapLibreMap.OnMapClickListener { point ->
+            val screen = activeMap.projection.toScreenLocation(point)
+            val zoneId = activeMap.queryRenderedFeatures(screen, ZONE_LABEL_LAYER, ZONE_FILL_LAYER)
+                .firstNotNullOfOrNull { it.getStringProperty(PROP_ZONE_ID) }
+            val zone = zoneId?.let { id -> zonesState.value.firstOrNull { it.id == id } }
+            if (zone != null) onZoneClickState.value(zone)
+            zone != null
+        }
+        activeMap.addOnMapClickListener(zoneClickListener)
 
         onDispose {
             activeMap.removeOnCameraIdleListener(idleListener)
+            activeMap.removeOnMapClickListener(zoneClickListener)
             activeMap.setOnMarkerClickListener(null)
         }
     }
@@ -273,16 +306,14 @@ actual fun CoffeeMap(
     LaunchedEffect(map, isDarkTheme) {
         val activeMap = map ?: return@LaunchedEffect
         animations.cancel()
-        animations.pulseMark = null
         activeMap.removeAnnotations()
         shopMarks.clear()
         clusterMarks.clear()
-        zoneMarks.clear()
-        zonePolygons.clear()
         currentLocationMarker = null
         activeMap.setStyle(Style.Builder().fromUri(coffeeMapStyleUri(isDarkTheme))) { style ->
             styleGeneration += 1
             applyCoffeePeekMapStyle(style, isDarkTheme)
+            addOverlayLayers(style, isDarkTheme)
             if (!initialCameraApplied) {
                 val location = context.lastKnownLocation()
                 currentLocation = location?.let { LatLng(it.latitude, it.longitude) }
@@ -372,8 +403,6 @@ actual fun CoffeeMap(
             isDarkTheme = isDarkTheme,
             shopMarks = shopMarks,
             clusterMarks = clusterMarks,
-            zoneMarks = zoneMarks,
-            zonePolygons = zonePolygons,
             animations = animations,
             reduceMotion = appContext.prefersReducedMotion(),
         )
@@ -448,9 +477,7 @@ private fun syncMapMarkers(
     isDarkTheme: Boolean,
     shopMarks: MutableMap<String, ShopMark>,
     clusterMarks: MutableMap<String, ClusterMark>,
-    zoneMarks: MutableMap<String, ZoneMark>,
-    zonePolygons: MutableMap<String, Polygon>,
-    animations: MarkerAnimations,
+    animations: SelectionPulse,
     reduceMotion: Boolean,
 ) {
     val selected = shops.firstOrNull { it.id == selectedShopId }
@@ -461,10 +488,6 @@ private fun syncMapMarkers(
     val clusterKeys = clusters.map { it.id }.toSet()
     clusterMarks.keys.filter { it !in clusterKeys }.toList().forEach { key ->
         clusterMarks.remove(key)?.let { map.removeMarker(it.marker) }
-    }
-    val zoneIds = zones.map { it.id }.toSet()
-    zoneMarks.keys.filter { it !in zoneIds }.toList().forEach { id ->
-        zoneMarks.remove(id)?.let { map.removeMarker(it.marker) }
     }
 
     clusters.forEach { cluster ->
@@ -500,48 +523,7 @@ private fun syncMapMarkers(
         }
     }
 
-    zones.forEach { zone ->
-        val position = LatLng(zone.latitude, zone.longitude)
-        val existing = zoneMarks[zone.id]
-        if (existing == null) {
-            val marker = map.addMarker(
-                MarkerOptions()
-                    .position(position)
-                    .icon(
-                        IconFactory.getInstance(context).fromBitmap(
-                            MapMarkerIcons.zoneBitmap(context, zone.name, zone.shopCount, isDarkTheme),
-                        ),
-                    ),
-            )
-            zoneMarks[zone.id] = ZoneMark(marker = marker, zone = zone)
-        } else {
-            val oldZone = existing.zone
-            existing.zone = zone
-            if (oldZone.latitude != zone.latitude || oldZone.longitude != zone.longitude) {
-                existing.marker.position = position
-            }
-            if (oldZone.name != zone.name || oldZone.shopCount != zone.shopCount) {
-                existing.marker.setIcon(
-                    IconFactory.getInstance(context).fromBitmap(
-                        MapMarkerIcons.zoneBitmap(context, zone.name, zone.shopCount, isDarkTheme),
-                    ),
-                )
-            }
-            map.updateMarker(existing.marker)
-        }
-    }
-
-    zonePolygons.values.forEach { polygon -> runCatching { map.removePolygon(polygon) } }
-    zonePolygons.clear()
-    zones.forEach { zone ->
-        val polygon = map.addPolygon(
-            PolygonOptions()
-                .addAll(zoneOutline(zone))
-                .fillColor(if (isDarkTheme) 0x33EAB308 else 0x26EAB308)
-                .strokeColor(if (isDarkTheme) 0x99EAB308.toInt() else 0xB3CA8A04.toInt()),
-        )
-        zonePolygons[zone.id] = polygon
-    }
+    map.style?.let { style -> syncZoneLayers(context, style, zones, isDarkTheme) }
 
     shops.forEach { shop ->
         val position = LatLng(shop.latitude, shop.longitude)
@@ -563,9 +545,6 @@ private fun syncMapMarkers(
                 type = shop.type,
             )
             shopMarks[shop.id] = entry
-            if (isSelected) {
-                playSelectedAnimation(context, map, entry, animations, reduceMotion)
-            }
         } else {
             existing.shop = shop
             if (existing.latitude != shop.latitude || existing.longitude != shop.longitude) {
@@ -579,54 +558,136 @@ private fun syncMapMarkers(
                 )
                 existing.isSelected = isSelected
                 existing.type = shop.type
-                if (isSelected) {
-                    playSelectedAnimation(context, map, existing, animations, reduceMotion)
-                }
             }
             map.updateMarker(existing.marker)
         }
     }
 
+    syncSelectionPulse(map, selected, animations, reduceMotion)
+}
+
+private fun syncSelectionPulse(
+    map: MapLibreMap,
+    selected: MapShop?,
+    pulse: SelectionPulse,
+    reduceMotion: Boolean,
+) {
+    val style = map.style ?: return
+    val source = style.getSourceAs<GeoJsonSource>(PULSE_SOURCE) ?: return
     if (selected == null) {
-        animations.cancel()
-        animations.pulseMark?.let { runCatching { map.removeMarker(it) } }
-        animations.pulseMark = null
+        pulse.cancel()
+        source.setGeoJson(FeatureCollection.fromFeatures(emptyList()))
+        return
+    }
+    source.setGeoJson(Point.fromLngLat(selected.longitude, selected.latitude))
+    if (pulse.shopId == selected.id) return
+
+    pulse.cancel()
+    pulse.shopId = selected.id
+    if (reduceMotion) {
+        // Static soft halo instead of motion.
+        style.getLayerAs<CircleLayer>(PULSE_LAYER)?.setProperties(
+            circleRadius(PULSE_MIN_RADIUS + 6f),
+            circleOpacity(0.18f),
+            circleStrokeOpacity(0.35f),
+        )
+        return
+    }
+    pulse.animator = ValueAnimator.ofFloat(0f, 1f).apply {
+        duration = PULSE_DURATION_MS
+        repeatCount = ValueAnimator.INFINITE
+        interpolator = LinearInterpolator()
+        addUpdateListener { animator ->
+            val t = animator.animatedValue as Float
+            val eased = 1f - (1f - t) * (1f - t) * (1f - t) // ease-out cubic: quick start, gentle settle
+            val fade = (1f - t) * (1f - t)
+            map.style?.getLayerAs<CircleLayer>(PULSE_LAYER)?.setProperties(
+                circleRadius(PULSE_MIN_RADIUS + (PULSE_MAX_RADIUS - PULSE_MIN_RADIUS) * eased),
+                circleOpacity(0.22f * fade),
+                circleStrokeOpacity(0.6f * fade),
+            )
+        }
+        start()
     }
 }
 
-private fun playSelectedAnimation(
-    context: Context,
-    map: MapLibreMap,
-    mark: ShopMark,
-    animations: MarkerAnimations,
-    reduceMotion: Boolean,
-) {
-    animations.cancel()
-    animations.pulseMark?.let { runCatching { map.removeMarker(it) } }
-    animations.pulseMark = null
-    if (reduceMotion) return
+private data class ZonePalette(val color: String, val fillOpacity: Float, val lineOpacity: Float)
 
-    val pulseMark = map.addMarker(
-        MarkerOptions()
-            .position(LatLng(mark.latitude, mark.longitude))
-            .icon(IconFactory.getInstance(context).fromBitmap(MapMarkerIcons.pulseBitmap(context, 0))),
+// Muted taupe instead of brand yellow: zones are context, shops are the content.
+private fun zonePalette(isDarkTheme: Boolean) = if (isDarkTheme) {
+    ZonePalette(color = "#C9B8A3", fillOpacity = 0.07f, lineOpacity = 0.35f)
+} else {
+    ZonePalette(color = "#8C7A66", fillOpacity = 0.08f, lineOpacity = 0.40f)
+}
+
+/** Zone + pulse layers, inserted below MapLibre's marker layer so shop pins always draw on top. */
+private fun addOverlayLayers(style: Style, isDarkTheme: Boolean) {
+    val palette = zonePalette(isDarkTheme)
+    listOf(ZONE_SOURCE, ZONE_LABEL_SOURCE, PULSE_SOURCE).forEach { id ->
+        if (style.getSource(id) == null) style.addSource(GeoJsonSource(id))
+    }
+    val markerLayerId = style.layers.firstOrNull { it.id.startsWith("org.maplibre.annotations") }?.id
+    fun add(layer: Layer) {
+        if (style.getLayer(layer.id) != null) return
+        if (markerLayerId != null) style.addLayerBelow(layer, markerLayerId) else style.addLayer(layer)
+    }
+    add(
+        FillLayer(ZONE_FILL_LAYER, ZONE_SOURCE).withProperties(
+            fillColor(palette.color),
+            fillOpacity(palette.fillOpacity),
+        ),
     )
-    animations.pulseMark = pulseMark
-    val pulse = ValueAnimator.ofInt(0, MapMarkerIcons.PULSE_FRAMES).apply {
-        duration = 1800L
-        interpolator = DecelerateInterpolator()
-        repeatCount = ValueAnimator.INFINITE
-        addUpdateListener { animator ->
-            val frame = animator.animatedValue as Int
-            pulseMark.position = mark.marker.position
-            pulseMark.setIcon(
-                IconFactory.getInstance(context).fromBitmap(MapMarkerIcons.pulseBitmap(context, frame)),
-            )
-            map.updateMarker(pulseMark)
+    add(
+        LineLayer(ZONE_LINE_LAYER, ZONE_SOURCE).withProperties(
+            lineColor(palette.color),
+            lineOpacity(palette.lineOpacity),
+            lineWidth(1.5f),
+        ),
+    )
+    add(
+        SymbolLayer(ZONE_LABEL_LAYER, ZONE_LABEL_SOURCE).withProperties(
+            iconImage(get(PROP_ICON)),
+            // Always shown (never culled by collisions on zoom); sits under the markers, so pins keep priority.
+            iconAllowOverlap(true),
+            iconIgnorePlacement(true),
+        ),
+    )
+    add(
+        CircleLayer(PULSE_LAYER, PULSE_SOURCE).withProperties(
+            circleColor("#EAB308"),
+            circleRadius(PULSE_MIN_RADIUS),
+            circleOpacity(0f),
+            circleStrokeColor("#CA8A04"),
+            circleStrokeWidth(1.5f),
+            circleStrokeOpacity(0f),
+            circlePitchAlignment(Property.CIRCLE_PITCH_ALIGNMENT_MAP),
+        ),
+    )
+}
+
+private fun syncZoneLayers(
+    context: Context,
+    style: Style,
+    zones: List<MapCoffeeZone>,
+    isDarkTheme: Boolean,
+) {
+    val shapes = zones.map { zone ->
+        Feature.fromGeometry(
+            Polygon.fromLngLats(listOf(zoneOutline(zone).map { Point.fromLngLat(it.longitude, it.latitude) })),
+        ).apply { addStringProperty(PROP_ZONE_ID, zone.id) }
+    }
+    val labels = zones.map { zone ->
+        val icon = "zone-label-$isDarkTheme-${zone.name}-${zone.shopCount}"
+        if (style.getImage(icon) == null) {
+            style.addImage(icon, MapMarkerIcons.zoneBitmap(context, zone.name, zone.shopCount, isDarkTheme))
+        }
+        Feature.fromGeometry(Point.fromLngLat(zone.longitude, zone.latitude)).apply {
+            addStringProperty(PROP_ZONE_ID, zone.id)
+            addStringProperty(PROP_ICON, icon)
         }
     }
-    animations.pulse = pulse
-    pulse.start()
+    style.getSourceAs<GeoJsonSource>(ZONE_SOURCE)?.setGeoJson(FeatureCollection.fromFeatures(shapes))
+    style.getSourceAs<GeoJsonSource>(ZONE_LABEL_SOURCE)?.setGeoJson(FeatureCollection.fromFeatures(labels))
 }
 
 private fun zoomToBounds(

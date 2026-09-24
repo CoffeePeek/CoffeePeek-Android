@@ -67,10 +67,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import com.coffeepeek.admin.ui.component.liquidGlass
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -920,22 +918,10 @@ private fun HeroIconButton(
     contentDescription: String,
     content: @Composable () -> Unit,
 ) {
-    // "Liquid glass": blurs the scrolling content behind the button, tinted with the surface colour.
-    val surface = MaterialTheme.colorScheme.surface
     Box(
         modifier = Modifier
             .size(CpDimens.buttonHeight)
-            .clip(CircleShape)
-            .hazeEffect(
-                state = hazeState,
-                style = HazeStyle(
-                    backgroundColor = surface,
-                    tint = HazeTint(surface.copy(alpha = 0.45f)),
-                    blurRadius = 20.dp,
-                    noiseFactor = 0f,
-                ),
-            )
-            .border(0.5.dp, Color.White.copy(alpha = 0.35f), CircleShape),
+            .liquidGlass(CircleShape, hazeState),
     ) {
         IconButton(
             onClick = onClick,

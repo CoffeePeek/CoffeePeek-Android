@@ -35,8 +35,6 @@ internal object MapMarkerIcons {
     private const val RING_SELECTED_DP = 1.6f
     private const val SELECTED_HALO_STROKE_DP = 2f
     private const val SELECTED_HALO_GAP_DP = 1.5f
-    private const val PULSE_INSET_DP = 4f
-    private const val PULSE_STROKE_DP = 2f
     private const val CLUSTER_STROKE_DP = 2f
     private const val CLUSTER_TEXT_SP = 13f
 
@@ -93,14 +91,6 @@ internal object MapMarkerIcons {
         }
     }
 
-    fun pulseBitmap(context: Context, frame: Int): Bitmap {
-        val clamped = frame.coerceIn(0, PULSE_FRAMES)
-        val key = "pulse-$clamped"
-        return cache.getOrPut(key) {
-            createPulseBitmap(context.applicationContext, clamped / PULSE_FRAMES.toFloat())
-        }
-    }
-
     fun myLocationBitmap(context: Context): Bitmap = cache.getOrPut("my-location") {
         val density = context.resources.displayMetrics.density
         val size = (38f * density).roundToInt().coerceAtLeast(1)
@@ -138,8 +128,6 @@ internal object MapMarkerIcons {
         )
         bitmap
     }
-
-    const val PULSE_FRAMES = 12
 
     private fun pinStyle(type: String): PinStyle = when (type) {
         CoffeeShopType.SPECIALTY -> PinStyle(
@@ -287,7 +275,7 @@ internal object MapMarkerIcons {
     private fun createZoneBitmap(context: Context, label: String, isDarkTheme: Boolean): Bitmap {
         val density = context.resources.displayMetrics.density
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (isDarkTheme) 0xFFFFF7D6.toInt() else 0xFF3B2F1F.toInt()
+            color = if (isDarkTheme) 0xFFE6DDD3.toInt() else 0xFF4A4038.toInt()
             textSize = 12f * density
             typeface = clusterTypeface(context)
         }
@@ -314,8 +302,9 @@ internal object MapMarkerIcons {
             height / 2f,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.FILL
-                color = if (isDarkTheme) 0xFF30261F.toInt() else 0xFFFFFBEB.toInt()
-                setShadowLayer(4f * density, 0f, 1f * density, ColorUtils.setAlphaComponent(SHADOW, 0x38))
+                // Muted chip: near-surface fill so the label reads as context, not as a pin.
+                color = if (isDarkTheme) 0xEB2A221D.toInt() else 0xEBFFFFFF.toInt()
+                setShadowLayer(3f * density, 0f, 1f * density, ColorUtils.setAlphaComponent(SHADOW, 0x1F))
             },
         )
         canvas.drawRoundRect(
@@ -324,43 +313,12 @@ internal object MapMarkerIcons {
             height / 2f,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
-                strokeWidth = 1.5f * density
-                color = if (isDarkTheme) BRAND_PRIMARY else BRAND_PRIMARY_DARK
+                strokeWidth = 1f * density
+                color = if (isDarkTheme) 0x59C9B8A3 else 0x668C7A66
             },
         )
         val textY = rect.centerY() - (textPaint.descent() + textPaint.ascent()) / 2f
         canvas.drawText(label, rect.left + horizontalPadding, textY, textPaint)
-        return bitmap
-    }
-
-    private fun createPulseBitmap(context: Context, progress: Float): Bitmap {
-        val density = context.resources.displayMetrics.density
-        val px = density * RENDER_SCALE
-        val pin = PIN_SELECTED_DP * px
-        val pulseSize = pin + PULSE_INSET_DP * 2f * px
-        val t = progress.coerceIn(0f, 1f)
-        val scale = if (t <= 0.70f) {
-            0.85f + (1.45f - 0.85f) * (t / 0.70f)
-        } else {
-            1.45f
-        }
-        val alpha = if (t <= 0.70f) {
-            0.7f * (1f - t / 0.70f)
-        } else {
-            0f
-        }
-        val drawn = pulseSize * 1.45f
-        val pad = 8f * px
-        val width = (drawn + pad * 2f).roundToInt().coerceAtLeast(1)
-        val bitmap = Bitmap.createBitmap(width, width, Bitmap.Config.ARGB_8888)
-        if (alpha <= 0.01f) return bitmap
-        val canvas = Canvas(bitmap)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = PULSE_STROKE_DP * px
-            color = ColorUtils.setAlphaComponent(BRAND_PRIMARY, (0.65f * alpha / 0.7f * 255).toInt())
-        }
-        canvas.drawCircle(width / 2f, width / 2f, (pulseSize * scale) / 2f, paint)
         return bitmap
     }
 

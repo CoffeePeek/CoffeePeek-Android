@@ -333,8 +333,6 @@ private fun RoasterHero(
 
         CpCircularBackButton(
             onClick = onBack,
-            containerColor = Color.Black.copy(alpha = 0.45f),
-            tint = Color.White,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .statusBarsPadding()

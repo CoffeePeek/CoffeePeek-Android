@@ -94,6 +94,7 @@ class MapViewModel(
     private val detailsCache = mutableMapOf<String, CoffeeShopDetails>()
     private var suppressBoundsUpdates = false
     private var isCityReady = false
+    private var zonesCityId: String? = null
 
     init {
         loadCatalogs()
@@ -343,17 +344,22 @@ class MapViewModel(
             result.onSuccess { content ->
                     _state.update { current ->
                         val merged = mergeShops(content.shops, current.selectedShop)
+                        // The API only returns zones for the current viewport, so zooming in used to drop
+                        // them. Keep every zone seen for this city; fresh data wins. Reset on city change.
+                        val knownZones = if (zonesCityId == filters.cityId) current.zones else emptyList()
+                        zonesCityId = filters.cityId
+                        val zones = (content.zones + knownZones).distinctBy { it.id }
                         current.copy(
                             shops = merged,
                             clusters = content.clusters,
-                            zones = content.zones,
+                            zones = zones,
                             isTruncated = content.isTruncated,
                             isLoading = false,
                             selectedShop = current.selectedShop?.let { selected ->
                                 merged.find { it.id == selected.id } ?: selected
                             },
                             selectedZone = current.selectedZone?.takeIf { selected ->
-                                content.zones.any { it.id == selected.id }
+                                zones.any { it.id == selected.id }
                             },
                         )
                     }

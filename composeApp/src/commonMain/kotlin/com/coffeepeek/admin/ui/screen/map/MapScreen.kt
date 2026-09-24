@@ -72,6 +72,9 @@ import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CpSearchField
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
+import com.coffeepeek.admin.ui.component.liquidGlass
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.CompositionLocalProvider
 import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CoffeeShopDetails
@@ -180,10 +183,10 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
                     modifier = Modifier.size(30.dp),
                 )
             }
+            // iOS convention: a toggled glass control shows its "on" state via the accent-tinted icon.
             MapControlButton(
                 onClick = vm::toggleZones,
-                containerColor = if (state.showZones) MaterialTheme.colorScheme.primary else Color.White,
-                contentColor = if (state.showZones) MaterialTheme.colorScheme.onPrimary else Color(0xFF1C1C1C),
+                contentColor = if (state.showZones) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             ) {
                 Icon(
                     CpIcons.Map,
@@ -328,24 +331,19 @@ private fun mapShopCountLabel(count: Int): String {
 private fun MapControlButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    containerColor: Color = Color.White,
-    contentColor: Color = Color(0xFF1C1C1C),
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
     content: @Composable () -> Unit,
 ) {
-    Surface(
-        modifier = modifier.size(CpDimens.buttonHeight),
-        shape = CircleShape,
-        color = containerColor,
-        contentColor = contentColor,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        onClick = onClick,
-        content = {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                content()
-            }
-        },
-    )
+    // Liquid Glass without backdrop blur: the native map view can't be sampled by Haze.
+    Box(
+        modifier = modifier
+            .size(CpDimens.buttonHeight)
+            .liquidGlass(CircleShape, hazeState = null)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        CompositionLocalProvider(LocalContentColor provides contentColor) { content() }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)

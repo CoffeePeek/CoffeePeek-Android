@@ -85,5 +85,5 @@ object CpDimens {
     // ── Bottom navigation ─────────────────────────────────────────────────────
     val floatingNavBarHeight = 64.dp
     /** Panel height; the caller adds the system navigation inset. */
-    val floatingNavContentClearance = floatingNavBarHeight
+    val floatingNavContentClearance = floatingNavBarHeight + 8.dp // + FloatingNavBottomMargin
 }
