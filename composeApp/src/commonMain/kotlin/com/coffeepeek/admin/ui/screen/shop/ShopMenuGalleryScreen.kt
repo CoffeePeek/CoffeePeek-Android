@@ -44,12 +44,13 @@ import org.koin.core.parameter.parametersOf
 fun ShopMenuGalleryScreen(shopId: String) {
     val vm: ShopMenuGalleryViewModel = platformViewModel(parameters = { parametersOf(shopId) })
     val state by vm.uiState.collectAsState()
-    var previewImageUrl by remember { mutableStateOf<String?>(null) }
+    var previewIndex by remember { mutableStateOf<Int?>(null) }
 
-    previewImageUrl?.let { url ->
+    previewIndex?.let { index ->
         FullScreenImageDialog(
-            imageUrl = url,
-            onDismiss = { previewImageUrl = null },
+            imageUrls = state.photos.map { it.fullUrl },
+            initialIndex = index,
+            onDismiss = { previewIndex = null },
         )
     }
 
@@ -104,7 +105,7 @@ fun ShopMenuGalleryScreen(shopId: String) {
                                 .fillMaxWidth()
                                 .aspectRatio(0.72f)
                                 .clip(RoundedCornerShape(CpDimens.radiusLg))
-                                .clickable { previewImageUrl = photo.fullUrl },
+                                .clickable { previewIndex = index },
                         ) {
                             CoffeeShopImage(
                                 imageUrl = photo.fullUrl,
