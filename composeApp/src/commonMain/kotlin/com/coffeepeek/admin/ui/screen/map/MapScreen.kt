@@ -286,7 +286,6 @@ private fun MapSearchSuggestions(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(CpDimens.radiusLg),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
         shadowElevation = 6.dp,
     ) {
         when {

@@ -142,12 +142,51 @@ class ShopRepositoryImpl(
     }
 
     override suspend fun getMapContent(bounds: MapBounds, zoom: Float, filters: ShopFilters): Result<MapContent> =
+        coroutineScope {
+            val visibleZoom = zoom.toInt().coerceIn(0, 22)
+            val shopsRequest = async { requestMap(bounds, 22, filters) }
+            val zonesRequest = if (visibleZoom == 22) null else async { requestMap(bounds, visibleZoom, filters) }
+            val zonesResponse = zonesRequest?.await()?.getOrNull()
+
+            shopsRequest.await().map { response ->
+                val mapped = response.shops.map { dto ->
+                    MapShop(
+                        id = dto.id,
+                        title = dto.title?.takeIf { it.isNotBlank() } ?: "Кофейня",
+                        latitude = dto.latitude,
+                        longitude = dto.longitude,
+                        type = parseShopType(dto.type),
+                        primaryZoneId = dto.primaryZoneId,
+                    )
+                }
+                val focus = filters.coffeeFocus
+                MapContent(
+                    shops = if (focus.isNullOrBlank()) mapped else mapped.filter { it.type == focus },
+                    clusters = emptyList(),
+                    zones = (zonesResponse ?: response).zones.map { zone ->
+                        MapCoffeeZone(
+                            id = zone.id,
+                            name = zone.name,
+                            description = zone.description,
+                            latitude = zone.latitude,
+                            longitude = zone.longitude,
+                            radiusMeters = zone.radiusMeters,
+                            shopCount = zone.shopCount,
+                            polygon = zone.polygon.map { it.latitude to it.longitude },
+                        )
+                    },
+                    isTruncated = response.isTruncated,
+                )
+            }
+        }
+
+    private suspend fun requestMap(bounds: MapBounds, zoom: Int, filters: ShopFilters) =
         shopApiService.getShopsInBounds(
             minLat = bounds.minLat,
             minLon = bounds.minLon,
             maxLat = bounds.maxLat,
             maxLon = bounds.maxLon,
-            zoom = 22,
+            zoom = zoom,
             cityId = filters.cityId,
             type = filters.coffeeFocus?.let(CoffeeShopType::toApi),
             roasterIds = filters.roasterIds.takeIf { it.isNotEmpty() },
@@ -157,36 +196,7 @@ class ShopRepositoryImpl(
             tagIds = filters.tagIds.takeIf { it.isNotEmpty() },
             priceRange = filters.priceRange.toApiPriceRange(),
             minRating = filters.minRating,
-        ).map { response ->
-            val mapped = response.shops.map { dto ->
-                MapShop(
-                    id = dto.id,
-                    title = dto.title?.takeIf { it.isNotBlank() } ?: "Кофейня",
-                    latitude = dto.latitude,
-                    longitude = dto.longitude,
-                    type = parseShopType(dto.type),
-                    primaryZoneId = dto.primaryZoneId,
-                )
-            }
-            val focus = filters.coffeeFocus
-            MapContent(
-                shops = if (focus.isNullOrBlank()) mapped else mapped.filter { it.type == focus },
-                clusters = emptyList(),
-                zones = response.zones.map { zone ->
-                    MapCoffeeZone(
-                        id = zone.id,
-                        name = zone.name,
-                        description = zone.description,
-                        latitude = zone.latitude,
-                        longitude = zone.longitude,
-                        radiusMeters = zone.radiusMeters,
-                        shopCount = zone.shopCount,
-                        polygon = zone.polygon.map { it.latitude to it.longitude },
-                    )
-                },
-                isTruncated = response.isTruncated,
-            )
-        }
+        )
 
     override suspend fun getMyShopSubmissions(
         status: ModerationStatus,

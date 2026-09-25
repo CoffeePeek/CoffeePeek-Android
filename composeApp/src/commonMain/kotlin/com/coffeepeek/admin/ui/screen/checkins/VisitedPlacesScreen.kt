@@ -177,6 +177,7 @@ private fun CalendarCard(
     val month = state.calendarMonth
     val total = state.calendarCheckIns.values.sumOf { it.size }
     val shops = state.calendarCheckIns.values.flatten().map(CheckIn::shopId).distinct().size
+    val checkInDates = state.calendarCheckIns.filterValues { it.isNotEmpty() }.keys
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -228,17 +229,21 @@ private fun CalendarCard(
 
             calendarCells(month).chunked(7).forEach { week ->
                 Row(Modifier.fillMaxWidth()) {
-                    week.forEach { day ->
+                    week.forEachIndexed { dayOfWeek, day ->
                         if (day == null) {
                             Spacer(Modifier.weight(1f).height(52.dp))
                         } else {
                             val date = month.isoDate(day)
+                            val streak = checkInStreak(month, day, checkInDates)
                             CalendarDay(
                                 day = day,
                                 date = date,
                                 checkIns = state.calendarCheckIns[date].orEmpty(),
                                 selected = state.selectedDate == date,
                                 today = today == date,
+                                inStreak = streak.isPartOfStreak,
+                                connectsPrevious = streak.hasPreviousDay && dayOfWeek > 0,
+                                connectsNext = streak.hasNextDay && dayOfWeek < 6,
                                 onClick = { onSelectDate(date) },
                                 modifier = Modifier.weight(1f),
                             )
@@ -257,20 +262,40 @@ private fun CalendarDay(
     checkIns: List<CheckIn>,
     selected: Boolean,
     today: Boolean,
+    inStreak: Boolean,
+    connectsPrevious: Boolean,
+    connectsNext: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(CpDimens.radiusLg)
+    val shape = if (inStreak) {
+        RoundedCornerShape(
+            topStart = if (connectsPrevious) 0.dp else CpDimens.radiusLg,
+            bottomStart = if (connectsPrevious) 0.dp else CpDimens.radiusLg,
+            topEnd = if (connectsNext) 0.dp else CpDimens.radiusLg,
+            bottomEnd = if (connectsNext) 0.dp else CpDimens.radiusLg,
+        )
+    } else {
+        RoundedCornerShape(CpDimens.radiusLg)
+    }
     val description = "${selectedDateTitle(date)}, ${if (checkIns.isEmpty()) "нет чек-инов" else visitCount(checkIns.size)}"
     Box(
         modifier = modifier
             .height(52.dp)
             .clip(shape)
             .background(
-                if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else Color.Transparent,
+                when {
+                    selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                    inStreak -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                    else -> Color.Transparent
+                },
             )
             .then(
-                if (today) Modifier.border(1.dp, MaterialTheme.colorScheme.primary, shape) else Modifier,
+                when {
+                    inStreak -> Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, shape)
+                    today -> Modifier.border(1.dp, MaterialTheme.colorScheme.primary, shape)
+                    else -> Modifier
+                },
             )
             .semantics { contentDescription = description }
             .clickable(role = Role.Button, onClickLabel = "Выбрать дату", onClick = onClick),
@@ -284,16 +309,9 @@ private fun CalendarDay(
                 color = MaterialTheme.colorScheme.onSurface,
             )
         } else {
-            Text(
-                text = day.toString(),
-                modifier = Modifier.align(Alignment.TopCenter),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
             CheckInThumbnail(
                 checkIns = checkIns,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 1.dp),
+                modifier = Modifier.align(Alignment.Center),
             )
         }
     }
@@ -302,8 +320,8 @@ private fun CalendarDay(
 @Composable
 private fun CheckInThumbnail(checkIns: List<CheckIn>, modifier: Modifier = Modifier) {
     val visibleCheckIns = checkIns.take(3)
-    val thumbnailSize = 24.dp
-    val stackStep = 8.dp
+    val thumbnailSize = 36.dp
+    val stackStep = 5.dp
     Box(
         modifier = modifier
             .width(thumbnailSize + stackStep * (visibleCheckIns.size - 1))
