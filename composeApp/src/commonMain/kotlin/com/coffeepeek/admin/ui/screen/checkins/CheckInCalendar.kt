@@ -39,11 +39,13 @@ internal data class CheckInStreak(
     val isPartOfStreak: Boolean get() = hasPreviousDay || hasNextDay
 }
 
-internal fun checkInStreak(month: CalendarMonth, day: Int, checkInDates: Set<String>): CheckInStreak =
-    CheckInStreak(
+internal fun checkInStreak(month: CalendarMonth, day: Int, checkInDates: Set<String>): CheckInStreak {
+    if (month.isoDate(day) !in checkInDates) return CheckInStreak(false, false)
+    return CheckInStreak(
         hasPreviousDay = day > 1 && month.isoDate(day - 1) in checkInDates,
         hasNextDay = month.isoDate(day + 1) in checkInDates,
     )
+}
 
 private fun daysInMonth(year: Int, month: Int) = when (month) {
     2 -> if (year % 400 == 0 || year % 4 == 0 && year % 100 != 0) 29 else 28

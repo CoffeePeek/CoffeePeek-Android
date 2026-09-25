@@ -32,4 +32,14 @@ class CheckInCalendarTest {
         assertEquals(CheckInStreak(true, false), checkInStreak(month, 7, dates))
         assertEquals(CheckInStreak(false, false), checkInStreak(month, 9, dates))
     }
+
+    @Test
+    fun daysWithoutCheckInsNeverJoinAStreak() {
+        val month = CalendarMonth(2026, 9)
+        val dates = setOf("2026-09-05", "2026-09-06", "2026-09-08")
+
+        assertEquals(CheckInStreak(false, false), checkInStreak(month, 4, dates))
+        assertEquals(CheckInStreak(false, false), checkInStreak(month, 7, dates))
+        assertEquals(CheckInStreak(false, false), checkInStreak(month, 8, dates))
+    }
 }
