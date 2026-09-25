@@ -10,6 +10,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.coffeepeek.admin.theme.CoffeePeekTheme
+import com.coffeepeek.admin.theme.PlatformSystemBars
 import com.coffeepeek.admin.theme.ThemeManager
 import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.Navigator
@@ -31,6 +32,7 @@ fun App(onReady: () -> Unit = {}) {
         ThemeMode.LIGHT  -> false
         ThemeMode.DARK   -> true
     }
+    PlatformSystemBars(darkTheme)
 
     LaunchedEffect(Unit) {
         onReady()
