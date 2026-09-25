@@ -19,7 +19,6 @@ import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.CoffeeShopType
 import com.coffeepeek.domain.model.CreateShopInput
 import com.coffeepeek.domain.model.MapBounds
-import com.coffeepeek.domain.model.MapCluster
 import com.coffeepeek.domain.model.MapCoffeeZone
 import com.coffeepeek.domain.model.MapContent
 import com.coffeepeek.domain.model.MapShop
@@ -148,7 +147,7 @@ class ShopRepositoryImpl(
             minLon = bounds.minLon,
             maxLat = bounds.maxLat,
             maxLon = bounds.maxLon,
-            zoom = zoom.toInt().coerceIn(0, 22),
+            zoom = 22,
             query = filters.query,
             cityId = filters.cityId,
             type = filters.coffeeFocus?.let(CoffeeShopType::toApi),
@@ -173,20 +172,7 @@ class ShopRepositoryImpl(
             val focus = filters.coffeeFocus
             MapContent(
                 shops = if (focus.isNullOrBlank()) mapped else mapped.filter { it.type == focus },
-                clusters = response.clusters.map { cluster ->
-                    MapCluster(
-                        id = cluster.id ?: "${cluster.latitude}:${cluster.longitude}",
-                        latitude = cluster.latitude,
-                        longitude = cluster.longitude,
-                        count = cluster.count,
-                        bounds = MapBounds(
-                            minLat = cluster.bounds.minLatitude,
-                            minLon = cluster.bounds.minLongitude,
-                            maxLat = cluster.bounds.maxLatitude,
-                            maxLon = cluster.bounds.maxLongitude,
-                        ),
-                    )
-                },
+                clusters = emptyList(),
                 zones = response.zones.map { zone ->
                     MapCoffeeZone(
                         id = zone.id,

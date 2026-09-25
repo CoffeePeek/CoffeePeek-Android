@@ -1,7 +1,5 @@
 package com.coffeepeek.admin.ui.screen.editprofile
 
-import com.coffeepeek.admin.ui.component.CpTopBar
-
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -27,12 +26,12 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -55,8 +54,11 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.component.CpCircularBackButton
+import com.coffeepeek.admin.ui.component.SwipeDismissModalBottomSheet
 import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.rememberPhotoPicker
 import com.coffeepeek.admin.di.platformViewModel
@@ -66,12 +68,27 @@ import com.coffeepeek.admin.di.platformViewModel
 fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
     var isPhotoLoading by remember { mutableStateOf(false) }
+    var showAvatarSourceSheet by remember { mutableStateOf(false) }
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
     val photoPicker = rememberPhotoPicker(
         maxSelection = 1,
         isLoading = { isPhotoLoading = it },
         onPhotosPicked = { images -> images.firstOrNull()?.let(vm::onAvatarPicked) },
     )
+
+    if (showAvatarSourceSheet) {
+        AvatarSourceSheet(
+            onDismiss = { showAvatarSourceSheet = false },
+            onGallery = {
+                showAvatarSourceSheet = false
+                photoPicker.pickFromGallery()
+            },
+            onCamera = {
+                showAvatarSourceSheet = false
+                photoPicker.takePhoto()
+            },
+        )
+    }
 
     // Диалог ошибки
     state.error?.let { err ->
@@ -104,7 +121,20 @@ fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
 
     Scaffold(
         topBar = {
-            CpTopBar("Редактировать профиль")
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Редактировать профиль",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
+                navigationIcon = { CpCircularBackButton(onClick = Navigator::popBack) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                ),
+                modifier = Modifier.padding(horizontal = CpDimens.spacing4),
+            )
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -123,45 +153,49 @@ fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
                 .padding(CpDimens.spacing4),
         ) {
             // ── Аватар ───────────────────────────────────────────────────────
-            AvatarPickerSection(
-                avatarUrl = state.avatarUrl,
-                pendingAvatar = state.pendingAvatar,
-                initials = state.username.take(2).uppercase().ifEmpty { "?" },
-                isLoading = isPhotoLoading,
-                onPickFromGallery = photoPicker.pickFromGallery,
-                onTakePhoto = photoPicker.takePhoto,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AvatarPickerSection(
+                    avatarUrl = state.avatarUrl,
+                    pendingAvatar = state.pendingAvatar,
+                    initials = state.username.take(2).uppercase().ifEmpty { "?" },
+                    isLoading = isPhotoLoading,
+                    onClick = { showAvatarSourceSheet = true },
+                )
 
-            Spacer(Modifier.height(CpDimens.spacing5))
-
-            // ── Имя пользователя ─────────────────────────────────────────────
-            FieldLabel("Имя пользователя")
-            CompactOutlinedTextField(
-                value = state.username,
-                onValueChange = vm::onUsernameChange,
-                modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
-                placeholder = {
-                    Text(
-                        "Ваше имя",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Column(modifier = Modifier.weight(1f)) {
+                    FieldLabel("Имя пользователя")
+                    CompactOutlinedTextField(
+                        value = state.username,
+                        onValueChange = vm::onUsernameChange,
+                        modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
+                        placeholder = {
+                            Text(
+                                "Ваше имя",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        textStyle = MaterialTheme.typography.bodyLarge,
+                        isError = state.username.isNotEmpty() && state.usernameError != null,
+                        singleLine = true,
+                        contentPadding = CpDimens.singleLineFieldContentPadding,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Words,
+                            imeAction = ImeAction.Next,
+                        ),
+                        shape = RoundedCornerShape(percent = 50),
+                        colors = fieldColors(),
                     )
-                },
-                textStyle = MaterialTheme.typography.bodyLarge,
-                isError = state.username.isNotEmpty() && state.usernameError != null,
-                singleLine = true,
-                contentPadding = CpDimens.singleLineFieldContentPadding,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Words,
-                    imeAction = ImeAction.Next,
-                ),
-                shape = RoundedCornerShape(percent = 50),
-                colors = fieldColors(),
-            )
-            FieldFooter(
-                error = if (state.username.isNotEmpty()) state.usernameError else null,
-                counter = "${state.username.length}/64",
-            )
+                    FieldFooter(
+                        error = if (state.username.isNotEmpty()) state.usernameError else null,
+                        counter = "${state.username.length}/64",
+                    )
+                }
+            }
 
             Spacer(Modifier.height(CpDimens.spacing4))
 
@@ -253,19 +287,23 @@ private fun AvatarPickerSection(
     pendingAvatar: com.coffeepeek.admin.utils.PickedImage?,
     initials: String,
     isLoading: Boolean,
-    onPickFromGallery: () -> Unit,
-    onTakePhoto: () -> Unit,
+    onClick: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Box(
+        modifier = Modifier
+            .size(104.dp)
+            .clickable(
+                enabled = !isLoading,
+                onClickLabel = "Изменить фото профиля",
+                onClick = onClick,
+            ),
     ) {
         Box(
             modifier = Modifier
+                .align(Alignment.Center)
                 .size(96.dp)
                 .clip(CircleShape)
-                .background(Brush.linearGradient(listOf(CpColor.Primary, CpColor.GoldWarm)))
-                .clickable(enabled = !isLoading, onClick = onPickFromGallery),
+                .background(Brush.linearGradient(listOf(CpColor.Primary, CpColor.GoldWarm))),
             contentAlignment = Alignment.Center,
         ) {
             when {
@@ -302,52 +340,92 @@ private fun AvatarPickerSection(
                 ) {
                     CoffeePeekLoader(size = CpDimens.loaderButton, strokeWidth = 2.dp)
                 }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(4.dp)
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = CpIcons.Camera,
-                        contentDescription = "Изменить аватар",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(14.dp),
-                    )
-                }
             }
         }
-
-        Spacer(Modifier.height(CpDimens.spacing2))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-            OutlinedButton(
-                onClick = onPickFromGallery,
-                enabled = !isLoading,
-                modifier = Modifier.height(CpDimens.buttonHeight),
-                shape = RoundedCornerShape(percent = 50),
+        if (!isLoading) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+                contentAlignment = Alignment.Center,
             ) {
-                Text("Галерея", style = MaterialTheme.typography.labelLarge)
-            }
-            OutlinedButton(
-                onClick = onTakePhoto,
-                enabled = !isLoading,
-                modifier = Modifier.height(CpDimens.buttonHeight),
-                shape = RoundedCornerShape(percent = 50),
-            ) {
-                Text("Камера", style = MaterialTheme.typography.labelLarge)
+                Icon(
+                    imageVector = CpIcons.Camera,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(16.dp),
+                )
             }
         }
+    }
+}
 
+@Composable
+private fun AvatarSourceSheet(
+    onDismiss: () -> Unit,
+    onGallery: () -> Unit,
+    onCamera: () -> Unit,
+) {
+    SwipeDismissModalBottomSheet(onDismissRequest = onDismiss) {
         Text(
-            text = "JPG, PNG или WebP, до 5 МБ",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = "Фото профиля",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing2),
+        )
+        Column(
+            modifier = Modifier
+                .padding(horizontal = CpDimens.spacing4)
+                .clip(RoundedCornerShape(CpDimens.radius2xl))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            AvatarSourceRow(CpIcons.Gallery, "Выбрать из галереи", onGallery)
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                modifier = Modifier.padding(start = 56.dp),
+            )
+            AvatarSourceRow(CpIcons.Camera, "Сделать фото", onCamera)
+        }
+        TextButton(
+            onClick = onDismiss,
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(CpDimens.spacing2),
+        ) {
+            Text("Отмена", style = MaterialTheme.typography.labelLarge)
+        }
+    }
+}
+
+@Composable
+private fun AvatarSourceRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clickable(onClickLabel = title, onClick = onClick)
+            .padding(horizontal = CpDimens.spacing4),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(22.dp),
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }

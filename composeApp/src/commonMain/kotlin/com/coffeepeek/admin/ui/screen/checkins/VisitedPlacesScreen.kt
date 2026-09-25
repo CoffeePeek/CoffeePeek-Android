@@ -181,7 +181,7 @@ private fun CalendarCard(
     ) {
         Column(
             modifier = Modifier.padding(horizontal = CpDimens.spacing2, vertical = CpDimens.spacing3),
-            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -224,7 +224,7 @@ private fun CalendarCard(
                 Row(Modifier.fillMaxWidth()) {
                     week.forEach { day ->
                         if (day == null) {
-                            Spacer(Modifier.weight(1f).height(68.dp))
+                            Spacer(Modifier.weight(1f).height(52.dp))
                         } else {
                             val date = month.isoDate(day)
                             CalendarDay(
@@ -258,7 +258,7 @@ private fun CalendarDay(
     val description = "${selectedDateTitle(date)}, ${if (checkIns.isEmpty()) "нет чек-инов" else visitCount(checkIns.size)}"
     Box(
         modifier = modifier
-            .height(68.dp)
+            .height(52.dp)
             .clip(shape)
             .background(
                 if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else Color.Transparent,
@@ -280,14 +280,14 @@ private fun CalendarDay(
         } else {
             Text(
                 text = day.toString(),
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 2.dp),
+                modifier = Modifier.align(Alignment.TopCenter),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             CheckInThumbnail(
                 checkIns = checkIns,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp),
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 1.dp),
             )
         }
     }
@@ -295,7 +295,7 @@ private fun CalendarDay(
 
 @Composable
 private fun CheckInThumbnail(checkIns: List<CheckIn>, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.size(36.dp)) {
+    Box(modifier = modifier.size(30.dp)) {
         val photo = checkIns.first().photoUrls.firstOrNull()
         if (photo != null) {
             CpImage(
@@ -328,7 +328,7 @@ private fun CheckInThumbnail(checkIns: List<CheckIn>, modifier: Modifier = Modif
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .size(17.dp)
+                    .size(16.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center,
