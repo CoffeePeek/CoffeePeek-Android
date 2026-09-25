@@ -325,6 +325,7 @@ fun CheckInDisplayCard(
             }
             ReviewPhotoStrip(
                 photoUrls = checkIn.photoUrls,
+                thumbnailUrls = checkIn.photoThumbnailUrls,
                 onPhotoClick = onPhotoClick,
             )
         }
@@ -643,13 +644,15 @@ private fun RatingValue(label: String, value: Int) {
 fun ReviewPhotoStrip(
     photoUrls: List<String>,
     modifier: Modifier = Modifier,
+    // Same order as photoUrls: tiles show these, a click still hands out the full photo.
+    thumbnailUrls: List<String> = photoUrls,
     onPhotoClick: ((String) -> Unit)? = null,
 ) {
     if (photoUrls.isEmpty()) return
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-        photoUrls.take(3).forEach { url ->
+        photoUrls.take(3).forEachIndexed { index, url ->
             CpImage(
-                data = url,
+                data = thumbnailUrls.getOrNull(index) ?: url,
                 contentDescription = "Фотография отзыва",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

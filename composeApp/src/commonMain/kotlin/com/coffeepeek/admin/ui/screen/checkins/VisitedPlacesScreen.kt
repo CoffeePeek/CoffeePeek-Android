@@ -335,7 +335,7 @@ private fun CheckInThumbnail(checkIns: List<CheckIn>, modifier: Modifier = Modif
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primaryContainer)
                 .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape)
-            val photo = checkIn.photoUrls.firstOrNull()
+            val photo = checkIn.photoThumbnailUrls.firstOrNull()
             if (photo != null) {
                 CpImage(
                     data = photo,

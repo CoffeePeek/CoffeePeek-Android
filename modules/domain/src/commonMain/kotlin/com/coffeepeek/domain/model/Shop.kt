@@ -29,7 +29,9 @@ data class CoffeeShopDetails(
     val isNew: Boolean = false,
     val canCreateReview: Boolean? = null,
     val existingReviewId: String? = null,
+    // photos: hero-sized; fullscreenPhotos: same order, for the viewer.
     val photos: List<String> = emptyList(),
+    val fullscreenPhotos: List<String> = photos,
     val shopPhotos: List<ShopPhoto> = emptyList(),
     val reviews: List<Review> = emptyList(),
     val userCheckIns: List<CheckIn> = emptyList(),
@@ -67,6 +69,7 @@ data class ShopMenuItem(
 data class ShopMenuPhoto(
     val id: String,
     val fullUrl: String,
+    val previewUrl: String = fullUrl,
     val sortIndex: Int = 0,
 )
 

@@ -26,6 +26,7 @@ enum class MenuItemAvailability {
 data class ShopPhoto(
     val id: String,
     val fullUrl: String,
+    val previewUrl: String = fullUrl,
     val sortIndex: Int = 0,
 )
 

@@ -133,7 +133,7 @@ class ShopChangeEditorViewModel(
                 selectedBrewMethodIds = details.brewMethodItems.map { it.id }.toSet(),
                 menuRows = drinks.toMenuRows(details.menu?.items.orEmpty()),
                 retainedMenuPhotos = details.menu?.photos.orEmpty().map {
-                    ShopPhoto(id = it.id, fullUrl = it.fullUrl, sortIndex = it.sortIndex)
+                    ShopPhoto(id = it.id, fullUrl = it.fullUrl, previewUrl = it.previewUrl, sortIndex = it.sortIndex)
                 },
             )
         }
@@ -279,7 +279,7 @@ private fun ShopChangeEditorUiState.applyRequest(
         selectedEquipmentIds = payload.equipmentIds?.toSet() ?: selectedEquipmentIds,
         selectedBrewMethodIds = payload.brewMethodIds?.toSet() ?: selectedBrewMethodIds,
         retainedMenuPhotos = payload.menu?.retainedPhotoIds?.mapNotNull { id ->
-            menuPhotosById[id]?.let { ShopPhoto(it.id, it.fullUrl, it.sortIndex) }
+            menuPhotosById[id]?.let { ShopPhoto(it.id, it.fullUrl, it.previewUrl, it.sortIndex) }
         } ?: retainedMenuPhotos,
         alreadyUploadedMenuPhotos = payload.menu?.newPhotos.orEmpty(),
         menuRows = payload.menu?.items?.let { items ->

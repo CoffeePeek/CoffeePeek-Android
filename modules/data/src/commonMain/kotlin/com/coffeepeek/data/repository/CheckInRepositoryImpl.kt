@@ -2,6 +2,7 @@ package com.coffeepeek.data.repository
 
 import com.coffeepeek.api.model.request.CreateCheckInReq
 import com.coffeepeek.api.model.response.CheckInDto
+import com.coffeepeek.api.model.response.shop.variantOr
 import com.coffeepeek.api.model.response.shop.RatingDto
 import com.coffeepeek.api.service.CheckInApiService
 import com.coffeepeek.domain.model.CheckIn
@@ -76,7 +77,10 @@ class CheckInRepositoryImpl(
         reviewId = reviewId,
         visitedAt = visitedAt,
         photoUrls = photos.mapNotNull { photo ->
-            fileUrlResolver.resolve(photo.storageKey, photo.fullUrl)
+            fileUrlResolver.resolve(photo.storageKey, photo.urls.variantOr(photo.fullUrl) { it.fullscreen })
+        },
+        photoThumbnailUrls = photos.mapNotNull { photo ->
+            fileUrlResolver.resolve(photo.storageKey, photo.urls.variantOr(photo.fullUrl) { it.thumbnail })
         },
         rating = rating?.let {
             ReviewRating(place = it.place, service = it.service, coffee = it.coffee)

@@ -114,6 +114,8 @@ data class CheckIn(
     val createdAt: String,
     val reviewId: String?,
     val visitedAt: String = "",
+    // photoUrls open fullscreen; thumbnails are for small tiles.
     val photoUrls: List<String> = emptyList(),
+    val photoThumbnailUrls: List<String> = photoUrls,
     val rating: ReviewRating? = null,
 )

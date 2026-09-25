@@ -230,7 +230,7 @@ private fun RetainedPhotoRow(photos: List<ShopPhoto>, onRemove: (String) -> Unit
             val shape = RoundedCornerShape(CpDimens.radiusMd)
             Box(modifier = Modifier.size(96.dp)) {
                 CpImage(
-                    data = photo.fullUrl,
+                    data = photo.previewUrl,
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxSize()

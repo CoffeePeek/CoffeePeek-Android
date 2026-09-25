@@ -38,6 +38,7 @@ data class ShortPhotoMetadataDto(
     @SerialName("fileName") val fileName: String = "",
     @SerialName("storageKey") val storageKey: String = "",
     @SerialName("fullUrl") val fullUrl: String? = null,
+    @SerialName("urls") val urls: PhotoUrlsDto? = null,
     @SerialName("sortIndex") val sortIndex: Int = 0,
 )
 

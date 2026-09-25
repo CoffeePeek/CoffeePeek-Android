@@ -291,6 +291,9 @@ private fun ShopDetailContent(
     val photos = details.photos.filter { it.isNotBlank() }.ifEmpty {
         listOfNotNull(shop.photoUrl?.takeIf { it.isNotBlank() })
     }
+    // Same order as photos; if they diverge, the viewer just gets the hero-sized ones.
+    val fullscreenPhotos = details.fullscreenPhotos.filter { it.isNotBlank() }
+        .takeIf { it.size == photos.size } ?: photos
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -311,7 +314,7 @@ private fun ShopDetailContent(
                     canOpenMap = details.location?.latitude != null &&
                         details.location?.longitude != null,
                     onOpenOnMap = onOpenOnMap,
-                    onPhotoClick = { url -> onOpenPhotos(photos, photos.indexOf(url).coerceAtLeast(0)) },
+                    onPhotoClick = { url -> onOpenPhotos(fullscreenPhotos, photos.indexOf(url).coerceAtLeast(0)) },
                 )
             }
         }
@@ -1332,7 +1335,7 @@ private fun MenuSection(
 
                 if (menu.photos.isNotEmpty()) {
                     MenuPhotoStack(
-                        photos = menu.photos.map { it.fullUrl },
+                        photos = menu.photos.map { it.previewUrl },
                         onPhotoClick = onPhotoClick,
                     ) {
                         MenuFreshness(

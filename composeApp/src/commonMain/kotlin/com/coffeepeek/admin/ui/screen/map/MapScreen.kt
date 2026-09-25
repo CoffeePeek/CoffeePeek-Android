@@ -873,7 +873,7 @@ private fun MapShopBottomSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val photoUrl = details?.photos?.firstOrNull() ?: details?.shop?.photoUrl
+    val photoUrl = details?.shop?.photoUrl ?: details?.photos?.firstOrNull()
     val rating = details?.shop?.rating
     val reviewCount = details?.shop?.reviewCount ?: 0
     val hours = details?.schedules?.let { formatMapHoursSummary(it) }

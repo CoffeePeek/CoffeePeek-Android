@@ -6,6 +6,7 @@ import com.coffeepeek.api.model.response.shop.ReviewDto
 import com.coffeepeek.api.model.response.shop.ShopMenuDto
 import com.coffeepeek.api.model.response.shop.ShopMenuItemDto
 import com.coffeepeek.api.model.response.shop.ShortShopDto
+import com.coffeepeek.api.model.response.shop.variantOr
 import com.coffeepeek.data.util.FileUrlResolver
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CoffeeShop
@@ -34,7 +35,7 @@ internal object ShopMapper {
         rating = rating.takeIf { it > 0 },
         cityName = null,
         priceRange = priceRangeLabel(priceRange),
-        photoUrl = photos.firstOrNull()?.fullUrl,
+        photoUrl = photos.firstOrNull()?.let { it.urls.variantOr(it.fullUrl) { u -> u.card } },
         isFavorite = isFavorite,
         address = location?.address,
         isOpen = isOpen,
@@ -57,7 +58,7 @@ internal object ShopMapper {
             rating = rating.takeIf { it > 0 },
             cityName = null,
             priceRange = priceRangeLabel(priceRange),
-            photoUrl = photos.firstOrNull()?.fullUrl,
+            photoUrl = photos.firstOrNull()?.let { it.urls.variantOr(it.fullUrl) { u -> u.card } },
             isFavorite = isFavorite,
             address = location?.address,
             isOpen = isOpen,
@@ -82,11 +83,17 @@ internal object ShopMapper {
         isNew = isNew,
         canCreateReview = canCreateReview,
         existingReviewId = existingReviewId,
-        photos = photos.mapNotNull { it.fullUrl },
+        photos = photos.mapNotNull { it.urls.variantOr(it.fullUrl) { u -> u.detail } },
+        fullscreenPhotos = photos.mapNotNull { it.urls.variantOr(it.fullUrl) { u -> u.fullscreen } },
         shopPhotos = photos.mapNotNull { photo ->
             val id = photo.id.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            val url = photo.fullUrl?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            ShopPhoto(id = id, fullUrl = url, sortIndex = photo.sortIndex)
+            val url = photo.urls.variantOr(photo.fullUrl) { it.fullscreen } ?: return@mapNotNull null
+            ShopPhoto(
+                id = id,
+                fullUrl = url,
+                previewUrl = photo.urls.variantOr(url) { it.thumbnail } ?: url,
+                sortIndex = photo.sortIndex,
+            )
         }.sortedBy { it.sortIndex },
         reviews = reviews.map { it.toDomain(fileUrls) },
         userCheckIns = userCheckIns.map { checkIn ->
@@ -99,7 +106,10 @@ internal object ShopMapper {
                 reviewId = checkIn.reviewId,
                 visitedAt = checkIn.visitedAt,
                 photoUrls = checkIn.photos.mapNotNull { photo ->
-                    fileUrls.resolve(photo.storageKey, photo.fullUrl)
+                    fileUrls.resolve(photo.storageKey, photo.urls.variantOr(photo.fullUrl) { it.fullscreen })
+                },
+                photoThumbnailUrls = checkIn.photos.mapNotNull { photo ->
+                    fileUrls.resolve(photo.storageKey, photo.urls.variantOr(photo.fullUrl) { it.thumbnail })
                 },
                 rating = checkIn.rating?.let { rating ->
                     ReviewRating(
@@ -186,10 +196,11 @@ internal object ShopMapper {
         items = items.map { it.toDomain() },
         photos = photos
             .mapNotNull { photo ->
-                val url = photo.fullUrl?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                val url = photo.urls.variantOr(photo.fullUrl) { it.fullscreen } ?: return@mapNotNull null
                 ShopMenuPhoto(
                     id = photo.id,
                     fullUrl = url,
+                    previewUrl = photo.urls.variantOr(url) { it.detail } ?: url,
                     sortIndex = photo.sortIndex,
                 )
             }

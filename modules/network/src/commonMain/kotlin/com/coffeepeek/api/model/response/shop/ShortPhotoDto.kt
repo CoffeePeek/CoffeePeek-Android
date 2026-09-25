@@ -10,6 +10,7 @@ data class ShortPhotoDto(
     @SerialName("fileName") val fileName: String? = null,
     @SerialName("storageKey") val storageKey: String? = null,
     @SerialName("fullUrl") val fullUrl: String? = null,
+    @SerialName("urls") val urls: PhotoUrlsDto? = null,
     @SerialName("sortIndex")
     @Serializable(with = FlexibleIntSerializer::class)
     val sortIndex: Int = 0,
