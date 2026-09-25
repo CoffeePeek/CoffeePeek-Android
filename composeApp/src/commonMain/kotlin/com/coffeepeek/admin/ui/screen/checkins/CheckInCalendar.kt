@@ -1,0 +1,51 @@
+package com.coffeepeek.admin.ui.screen.checkins
+
+data class CalendarMonth(val year: Int, val month: Int) {
+    init {
+        require(month in 1..12)
+    }
+
+    fun plusMonths(offset: Int): CalendarMonth {
+        val absoluteMonth = year * 12 + month - 1 + offset
+        return CalendarMonth(
+            year = absoluteMonth.floorDiv(12),
+            month = absoluteMonth.mod(12) + 1,
+        )
+    }
+
+    fun isoDate(day: Int): String = "$year-${month.twoDigits()}-${day.twoDigits()}"
+
+    val fromUtc: String get() = "${isoDate(1)}T00:00:00Z"
+    val toUtc: String get() = "${plusMonths(1).isoDate(1)}T00:00:00Z"
+}
+
+internal fun calendarMonthFromIsoDate(value: String): CalendarMonth? {
+    val parts = value.substringBefore('T').split('-')
+    val year = parts.getOrNull(0)?.toIntOrNull() ?: return null
+    val month = parts.getOrNull(1)?.toIntOrNull() ?: return null
+    return runCatching { CalendarMonth(year, month) }.getOrNull()
+}
+
+internal fun calendarCells(month: CalendarMonth): List<Int?> {
+    val leadingEmptyDays = mondayFirstDayOfWeek(month.year, month.month, 1)
+    val days = List(leadingEmptyDays) { null } + (1..daysInMonth(month.year, month.month)).toList()
+    return days + List((7 - days.size % 7) % 7) { null }
+}
+
+private fun daysInMonth(year: Int, month: Int) = when (month) {
+    2 -> if (year % 400 == 0 || year % 4 == 0 && year % 100 != 0) 29 else 28
+    4, 6, 9, 11 -> 30
+    else -> 31
+}
+
+private fun mondayFirstDayOfWeek(year: Int, month: Int, day: Int): Int {
+    val offsets = intArrayOf(0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4)
+    val adjustedYear = if (month < 3) year - 1 else year
+    val sundayFirst = (
+        adjustedYear + adjustedYear / 4 - adjustedYear / 100 + adjustedYear / 400 +
+            offsets[month - 1] + day
+        ) % 7
+    return (sundayFirst + 6) % 7
+}
+
+private fun Int.twoDigits() = toString().padStart(2, '0')

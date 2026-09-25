@@ -1,21 +1,33 @@
 package com.coffeepeek.admin.ui.screen.checkins
 
 import com.coffeepeek.admin.base.BaseViewModel
+import com.coffeepeek.admin.utils.currentUtcIsoDateTime
+import com.coffeepeek.admin.utils.utcIsoToLocalDate
 import com.coffeepeek.domain.model.CheckIn
 import com.coffeepeek.domain.repository.CheckInRepository
 import com.coffeepeek.domain.repository.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 private const val PAGE_SIZE = 20
+private const val CALENDAR_PAGE_SIZE = 100
+
+enum class CheckInViewMode { Calendar, List }
 
 data class VisitedPlacesUiState(
     val checkIns: List<CheckIn> = emptyList(),
+    val calendarCheckIns: Map<String, List<CheckIn>> = emptyMap(),
+    val calendarMonth: CalendarMonth = CalendarMonth(1970, 1),
+    val canGoNextMonth: Boolean = false,
+    val selectedDate: String? = null,
     val isLoading: Boolean = false,
+    val isCalendarLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
     val error: String? = null,
+    val calendarError: String? = null,
     val currentPage: Int = 1,
     val hasMore: Boolean = false,
 )
@@ -25,10 +37,75 @@ class VisitedPlacesViewModel(
     private val sessionRepository: SessionRepository,
 ) : BaseViewModel() {
 
-    private val _state = MutableStateFlow(VisitedPlacesUiState())
+    private val today = utcIsoToLocalDate(currentUtcIsoDateTime())
+    private val currentMonth = calendarMonthFromIsoDate(today) ?: CalendarMonth(1970, 1)
+    private val _state = MutableStateFlow(
+        VisitedPlacesUiState(calendarMonth = currentMonth, selectedDate = today),
+    )
     val state = _state.asStateFlow()
+    private var calendarJob: Job? = null
 
-    init { load(reset = true) }
+    init { loadCalendarMonth(currentMonth) }
+
+    fun changeMonth(offset: Int) {
+        val target = _state.value.calendarMonth.plusMonths(offset)
+        if (target.year * 12 + target.month > currentMonth.year * 12 + currentMonth.month) return
+        _state.update {
+            it.copy(
+                calendarMonth = target,
+                canGoNextMonth = target != currentMonth,
+                calendarCheckIns = emptyMap(),
+                selectedDate = null,
+            )
+        }
+        loadCalendarMonth(target)
+    }
+
+    fun selectDate(date: String) {
+        _state.update { it.copy(selectedDate = date) }
+    }
+
+    fun refreshCalendar() = loadCalendarMonth(_state.value.calendarMonth)
+
+    private fun loadCalendarMonth(month: CalendarMonth) {
+        calendarJob?.cancel()
+        calendarJob = workScope.launch {
+            if (!sessionRepository.isLoggedIn()) {
+                _state.update {
+                    it.copy(calendarCheckIns = emptyMap(), isCalendarLoading = false, calendarError = null)
+                }
+                return@launch
+            }
+            _state.update { it.copy(isCalendarLoading = true, calendarError = null) }
+            checkInRepository.getMyCheckIns(month.fromUtc, month.toUtc, CALENDAR_PAGE_SIZE)
+                .onSuccess { checkIns ->
+                    val grouped = checkIns.groupBy { checkIn ->
+                        utcIsoToLocalDate(checkIn.visitedAt.ifBlank { checkIn.createdAt })
+                    }
+                    val selectedDate = when {
+                        month == currentMonth && grouped.containsKey(today) -> today
+                        grouped.isNotEmpty() -> grouped.keys.maxOrNull()
+                        month == currentMonth -> today
+                        else -> null
+                    }
+                    _state.update { state ->
+                        if (state.calendarMonth != month) state else state.copy(
+                            calendarCheckIns = grouped,
+                            selectedDate = selectedDate,
+                            isCalendarLoading = false,
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _state.update { state ->
+                        if (state.calendarMonth != month) state else state.copy(
+                            isCalendarLoading = false,
+                            calendarError = error.message ?: "Ошибка загрузки",
+                        )
+                    }
+                }
+        }
+    }
 
     fun load(reset: Boolean = false) {
         workScope.launch {

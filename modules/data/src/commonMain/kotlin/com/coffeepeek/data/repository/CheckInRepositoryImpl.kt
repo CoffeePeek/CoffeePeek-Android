@@ -1,6 +1,7 @@
 package com.coffeepeek.data.repository
 
 import com.coffeepeek.api.model.request.CreateCheckInReq
+import com.coffeepeek.api.model.response.CheckInDto
 import com.coffeepeek.api.model.response.shop.RatingDto
 import com.coffeepeek.api.service.CheckInApiService
 import com.coffeepeek.domain.model.CheckIn
@@ -53,29 +54,32 @@ class CheckInRepositoryImpl(
         checkInApiService.getMyCheckIns(page, pageSize).map { response ->
             PagedResult(
                 items = response.checkIns.map { dto ->
-                    CheckIn(
-                        id = dto.id,
-                        shopId = dto.shopId,
-                        shopName = dto.shopName.orEmpty(),
-                        note = dto.note.orEmpty(),
-                        createdAt = dto.createdAt,
-                        reviewId = dto.reviewId,
-                        visitedAt = dto.visitedAt,
-                        photoUrls = dto.photos.mapNotNull { photo ->
-                            fileUrlResolver.resolve(photo.storageKey, photo.fullUrl)
-                        },
-                        rating = dto.rating?.let { rating ->
-                            ReviewRating(
-                                place = rating.place,
-                                service = rating.service,
-                                coffee = rating.coffee,
-                            )
-                        },
-                    )
+                    dto.toDomain()
                 },
                 totalCount = response.totalItems,
                 totalPages = response.totalPages,
                 currentPage = response.currentPage,
             )
         }
+
+    override suspend fun getMyCheckIns(from: String, to: String, pageSize: Int): Result<List<CheckIn>> =
+        checkInApiService.getMyCheckIns(from, to, pageSize).map { response ->
+            response.checkIns.map { it.toDomain() }
+        }
+
+    private fun CheckInDto.toDomain() = CheckIn(
+        id = id,
+        shopId = shopId,
+        shopName = shopName.orEmpty(),
+        note = note.orEmpty(),
+        createdAt = createdAt,
+        reviewId = reviewId,
+        visitedAt = visitedAt,
+        photoUrls = photos.mapNotNull { photo ->
+            fileUrlResolver.resolve(photo.storageKey, photo.fullUrl)
+        },
+        rating = rating?.let {
+            ReviewRating(place = it.place, service = it.service, coffee = it.coffee)
+        },
+    )
 }
