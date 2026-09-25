@@ -313,47 +313,25 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                                     modifier = Modifier.size(132.dp),
                                 )
                                 Spacer(Modifier.height(CpDimens.spacing3))
-                                if (state.query.isNotBlank()) {
-                                    Text(
-                                        "Не удалось найти кофейню?",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        textAlign = TextAlign.Center,
-                                    )
-                                    Spacer(Modifier.height(CpDimens.spacing2))
-                                    Text(
-                                        "Поделись с сообществом своими любимыми кофейнями",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        textAlign = TextAlign.Center,
-                                    )
-                                    Spacer(Modifier.height(CpDimens.spacing4))
-                                    Button(
-                                        onClick = { Navigator.navigate(Navigator.Screen.AddShop) },
-                                        modifier = Modifier.height(CpDimens.buttonHeight),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary,
-                                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                                        ),
-                                        shape = RoundedCornerShape(percent = 50),
-                                    ) {
-                                        Text("Добавить кофейню")
-                                    }
-                                } else {
-                                    Text(
-                                        "Ничего не найдено",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        textAlign = TextAlign.Center,
-                                    )
-                                    Spacer(Modifier.height(CpDimens.spacing2))
-                                    TextButton(onClick = vm::clearFilters) {
-                                        Text("Сбросить фильтры")
-                                    }
+                                Text(
+                                    "Ничего не найдено",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center,
+                                )
+                                Spacer(Modifier.height(CpDimens.spacing2))
+                                Text(
+                                    "Попробуйте изменить запрос или сбросить фильтры",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                )
+                                Spacer(Modifier.height(CpDimens.spacing2))
+                                TextButton(onClick = vm::clearFilters) {
+                                    Text("Сбросить поиск и фильтры")
                                 }
                             }
                         }

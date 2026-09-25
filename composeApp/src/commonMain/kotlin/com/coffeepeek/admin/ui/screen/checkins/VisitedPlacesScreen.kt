@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.ui.screen.checkins
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,8 +14,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -60,6 +63,9 @@ import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.currentUtcIsoDateTime
 import com.coffeepeek.admin.utils.utcIsoToLocalDate
 import com.coffeepeek.domain.model.CheckIn
+import coffeepeek.composeapp.generated.resources.Res
+import coffeepeek.composeapp.generated.resources.maskot_with_photo
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = platformViewModel()) {
@@ -295,49 +301,36 @@ private fun CalendarDay(
 
 @Composable
 private fun CheckInThumbnail(checkIns: List<CheckIn>, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.size(30.dp)) {
-        val photo = checkIns.first().photoUrls.firstOrNull()
-        if (photo != null) {
-            CpImage(
-                data = photo,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape)
-                    .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape),
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = CpIcons.Coffee,
+    val visibleCheckIns = checkIns.take(3)
+    val thumbnailSize = 24.dp
+    val stackStep = 8.dp
+    Box(
+        modifier = modifier
+            .width(thumbnailSize + stackStep * (visibleCheckIns.size - 1))
+            .height(thumbnailSize),
+    ) {
+        visibleCheckIns.forEachIndexed { index, checkIn ->
+            val itemModifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(x = stackStep * index)
+                .size(thumbnailSize)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape)
+            val photo = checkIn.photoUrls.firstOrNull()
+            if (photo != null) {
+                CpImage(
+                    data = photo,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(19.dp),
+                    contentScale = ContentScale.Crop,
+                    modifier = itemModifier,
                 )
-            }
-        }
-        if (checkIns.size > 1) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(16.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "+${checkIns.size - 1}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.Bold,
+            } else {
+                Image(
+                    painter = painterResource(Res.drawable.maskot_with_photo),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = itemModifier.padding(1.dp),
                 )
             }
         }

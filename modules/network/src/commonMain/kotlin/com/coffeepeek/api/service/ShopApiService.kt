@@ -165,7 +165,6 @@ class ShopApiService(private val client: HttpClient) {
         maxLat: Double,
         maxLon: Double,
         zoom: Int,
-        query: String? = null,
         cityId: String? = null,
         type: String? = null,
         roasterIds: List<String>? = null,
@@ -182,7 +181,6 @@ class ShopApiService(private val client: HttpClient) {
             parameter("maxLat", maxLat)
             parameter("maxLon", maxLon)
             parameter("zoom", zoom)
-            query?.let { parameter("q", it) }
             cityId?.let { parameter("cityId", it) }
             type?.let { parameter("type", it) }
             roasterIds?.forEach { parameter("roasters", it) }

@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -77,6 +78,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.CompositionLocalProvider
 import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.domain.model.CatalogItem
+import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.MapShop
 import com.coffeepeek.domain.model.MapCoffeeZone
@@ -130,17 +132,31 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
             onLocationPermissionDenied = {},
         )
 
-        CpSearchField(
-            value = state.query,
-            onValueChange = vm::onQueryChange,
-            placeholder = "Поиск кофейни…",
-            fieldHeight = CpDimens.buttonHeight,
+        Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
                 .fillMaxWidth()
-                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
-        )
+                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3)
+                .zIndex(2f),
+            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        ) {
+            CpSearchField(
+                value = state.query,
+                onValueChange = vm::onQueryChange,
+                placeholder = "Поиск кофейни…",
+                fieldHeight = CpDimens.buttonHeight,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (state.showSearchSuggestions) {
+                MapSearchSuggestions(
+                    results = state.searchResults,
+                    isLoading = state.isSearchLoading,
+                    failed = state.searchFailed,
+                    onSelect = vm::onSearchResultSelected,
+                )
+            }
+        }
 
         if (state.isTruncated) {
             Surface(
@@ -255,6 +271,96 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
                         bottom = navClearance + CpDimens.spacing4,
                     ),
             )
+        }
+    }
+}
+
+@Composable
+private fun MapSearchSuggestions(
+    results: List<CoffeeShop>,
+    isLoading: Boolean,
+    failed: Boolean,
+    onSelect: (CoffeeShop) -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(CpDimens.radiusLg),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 3.dp,
+        shadowElevation = 6.dp,
+    ) {
+        when {
+            isLoading -> Box(
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CoffeePeekLoader(size = 24.dp)
+            }
+
+            failed -> Text(
+                text = "Не удалось выполнить поиск",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(CpDimens.spacing4),
+            )
+
+            results.isEmpty() -> Text(
+                text = "Кофейни не найдены",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(CpDimens.spacing4),
+            )
+
+            else -> Column {
+                results.forEachIndexed { index, shop ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 56.dp)
+                            .clickable { onSelect(shop) }
+                            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing2),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+                    ) {
+                        Icon(
+                            imageVector = CpIcons.Location,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp),
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = shop.title,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            shop.address?.takeIf(String::isNotBlank)?.let { address ->
+                                Text(
+                                    text = address,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = CpIcons.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                    if (index != results.lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 56.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
+                    }
+                }
+            }
         }
     }
 }

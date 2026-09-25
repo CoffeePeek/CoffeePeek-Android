@@ -148,7 +148,6 @@ class ShopRepositoryImpl(
             maxLat = bounds.maxLat,
             maxLon = bounds.maxLon,
             zoom = 22,
-            query = filters.query,
             cityId = filters.cityId,
             type = filters.coffeeFocus?.let(CoffeeShopType::toApi),
             roasterIds = filters.roasterIds.takeIf { it.isNotEmpty() },

@@ -4,6 +4,7 @@ import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.settings.CityPreference
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
+import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.MapBounds
 import com.coffeepeek.domain.model.MapCluster
@@ -50,6 +51,10 @@ data class MapUiState(
     val isLoadingShopDetails: Boolean = false,
     val isLoading: Boolean = false,
     val query: String = "",
+    val searchResults: List<CoffeeShop> = emptyList(),
+    val isSearchLoading: Boolean = false,
+    val searchFailed: Boolean = false,
+    val showSearchSuggestions: Boolean = false,
     val filters: MapFiltersUi = MapFiltersUi(),
     val cities: List<City> = emptyList(),
     val beans: List<CatalogItem> = emptyList(),
@@ -199,14 +204,72 @@ class MapViewModel(
     }
 
     fun onQueryChange(query: String) {
-        _state.update { it.copy(query = query) }
         queryJob?.cancel()
+        _state.update {
+            it.copy(
+                query = query,
+                searchResults = emptyList(),
+                isSearchLoading = query.isNotBlank(),
+                searchFailed = false,
+                showSearchSuggestions = query.isNotBlank(),
+            )
+        }
+        if (query.isBlank()) return
+
         queryJob = workScope.launch {
             delay(350)
-            val bounds = _state.value.activeBounds ?: _state.value.pendingBounds ?: return@launch
-            val zoom = _state.value.activeZoom ?: _state.value.pendingZoom ?: return@launch
-            loadBounds(bounds, zoom)
+            val state = _state.value
+            val filters = state.filters
+            shopRepository.searchShops(
+                ShopFilters(
+                    query = query.trim(),
+                    cityId = filters.cityId,
+                    coffeeFocus = filters.coffeeFocus,
+                    roasterIds = filters.roasterIds.toList(),
+                    beanIds = filters.beanIds.toList(),
+                    equipmentIds = filters.equipmentIds.toList(),
+                    brewMethodIds = filters.brewMethodIds.toList(),
+                    tagIds = filters.tagIds.toList(),
+                    priceRange = filters.priceRange,
+                    minRating = filters.minRating,
+                    page = 1,
+                    pageSize = 3,
+                ),
+            ).onSuccess { page ->
+                _state.update { current ->
+                    if (current.query != query) current else current.copy(
+                        searchResults = page.items.filter { it.toMapShopOrNull() != null },
+                        isSearchLoading = false,
+                    )
+                }
+            }.onFailure {
+                _state.update { current ->
+                    if (current.query != query) current else current.copy(
+                        isSearchLoading = false,
+                        searchFailed = true,
+                    )
+                }
+            }
         }
+    }
+
+    fun onSearchResultSelected(shop: CoffeeShop) {
+        val mapShop = shop.toMapShopOrNull() ?: return
+        queryJob?.cancel()
+        _state.update { current ->
+            current.copy(
+                query = shop.title,
+                searchResults = emptyList(),
+                isSearchLoading = false,
+                searchFailed = false,
+                showSearchSuggestions = false,
+                shops = (current.shops + mapShop).distinctBy { it.id },
+                cameraTarget = mapShop.latitude to mapShop.longitude,
+                cameraZoom = 16f,
+            )
+        }
+        selectShop(mapShop)
+        pauseBoundsUpdates(700)
     }
 
     fun setCoffeeFocus(coffeeFocus: String?) {
@@ -342,7 +405,6 @@ class MapViewModel(
                 bounds = requestArea,
                 zoom = zoom,
                 filters = ShopFilters(
-                    query = state.query.takeIf { it.isNotBlank() },
                     cityId = filters.cityId,
                     coffeeFocus = filters.coffeeFocus,
                     roasterIds = filters.roasterIds.toList(),
@@ -495,3 +557,15 @@ internal fun MapBounds.expandedForPrefetch(minMarginKm: Double = PREFETCH_MIN_MA
 
 internal fun MapBounds.contains(other: MapBounds): Boolean =
     other.minLat >= minLat && other.maxLat <= maxLat && other.minLon >= minLon && other.maxLon <= maxLon
+
+internal fun CoffeeShop.toMapShopOrNull(): MapShop? {
+    val latitude = location?.latitude ?: return null
+    val longitude = location?.longitude ?: return null
+    return MapShop(
+        id = id,
+        title = title,
+        latitude = latitude,
+        longitude = longitude,
+        type = type,
+    )
+}
