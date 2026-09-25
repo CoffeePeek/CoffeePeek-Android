@@ -36,7 +36,6 @@ import com.coffeepeek.admin.ui.component.SettingsIconPalette
 import com.coffeepeek.admin.ui.component.SettingsRow
 import com.coffeepeek.admin.ui.component.SettingsSection
 import com.coffeepeek.admin.ui.icons.CpIcons
-import com.coffeepeek.admin.ui.screen.contributions.ContributionKind
 import com.coffeepeek.admin.utils.COFFEEPEEK_SHARE_TEXT
 import com.coffeepeek.admin.utils.OpenInBrowser
 import com.coffeepeek.admin.utils.ShareHelper
@@ -97,16 +96,6 @@ fun SettingsScreen(vm: ProfileViewModel = koinInject()) {
                     iconColors = SettingsIconPalette.Mint,
                     onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
                 )
-                if (profile.isLoggedIn) {
-                    SettingsDivider()
-                    SettingsRow(
-                        icon = CpIcons.CoffeeBean,
-                        label = "Мои обжарщики",
-                        description = "Обжарщики, которые вы добавили",
-                        iconColors = SettingsIconPalette.Sky,
-                        onClick = { openContributions(ContributionKind.Roasters) },
-                    )
-                }
             }
 
             Spacer(Modifier.height(CpDimens.settingsSectionSpacing))

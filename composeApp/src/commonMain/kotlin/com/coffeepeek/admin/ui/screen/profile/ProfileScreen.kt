@@ -161,7 +161,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
 
             Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
 
-            SettingsSection(title = "Моя активность") {
+            SettingsSection(title = "Избранное") {
                 SettingsRow(
                     icon = CpIcons.Favorite,
                     label = "Избранные кофейни",
@@ -169,7 +169,11 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                     iconColors = SettingsIconPalette.Rose,
                     onClick = { Navigator.navigate(Navigator.Screen.Favorites) },
                 )
-                SettingsDivider()
+            }
+
+            Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
+
+            SettingsSection(title = "Моя активность") {
                 SettingsRow(
                     icon = CpIcons.Review,
                     label = "Мои отзывы",
@@ -185,22 +189,33 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                     iconColors = SettingsIconPalette.Sky,
                     onClick = { Navigator.navigate(Navigator.Screen.VisitedPlaces) },
                 )
-                if (state.isLoggedIn) {
+            }
+
+            if (state.isLoggedIn) {
+                Spacer(Modifier.height(CpDimens.settingsSectionSpacing))
+                SettingsSection(title = "Модерация") {
+                    SettingsRow(
+                        icon = CpIcons.NoteEdit,
+                        label = "Правки кофеен",
+                        description = "Изменения, которые вы отправили",
+                        iconColors = SettingsIconPalette.Gold,
+                        onClick = { openContributions(ContributionKind.Changes) },
+                    )
                     SettingsDivider()
                     SettingsRow(
                         icon = CpIcons.Add,
-                        label = "Мои кофейни",
+                        label = "Отправленные кофейни",
                         description = "Кофейни, которые вы добавили",
                         iconColors = SettingsIconPalette.Mint,
                         onClick = { openContributions(ContributionKind.Shops) },
                     )
                     SettingsDivider()
                     SettingsRow(
-                        icon = CpIcons.NoteEdit,
-                        label = "Мои правки кофеен",
-                        description = "Заявки, которые вы отправили на модерацию",
-                        iconColors = SettingsIconPalette.Gold,
-                        onClick = { openContributions(ContributionKind.Changes) },
+                        icon = CpIcons.CoffeeBean,
+                        label = "Отправленные обжарщики",
+                        description = "Обжарщики, которых вы добавили",
+                        iconColors = SettingsIconPalette.Sky,
+                        onClick = { openContributions(ContributionKind.Roasters) },
                     )
                 }
             }
