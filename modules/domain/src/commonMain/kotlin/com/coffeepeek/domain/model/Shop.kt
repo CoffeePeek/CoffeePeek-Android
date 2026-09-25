@@ -213,3 +213,20 @@ data class PagedResult<T>(
     val totalPages: Int,
     val currentPage: Int,
 )
+
+/** A shop the current user submitted, with its moderation outcome. */
+data class ShopSubmission(
+    val id: String,
+    val name: String,
+    val address: String?,
+    val status: ModerationStatus,
+    val rejectedReason: String?,
+    // Set once the shop is live in the catalog; may lag briefly behind Approved.
+    val publishedShopId: String?,
+)
+
+data class ReviewSubmission(
+    val review: Review,
+    val status: ModerationStatus,
+    val rejectedReason: String?,
+)

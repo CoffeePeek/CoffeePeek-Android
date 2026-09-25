@@ -7,6 +7,8 @@ import com.coffeepeek.api.model.request.ScheduleReq
 import com.coffeepeek.api.service.ShopApiService
 import com.coffeepeek.data.mapper.ShopMapper.parseShopType
 import com.coffeepeek.data.mapper.ShopMapper.toDomain
+import com.coffeepeek.data.mapper.toDomain
+import com.coffeepeek.data.mapper.toDto
 import com.coffeepeek.data.util.FileUrlResolver
 import com.coffeepeek.data.time.localSchedulesToUtc
 import com.coffeepeek.domain.model.CatalogItem
@@ -21,10 +23,12 @@ import com.coffeepeek.domain.model.MapCluster
 import com.coffeepeek.domain.model.MapCoffeeZone
 import com.coffeepeek.domain.model.MapContent
 import com.coffeepeek.domain.model.MapShop
+import com.coffeepeek.domain.model.ModerationStatus
 import com.coffeepeek.domain.model.PagedResult
 import com.coffeepeek.domain.model.ShopCatalogs
 import com.coffeepeek.domain.model.ShopFilters
 import com.coffeepeek.domain.model.ShopMenu
+import com.coffeepeek.domain.model.ShopSubmission
 import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.PhotoRepository
 import com.coffeepeek.domain.repository.ShopRepository
@@ -196,6 +200,29 @@ class ShopRepositoryImpl(
                     )
                 },
                 isTruncated = response.isTruncated,
+            )
+        }
+
+    override suspend fun getMyShopSubmissions(
+        status: ModerationStatus,
+        page: Int,
+        pageSize: Int,
+    ): Result<PagedResult<ShopSubmission>> =
+        shopApiService.getMyModerationShops(status.toDto(), page, pageSize).map { response ->
+            PagedResult(
+                items = response.moderationShops.map {
+                    ShopSubmission(
+                        id = it.id,
+                        name = it.name,
+                        address = it.address,
+                        status = it.moderationStatus.toDomain(),
+                        rejectedReason = it.rejectedReason,
+                        publishedShopId = it.publishedShopId,
+                    )
+                },
+                totalCount = response.totalItems,
+                totalPages = response.totalPages,
+                currentPage = response.currentPage,
             )
         }
 

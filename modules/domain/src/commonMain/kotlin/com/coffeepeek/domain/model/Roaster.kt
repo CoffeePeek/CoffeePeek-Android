@@ -51,3 +51,11 @@ data class RoasterSubmissionResult(
     val isAddressValidated: Boolean,
     val message: String,
 )
+
+data class RoasterSubmission(
+    val id: String,
+    val name: String,
+    val about: String?,
+    val status: ModerationStatus,
+    val rejectedReason: String?,
+)

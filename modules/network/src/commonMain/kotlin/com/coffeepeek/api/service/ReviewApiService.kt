@@ -6,6 +6,8 @@ import com.coffeepeek.api.model.request.UpdateReviewReq
 import com.coffeepeek.api.model.response.CanCreateReviewResponseDto
 import com.coffeepeek.api.model.response.CreateEntityResponseDto
 import com.coffeepeek.api.model.response.GetReviewsByUserIdResponseDto
+import com.coffeepeek.api.model.response.MyModerationReviewsPageDto
+import com.coffeepeek.api.model.request.ModerationStatusDto
 import com.coffeepeek.api.model.response.ReviewHelpfulResponseDto
 import com.coffeepeek.api.utils.ApiException
 import com.coffeepeek.api.utils.deleteResult
@@ -73,4 +75,21 @@ class ReviewApiService(private val client: HttpClient) {
             }
             apiResponse.data
         }
+
+    suspend fun getMyModerationReviews(
+        status: ModerationStatusDto,
+        page: Int,
+        pageSize: Int,
+    ): Result<MyModerationReviewsPageDto> = runCatching {
+        val response = client.getResult("/api/ModerationReviews/mine") {
+            parameter("page", page)
+            parameter("pageSize", pageSize)
+            parameter("status", status.name)
+        }.getOrThrow()
+        val apiResponse = response.body<ApiResponse<MyModerationReviewsPageDto>>()
+        if (!apiResponse.isSuccess || apiResponse.data == null) {
+            throw ApiException(apiResponse.message)
+        }
+        apiResponse.data
+    }
 }

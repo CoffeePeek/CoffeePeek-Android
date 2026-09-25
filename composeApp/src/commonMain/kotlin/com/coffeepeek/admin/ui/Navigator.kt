@@ -6,7 +6,8 @@ import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesScreen
 import com.coffeepeek.admin.ui.screen.deleteaccount.DeleteAccountPendingScreen
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileScreen
 import com.coffeepeek.admin.ui.screen.favorites.FavoritesScreen
-import com.coffeepeek.admin.ui.screen.reviews.MyReviewsScreen
+import com.coffeepeek.admin.ui.screen.contributions.ContributionKind
+import com.coffeepeek.admin.ui.screen.contributions.MyContributionsScreen
 import com.coffeepeek.admin.ui.screen.roaster.AddRoasterScreen
 import com.coffeepeek.admin.ui.screen.roaster.RoasterDetailScreen
 import com.coffeepeek.admin.ui.screen.profile.CityScreen
@@ -38,7 +39,6 @@ import com.coffeepeek.admin.ui.screen.shop.ShopMenuGalleryScreen
 import com.coffeepeek.admin.ui.screen.shop.ShopReportScreen
 import com.coffeepeek.admin.ui.screen.shopchange.ShopChangeEditorScreen
 import com.coffeepeek.admin.ui.screen.shopchange.ShopChangeRequestDetailScreen
-import com.coffeepeek.admin.ui.screen.shopchange.ShopChangeRequestsScreen
 import com.coffeepeek.admin.ui.screen.shopchange.SuggestShopChangeScreen
 import com.coffeepeek.admin.utils.ErrorHandler
 import com.coffeepeek.admin.utils.LoadingHandler
@@ -100,7 +100,8 @@ object Navigator {
             val section: String,
             val requestId: String = "",
         ) : Screen
-        @Serializable data object MyShopChanges : Screen
+        /** [kind] is a [ContributionKind] name. */
+        @Serializable data class MyContributions(val kind: String) : Screen
         @Serializable data class ShopChangeRequestDetail(
             val requestId: String,
         ) : Screen
@@ -110,7 +111,6 @@ object Navigator {
         @Serializable data object EditProfile : Screen
         @Serializable data object DeleteAccountPending : Screen
         @Serializable data object Favorites : Screen
-        @Serializable data object MyReviews : Screen
         @Serializable data object VisitedPlaces : Screen
         @Serializable data object CitySettings : Screen
         @Serializable data object ThemeSettings : Screen
@@ -163,7 +163,7 @@ object Navigator {
         is Screen.ReportShop,
         is Screen.SuggestShopChange,
         is Screen.ShopChangeEditor,
-        is Screen.MyShopChanges,
+        is Screen.MyContributions,
         is Screen.ShopChangeRequestDetail,
         is Screen.AddShop,
         is Screen.AddRoaster,
@@ -173,7 +173,6 @@ object Navigator {
         is Screen.CreateReview,
         is Screen.ReviewEdit,
         is Screen.Favorites,
-        is Screen.MyReviews,
         is Screen.VisitedPlaces,
         is Screen.CitySettings,
         is Screen.ThemeSettings -> true
@@ -327,7 +326,10 @@ object Navigator {
                         requestId = route.requestId,
                     )
                 }
-                composable<Screen.MyShopChanges> { ShopChangeRequestsScreen() }
+                composable<Screen.MyContributions> { backStack ->
+                    val route = backStack.toRoute<Screen.MyContributions>()
+                    MyContributionsScreen(kind = ContributionKind.valueOf(route.kind))
+                }
                 composable<Screen.ShopChangeRequestDetail> { backStack ->
                     val route = backStack.toRoute<Screen.ShopChangeRequestDetail>()
                     ShopChangeRequestDetailScreen(requestId = route.requestId)
@@ -349,7 +351,6 @@ object Navigator {
                     EditReviewScreen(reviewId = route.reviewId)
                 }
                 composable<Screen.Favorites> { FavoritesScreen() }
-                composable<Screen.MyReviews> { MyReviewsScreen() }
                 composable<Screen.VisitedPlaces> { VisitedPlacesScreen() }
                 composable<Screen.CitySettings> { CityScreen() }
                 composable<Screen.ThemeSettings> { ThemeScreen() }

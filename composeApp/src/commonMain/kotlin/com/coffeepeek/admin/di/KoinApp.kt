@@ -21,7 +21,8 @@ import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesViewModel
 import com.coffeepeek.admin.ui.screen.favorites.FavoritesViewModel
 import com.coffeepeek.admin.ui.screen.review.CreateReviewViewModel
 import com.coffeepeek.admin.ui.screen.review.EditReviewViewModel
-import com.coffeepeek.admin.ui.screen.reviews.MyReviewsViewModel
+import com.coffeepeek.admin.ui.screen.contributions.ContributionKind
+import com.coffeepeek.admin.ui.screen.contributions.MyContributionsViewModel
 import com.coffeepeek.admin.ui.screen.roaster.AddRoasterViewModel
 import com.coffeepeek.admin.ui.screen.roaster.RoasterDetailViewModel
 import com.coffeepeek.admin.ui.screen.shop.ShopDetailViewModel
@@ -30,7 +31,6 @@ import com.coffeepeek.admin.ui.screen.shop.ShopMenuGalleryViewModel
 import com.coffeepeek.admin.ui.screen.shop.ShopReportViewModel
 import com.coffeepeek.admin.ui.screen.shopchange.ShopChangeEditorViewModel
 import com.coffeepeek.admin.ui.screen.shopchange.ShopChangeRequestDetailViewModel
-import com.coffeepeek.admin.ui.screen.shopchange.ShopChangeRequestsViewModel
 import com.coffeepeek.admin.ui.screen.shopchange.SuggestShopChangeViewModel
 import com.coffeepeek.domain.model.ShopChangeSection
 import com.coffeepeek.admin.di.imageModule
@@ -78,14 +78,13 @@ private fun appModule(settingRepository: com.coffeepeek.room.repository.SettingR
     factory { (shopId: String, section: ShopChangeSection, requestId: String) ->
         ShopChangeEditorViewModel(shopId, section, requestId, get(), get())
     }
-    factory { ShopChangeRequestsViewModel(get()) }
     factory { (requestId: String) -> ShopChangeRequestDetailViewModel(requestId, get()) }
     single { ProfileViewModel(get(), get(), get(), get(), get(), get()) }
     factory { DeleteAccountPendingViewModel(get(), get()) }
     factory { AddShopViewModel(get()) }
     factory { EditProfileViewModel(get()) }
     factory { FavoritesViewModel(get()) }
-    factory { MyReviewsViewModel(get(), get()) }
+    factory { (kind: ContributionKind) -> MyContributionsViewModel(kind, get(), get(), get(), get(), get()) }
     factory { VisitedPlacesViewModel(get(), get()) }
     factory { AddRoasterViewModel(get(), get()) }
     factory { (roasterId: String) -> RoasterDetailViewModel(roasterId, get(), get()) }

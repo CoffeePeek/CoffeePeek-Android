@@ -54,6 +54,7 @@ import com.coffeepeek.admin.ui.component.SettingsDivider
 import com.coffeepeek.admin.ui.component.SettingsIconPalette
 import com.coffeepeek.admin.ui.component.SettingsRow
 import com.coffeepeek.admin.ui.component.SettingsSection
+import com.coffeepeek.admin.ui.screen.contributions.ContributionKind
 import com.coffeepeek.admin.utils.CpImage
 import org.koin.compose.koinInject
 
@@ -174,7 +175,7 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                     label = "Мои отзывы",
                     description = "Ваши оценки и отзывы о кофейнях",
                     iconColors = SettingsIconPalette.Lavender,
-                    onClick = { Navigator.navigate(Navigator.Screen.MyReviews) },
+                    onClick = { openContributions(ContributionKind.Reviews) },
                 )
                 SettingsDivider()
                 SettingsRow(
@@ -187,11 +188,19 @@ fun ProfileScreen(vm: ProfileViewModel = koinInject()) {
                 if (state.isLoggedIn) {
                     SettingsDivider()
                     SettingsRow(
+                        icon = CpIcons.Add,
+                        label = "Мои кофейни",
+                        description = "Кофейни, которые вы добавили",
+                        iconColors = SettingsIconPalette.Mint,
+                        onClick = { openContributions(ContributionKind.Shops) },
+                    )
+                    SettingsDivider()
+                    SettingsRow(
                         icon = CpIcons.NoteEdit,
                         label = "Мои правки кофеен",
                         description = "Заявки, которые вы отправили на модерацию",
                         iconColors = SettingsIconPalette.Gold,
-                        onClick = { Navigator.navigate(Navigator.Screen.MyShopChanges) },
+                        onClick = { openContributions(ContributionKind.Changes) },
                     )
                 }
             }
@@ -312,9 +321,15 @@ private fun ProfileHeader(state: ProfileUiState, onEdit: () -> Unit) {
 
                 Spacer(Modifier.height(CpDimens.spacing2))
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    StatBadge(state.reviewCount, "Отзывы", Modifier.weight(1f))
-                    StatBadge(state.checkInCount, "Чек-ины", Modifier.weight(1f))
-                    StatBadge(state.addedShopsCount, "Кофейни", Modifier.weight(1f))
+                    StatBadge(state.reviewCount, "Отзывы", Modifier.weight(1f)) {
+                        openContributions(ContributionKind.Reviews)
+                    }
+                    StatBadge(state.checkInCount, "Чек-ины", Modifier.weight(1f)) {
+                        Navigator.navigate(Navigator.Screen.VisitedPlaces)
+                    }
+                    StatBadge(state.addedShopsCount, "Кофейни", Modifier.weight(1f)) {
+                        openContributions(ContributionKind.Shops)
+                    }
                 }
             }
         }
@@ -350,9 +365,11 @@ private fun GuestLoginHeader(
 }
 
 @Composable
-private fun StatBadge(count: Int, label: String, modifier: Modifier = Modifier) {
+private fun StatBadge(count: Int, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Column(
-        modifier = modifier,
+        modifier = modifier
+            .clip(RoundedCornerShape(CpDimens.radiusMd))
+            .clickable(onClickLabel = label, onClick = onClick),
         horizontalAlignment = Alignment.Start,
     ) {
         Text(
@@ -368,6 +385,9 @@ private fun StatBadge(count: Int, label: String, modifier: Modifier = Modifier) 
         )
     }
 }
+
+internal fun openContributions(kind: ContributionKind) =
+    Navigator.navigate(Navigator.Screen.MyContributions(kind.name))
 
 // ── Диалог выхода ─────────────────────────────────────────────────────────────
 
