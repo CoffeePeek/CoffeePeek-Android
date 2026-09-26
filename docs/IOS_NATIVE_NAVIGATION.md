@@ -1,12 +1,10 @@
-# Native iOS tabs
+# iOS navigation bar
 
 ## Scope and ownership
 
-The application composition module owns the root navigation and the platform
-implementation of `MainScreen`. The iOS implementation is a UIKit
-`UITabBarController` embedded through `UIKitViewController`. Each of its four
-children hosts an existing Compose screen. Android delegates to the existing
-`ComposeMainScreen` and floating Compose navigation bar.
+The application composition module owns the root navigation. Both iOS and
+Android use the shared Compose `FloatingBottomNavBar`, including its backdrop
+blur, translucent tint, rim highlight, selected pill, and tab transitions.
 
 This is the first native UI migration step. Other glass components, detail
 transitions, sheets, and buttons remain Compose UI. No Gradle modules,
@@ -15,24 +13,23 @@ business contracts, repositories, or dependencies are added.
 ## Integration
 
 - `Navigator` continues to own detail/authentication routes. Its Main route
-  selects the platform implementation, so both Xcode and xtool launchers use
-  the same implementation without a new Swift bridge or public framework API.
-- UIKit retains each tab's controller while switching tabs, including the map.
+  uses the same Compose implementation on both platforms.
+- Each tab remains inside the Compose navigation graph, including the map.
 - `Navigator.pendingTabSelection` selects native tabs for actions such as
   showing a shop on the map; pending map focus remains owned by `Navigator`.
 - `AppContent` supplies each Compose controller with the shared theme and
   image configuration. It does not create another root navigator or DI container.
-- Native tab selection is saved in the parent Compose navigation entry. UIKit
-  appearance follows the application's system/light/dark preference.
-- Tab content receives bottom clearance derived from actual UIKit geometry.
-- Touches are forwarded immediately to UIKit, and native accessibility is enabled.
+- Tab selection is saved in the Compose navigation entry.
+- Tab content receives the existing Compose bottom clearance.
 
 ## Appearance and limits
 
-The tab bar uses system appearance without a custom blur or glass overlay.
-With an iOS 26+ SDK and iOS 26+ device, UIKit supplies Liquid Glass. Earlier
-systems retain their native tab appearance. See Apple's
-[UIKit design guidance](https://developer.apple.com/videos/play/wwdc2025/284/).
+The bar uses `LiquidGlass.kt`: Haze backdrop blur when the current screen can
+be sampled, a translucent fallback over the native map, a gradient rim, and a
+soft shadow. This is the same visual contract on iOS and Android. It is a
+Compose recreation of the Liquid Glass language rather than a system
+`UITabBarController`, so it keeps CoffeePeek's floating shape and selected
+state from the Android design.
 
 Automatic scroll-driven tab minimization is not implemented: Compose scroll
 containers do not expose a native UIScrollView to UIKit. This change does not
