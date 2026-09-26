@@ -23,7 +23,7 @@
 		A20000000000000000000006 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		A20000000000000000000007 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 		A20000000000000000000008 /* Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Local.xcconfig.example; sourceTree = "<group>"; };
-		A20000000000000000000009 /* MapLibreMapProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../iosXtool/CoffeePeek/Sources/CoffeePeek/MapLibreMapProvider.swift"; sourceTree = "<group>"; };
+		A20000000000000000000009 /* MapLibreMapProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../../iosXtool/CoffeePeek/Sources/CoffeePeek/MapLibreMapProvider.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
