@@ -46,7 +46,7 @@ final class MapLibreMapProvider: NSObject, IosNativeMapProvider, MLNMapViewDeleg
             map.styleURL = desiredStyle
         }
 
-        let oldAnnotations = map.annotations
+        let oldAnnotations = map.annotations ?? []
         if !oldAnnotations.isEmpty {
             map.removeAnnotations(oldAnnotations)
         }
