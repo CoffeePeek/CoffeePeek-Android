@@ -11,11 +11,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: ios-compose-framework-${{ github.ref }}
+  group: ios-compose-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-framework:
+  compose-framework:
     runs-on: macos-14
 
     steps:
@@ -30,14 +30,13 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-provider: basic
 
       - name: Build ComposeApp framework for physical devices
         run: >-
           ./gradlew
           --no-daemon
           --no-configuration-cache
+          --build-cache
           :composeApp:linkDebugFrameworkIosArm64
 
       - name: Verify and package framework
@@ -48,10 +47,8 @@ jobs:
           FRAMEWORK_DIR="composeApp/build/bin/iosArm64/debugFramework/ComposeApp.framework"
           FRAMEWORK_BINARY="$FRAMEWORK_DIR/ComposeApp"
 
-          if [[ ! -d "$FRAMEWORK_DIR" || ! -f "$FRAMEWORK_BINARY" ]]; then
-            echo "ComposeApp.framework was not produced at $FRAMEWORK_DIR."
-            exit 1
-          fi
+          test -d "$FRAMEWORK_DIR"
+          test -f "$FRAMEWORK_BINARY"
 
           mkdir -p artifacts
           tar -czf artifacts/ComposeApp-iosArm64-debug.tar.gz \
@@ -61,7 +58,32 @@ jobs:
           shasum -a 256 artifacts/ComposeApp-iosArm64-debug.tar.gz \
             > artifacts/ComposeApp-iosArm64-debug.tar.gz.sha256
 
-      - name: Build native iOS app with MapLibre
+      - name: Upload framework artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: composeapp-ios-arm64-debug-${{ github.sha }}
+          path: artifacts/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  native-ios:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build native iOS app
         run: >-
           xcodebuild
           -project iosApp/iosApp.xcodeproj
@@ -79,21 +101,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           APP_PATH="iosApp/build/Build/Products/Debug-iphoneos/CoffeePeek.app"
-          if [[ ! -d "$APP_PATH" ]]; then
-            echo "Native CoffeePeek.app was not produced at $APP_PATH."
-            exit 1
-          fi
+          test -d "$APP_PATH"
+
+          mkdir -p artifacts
           tar -czf artifacts/CoffeePeek-ios-debug.app.tar.gz \
             -C "$(dirname "$APP_PATH")" \
             "$(basename "$APP_PATH")"
+
           shasum -a 256 artifacts/CoffeePeek-ios-debug.app.tar.gz \
             > artifacts/CoffeePeek-ios-debug.app.tar.gz.sha256
 
-      - name: Upload framework artifact
+      - name: Upload native app artifact
         uses: actions/upload-artifact@v4
         with:
-          name: composeapp-ios-arm64-debug-${{ github.sha }}
+          name: coffeepeek-ios-debug-${{ github.sha }}
           path: artifacts/
           if-no-files-found: error
-          retention-days: 30
+          compression-level: 0
+          retention-days: 7
