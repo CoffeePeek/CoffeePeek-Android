@@ -8,8 +8,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
 import platform.Foundation.NSData
-import platform.Foundation.NSDate
-import platform.Foundation.timeIntervalSince1970
 import platform.PhotosUI.PHPickerConfiguration
 import platform.PhotosUI.PHPickerFilter
 import platform.PhotosUI.PHPickerResult
@@ -168,9 +166,6 @@ private fun NSData.toByteArray(): ByteArray {
         }
     }
 }
-
-private fun currentEpochMillis(): Long =
-    (NSDate().timeIntervalSince1970 * 1_000.0).toLong()
 
 private const val IMAGE_TYPE_IDENTIFIER = "public.image"
 private const val JPEG_QUALITY = 0.9

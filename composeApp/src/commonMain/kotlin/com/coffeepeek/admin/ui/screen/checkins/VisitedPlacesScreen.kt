@@ -58,6 +58,7 @@ import com.coffeepeek.admin.ui.component.CapsuleSegmentedControl
 import com.coffeepeek.admin.ui.component.CheckInDisplayCard
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CpTopBar
+import com.coffeepeek.admin.ui.component.FullScreenImageDialog
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.currentUtcIsoDateTime
@@ -71,6 +72,15 @@ import org.jetbrains.compose.resources.painterResource
 fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
     var viewMode by rememberSaveable { mutableStateOf(CheckInViewMode.Calendar) }
+    var photoPreview by remember { mutableStateOf<Pair<List<String>, Int>?>(null) }
+
+    photoPreview?.let { (urls, index) ->
+        FullScreenImageDialog(
+            imageUrls = urls,
+            initialIndex = index,
+            onDismiss = { photoPreview = null },
+        )
+    }
 
     Scaffold(
         topBar = { CpTopBar("Чекины") },
@@ -91,15 +101,27 @@ fun VisitedPlacesScreen(vm: VisitedPlacesViewModel = platformViewModel()) {
             )
 
             when (viewMode) {
-                CheckInViewMode.Calendar -> CheckInCalendarContent(state, vm)
-                CheckInViewMode.List -> CheckInListContent(state, vm)
+                CheckInViewMode.Calendar -> CheckInCalendarContent(
+                    state = state,
+                    vm = vm,
+                    onPhotoClick = { urls, index -> photoPreview = urls to index },
+                )
+                CheckInViewMode.List -> CheckInListContent(
+                    state = state,
+                    vm = vm,
+                    onPhotoClick = { urls, index -> photoPreview = urls to index },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CheckInCalendarContent(state: VisitedPlacesUiState, vm: VisitedPlacesViewModel) {
+private fun CheckInCalendarContent(
+    state: VisitedPlacesUiState,
+    vm: VisitedPlacesViewModel,
+    onPhotoClick: (List<String>, Int) -> Unit,
+) {
     val selectedCheckIns = state.selectedDate?.let(state.calendarCheckIns::get).orEmpty()
     val today = remember { utcIsoToLocalDate(currentUtcIsoDateTime()) }
 
@@ -151,6 +173,7 @@ private fun CheckInCalendarContent(state: VisitedPlacesUiState, vm: VisitedPlace
                     CheckInDisplayCard(
                         checkIn = checkIn,
                         onClick = { Navigator.navigate(Navigator.Screen.ShopDetail(checkIn.shopId)) },
+                        onPhotoClick = onPhotoClick,
                     )
                 }
             }
@@ -356,7 +379,11 @@ private fun CheckInThumbnail(checkIns: List<CheckIn>, modifier: Modifier = Modif
 }
 
 @Composable
-private fun CheckInListContent(state: VisitedPlacesUiState, vm: VisitedPlacesViewModel) {
+private fun CheckInListContent(
+    state: VisitedPlacesUiState,
+    vm: VisitedPlacesViewModel,
+    onPhotoClick: (List<String>, Int) -> Unit,
+) {
     val listState = rememberLazyListState()
     val shouldLoadMore by remember(state.checkIns.size, state.hasMore, state.isLoadingMore) {
         derivedStateOf {
@@ -386,6 +413,7 @@ private fun CheckInListContent(state: VisitedPlacesUiState, vm: VisitedPlacesVie
                 CheckInDisplayCard(
                     checkIn = checkIn,
                     onClick = { Navigator.navigate(Navigator.Screen.ShopDetail(checkIn.shopId)) },
+                    onPhotoClick = onPhotoClick,
                 )
             }
             if (state.isLoadingMore) {

@@ -12,6 +12,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -41,6 +44,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.utils.utcIsoToLocalDate
+import com.coffeepeek.admin.utils.formatOneDecimal
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.checkin_rating_atmosphere
 import coffeepeek.composeapp.generated.resources.checkin_rating_coffee
@@ -236,9 +240,10 @@ fun ReviewRatingSummary(rating: ReviewRating, modifier: Modifier = Modifier) {
 fun ReviewDisplayCard(
     review: Review,
     modifier: Modifier = Modifier,
-    onPhotoClick: ((String) -> Unit)? = null,
+    onPhotoClick: ((List<String>, Int) -> Unit)? = null,
     onEditClick: (() -> Unit)? = null,
     onHelpfulClick: (() -> Unit)? = null,
+    showHelpfulButton: Boolean = true,
     /** Side-by-side rows: pad short comments too, so neighbouring cards end up about the same height. */
     equalizeHeight: Boolean = false,
 ) {
@@ -280,11 +285,13 @@ fun ReviewDisplayCard(
                 onPhotoClick = onPhotoClick,
             )
 
-            HelpfulButton(
-                helpfulCount = review.helpfulCount,
-                isHelpful = review.isHelpfulByCurrentUser,
-                onClick = onHelpfulClick,
-            )
+            if (showHelpfulButton) {
+                HelpfulButton(
+                    helpfulCount = review.helpfulCount,
+                    isHelpful = review.isHelpfulByCurrentUser,
+                    onClick = onHelpfulClick,
+                )
+            }
         }
     }
 }
@@ -295,7 +302,7 @@ fun CheckInDisplayCard(
     modifier: Modifier = Modifier,
     showShopName: Boolean = true,
     onClick: (() -> Unit)? = null,
-    onPhotoClick: ((String) -> Unit)? = null,
+    onPhotoClick: ((List<String>, Int) -> Unit)? = null,
 ) {
     val cardModifier = modifier
         .fillMaxWidth()
@@ -559,7 +566,7 @@ private fun ReviewScoreRow(average: Double) {
             }
         }
         Text(
-            text = "%.1f".format(average),
+            text = formatOneDecimal(average),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -595,7 +602,11 @@ private fun ReviewQuote(reviewId: String, comment: String, padToCollapsedLines: 
                 modifier = Modifier
                     .padding(top = CpDimens.spacing1)
                     .clip(RoundedCornerShape(CpDimens.radiusSm))
-                    .clickable(role = Role.Button) { expanded = !expanded }
+                    .clickable(
+                        role = Role.Button,
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { expanded = !expanded }
                     .padding(vertical = CpDimens.spacing1),
             )
         }
@@ -646,30 +657,28 @@ fun ReviewPhotoStrip(
     modifier: Modifier = Modifier,
     // Same order as photoUrls: tiles show these, a click still hands out the full photo.
     thumbnailUrls: List<String> = photoUrls,
-    onPhotoClick: ((String) -> Unit)? = null,
+    onPhotoClick: ((List<String>, Int) -> Unit)? = null,
 ) {
     if (photoUrls.isEmpty()) return
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-        photoUrls.take(3).forEachIndexed { index, url ->
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+    ) {
+        itemsIndexed(photoUrls) { index, url ->
             CpImage(
                 data = thumbnailUrls.getOrNull(index) ?: url,
-                contentDescription = "Фотография отзыва",
+                contentDescription = "Фотография ${index + 1} из ${photoUrls.size}",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(72.dp)
                     .clip(RoundedCornerShape(CpDimens.radiusSm))
                     .then(
-                        if (onPhotoClick != null) Modifier.clickable { onPhotoClick(url) }
-                        else Modifier,
+                        if (onPhotoClick != null) {
+                            Modifier.clickable { onPhotoClick(photoUrls, index) }
+                        } else {
+                            Modifier
+                        },
                     ),
-            )
-        }
-        if (photoUrls.size > 3) {
-            Text(
-                "+${photoUrls.size - 3}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.CenterVertically),
             )
         }
     }

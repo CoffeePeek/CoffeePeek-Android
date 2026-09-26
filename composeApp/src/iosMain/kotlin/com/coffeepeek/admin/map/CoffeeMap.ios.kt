@@ -17,6 +17,8 @@ import androidx.compose.ui.viewinterop.UIKitView
 import com.coffeepeek.admin.location.LocationPermissionEffect
 import com.coffeepeek.admin.location.PlatformLocation
 import com.coffeepeek.domain.model.MapBounds
+import com.coffeepeek.domain.model.MapCluster
+import com.coffeepeek.domain.model.MapCoffeeZone
 import com.coffeepeek.domain.model.MapShop
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.launch
@@ -39,9 +41,12 @@ private const val LOCATION_ZOOM = 15f
 @Composable
 actual fun CoffeeMap(
     shops: List<MapShop>,
+    clusters: List<MapCluster>,
+    zones: List<MapCoffeeZone>,
     selectedShopId: String?,
-    onBoundsChanged: (MapBounds) -> Unit,
+    onBoundsChanged: (MapBounds, Float) -> Unit,
     onShopClick: (MapShop) -> Unit,
+    onZoneClick: (MapCoffeeZone) -> Unit,
     modifier: Modifier,
     cameraTarget: Pair<Double, Double>?,
     cameraZoom: Float?,
@@ -60,7 +65,7 @@ actual fun CoffeeMap(
 
     val coordinator = remember {
         AppleMapCoordinator(
-            onBoundsChanged = { bounds -> boundsCallback.value(bounds) },
+            onBoundsChanged = { bounds, zoom -> boundsCallback.value(bounds, zoom) },
             onShopClick = { shop -> shopCallback.value(shop) },
         )
     }
@@ -125,7 +130,7 @@ actual fun CoffeeMap(
 }
 
 private class AppleMapCoordinator(
-    private val onBoundsChanged: (MapBounds) -> Unit,
+    private val onBoundsChanged: (MapBounds, Float) -> Unit,
     private val onShopClick: (MapShop) -> Unit,
 ) : NSObject(), MKMapViewDelegateProtocol {
     private var mapView: MKMapView? = null
@@ -194,7 +199,10 @@ private class AppleMapCoordinator(
             val maxLat = center.latitude + span.latitudeDelta / 2.0
             val minLon = center.longitude - span.longitudeDelta / 2.0
             val maxLon = center.longitude + span.longitudeDelta / 2.0
-            onBoundsChanged(MapBounds(minLat, minLon, maxLat, maxLon))
+            val zoom = kotlin.math.log2(360.0 / span.longitudeDelta)
+                .toFloat()
+                .coerceIn(0f, 20f)
+            onBoundsChanged(MapBounds(minLat, minLon, maxLat, maxLon), zoom)
         }
     }
 }

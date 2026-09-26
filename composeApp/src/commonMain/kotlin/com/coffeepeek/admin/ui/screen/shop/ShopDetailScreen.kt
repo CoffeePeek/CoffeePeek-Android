@@ -1,11 +1,5 @@
 package com.coffeepeek.admin.ui.screen.shop
 
-import androidx.compose.ui.zIndex
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.foundation.pager.PageSize
-import androidx.compose.foundation.layout.BoxScope
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -15,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -74,6 +69,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import com.coffeepeek.admin.ui.component.liquidGlass
+import com.coffeepeek.admin.ui.component.SwipeablePhotoStack
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -86,6 +82,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coffeepeek.admin.utils.utcIsoToLocalDate
+import com.coffeepeek.admin.utils.formatOneDecimal
 import coffeepeek.composeapp.generated.resources.Res
 import coffeepeek.composeapp.generated.resources.maskot_with_book
 import org.jetbrains.compose.resources.DrawableResource
@@ -238,7 +235,7 @@ fun ShopDetailScreen(shopId: String) {
                         onOpenOnMap = vm::openOnMap,
                         onCopyPhone = vm::copyPhone,
                         onOpenPhotos = { urls, index -> preview = urls to index },
-                        onReviewPhotoClick = { preview = listOf(it) to 0 },
+                        onReviewPhotoClick = { urls, index -> preview = urls to index },
                         onReviewHelpfulClick = vm::toggleHelpful,
                     )
                 }
@@ -284,7 +281,7 @@ private fun ShopDetailContent(
     onOpenOnMap: () -> Unit = {},
     onCopyPhone: (String) -> Unit = {},
     onOpenPhotos: (List<String>, Int) -> Unit = { _, _ -> },
-    onReviewPhotoClick: (String) -> Unit = {},
+    onReviewPhotoClick: (List<String>, Int) -> Unit = { _, _ -> },
     onReviewHelpfulClick: (String) -> Unit = {},
 ) {
     val shop = details.shop
@@ -765,7 +762,7 @@ private fun ShopStatsRow(
                     modifier = Modifier.size(20.dp),
                 )
                 Text(
-                    text = "%.1f".format(rating ?: 0.0),
+                    text = formatOneDecimal(rating ?: 0.0),
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -1143,7 +1140,7 @@ private fun ReviewsSection(
     shopTitle: String,
     isLoggedIn: Boolean,
     currentUserId: String?,
-    onReviewPhotoClick: (String) -> Unit,
+    onReviewPhotoClick: (List<String>, Int) -> Unit,
     onReviewHelpfulClick: (String) -> Unit,
 ) {
     Column(
@@ -1188,7 +1185,7 @@ private fun ReviewsSection(
                             ReviewCard(
                                 review = review,
                                 modifier = Modifier.fillMaxWidth(),
-                                onPhotoClick = if (isBlurred) ({}) else onReviewPhotoClick,
+                                onPhotoClick = if (isBlurred) ({ _, _ -> }) else onReviewPhotoClick,
                                 onHelpfulClick = null,
                                 equalizeHeight = reviews.size > 1,
                             )
@@ -1224,6 +1221,7 @@ private fun ReviewsSection(
                             onPhotoClick = onReviewPhotoClick,
                             // No "helpful" on your own review.
                             onHelpfulClick = if (isOwnReview) null else ({ onReviewHelpfulClick(review.id) }),
+                            showHelpfulButton = !isOwnReview,
                             equalizeHeight = reviews.size > 1,
                         )
                     }
@@ -1236,7 +1234,7 @@ private fun ReviewsSection(
 @Composable
 private fun CheckInsSection(
     checkIns: List<CheckIn>,
-    onPhotoClick: (String) -> Unit,
+    onPhotoClick: (List<String>, Int) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -1693,7 +1691,7 @@ private fun RatingBlock(rating: Double?, reviewCount: Int) {
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    text = "%.1f".format(rating),
+                    text = formatOneDecimal(rating),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -2129,8 +2127,9 @@ private fun ContactRow(
 private fun ReviewCard(
     review: Review,
     modifier: Modifier = Modifier,
-    onPhotoClick: (String) -> Unit,
+    onPhotoClick: (List<String>, Int) -> Unit,
     onHelpfulClick: (() -> Unit)?,
+    showHelpfulButton: Boolean = true,
     equalizeHeight: Boolean,
 ) {
     ReviewDisplayCard(
@@ -2138,6 +2137,7 @@ private fun ReviewCard(
         modifier = modifier,
         onPhotoClick = onPhotoClick,
         onHelpfulClick = onHelpfulClick,
+        showHelpfulButton = showHelpfulButton,
         equalizeHeight = equalizeHeight,
     )
 }
@@ -2290,42 +2290,14 @@ private fun MenuPhotoStack(
     onPhotoClick: (Int) -> Unit,
     overlay: @Composable BoxScope.() -> Unit,
 ) {
-    val pagerState = rememberPagerState(pageCount = { photos.size })
-    val peeks = (photos.size - 1).coerceIn(0, MENU_PHOTO_MAX_PEEKS)
-    val peekPx = with(LocalDensity.current) { MenuPhotoPeek.toPx() }
-    val shape = RoundedCornerShape(CpDimens.radiusMd)
-
-    HorizontalPager(
-        state = pagerState,
-        pageSize = PageSize.Fixed(MenuPhotoWidth),
-        beyondViewportPageCount = MENU_PHOTO_MAX_PEEKS,
-        modifier = Modifier
-            .width(MenuPhotoWidth + MenuPhotoPeek * peeks)
-            .height(MenuPhotoHeight),
+    SwipeablePhotoStack(
+        itemCount = photos.size,
+        itemWidth = MenuPhotoWidth,
+        itemHeight = MenuPhotoHeight,
+        peek = MenuPhotoPeek,
+        maxPeeks = MENU_PHOTO_MAX_PEEKS,
+        onItemClick = onPhotoClick,
     ) { page ->
-        // > 0: already swiped past (slides out normally); < 0: waiting in the stack behind.
-        val offset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-        val depth = (-offset).coerceAtLeast(0f)
-        val visibleDepth = depth.coerceAtMost(MENU_PHOTO_MAX_PEEKS.toFloat())
-        Box(
-            modifier = Modifier
-                .zIndex(-depth)
-                .graphicsLayer {
-                    if (depth > 0f) {
-                        // Pull the card from its natural slot back under the front card, leaving a peek.
-                        translationX = visibleDepth * peekPx - depth * size.width
-                        val scale = 1f - 0.08f * visibleDepth
-                        scaleX = scale
-                        scaleY = scale
-                        transformOrigin = TransformOrigin(1f, 0.5f)
-                        alpha = (MENU_PHOTO_MAX_PEEKS + 1 - depth).coerceIn(0f, 1f)
-                    }
-                }
-                .fillMaxSize()
-                .shadow(if (depth < 0.5f) 4.dp else 0.dp, shape)
-                .clip(shape)
-                .clickable { onPhotoClick(page) },
-        ) {
             CoffeeShopImage(
                 imageUrl = photos[page],
                 contentDescription = "Фотография меню ${page + 1} из ${photos.size}",
@@ -2343,6 +2315,5 @@ private fun MenuPhotoStack(
                     ),
             )
             overlay()
-        }
     }
 }

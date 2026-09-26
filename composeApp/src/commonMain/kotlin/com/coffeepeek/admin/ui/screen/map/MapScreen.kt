@@ -83,6 +83,7 @@ import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.MapShop
 import com.coffeepeek.domain.model.MapCoffeeZone
 import com.coffeepeek.admin.di.platformViewModel
+import com.coffeepeek.admin.utils.formatOneDecimal
 
 @Composable
 fun MapScreen(vm: MapViewModel = platformViewModel()) {
@@ -937,7 +938,7 @@ private fun MapShopBottomSheet(
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = "%.1f".format(rating),
+                            text = formatOneDecimal(rating),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )

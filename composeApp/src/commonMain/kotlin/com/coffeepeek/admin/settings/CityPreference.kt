@@ -16,7 +16,7 @@ private const val SELECTED_CITY_KEY = "selected_city_id"
 class CityPreference(
     private val settingRepository: SettingRepository,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _selectedCityId = MutableStateFlow<String?>(null)
 
     val selectedCityId: StateFlow<String?> = _selectedCityId.asStateFlow()

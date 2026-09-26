@@ -41,6 +41,7 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CapsuleSegmentedControl
 import com.coffeepeek.admin.ui.component.CpTopBar
+import com.coffeepeek.admin.ui.component.FullScreenImageDialog
 import com.coffeepeek.admin.ui.component.ReviewDisplayCard
 import com.coffeepeek.admin.ui.screen.review.EditReviewBottomSheet
 import com.coffeepeek.domain.model.ModerationStatus
@@ -55,6 +56,15 @@ fun MyContributionsScreen(kind: ContributionKind) {
     val state by vm.state.collectAsState()
     var editingReviewId by remember { mutableStateOf<String?>(null) }
     var selectedName by rememberSaveable { mutableStateOf<String?>(null) }
+    var photoPreview by remember { mutableStateOf<Pair<List<String>, Int>?>(null) }
+
+    photoPreview?.let { (urls, index) ->
+        FullScreenImageDialog(
+            imageUrls = urls,
+            initialIndex = index,
+            onDismiss = { photoPreview = null },
+        )
+    }
 
     editingReviewId?.let { reviewId ->
         EditReviewBottomSheet(
@@ -105,6 +115,7 @@ fun MyContributionsScreen(kind: ContributionKind) {
                         tab = state.tabs[selected] ?: ContributionTab(),
                         onLoadMore = { vm.loadMore(selected) },
                         onEditReview = { editingReviewId = it },
+                        onPhotoClick = { urls, index -> photoPreview = urls to index },
                     )
                 }
             }
@@ -117,6 +128,7 @@ private fun ContributionList(
     tab: ContributionTab,
     onLoadMore: () -> Unit,
     onEditReview: (String) -> Unit,
+    onPhotoClick: (List<String>, Int) -> Unit,
 ) {
     val listState = rememberLazyListState()
     val shouldLoadMore by remember(tab) {
@@ -141,6 +153,8 @@ private fun ContributionList(
                     ReviewDisplayCard(
                         review = item.review,
                         onEditClick = if (item.editable) ({ onEditReview(item.review.id) }) else null,
+                        onPhotoClick = onPhotoClick,
+                        showHelpfulButton = false,
                     )
                     item.rejectedReason?.let { RejectedReason(it) }
                 }

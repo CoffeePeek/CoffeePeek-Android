@@ -62,7 +62,7 @@ class ReviewDraftStore(
     // Serial dispatcher: save/clear run in call order, so a save issued just before a clear
     // (e.g. the last keystroke before «Отправить») can never resurrect the draft afterwards.
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val serial = Dispatchers.IO.limitedParallelism(1)
+    private val serial = Dispatchers.Default.limitedParallelism(1)
     private val scope = CoroutineScope(SupervisorJob() + serial)
     private val pendingSaves = mutableMapOf<String, Job>()
     private val photos = mutableMapOf<String, List<PickedImage>>()
