@@ -24,9 +24,18 @@ let package = Package(
             targets: ["CoffeePeek"]
         ),
     ],
+    dependencies: [
+        .package(
+            url: "https://github.com/maplibre/maplibre-gl-native-distribution",
+            exact: "6.29.0"
+        ),
+    ],
     targets: [
         .target(
             name: "CoffeePeek",
+            dependencies: [
+                .product(name: "MapLibre", package: "maplibre-gl-native-distribution"),
+            ],
             swiftSettings: [
                 .unsafeFlags(["-F", composeFrameworkDirectory], .when(platforms: [.iOS])),
             ],

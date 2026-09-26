@@ -1,8 +1,10 @@
 # CoffeePeek with xtool
 
-Use a device (`iosArm64`) debug framework from the `iOS Compose Framework`
-GitHub Actions workflow. Check out the same commit locally before preparing
-resources; resource offsets in the framework must match the generated files.
+Use the `iosArm64` debug framework or the native `CoffeePeek.app` from the
+`iOS Compose Framework` GitHub Actions workflow. The native app artifact is an
+unsigned macOS-built validation bundle; installation on a phone still needs a
+development signature. The framework path below remains the easiest route with
+`xtool` and signs locally on the connected device.
 
 1. Extract the downloaded artifact ZIP. Verify the tar archive against its
    SHA-256 file (the checksum currently refers to `artifacts/<archive>`).
@@ -21,6 +23,11 @@ resources; resource offsets in the framework must match the generated files.
    cd iosXtool/CoffeePeek
    xtool dev
    ```
+
+The iOS target now links MapLibre Native through Swift Package Manager and
+uses the same OpenFreeMap style as Android. The Swift package is resolved by
+the native macOS CI job; keep the checkout at the same commit as the framework
+artifact when running `xtool`.
 
 The preparation script stages the resources under
 `.build/compose-resources/composeResources/`, matching the static framework's

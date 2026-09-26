@@ -61,6 +61,35 @@ jobs:
           shasum -a 256 artifacts/ComposeApp-iosArm64-debug.tar.gz \
             > artifacts/ComposeApp-iosArm64-debug.tar.gz.sha256
 
+      - name: Build native iOS app with MapLibre
+        run: >-
+          xcodebuild
+          -project iosApp/iosApp.xcodeproj
+          -scheme iosApp
+          -configuration Debug
+          -sdk iphoneos
+          -destination 'generic/platform=iOS'
+          -derivedDataPath iosApp/build
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_REQUIRED=NO
+          COMPILER_INDEX_STORE_ENABLE=NO
+          build
+
+      - name: Package native iOS app
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="iosApp/build/Build/Products/Debug-iphoneos/CoffeePeek.app"
+          if [[ ! -d "$APP_PATH" ]]; then
+            echo "Native CoffeePeek.app was not produced at $APP_PATH."
+            exit 1
+          fi
+          tar -czf artifacts/CoffeePeek-ios-debug.app.tar.gz \
+            -C "$(dirname "$APP_PATH")" \
+            "$(basename "$APP_PATH")"
+          shasum -a 256 artifacts/CoffeePeek-ios-debug.app.tar.gz \
+            > artifacts/CoffeePeek-ios-debug.app.tar.gz.sha256
+
       - name: Upload framework artifact
         uses: actions/upload-artifact@v4
         with:

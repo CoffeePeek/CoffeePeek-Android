@@ -3,6 +3,10 @@ import ComposeApp
 
 @main
 struct CoffeePeekApp: App {
+    init() {
+        IosNativeMapRegistry.shared.provider = MapLibreMapProvider()
+    }
+
     var body: some Scene {
         WindowGroup {
             ComposeRootView()

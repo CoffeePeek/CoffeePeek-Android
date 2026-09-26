@@ -27,15 +27,11 @@ import platform.Foundation.NSBundle
 import platform.CoreLocation.CLLocationCoordinate2DMake
 import platform.MapKit.MKAnnotationProtocol
 import platform.MapKit.MKAnnotationView
-import platform.MapKit.MKCircle
-import platform.MapKit.MKCircleRenderer
 import platform.MapKit.MKCoordinateRegionMake
 import platform.MapKit.MKCoordinateSpanMake
 import platform.MapKit.MKMapView
 import platform.MapKit.MKMapViewDelegateProtocol
 import platform.MapKit.MKMarkerAnnotationView
-import platform.MapKit.MKOverlayProtocol
-import platform.MapKit.MKOverlayRenderer
 import platform.MapKit.MKPointAnnotation
 import platform.UIKit.UIColor
 import platform.UIKit.UIImage
@@ -72,6 +68,29 @@ actual fun CoffeeMap(
     val locationDeniedCallback = rememberUpdatedState(onLocationPermissionDenied)
     val zoneCallback = rememberUpdatedState(onZoneClick)
     val scope = rememberCoroutineScope()
+
+    val nativeProvider = remember { IosNativeMapRegistry.provider }
+    if (nativeProvider != null) {
+        NativeMapContent(
+            provider = nativeProvider,
+            shops = shops,
+            clusters = clusters,
+            zones = zones,
+            selectedShopId = selectedShopId,
+            onBoundsChanged = { boundsCallback.value(it.first, it.second) },
+            onShopClick = { shopId -> shops.firstOrNull { it.id == shopId }?.let(shopCallback.value) },
+            onZoneClick = { zoneId -> zones.firstOrNull { it.id == zoneId }?.let(zoneCallback.value) },
+            modifier = modifier,
+            cameraTarget = cameraTarget,
+            cameraZoom = cameraZoom,
+            onCameraTargetApplied = { targetAppliedCallback.value() },
+            isDarkTheme = isDarkTheme,
+            myLocationRequestKey = myLocationRequestKey,
+            onMyLocationFound = onMyLocationFound,
+            onLocationPermissionDenied = onLocationPermissionDenied,
+        )
+        return
+    }
 
     val coordinator = remember {
         AppleMapCoordinator(
@@ -143,6 +162,179 @@ actual fun CoffeeMap(
     }
 }
 
+@Composable
+private fun NativeMapContent(
+    provider: IosNativeMapProvider,
+    shops: List<MapShop>,
+    clusters: List<MapCluster>,
+    zones: List<MapCoffeeZone>,
+    selectedShopId: String?,
+    onBoundsChanged: (Pair<MapBounds, Float>) -> Unit,
+    onShopClick: (String) -> Unit,
+    onZoneClick: (String) -> Unit,
+    modifier: Modifier,
+    cameraTarget: Pair<Double, Double>?,
+    cameraZoom: Float?,
+    onCameraTargetApplied: () -> Unit,
+    isDarkTheme: Boolean,
+    myLocationRequestKey: Int,
+    onMyLocationFound: (Double, Double) -> Unit,
+    onLocationPermissionDenied: () -> Unit,
+) {
+    val boundsCallback = rememberUpdatedState(onBoundsChanged)
+    val shopCallback = rememberUpdatedState(onShopClick)
+    val zoneCallback = rememberUpdatedState(onZoneClick)
+    val locationFoundCallback = rememberUpdatedState(onMyLocationFound)
+    val locationDeniedCallback = rememberUpdatedState(onLocationPermissionDenied)
+    val scope = rememberCoroutineScope()
+    val session = remember {
+        NativeMapSession(
+            provider = provider,
+            onBoundsChanged = { bounds, zoom -> boundsCallback.value(bounds to zoom) },
+            onShopClick = { shopCallback.value(it) },
+            onZoneClick = { zoneCallback.value(it) },
+        )
+    }
+
+    DisposableEffect(session) {
+        onDispose { session.detach() }
+    }
+
+    LaunchedEffect(cameraTarget, cameraZoom) {
+        cameraTarget?.let { target ->
+            session.moveCamera(target.first, target.second, cameraZoom ?: DEFAULT_ZOOM, animated = true)
+            onCameraTargetApplied()
+        }
+    }
+
+    fun findAndShowLocation() {
+        scope.launch {
+            val point = PlatformLocation.getLastKnownLocation()
+            if (point == null) {
+                locationDeniedCallback.value()
+            } else {
+                session.moveCamera(point.latitude, point.longitude, LOCATION_ZOOM, animated = true)
+                locationFoundCallback.value(point.latitude, point.longitude)
+            }
+        }
+    }
+
+    Box(modifier = modifier) {
+        LocationPermissionEffect(
+            requestKey = myLocationRequestKey,
+            onGranted = ::findAndShowLocation,
+            onDenied = { locationDeniedCallback.value() },
+        )
+        UIKitView(
+            factory = { provider.createMapView().also(session::attach) },
+            modifier = Modifier.matchParentSize(),
+            update = { mapView ->
+                session.attach(mapView)
+                session.updateContent(shops, clusters, zones, selectedShopId, isDarkTheme)
+            },
+        )
+    }
+}
+
+private class NativeMapSession(
+    private val provider: IosNativeMapProvider,
+    private val onBoundsChanged: (MapBounds, Float) -> Unit,
+    private val onShopClick: (String) -> Unit,
+    private val onZoneClick: (String) -> Unit,
+) : IosNativeMapCallbacks {
+    private var mapView: platform.UIKit.UIView? = null
+
+    fun attach(view: platform.UIKit.UIView) {
+        mapView = view
+    }
+
+    fun detach() {
+        mapView = null
+    }
+
+    fun updateContent(
+        shops: List<MapShop>,
+        clusters: List<MapCluster>,
+        zones: List<MapCoffeeZone>,
+        selectedShopId: String?,
+        isDarkTheme: Boolean,
+    ) {
+        mapView?.let { view ->
+            provider.updateMapView(
+                mapView = view,
+                stateJson = nativeMapStateJson(shops, clusters, zones, selectedShopId, isDarkTheme),
+                callbacks = this,
+            )
+        }
+    }
+
+    fun moveCamera(latitude: Double, longitude: Double, zoom: Float, animated: Boolean) {
+        mapView?.let { view -> provider.moveCamera(view, latitude, longitude, zoom, animated) }
+    }
+
+    override fun onShopClick(shopId: String) = onShopClick.invoke(shopId)
+
+    override fun onZoneClick(zoneId: String) = onZoneClick.invoke(zoneId)
+
+    override fun onBoundsChanged(
+        minLat: Double,
+        minLon: Double,
+        maxLat: Double,
+        maxLon: Double,
+        zoom: Float,
+    ) = onBoundsChanged(MapBounds(minLat, minLon, maxLat, maxLon), zoom)
+}
+
+private fun nativeMapStateJson(
+    shops: List<MapShop>,
+    clusters: List<MapCluster>,
+    zones: List<MapCoffeeZone>,
+    selectedShopId: String?,
+    isDarkTheme: Boolean,
+): String = buildString {
+    append('{')
+    append("\"selectedShopId\":").append(selectedShopId.jsonValue()).append(',')
+    append("\"dark\":").append(isDarkTheme).append(',')
+    append("\"shops\":[")
+    shops.joinTo(this, separator = ",") { shop ->
+        "{\"id\":${shop.id.jsonValue()},\"title\":${shop.title.jsonValue()}," +
+            "\"lat\":${shop.latitude},\"lon\":${shop.longitude},\"type\":${shop.type.jsonValue()}," +
+            "\"selected\":${shop.id == selectedShopId}}"
+    }
+    append("],\"clusters\":[")
+    clusters.joinTo(this, separator = ",") { cluster ->
+        "{\"id\":${cluster.id.jsonValue()},\"lat\":${cluster.latitude}," +
+            "\"lon\":${cluster.longitude},\"count\":${cluster.count}}"
+    }
+    append("],\"zones\":[")
+    zones.joinTo(this, separator = ",") { zone ->
+        "{\"id\":${zone.id.jsonValue()},\"name\":${zone.name.jsonValue()}," +
+            "\"lat\":${zone.latitude},\"lon\":${zone.longitude}," +
+            "\"radius\":${zone.radiusMeters},\"polygon\":[" +
+            zone.polygon.joinToString(",") { (lat, lon) -> "[$lat,$lon]" } + "]}"
+    }
+    append("]}")
+}
+
+private fun String?.jsonValue(): String = if (this == null) {
+    "null"
+} else {
+    buildString {
+        append('"')
+        for (character in this@jsonValue) {
+            when (character) {
+                '\\' -> append("\\\\")
+                '"' -> append("\\\"")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                '\t' -> append("\\t")
+                else -> append(character)
+            }
+        }
+        append('"')
+    }
+}
+
 private class AppleMapCoordinator(
     private val onBoundsChanged: (MapBounds, Float) -> Unit,
     private val onShopClick: (MapShop) -> Unit,
@@ -152,8 +344,6 @@ private class AppleMapCoordinator(
     private val shopsByAnnotation = mutableMapOf<MKPointAnnotation, MapShop>()
     private val clustersByAnnotation = mutableMapOf<MKPointAnnotation, MapCluster>()
     private val zonesByAnnotation = mutableMapOf<MKPointAnnotation, MapCoffeeZone>()
-    private val zoneOverlays = mutableListOf<MKCircle>()
-    private var darkTheme = false
 
     fun attach(map: MKMapView) {
         mapView = map
@@ -168,7 +358,6 @@ private class AppleMapCoordinator(
         shopsByAnnotation.clear()
         clustersByAnnotation.clear()
         zonesByAnnotation.clear()
-        zoneOverlays.clear()
     }
 
     fun updateContent(
@@ -179,12 +368,7 @@ private class AppleMapCoordinator(
         isDarkTheme: Boolean,
     ) {
         val map = mapView ?: return
-        darkTheme = isDarkTheme
         map.removeAnnotations(map.annotations)
-        if (zoneOverlays.isNotEmpty()) {
-            map.removeOverlays(zoneOverlays)
-            zoneOverlays.clear()
-        }
         shopsByAnnotation.clear()
         clustersByAnnotation.clear()
         zonesByAnnotation.clear()
@@ -209,15 +393,8 @@ private class AppleMapCoordinator(
             map.addAnnotation(annotation)
         }
 
-        // Render the shared zone radius and keep its center tappable on iOS.
+        // Keep the shared zone center tappable on the fallback MapKit map.
         zones.forEach { zone ->
-            val circle = MKCircle.circleWithCenterCoordinate(
-                CLLocationCoordinate2DMake(zone.latitude, zone.longitude),
-                zone.radiusMeters,
-            )
-            zoneOverlays += circle
-            map.addOverlay(circle)
-
             val annotation = pointAnnotation(
                 latitude = zone.latitude,
                 longitude = zone.longitude,
@@ -274,7 +451,7 @@ private class AppleMapCoordinator(
                 reuseIdentifier = "coffee-cluster",
             ).apply {
                 glyphText = cluster.count.toString()
-                markerTintColor = UIColor.systemYellowColor
+                markerTintColor = UIColor.yellowColor
                 canShowCallout = false
             }
         }
@@ -284,32 +461,11 @@ private class AppleMapCoordinator(
                 reuseIdentifier = "coffee-zone",
             ).apply {
                 glyphText = "⌖"
-                markerTintColor = UIColor.systemBlueColor
+                markerTintColor = UIColor.blueColor
                 canShowCallout = false
             }
         }
         return null
-    }
-
-    override fun mapView(
-        mapView: MKMapView,
-        rendererForOverlay: MKOverlayProtocol,
-    ): MKOverlayRenderer {
-        val circle = rendererForOverlay as? MKCircle
-            ?: return MKOverlayRenderer(overlay = rendererForOverlay)
-        return MKCircleRenderer(circle = circle).apply {
-            fillColor = if (darkTheme) {
-                UIColor.systemYellowColor.colorWithAlphaComponent(0.12)
-            } else {
-                UIColor.systemBlueColor.colorWithAlphaComponent(0.10)
-            }
-            strokeColor = if (darkTheme) {
-                UIColor.systemYellowColor.colorWithAlphaComponent(0.55)
-            } else {
-                UIColor.systemBlueColor.colorWithAlphaComponent(0.45)
-            }
-            lineWidth = 1.5
-        }
     }
 
     override fun mapView(mapView: MKMapView, regionDidChangeAnimated: Boolean) {
