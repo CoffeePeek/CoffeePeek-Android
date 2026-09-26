@@ -23,6 +23,21 @@ import org.koin.compose.koinInject
 @Composable
 @Preview
 fun App(onReady: () -> Unit = {}) {
+    LaunchedEffect(Unit) {
+        onReady()
+    }
+
+    AppContent {
+        Box(Modifier.fillMaxSize()) {
+            OrientationObserver.StartObserver()
+            Navigator()
+        }
+    }
+}
+
+/** Shared presentation environment, also used by native iOS tab controllers. */
+@Composable
+internal fun AppContent(content: @Composable () -> Unit) {
     val kamelConfig = koinInject<KamelConfig>()
     val themeMode by ThemeManager.themeMode.collectAsState()
     val isSystemDark = isSystemInDarkTheme()
@@ -34,16 +49,9 @@ fun App(onReady: () -> Unit = {}) {
     }
     PlatformSystemBars(darkTheme)
 
-    LaunchedEffect(Unit) {
-        onReady()
-    }
-
     CoffeePeekTheme(darkTheme = darkTheme) {
         CompositionLocalProvider(LocalKamelConfig provides kamelConfig) {
-            Box(Modifier.fillMaxSize()) {
-                OrientationObserver.StartObserver()
-                Navigator()
-            }
+            content()
         }
     }
 }

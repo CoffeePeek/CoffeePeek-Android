@@ -55,7 +55,10 @@ data class BottomNavItem(
 )
 
 @Composable
-fun MainScreen() {
+expect fun MainScreen()
+
+@Composable
+internal fun ComposeMainScreen() {
     val bottomNavController = rememberNavController()
     val pendingTabSelection by Navigator.pendingTabSelection.collectAsState()
 
