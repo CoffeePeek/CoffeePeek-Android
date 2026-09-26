@@ -1,11 +1,12 @@
 import ComposeApp
+import Foundation
 import MapLibre
 import UIKit
 
 /// Native iOS map implementation. Compose remains responsible for state and
 /// navigation; this class only renders the same OpenFreeMap style used by
 /// Android and reports map events back through the Kotlin bridge.
-final class MapLibreMapProvider: IosNativeMapProvider, MLNMapViewDelegate {
+final class MapLibreMapProvider: NSObject, IosNativeMapProvider, MLNMapViewDelegate {
     private static let lightStyle = URL(string: "https://tiles.openfreemap.org/styles/positron")!
     private static let darkStyle = URL(string: "https://tiles.openfreemap.org/styles/dark")!
 
@@ -29,7 +30,7 @@ final class MapLibreMapProvider: IosNativeMapProvider, MLNMapViewDelegate {
     }
 
     func updateMapView(
-        _ mapView: UIView,
+        mapView: UIView,
         stateJson: String,
         callbacks: IosNativeMapCallbacks
     ) {
@@ -90,7 +91,7 @@ final class MapLibreMapProvider: IosNativeMapProvider, MLNMapViewDelegate {
     }
 
     func moveCamera(
-        _ mapView: UIView,
+        mapView: UIView,
         latitude: Double,
         longitude: Double,
         zoom: Float,
@@ -236,6 +237,12 @@ private final class CoffeeAnnotation: MLNPointAnnotation {
         self.kind = kind
         super.init()
         self.coordinate = coordinate
+    }
+
+    required init?(coder: NSCoder) {
+        self.id = ""
+        self.kind = ""
+        super.init(coder: coder)
     }
 }
 
