@@ -2,6 +2,7 @@ package com.coffeepeek.admin.ui.screen.profile
 
 import com.coffeepeek.admin.auth.GoogleAuth
 import com.coffeepeek.admin.settings.CityPreference
+import com.coffeepeek.admin.settings.ReviewDraftStore
 import com.coffeepeek.admin.theme.ThemeManager
 import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.domain.model.City
@@ -13,7 +14,6 @@ import com.coffeepeek.domain.repository.UserRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,8 +47,9 @@ class ProfileViewModel(
     private val sessionRepository: SessionRepository,
     private val shopRepository: ShopRepository,
     private val cityPreference: CityPreference,
+    private val reviewDrafts: ReviewDraftStore,
 ) {
-    private val workScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val workScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -114,6 +115,8 @@ class ProfileViewModel(
         workScope.launch {
             authRepository.logout()
             GoogleAuth.signOut()
+            // Drafts belong to the signed-in user; don't leak them into the next account.
+            reviewDrafts.clearAll()
         }
     }
 
@@ -154,7 +157,12 @@ class ProfileViewModel(
                         if (loadedForUserId != null) {
                             resetProfileState()
                         }
-                        _uiState.update { it.copy(isLoggedIn = true, isLoading = true) }
+                        _uiState.update {
+                            it.copy(
+                                isLoggedIn = true,
+                                isLoading = true,
+                            )
+                        }
                         loadedForUserId = userId
                         if (userRepository.observeProfile().value == null) {
                             refreshProfile()

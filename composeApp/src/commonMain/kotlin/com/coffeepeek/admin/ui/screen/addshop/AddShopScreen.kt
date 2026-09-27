@@ -2,7 +2,6 @@ package com.coffeepeek.admin.ui.screen.addshop
 
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -12,8 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,29 +25,24 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,38 +51,47 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 import com.coffeepeek.admin.theme.CpColor
+import com.coffeepeek.admin.ui.component.ActionRow
+import com.coffeepeek.admin.ui.component.CheckmarkRow
+import com.coffeepeek.admin.ui.component.CheckmarkSection
+import com.coffeepeek.admin.ui.component.GroupSection
+import com.coffeepeek.admin.ui.component.RowSeparator
+import com.coffeepeek.admin.ui.component.StepperRow
+import com.coffeepeek.admin.ui.component.SwitchRow
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
 import com.coffeepeek.admin.ui.component.priceLevelValue
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.component.CoffeeShopImage
+import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
+import com.coffeepeek.admin.ui.component.CpCircularBackButton
+import com.coffeepeek.admin.ui.component.brewMethodIcon
 import com.coffeepeek.admin.ui.component.PhotoAttachmentsSection
 import com.coffeepeek.admin.utils.MAX_MENU_PHOTOS
 import com.coffeepeek.admin.utils.MAX_SHOP_PHOTOS
 import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.admin.location.LocationPermissionEffect
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.layout.ContentScale
-import com.coffeepeek.admin.utils.CpImage
-import com.coffeepeek.admin.utils.PhotoPickerController
-import com.coffeepeek.admin.utils.rememberPhotoPicker
+import org.jetbrains.compose.resources.painterResource
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
+fun AddShopScreen(vm: AddShopViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
 
     if (state.isSuccess) {
@@ -163,19 +165,15 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(state.catalogsError ?: "Ошибка", color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(CpDimens.spacing3))
-                    Button(onClick = { vm.loadCatalogs() }) { Text("Повторить") }
+                    Button(
+                        onClick = { vm.loadCatalogs() },
+                        modifier = Modifier.height(CpDimens.buttonHeight),
+                        shape = RoundedCornerShape(percent = 50),
+                    ) { Text("Повторить") }
                 }
             }
             return@Scaffold
         }
-
-        var isPhotoLoading by remember { mutableStateOf(false) }
-        val remainingPhotos = (MAX_SHOP_PHOTOS - state.photos.size).coerceAtLeast(1)
-        val photoPicker = rememberPhotoPicker(
-            maxSelection = remainingPhotos,
-            isLoading = { isPhotoLoading = it },
-            onPhotosPicked = vm::addPhotos,
-        )
 
         AnimatedContent(
             targetState = state.currentStep,
@@ -196,12 +194,7 @@ fun AddShopScreen(vm: AddShopViewModel = koinViewModel()) {
                 when (step) {
                     AddShopStep.BASIC    -> StepBasic(state = state, vm = vm)
                     AddShopStep.CONTACTS -> StepContacts(state, vm)
-                    AddShopStep.PHOTOS   -> StepPhotos(
-                        state = state,
-                        vm = vm,
-                        photoPicker = photoPicker,
-                        isPhotoLoading = isPhotoLoading,
-                    )
+                    AddShopStep.PHOTOS   -> StepPhotos(state = state, vm = vm)
                     AddShopStep.FEATURES -> StepFeatures(state, vm)
                     AddShopStep.SCHEDULE -> StepSchedule(state, vm)
                 }
@@ -255,25 +248,13 @@ private fun AddShopHeader(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(36.dp),
+                .height(CpDimens.buttonHeight),
             contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .clickable(onClick = onBack),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = CpIcons.ChevronLeft,
-                    contentDescription = "Назад",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+            CpCircularBackButton(
+                onClick = onBack,
+                modifier = Modifier.align(Alignment.CenterStart),
+            )
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
@@ -371,36 +352,38 @@ private fun StepBasic(
     Spacer(Modifier.height(CpDimens.spacing4))
 
     FormField(label = "Адрес", required = true) {
-        AppOutlinedField(
-            value = state.address,
-            onValueChange = vm::onAddressChange,
-            placeholder = "Улица, дом, корпус",
-            errorText = if (state.address.isNotEmpty()) state.addressError else null,
-            leadingIcon = CpIcons.Navigation,
-            trailingContent = {
-                Row(
-                    modifier = Modifier.padding(end = CpDimens.spacing1),
-                    verticalAlignment = Alignment.CenterVertically,
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+            verticalAlignment = Alignment.Top,
+        ) {
+            AppOutlinedField(
+                value = state.address,
+                onValueChange = vm::onAddressChange,
+                placeholder = "Улица, дом, корпус",
+                errorText = if (state.address.isNotEmpty()) state.addressError else null,
+                leadingIcon = CpIcons.Navigation,
+                modifier = Modifier.weight(1f),
+            )
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                FilledIconButton(
+                    onClick = vm::openLocationPicker,
+                    enabled = !state.isResolvingAddress,
+                    modifier = Modifier.size(CpDimens.buttonHeight),
+                    shape = CircleShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                        disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+                    ),
                 ) {
                     if (state.isResolvingAddress) {
                         CoffeePeekLoader(
                             modifier = Modifier.size(18.dp),
                             strokeWidth = 2.dp,
                         )
-                        Spacer(Modifier.width(CpDimens.spacing1))
-                    }
-                    FilledIconButton(
-                        onClick = vm::openLocationPicker,
-                        enabled = !state.isResolvingAddress,
-                        modifier = Modifier.size(40.dp),
-                        shape = RoundedCornerShape(CpDimens.radiusSm),
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
-                        ),
-                    ) {
+                    } else {
                         Icon(
                             imageVector = CpIcons.Map,
                             contentDescription = "Выбрать на карте",
@@ -408,8 +391,8 @@ private fun StepBasic(
                         )
                     }
                 }
-            },
-        )
+            }
+        }
         state.locationHint?.let { hint ->
             Spacer(Modifier.height(CpDimens.spacing2))
             Text(
@@ -437,98 +420,16 @@ private fun StepBasic(
 private fun StepPhotos(
     state: AddShopUiState,
     vm: AddShopViewModel,
-    photoPicker: PhotoPickerController,
-    isPhotoLoading: Boolean,
 ) {
     StepLegend(optional = true)
-    Text(
-        text = "Добавьте фотографии кофейни (до $MAX_SHOP_PHOTOS). Можно выбрать несколько сразу.",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(bottom = CpDimens.spacing3),
+    PhotoAttachmentsSection(
+        photos = state.photos.map { PickedImage(it.bytes, it.fileName, it.contentType) },
+        maxPhotos = MAX_SHOP_PHOTOS,
+        onPhotosAdded = vm::addPhotos,
+        onRemovePhoto = vm::removePhoto,
+        title = "Фотографии кофейни",
+        hint = "До $MAX_SHOP_PHOTOS фотографий (необязательно). Можно выбрать несколько сразу.",
     )
-    Text(
-        text = "Добавлено: ${state.photos.size}/$MAX_SHOP_PHOTOS",
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.padding(bottom = CpDimens.spacing3),
-    )
-
-    if (state.photos.isNotEmpty()) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-            modifier = Modifier.padding(bottom = CpDimens.spacing3),
-        ) {
-            state.photos.forEachIndexed { index, photo ->
-                Box(
-                    modifier = Modifier
-                        .size(96.dp)
-                        .clip(RoundedCornerShape(CpDimens.radiusMd)),
-                ) {
-                    CpImage(
-                        data = photo.bytes,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
-                    IconButton(
-                        onClick = { vm.removePhoto(index) },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(28.dp)
-                            .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(50)),
-                    ) {
-                        Icon(
-                            CpIcons.Close,
-                            contentDescription = "Удалить",
-                            tint = Color.White,
-                            modifier = Modifier.size(14.dp),
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    if (state.photos.size < MAX_SHOP_PHOTOS) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-        ) {
-            OutlinedButton(
-                onClick = photoPicker.pickFromGallery,
-                enabled = !isPhotoLoading,
-                modifier = Modifier.weight(1f),
-            ) {
-                Icon(CpIcons.Gallery, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(CpDimens.spacing1))
-                Text("Галерея", style = MaterialTheme.typography.labelMedium)
-            }
-            OutlinedButton(
-                onClick = photoPicker.takePhoto,
-                enabled = !isPhotoLoading,
-                modifier = Modifier.weight(1f),
-            ) {
-                Icon(CpIcons.Camera, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(CpDimens.spacing1))
-                Text("Камера", style = MaterialTheme.typography.labelMedium)
-            }
-        }
-        if (isPhotoLoading) {
-            Spacer(Modifier.height(CpDimens.spacing2))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                CoffeePeekLoader(
-                    size = CpDimens.loaderButton,
-                    strokeWidth = 2.dp,
-                )
-                Spacer(Modifier.width(CpDimens.spacing2))
-                Text("Обработка фото…", style = MaterialTheme.typography.bodySmall)
-            }
-        }
-    }
 
     Spacer(Modifier.height(CpDimens.spacing6))
     PhotoAttachmentsSection(
@@ -543,169 +444,77 @@ private fun StepPhotos(
 
 // ── Шаг 3: Расписание ─────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalLayoutApi::class)
+private val SCHEDULE_PRESETS = listOf("08:00" to "20:00", "09:00" to "21:00", "10:00" to "22:00")
+
 @Composable
 private fun StepSchedule(state: AddShopUiState, vm: AddShopViewModel) {
     StepLegend(optional = true)
     Text(
-        text = "По умолчанию кофейня открыта каждый день. Укажите общее время и отметьте только закрытые дни.",
-        style = MaterialTheme.typography.bodyMedium,
+        text = "По умолчанию кофейня открыта каждый день.",
+        style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(bottom = CpDimens.spacing4),
     )
 
-    if (!state.usePerDaySchedule) {
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(bottom = CpDimens.spacing3),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing6)) {
+        GroupSection(
+            title = "Режим",
+            footer = "Включите, если в будни и выходные разные часы.",
         ) {
-            Column(Modifier.padding(CpDimens.spacing3)) {
-                Text("Время работы", style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.height(CpDimens.spacing2))
-                TimeAdjuster(
-                    label = "Открытие",
-                    value = state.unifiedOpenTime,
-                    onDecrease = { vm.adjustUnifiedOpen(-30) },
-                    onIncrease = { vm.adjustUnifiedOpen(30) },
-                )
-                Spacer(Modifier.height(CpDimens.spacing2))
-                TimeAdjuster(
-                    label = "Закрытие",
-                    value = state.unifiedCloseTime,
-                    onDecrease = { vm.adjustUnifiedClose(-30) },
-                    onIncrease = { vm.adjustUnifiedClose(30) },
-                )
-                Spacer(Modifier.height(CpDimens.spacing3))
-                Text(
-                    "Быстрый выбор",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(CpDimens.spacing1))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-                    listOf("08:00" to "20:00", "09:00" to "21:00", "10:00" to "22:00").forEach { (open, close) ->
-                        val selected = state.unifiedOpenTime == open && state.unifiedCloseTime == close
-                        FilterChip(
-                            selected = selected,
-                            onClick = { vm.applySchedulePreset(open, close) },
-                            label = { Text("$open – $close", style = MaterialTheme.typography.labelSmall) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            ),
-                        )
-                    }
-                }
-            }
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(bottom = CpDimens.spacing3),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        ) {
-            Column(Modifier.padding(CpDimens.spacing3)) {
-                Text("Закрытые дни", style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Нажмите на день, когда кофейня не работает",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(CpDimens.spacing2))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-                    state.schedules.forEach { day ->
-                        val isClosed = day.dayOfWeek in state.closedDays
-                        FilterChip(
-                            selected = isClosed,
-                            onClick = { vm.toggleClosedDay(day.dayOfWeek) },
-                            label = { Text(day.shortLabel, style = MaterialTheme.typography.labelMedium) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.errorContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onErrorContainer,
-                            ),
-                        )
-                    }
-                }
-                val openCount = 7 - state.closedDays.size
-                Spacer(Modifier.height(CpDimens.spacing2))
-                Text(
-                    "Открыто $openCount из 7 дней",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-    }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text("Разное время по дням", style = MaterialTheme.typography.titleSmall)
-            Text(
-                "Если в будни и выходные разные часы",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            SwitchRow(
+                label = "Разное время по дням",
+                checked = state.usePerDaySchedule,
+                onCheckedChange = vm::setUsePerDaySchedule,
             )
         }
-        ScheduleSwitch(
-            checked = state.usePerDaySchedule,
-            onCheckedChange = vm::setUsePerDaySchedule,
-        )
-    }
 
-    AnimatedVisibility(visible = state.usePerDaySchedule) {
-        Column(modifier = Modifier.padding(top = CpDimens.spacing3)) {
+        if (!state.usePerDaySchedule) {
+            GroupSection(title = "Часы работы") {
+                TimeStepperRow("Открытие", state.unifiedOpenTime) { vm.adjustUnifiedOpen(it) }
+                RowSeparator()
+                TimeStepperRow("Закрытие", state.unifiedCloseTime) { vm.adjustUnifiedClose(it) }
+            }
+
+            GroupSection(title = "Типовые часы") {
+                SCHEDULE_PRESETS.forEachIndexed { index, (open, close) ->
+                    if (index > 0) RowSeparator()
+                    CheckmarkRow(
+                        label = "$open – $close",
+                        checked = state.unifiedOpenTime == open && state.unifiedCloseTime == close,
+                        onToggle = { vm.applySchedulePreset(open, close) },
+                    )
+                }
+            }
+
+            GroupSection(
+                title = "Дни работы",
+                trailing = "${7 - state.closedDays.size} из 7",
+                footer = "Снимите отметку с дней, когда кофейня закрыта.",
+            ) {
+                state.schedules.forEachIndexed { index, day ->
+                    if (index > 0) RowSeparator()
+                    CheckmarkRow(
+                        label = day.label,
+                        checked = day.dayOfWeek !in state.closedDays,
+                        onToggle = { vm.toggleClosedDay(day.dayOfWeek) },
+                    )
+                }
+            }
+        } else {
             state.schedules.forEach { day ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = CpDimens.spacing2),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                ) {
-                    Column(Modifier.padding(CpDimens.spacing3)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(day.label, style = MaterialTheme.typography.titleSmall)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    if (day.isClosed) "Закрыто" else "Открыто",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Spacer(Modifier.width(CpDimens.spacing1))
-                                ScheduleSwitch(
-                                    checked = !day.isClosed,
-                                    onCheckedChange = { open ->
-                                        vm.updateSchedule(day.dayOfWeek) { it.copy(isClosed = !open) }
-                                    },
-                                )
-                            }
-                        }
-                        if (!day.isClosed) {
-                            Spacer(Modifier.height(CpDimens.spacing2))
-                            TimeAdjuster(
-                                label = "Открытие",
-                                value = day.openTime,
-                                onDecrease = { vm.adjustDayOpenTime(day.dayOfWeek, -30) },
-                                onIncrease = { vm.adjustDayOpenTime(day.dayOfWeek, 30) },
-                            )
-                            Spacer(Modifier.height(CpDimens.spacing2))
-                            TimeAdjuster(
-                                label = "Закрытие",
-                                value = day.closeTime,
-                                onDecrease = { vm.adjustDayCloseTime(day.dayOfWeek, -30) },
-                                onIncrease = { vm.adjustDayCloseTime(day.dayOfWeek, 30) },
-                            )
-                        }
+                GroupSection(title = day.label) {
+                    SwitchRow(
+                        label = "Открыто",
+                        checked = !day.isClosed,
+                        onCheckedChange = { open ->
+                            vm.updateSchedule(day.dayOfWeek) { it.copy(isClosed = !open) }
+                        },
+                    )
+                    if (!day.isClosed) {
+                        RowSeparator()
+                        TimeStepperRow("Открытие", day.openTime) { vm.adjustDayOpenTime(day.dayOfWeek, it) }
+                        RowSeparator()
+                        TimeStepperRow("Закрытие", day.closeTime) { vm.adjustDayCloseTime(day.dayOfWeek, it) }
                     }
                 }
             }
@@ -713,58 +522,17 @@ private fun StepSchedule(state: AddShopUiState, vm: AddShopViewModel) {
     }
 }
 
+// ponytail: ±30 min stepper; swap for an iOS-style wheel time picker if 30-min granularity is too coarse.
 @Composable
-private fun ScheduleSwitch(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    val isLight = MaterialTheme.colorScheme.background.luminance() > 0.5f
-    Switch(
-        checked = checked,
-        onCheckedChange = onCheckedChange,
-        colors = SwitchDefaults.colors(
-            checkedThumbColor = if (isLight) CpColor.SwitchCheckedThumbLight else CpColor.SwitchCheckedThumbDark,
-            checkedTrackColor = if (isLight) CpColor.GoldWarm else CpColor.SwitchCheckedTrackDark,
-            checkedBorderColor = if (isLight) CpColor.SwitchCheckedThumbLight else CpColor.SwitchCheckedThumbDark,
-            uncheckedThumbColor = if (isLight) CpColor.LightTextSecondary else CpColor.DarkTextSecondary,
-            uncheckedTrackColor = if (isLight) CpColor.LightBorderHover else CpColor.DarkBorderHover,
-            uncheckedBorderColor = if (isLight) CpColor.LightTextSecondary else CpColor.DarkTextSecondary,
-        ),
+private fun TimeStepperRow(label: String, value: String, onAdjust: (Int) -> Unit) {
+    StepperRow(
+        label = label,
+        value = value,
+        onDecrease = { onAdjust(-30) },
+        onIncrease = { onAdjust(30) },
+        decreaseDescription = "$label на 30 минут раньше",
+        increaseDescription = "$label на 30 минут позже",
     )
-}
-
-@Composable
-private fun TimeAdjuster(
-    label: String,
-    value: String,
-    onDecrease: () -> Unit,
-    onIncrease: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clip(RoundedCornerShape(CpDimens.radiusMd))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-        ) {
-            IconButton(onClick = onDecrease, modifier = Modifier.size(40.dp)) {
-                Icon(CpIcons.ChevronLeft, "Раньше", modifier = Modifier.size(20.dp))
-            }
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = CpDimens.spacing2),
-            )
-            IconButton(onClick = onIncrease, modifier = Modifier.size(40.dp)) {
-                Icon(CpIcons.ChevronRight, "Позже", modifier = Modifier.size(20.dp))
-            }
-        }
-    }
 }
 
 @Composable
@@ -781,7 +549,7 @@ private fun StepLegend(
         optional -> Text(
             text = "Необязательно — можно пропустить",
             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = addShopAccentTextColor(),
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = CpDimens.spacing1),
         )
     }
@@ -824,7 +592,7 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
         AppOutlinedField(
             value = state.website,
             onValueChange = vm::onWebsiteChange,
-            placeholder = "https://mycoffee.by",
+            placeholder = "mycoffee.by",
             keyboardType = KeyboardType.Uri,
             errorText = if (state.website.isNotEmpty()) state.websiteError else null,
             leadingIcon = CpIcons.Globe,
@@ -845,128 +613,85 @@ private fun StepContacts(state: AddShopUiState, vm: AddShopViewModel) {
 
 // ── Шаг 3: Особенности ────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StepFeatures(state: AddShopUiState, vm: AddShopViewModel) {
     StepLegend(optional = true)
     Text(
-        text = "Выберите характеристики, которые описывают ваше заведение.",
-        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-        color = MaterialTheme.colorScheme.onSurface,
+        text = "Отметьте то, что есть в заведении.",
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(bottom = CpDimens.spacing4),
     )
 
-    if (state.brewMethods.isNotEmpty()) {
-        CatalogGroup("Методы приготовления", state.brewMethods, state.selectedBrewMethodIds, vm::toggleBrewMethod)
-        Spacer(Modifier.height(CpDimens.spacing4))
+    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing6)) {
+        CheckmarkSection(
+            title = "Методы приготовления",
+            items = state.brewMethods,
+            selectedIds = state.selectedBrewMethodIds,
+            onToggle = vm::toggleBrewMethod,
+            leading = { item ->
+                Icon(
+                    painter = painterResource(brewMethodIcon(item.name)),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp),
+                )
+            },
+        )
+        CheckmarkSection(
+            title = "Зерно",
+            items = state.beans,
+            selectedIds = state.selectedBeanIds,
+            onToggle = vm::toggleBean,
+        )
+        CheckmarkSection(
+            title = "Обжарщики",
+            items = state.roasters,
+            selectedIds = state.selectedRoasterIds,
+            onToggle = vm::toggleRoaster,
+            footer = "Не нашли обжарщика? Добавьте его — он появится в списке после проверки.",
+            leading = { item -> RoasterAvatar(item) },
+            extraRows = {
+                ActionRow(
+                    label = "Добавить обжарщика",
+                    icon = CpIcons.Add,
+                    onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
+                )
+            },
+        )
+        CheckmarkSection(
+            title = "Оборудование",
+            items = state.equipment,
+            selectedIds = state.selectedEquipmentIds,
+            onToggle = vm::toggleEquipment,
+        )
     }
-    if (state.beans.isNotEmpty()) {
-        CatalogGroup("Зерно", state.beans, state.selectedBeanIds, vm::toggleBean)
-        Spacer(Modifier.height(CpDimens.spacing4))
-    }
-    if (state.roasters.isNotEmpty()) {
-        CatalogGroup("Обжарщики", state.roasters, state.selectedRoasterIds, vm::toggleRoaster)
-    }
-    TextButton(
-        onClick = { Navigator.navigate(Navigator.Screen.AddRoaster) },
-        colors = ButtonDefaults.textButtonColors(contentColor = addShopAccentTextColor()),
+}
+
+@Composable
+private fun RoasterAvatar(item: CatalogItem) {
+    Box(
+        modifier = Modifier
+            .size(28.dp)
+            .clip(CircleShape),
     ) {
-        Icon(
-            imageVector = CpIcons.Add,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(Modifier.width(CpDimens.spacing1))
-        Text(
-            "Нет нужного? Добавить обжарщика",
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-        )
-    }
-    Spacer(Modifier.height(CpDimens.spacing4))
-    if (state.equipment.isNotEmpty()) {
-        CatalogGroup("Оборудование", state.equipment, state.selectedEquipmentIds, vm::toggleEquipment)
-    }
-}
-
-private const val CATALOG_VISIBLE_LIMIT = 4
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun CatalogGroup(
-    title: String,
-    items: List<CatalogItem>,
-    selected: Set<String>,
-    onToggle: (String) -> Unit,
-    visibleLimit: Int = CATALOG_VISIBLE_LIMIT,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val hiddenCount = (items.size - visibleLimit).coerceAtLeast(0)
-    val visibleItems = if (expanded || hiddenCount == 0) items else items.take(visibleLimit)
-
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.padding(bottom = CpDimens.spacing2),
-    )
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-        visibleItems.forEach { item ->
-            val isSelected = item.id in selected
-            FilterChip(
-                selected = isSelected,
-                onClick = { onToggle(item.id) },
-                label = {
-                    Text(
-                        item.name,
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                    )
-                },
-                leadingIcon = if (isSelected) {
-                    { Icon(CpIcons.Check, null, modifier = Modifier.size(14.dp)) }
-                } else null,
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    labelColor = MaterialTheme.colorScheme.onSurface,
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = isSelected,
-                    borderColor = MaterialTheme.colorScheme.outlineVariant,
-                    selectedBorderColor = Color.Transparent,
-                ),
-                shape = RoundedCornerShape(CpDimens.buttonRadius),
+        val photoUrl = item.photoUrl?.takeIf(String::isNotBlank)
+        if (photoUrl != null) {
+            CoffeeShopImage(
+                imageUrl = photoUrl,
+                contentDescription = item.name,
+                contentScale = ContentScale.Crop,
+                placeholderLabelSize = 6.sp,
+                modifier = Modifier.fillMaxSize(),
             )
-        }
-    }
-    if (hiddenCount > 0) {
-        TextButton(
-            onClick = { expanded = !expanded },
-            colors = ButtonDefaults.textButtonColors(contentColor = addShopAccentTextColor()),
-        ) {
-            Icon(
-                imageVector = if (expanded) CpIcons.ChevronUp else CpIcons.ChevronDown,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(Modifier.width(CpDimens.spacing1))
-            Text(
-                text = if (expanded) "Скрыть" else "Ещё $hiddenCount",
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+        } else {
+            CoffeeShopPlaceholderImage(
+                labelSize = 6.sp,
+                contentDescription = item.name,
             )
         }
     }
 }
-
-@Composable
-private fun addShopAccentTextColor(): Color =
-    if (MaterialTheme.colorScheme.background.luminance() > 0.5f) {
-        CpColor.AccentTextLight
-    } else {
-        CpColor.AccentTextDark
-    }
 
 // ── Переиспользуемые компоненты ───────────────────────────────────────────────
 
@@ -1013,11 +738,18 @@ private fun AppOutlinedField(
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
-        OutlinedTextField(
+        val singleLine = maxLines <= 1
+        CompactOutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(CpDimens.radiusMd),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (singleLine) Modifier.height(CpDimens.buttonHeight) else Modifier),
+            shape = if (singleLine) {
+                RoundedCornerShape(percent = 50)
+            } else {
+                RoundedCornerShape(CpDimens.buttonRadius)
+            },
             placeholder = {
                 Text(
                     placeholder,
@@ -1028,6 +760,11 @@ private fun AppOutlinedField(
             textStyle = MaterialTheme.typography.bodyLarge,
             isError = errorText != null,
             singleLine = maxLines <= 1,
+            contentPadding = if (singleLine) {
+                CpDimens.singleLineFieldContentPadding
+            } else {
+                OutlinedTextFieldDefaults.contentPadding()
+            },
             minLines = minLines,
             maxLines = maxLines,
             leadingIcon = leadingIcon?.let { icon ->
@@ -1046,7 +783,7 @@ private fun AppOutlinedField(
                 keyboardType = keyboardType,
             ),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor   = MaterialTheme.colorScheme.primary,
+                focusedBorderColor   = MaterialTheme.colorScheme.outline,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 errorBorderColor     = MaterialTheme.colorScheme.error,
                 focusedContainerColor   = MaterialTheme.colorScheme.surface,
@@ -1077,13 +814,14 @@ private fun AppOutlinedField(
 
 @Composable
 private fun SingleValueField(value: String) {
-    OutlinedTextField(
+    CompactOutlinedTextField(
         value = value,
         onValueChange = {},
         readOnly = true,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
         textStyle = MaterialTheme.typography.bodyLarge,
-        shape = RoundedCornerShape(CpDimens.radiusMd),
+        contentPadding = CpDimens.singleLineFieldContentPadding,
+        shape = RoundedCornerShape(percent = 50),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.outline,
             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -1107,11 +845,11 @@ private fun CityDropdown(
     var expanded by remember { mutableStateOf(false) }
     val menuShape = RoundedCornerShape(CpDimens.selectRadius)
     Box {
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = selected?.name ?: "",
             onValueChange = {},
             readOnly = true,
-            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
+            modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight).clickable { expanded = true },
             placeholder = {
                 Text(
                     "Выберите город",
@@ -1128,9 +866,10 @@ private fun CityDropdown(
                 )
             },
             isError = error != null,
-            shape = menuShape,
+            shape = RoundedCornerShape(percent = 50),
+            contentPadding = CpDimens.singleLineFieldContentPadding,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor   = MaterialTheme.colorScheme.primary,
+                focusedBorderColor   = MaterialTheme.colorScheme.outline,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 errorBorderColor     = MaterialTheme.colorScheme.error,
                 focusedContainerColor   = MaterialTheme.colorScheme.surface,

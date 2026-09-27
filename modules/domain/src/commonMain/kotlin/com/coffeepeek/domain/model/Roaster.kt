@@ -32,6 +32,7 @@ data class RoasterPhoto(
 data class RoasterShop(
     val id: String,
     val name: String,
+    val photoUrl: String? = null,
 )
 
 data class CreateRoasterInput(
@@ -49,4 +50,12 @@ data class RoasterSubmissionResult(
     val status: String,
     val isAddressValidated: Boolean,
     val message: String,
+)
+
+data class RoasterSubmission(
+    val id: String,
+    val name: String,
+    val about: String?,
+    val status: ModerationStatus,
+    val rejectedReason: String?,
 )

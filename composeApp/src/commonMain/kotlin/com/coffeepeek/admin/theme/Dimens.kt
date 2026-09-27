@@ -1,5 +1,6 @@
 package com.coffeepeek.admin.theme
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.dp
 
 object CpDimens {
@@ -25,25 +26,28 @@ object CpDimens {
     val radius3xl = 26.dp
     val radius4xl = 28.dp
 
-    // ── Button ────────────────────────────────────────────────────────────────
-    val buttonHeight    = 40.dp
+    // ── Button / input — one control height, pill ends ────────────────────────
+    val controlHeight   = 44.dp
+    val buttonHeight    = controlHeight
     val buttonPaddingH  = 16.dp
     val buttonPaddingV  = 10.dp
-    val buttonRadius    = 12.dp
+    val buttonRadius    = controlHeight / 2
 
     // ── Input ─────────────────────────────────────────────────────────────────
-    val inputMinHeight  = 52.dp
+    val inputMinHeight  = controlHeight
     val inputPadding    = 16.dp
-    val inputRadius     = 26.dp
+    val inputRadius     = buttonRadius
+    /** Vertical padding is zero so a 44.dp field does not clip the text line. */
+    val singleLineFieldContentPadding = PaddingValues(horizontal = inputPadding, vertical = 0.dp)
 
     // ── Auth ──────────────────────────────────────────────────────────────────
     val authCardRadius      = 24.dp
     val authCardPadding     = 40.dp
-    val authFieldHeight     = 50.dp
-    val authFieldRadius     = 12.dp
-    val authPrimaryBtnHeight = 48.dp
+    val authFieldHeight     = controlHeight
+    val authFieldRadius     = buttonRadius
+    val authPrimaryBtnHeight = controlHeight
     val authMascotSize      = 128.dp
-    val authThemeToggleSize = 40.dp
+    val authThemeToggleSize = controlHeight
     val authBrandLogoSize   = 96.dp
 
     // ── Select ────────────────────────────────────────────────────────────────
@@ -81,5 +85,5 @@ object CpDimens {
     // ── Bottom navigation ─────────────────────────────────────────────────────
     val floatingNavBarHeight = 64.dp
     /** Panel height; the caller adds the system navigation inset. */
-    val floatingNavContentClearance = floatingNavBarHeight
+    val floatingNavContentClearance = floatingNavBarHeight + 8.dp // + FloatingNavBottomMargin
 }

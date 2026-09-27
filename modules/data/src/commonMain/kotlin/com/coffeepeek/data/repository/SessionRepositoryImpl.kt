@@ -3,12 +3,12 @@ package com.coffeepeek.data.repository
 import com.coffeepeek.api.model.response.AuthResp
 import com.coffeepeek.data.util.JwtUtils
 import com.coffeepeek.data.util.SessionAuth
+import com.coffeepeek.data.session.SessionSecureStore
 import com.coffeepeek.domain.model.Session
 import com.coffeepeek.domain.repository.SessionRepository
 import com.coffeepeek.room.DatabaseCore
 import com.coffeepeek.room.repository.readSerializable
-import com.coffeepeek.room.repository.readSerializableFlow
-import com.coffeepeek.room.repository.saveSerializable
+import kotlin.concurrent.Volatile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.map
 
 class SessionRepositoryImpl(
     database: DatabaseCore,
+    private val secureStore: SessionSecureStore,
 ) : SessionRepository {
 
     companion object {
@@ -41,20 +42,22 @@ class SessionRepositoryImpl(
     }
 
     private suspend fun migrateLegacySessionIfNeeded() {
-        val existing = settings.readSerializable<AuthResp>(SESSION_KEY)
-        if (existing != null) return
-        val legacy = settings.readSerializable<AuthResp>(LEGACY_SESSION_KEY) ?: return
-        saveSession(legacy.toSession())
+        if (secureStore.read() != null) return
+        val legacy = settings.readSerializable<AuthResp>(SESSION_KEY)
+            ?: settings.readSerializable<AuthResp>(LEGACY_SESSION_KEY)
+            ?: return
+        secureStore.write(legacy)
+        settings.delete(SESSION_KEY)
         settings.delete(LEGACY_SESSION_KEY)
     }
 
     override suspend fun getSession(): Session? {
         migrateLegacySessionIfNeeded()
-        return settings.readSerializable<AuthResp>(SESSION_KEY)?.toSession()?.also { memoryCache = it }
+        return secureStore.read()?.toSession()?.also { memoryCache = it }
     }
 
     override suspend fun persistSession(session: Session?) {
-        settings.saveSerializable(SESSION_KEY, session?.toAuthResp())
+        secureStore.write(session?.toAuthResp())
     }
 
     override suspend fun saveSession(session: Session?) {
@@ -65,7 +68,7 @@ class SessionRepositoryImpl(
     override fun observeSession(): Flow<Session?> = flow {
         migrateLegacySessionIfNeeded()
         emitAll(
-            settings.readSerializableFlow<AuthResp>(SESSION_KEY).map { auth ->
+            secureStore.observe().map { auth ->
                 auth?.toSession().also { memoryCache = it }
             },
         )

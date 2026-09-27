@@ -6,7 +6,7 @@ import androidx.compose.ui.unit.dp
 
 object Theme {
     val adaptiveGridCells = GridCells.Adaptive(300.dp)
-    val shape = RoundedCornerShape(CpDimens.radiusSm)
+    val shape = RoundedCornerShape(percent = 50)
     val shapeTop = RoundedCornerShape(topStart = CpDimens.radiusSm, topEnd = CpDimens.radiusSm)
     val shapeBottom = RoundedCornerShape(bottomStart = CpDimens.radiusSm, bottomEnd = CpDimens.radiusSm)
 }

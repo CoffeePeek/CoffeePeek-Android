@@ -1,6 +1,10 @@
 package com.coffeepeek.admin.ui.screen.roaster
 
+import com.coffeepeek.admin.ui.component.CpTopBar
+
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,11 +22,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -43,28 +50,44 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coffeepeek.composeapp.generated.resources.Res
+import coffeepeek.composeapp.generated.resources.maskot_happy
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.PhotoAttachmentsSection
 import com.coffeepeek.admin.ui.icons.CpIcons
+import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.domain.model.City
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
+import org.jetbrains.compose.resources.painterResource
 
 private const val ROASTER_PHOTO_LIMIT = 5
 
 @Composable
-fun AddRoasterScreen(vm: AddRoasterViewModel = koinViewModel()) {
+fun AddRoasterScreen(vm: AddRoasterViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
 
     state.result?.let { result ->
         RoasterSubmittedContent(
+            name = state.name,
+            cityName = state.selectedCity?.name,
+            address = state.address,
+            about = state.about,
+            coverPhoto = state.photos.firstOrNull()?.bytes,
             addressValidated = result.isAddressValidated,
             message = result.message,
             onDone = Navigator::popBack,
@@ -87,22 +110,7 @@ fun AddRoasterScreen(vm: AddRoasterViewModel = koinViewModel()) {
 
     Scaffold(
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = CpDimens.spacing2, vertical = CpDimens.spacing2),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = Navigator::popBack) {
-                    Icon(CpIcons.Back, contentDescription = "Назад")
-                }
-                Text(
-                    text = "Добавить обжарщика",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
+            CpTopBar("Добавить обжарщика")
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -200,7 +208,7 @@ fun AddRoasterScreen(vm: AddRoasterViewModel = koinViewModel()) {
             Button(
                 onClick = vm::submit,
                 enabled = state.canSubmit,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+                modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -241,23 +249,34 @@ private fun RoasterField(
             color = if (error != null) MaterialTheme.colorScheme.error
             else MaterialTheme.colorScheme.onSurface,
         )
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (singleLine) Modifier.height(CpDimens.buttonHeight) else Modifier),
             placeholder = { Text(placeholder) },
             leadingIcon = leadingIcon?.let { icon ->
                 { Icon(icon, contentDescription = null) }
             },
             singleLine = singleLine,
+            contentPadding = if (singleLine) {
+                CpDimens.singleLineFieldContentPadding
+            } else {
+                OutlinedTextFieldDefaults.contentPadding()
+            },
             minLines = minLines,
             isError = error != null,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            shape = RoundedCornerShape(CpDimens.radiusMd),
+            shape = if (singleLine) {
+                RoundedCornerShape(percent = 50)
+            } else {
+                RoundedCornerShape(CpDimens.buttonRadius)
+            },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                focusedBorderColor = MaterialTheme.colorScheme.outline,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
             ),
         )
@@ -286,9 +305,9 @@ private fun RoasterCityPicker(
             onClick = { expanded = true },
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 52.dp)
+                .height(CpDimens.buttonHeight)
                 .onGloballyPositioned { anchorWidth = with(density) { it.size.width.toDp() } },
-            shape = RoundedCornerShape(CpDimens.radiusMd),
+            shape = RoundedCornerShape(percent = 50),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             colors = ButtonDefaults.outlinedButtonColors(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -341,42 +360,166 @@ private fun RoasterCityPicker(
 
 @Composable
 private fun RoasterSubmittedContent(
+    name: String,
+    cityName: String?,
+    address: String,
+    about: String,
+    coverPhoto: ByteArray?,
     addressValidated: Boolean,
     message: String,
     onDone: () -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(CpDimens.spacing6),
-        contentAlignment = Alignment.Center,
-    ) {
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing4),
+            ) {
+                AppButton(text = "Готово", onClick = onDone)
+            }
+        },
+    ) { padding ->
         Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = CpDimens.spacing4),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
         ) {
-            Icon(
-                imageVector = CpIcons.CheckCircle,
+            Spacer(Modifier.height(CpDimens.spacing6))
+            Image(
+                painter = painterResource(Res.drawable.maskot_happy),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(64.dp),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(CpDimens.authMascotSize),
             )
+            Spacer(Modifier.height(CpDimens.spacing4))
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = CpIcons.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+            Spacer(Modifier.height(CpDimens.spacing4))
             Text(
-                text = "Заявка отправлена",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
+                text = "Обжарщик добавлен!",
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
             )
+            Spacer(Modifier.height(CpDimens.spacing2))
             Text(
                 text = message.ifBlank {
-                    if (addressValidated) "Обжарщик появится после проверки модератором."
+                    if (addressValidated) "Мы проверим информацию и опубликуем обжарщика в течение 24 часов."
                     else "Заявка принята. Адрес дополнительно проверит модератор."
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
             )
-            Button(onClick = onDone) { Text("Готово") }
+            Spacer(Modifier.height(CpDimens.spacing6))
+            RoasterPreviewCard(
+                name = name,
+                cityName = cityName,
+                address = address,
+                about = about,
+                coverPhoto = coverPhoto,
+            )
+            Spacer(Modifier.height(CpDimens.spacing8))
+        }
+    }
+}
+
+@Composable
+private fun RoasterPreviewCard(
+    name: String,
+    cityName: String?,
+    address: String,
+    about: String,
+    coverPhoto: ByteArray?,
+) {
+    val location = listOfNotNull(cityName?.takeIf { it.isNotBlank() }, address.takeIf { it.isNotBlank() })
+        .joinToString(", ")
+    val cardShape = RoundedCornerShape(CpDimens.cardRadius)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = cardShape,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .clip(RoundedCornerShape(topStart = CpDimens.cardRadius, topEnd = CpDimens.cardRadius)),
+            ) {
+                if (coverPhoto != null) {
+                    CpImage(
+                        data = coverPhoto,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
+                    CoffeeShopPlaceholderImage(labelSize = 16.sp)
+                }
+            }
+            Column(modifier = Modifier.padding(CpDimens.spacing4)) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (location.isNotBlank()) {
+                    Spacer(Modifier.height(CpDimens.spacing2))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            imageVector = CpIcons.Location,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(
+                            text = location,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                    }
+                }
+                if (about.isNotBlank()) {
+                    Spacer(Modifier.height(CpDimens.spacing2))
+                    Text(
+                        text = about,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }

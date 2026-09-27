@@ -2,8 +2,16 @@ package com.coffeepeek.data.session
 
 import java.io.File
 
-internal actual fun clearPlatformImageCaches(appCacheRoot: File) {
-    appCacheRoot.listFiles()?.forEach { entry ->
+internal actual fun clearPlatformCaches(
+    httpCacheFolderPath: String,
+    appCacheRootPath: String,
+) {
+    File(httpCacheFolderPath).run {
+        listFiles()?.forEach { it.deleteRecursively() }
+        mkdirs()
+    }
+
+    File(appCacheRootPath).listFiles()?.forEach { entry ->
         if (entry.name.equals("kamel", ignoreCase = true) ||
             entry.name.contains("image", ignoreCase = true)
         ) {

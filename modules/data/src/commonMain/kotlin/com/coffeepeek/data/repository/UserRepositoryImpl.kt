@@ -1,8 +1,10 @@
 package com.coffeepeek.data.repository
 
 import com.coffeepeek.api.model.request.UploadedPhotoReq
+import com.coffeepeek.api.model.response.AccountDeletionRequestDto
 import com.coffeepeek.api.model.response.UserProfileDto
 import com.coffeepeek.api.service.UserApiService
+import com.coffeepeek.domain.model.AccountDeletionRequest
 import com.coffeepeek.domain.model.PendingPhotoUpload
 import com.coffeepeek.domain.model.UserProfile
 import com.coffeepeek.domain.repository.PhotoRepository
@@ -69,6 +71,12 @@ class UserRepositoryImpl(
         }
     }
 
+    override suspend fun requestAccountDeletion(): Result<AccountDeletionRequest> =
+        userApiService.requestAccountDeletion().map { it.toDomain() }
+
+    override suspend fun getAccountDeletionRequest(): Result<AccountDeletionRequest?> =
+        userApiService.getAccountDeletionRequest().map { it?.toDomain() }
+
     override suspend fun updateUsername(username: String): Result<Unit> =
         userApiService.updateUsername(username).onSuccess {
             _profile.update { profile -> profile?.copy(userName = username) }
@@ -116,4 +124,11 @@ private fun UserProfileDto.toUserProfile() = UserProfile(
     reviewCount = reviewCount,
     checkInCount = checkInCount,
     addedShopsCount = addedShopsCount,
+)
+
+private fun AccountDeletionRequestDto.toDomain() = AccountDeletionRequest(
+    requestId = requestId,
+    status = status,
+    expiresAtUtc = expiresAtUtc,
+    resendAvailableAtUtc = resendAvailableAtUtc,
 )

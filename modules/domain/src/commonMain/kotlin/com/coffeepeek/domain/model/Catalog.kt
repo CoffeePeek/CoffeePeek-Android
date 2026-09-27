@@ -9,6 +9,7 @@ data class CatalogItem(
     val id: String,
     val name: String,
     val slug: String = "",
+    val photoUrl: String? = null,
 )
 
 data class ShopCatalogs(
@@ -24,6 +25,8 @@ data class CreateShopInput(
     val name: String,
     val address: String,
     val cityId: String,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val description: String? = null,
     val priceRange: Int? = null,
     val phone: String? = null,
@@ -113,6 +116,8 @@ data class CheckIn(
     val createdAt: String,
     val reviewId: String?,
     val visitedAt: String = "",
+    // photoUrls open fullscreen; thumbnails are for small tiles.
     val photoUrls: List<String> = emptyList(),
+    val photoThumbnailUrls: List<String> = photoUrls,
     val rating: ReviewRating? = null,
 )

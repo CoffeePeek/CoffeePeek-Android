@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.coffeepeek.admin.theme.CpDimens
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 object ErrorDialog {
@@ -94,12 +95,12 @@ object ErrorDialog {
 
                         Button(
                             onClick = onDismiss,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor   = MaterialTheme.colorScheme.onPrimary,
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(percent = 50),
                         ) {
                             Text(
                                 text = "Понятно",

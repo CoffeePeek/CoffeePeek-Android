@@ -81,6 +81,10 @@ class EditProfileViewModel(
     }
     fun clearError() { _state.update { it.copy(error = null) } }
 
+    fun startAccountDeletion() {
+        Navigator.navigate(Navigator.Screen.DeleteAccountPending)
+    }
+
     fun save() {
         val s = _state.value
         if (!s.canSave) return

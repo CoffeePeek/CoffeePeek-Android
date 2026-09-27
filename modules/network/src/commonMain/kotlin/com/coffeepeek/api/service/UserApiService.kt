@@ -6,15 +6,18 @@ import com.coffeepeek.api.model.request.UpdateAvatarReq
 import com.coffeepeek.api.model.request.UpdateUsernameReq
 import com.coffeepeek.api.model.request.UploadedPhotoReq
 import com.coffeepeek.api.utils.setJsonBody
+import com.coffeepeek.api.model.response.AccountDeletionRequestDto
 import com.coffeepeek.api.model.response.UserProfileDto
 import com.coffeepeek.api.model.response.PublicUserProfileDto
 import com.coffeepeek.api.utils.ApiException
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.patch
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 
@@ -32,6 +35,27 @@ class UserApiService(private val client: HttpClient) {
         val apiResponse = response.body<ApiResponse<PublicUserProfileDto>>()
         if (!apiResponse.isSuccess || apiResponse.data == null) throw ApiException(apiResponse.message)
         apiResponse.data
+    }
+
+    suspend fun requestAccountDeletion(): Result<AccountDeletionRequestDto> = runCatching {
+        val response = client.delete("/api/Users/me")
+        val apiResponse = response.body<ApiResponse<AccountDeletionRequestDto>>()
+        if (!apiResponse.isSuccess || apiResponse.data == null) {
+            throw ApiException(apiResponse.message)
+        }
+        apiResponse.data
+    }
+
+    suspend fun getAccountDeletionRequest(): Result<AccountDeletionRequestDto?> = runCatching {
+        val response = client.get("/api/Users/me/deletion-request")
+        if (response.status == HttpStatusCode.NotFound) return@runCatching null
+        val apiResponse = response.body<ApiResponse<AccountDeletionRequestDto>>()
+        when {
+            apiResponse.isSuccess && apiResponse.data != null -> apiResponse.data
+            response.status == HttpStatusCode.NotFound -> null
+            apiResponse.message.contains("not found", ignoreCase = true) -> null
+            else -> throw ApiException(apiResponse.message)
+        }
     }
 
     suspend fun updateUsername(username: String): Result<Unit> = runCatching {

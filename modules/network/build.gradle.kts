@@ -13,10 +13,15 @@ kotlin {
             jvmTarget.set(JvmTarget.fromTarget(Config.JVM_VERSION))
         }
     }
+    iosArm64()
+    iosSimulatorArm64()
 
     sourceSets {
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
         commonMain.dependencies {
             implementation(libs.ktor.client.core)
@@ -25,7 +30,7 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
         }
         commonTest.dependencies {
-            implementation(libs.kotlin.test)
+            implementation(kotlin("test"))
         }
     }
 }

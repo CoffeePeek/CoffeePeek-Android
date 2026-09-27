@@ -2,4 +2,5 @@
 <resources>
     <!-- Matches CpColor.DarkBackground -->
     <color name="splash_background">#1A1412</color>
+    <bool name="light_system_bars">false</bool>
 </resources>

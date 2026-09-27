@@ -170,6 +170,6 @@ class RegisterViewModel(
     }
 
     fun goToLogin() {
-        Navigator.navigate(Navigator.Screen.Auth)
+        Navigator.popThenNavigate(Navigator.Screen.Auth)
     }
 }

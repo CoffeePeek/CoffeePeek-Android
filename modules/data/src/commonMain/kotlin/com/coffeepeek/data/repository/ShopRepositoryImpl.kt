@@ -7,7 +7,10 @@ import com.coffeepeek.api.model.request.ScheduleReq
 import com.coffeepeek.api.service.ShopApiService
 import com.coffeepeek.data.mapper.ShopMapper.parseShopType
 import com.coffeepeek.data.mapper.ShopMapper.toDomain
+import com.coffeepeek.data.mapper.toDomain
+import com.coffeepeek.data.mapper.toDto
 import com.coffeepeek.data.util.FileUrlResolver
+import com.coffeepeek.data.time.localSchedulesToUtc
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
 import com.coffeepeek.domain.model.CoffeeDrinkDefinition
@@ -16,14 +19,15 @@ import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.CoffeeShopType
 import com.coffeepeek.domain.model.CreateShopInput
 import com.coffeepeek.domain.model.MapBounds
-import com.coffeepeek.domain.model.MapCluster
 import com.coffeepeek.domain.model.MapCoffeeZone
 import com.coffeepeek.domain.model.MapContent
 import com.coffeepeek.domain.model.MapShop
+import com.coffeepeek.domain.model.ModerationStatus
 import com.coffeepeek.domain.model.PagedResult
 import com.coffeepeek.domain.model.ShopCatalogs
 import com.coffeepeek.domain.model.ShopFilters
 import com.coffeepeek.domain.model.ShopMenu
+import com.coffeepeek.domain.model.ShopSubmission
 import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.PhotoRepository
 import com.coffeepeek.domain.repository.ShopRepository
@@ -69,11 +73,13 @@ class ShopRepositoryImpl(
             val shopTags    = async { shopApiService.getShopTags().getOrThrow() }
             ShopCatalogs(
                 cities      = cities.await().map { City(it.id, it.name) },
-                beans       = beans.await().map { CatalogItem(it.id, it.name) },
-                equipment   = equipment.await().map { CatalogItem(it.id, it.name) },
-                roasters    = roasters.await().map { CatalogItem(it.id, it.name) },
-                brewMethods = brewMethods.await().map { CatalogItem(it.id, it.name) },
-                shopTags    = shopTags.await().map { CatalogItem(it.id, it.name, it.slug) },
+                beans       = beans.await().map { CatalogItem(it.id, it.name.orEmpty()) },
+                equipment   = equipment.await().map { CatalogItem(it.id, it.name.orEmpty()) },
+                roasters    = roasters.await().map {
+                    CatalogItem(it.id, it.name.orEmpty(), photoUrl = it.photoUrl)
+                },
+                brewMethods = brewMethods.await().map { CatalogItem(it.id, it.name.orEmpty()) },
+                shopTags    = shopTags.await().map { CatalogItem(it.id, it.name.orEmpty(), it.slug) },
             ).also { cachedCatalogs = it }
         }
     }
@@ -136,13 +142,51 @@ class ShopRepositoryImpl(
     }
 
     override suspend fun getMapContent(bounds: MapBounds, zoom: Float, filters: ShopFilters): Result<MapContent> =
+        coroutineScope {
+            val visibleZoom = zoom.toInt().coerceIn(0, 22)
+            val shopsRequest = async { requestMap(bounds, 22, filters) }
+            val zonesRequest = if (visibleZoom == 22) null else async { requestMap(bounds, visibleZoom, filters) }
+            val zonesResponse = zonesRequest?.await()?.getOrNull()
+
+            shopsRequest.await().map { response ->
+                val mapped = response.shops.map { dto ->
+                    MapShop(
+                        id = dto.id,
+                        title = dto.title?.takeIf { it.isNotBlank() } ?: "Кофейня",
+                        latitude = dto.latitude,
+                        longitude = dto.longitude,
+                        type = parseShopType(dto.type),
+                        primaryZoneId = dto.primaryZoneId,
+                    )
+                }
+                val focus = filters.coffeeFocus
+                MapContent(
+                    shops = if (focus.isNullOrBlank()) mapped else mapped.filter { it.type == focus },
+                    clusters = emptyList(),
+                    zones = (zonesResponse ?: response).zones.map { zone ->
+                        MapCoffeeZone(
+                            id = zone.id,
+                            name = zone.name,
+                            description = zone.description,
+                            latitude = zone.latitude,
+                            longitude = zone.longitude,
+                            radiusMeters = zone.radiusMeters,
+                            shopCount = zone.shopCount,
+                            polygon = zone.polygon.map { it.latitude to it.longitude },
+                        )
+                    },
+                    isTruncated = response.isTruncated,
+                )
+            }
+        }
+
+    private suspend fun requestMap(bounds: MapBounds, zoom: Int, filters: ShopFilters) =
         shopApiService.getShopsInBounds(
             minLat = bounds.minLat,
             minLon = bounds.minLon,
             maxLat = bounds.maxLat,
             maxLon = bounds.maxLon,
-            zoom = zoom.toInt().coerceIn(0, 22),
-            query = filters.query,
+            zoom = zoom,
             cityId = filters.cityId,
             type = filters.coffeeFocus?.let(CoffeeShopType::toApi),
             roasterIds = filters.roasterIds.takeIf { it.isNotEmpty() },
@@ -152,46 +196,28 @@ class ShopRepositoryImpl(
             tagIds = filters.tagIds.takeIf { it.isNotEmpty() },
             priceRange = filters.priceRange.toApiPriceRange(),
             minRating = filters.minRating,
-        ).map { response ->
-            val mapped = response.shops.map { dto ->
-                MapShop(
-                    id = dto.id,
-                    title = dto.title?.takeIf { it.isNotBlank() } ?: "Кофейня",
-                    latitude = dto.latitude,
-                    longitude = dto.longitude,
-                    type = parseShopType(dto.type),
-                    primaryZoneId = dto.primaryZoneId,
-                )
-            }
-            val focus = filters.coffeeFocus
-            MapContent(
-                shops = if (focus.isNullOrBlank()) mapped else mapped.filter { it.type == focus },
-                clusters = response.clusters.map { cluster ->
-                    MapCluster(
-                        id = cluster.id,
-                        latitude = cluster.latitude,
-                        longitude = cluster.longitude,
-                        count = cluster.count,
-                        bounds = MapBounds(
-                            minLat = cluster.bounds.minLatitude,
-                            minLon = cluster.bounds.minLongitude,
-                            maxLat = cluster.bounds.maxLatitude,
-                            maxLon = cluster.bounds.maxLongitude,
-                        ),
+        )
+
+    override suspend fun getMyShopSubmissions(
+        status: ModerationStatus,
+        page: Int,
+        pageSize: Int,
+    ): Result<PagedResult<ShopSubmission>> =
+        shopApiService.getMyModerationShops(status.toDto(), page, pageSize).map { response ->
+            PagedResult(
+                items = response.moderationShops.map {
+                    ShopSubmission(
+                        id = it.id,
+                        name = it.name,
+                        address = it.address,
+                        status = it.moderationStatus.toDomain(),
+                        rejectedReason = it.rejectedReason,
+                        publishedShopId = it.publishedShopId,
                     )
                 },
-                zones = response.zones.map { zone ->
-                    MapCoffeeZone(
-                        id = zone.id,
-                        name = zone.name,
-                        description = zone.description,
-                        latitude = zone.latitude,
-                        longitude = zone.longitude,
-                        radiusMeters = zone.radiusMeters,
-                        shopCount = zone.shopCount,
-                    )
-                },
-                isTruncated = response.isTruncated,
+                totalCount = response.totalItems,
+                totalPages = response.totalPages,
+                currentPage = response.currentPage,
             )
         }
 
@@ -207,6 +233,8 @@ class ShopRepositoryImpl(
                 name        = input.name,
                 address     = input.address,
                 cityId      = input.cityId,
+                latitude    = input.latitude,
+                longitude   = input.longitude,
                 description = input.description?.takeIf { it.isNotBlank() },
                 shopContact = if (listOf(input.phone, input.email, input.website, input.instagram).any { !it.isNullOrBlank() }) {
                     CreateShopContactReq(
@@ -216,7 +244,7 @@ class ShopRepositoryImpl(
                         instagramLink = input.instagram?.takeIf { it.isNotBlank() },
                     )
                 } else null,
-                schedules = input.schedules.takeIf { it.isNotEmpty() }?.map { schedule ->
+                schedules = localSchedulesToUtc(input.schedules).takeIf { it.isNotEmpty() }?.map { schedule ->
                     ScheduleReq(
                         dayOfWeek = schedule.dayOfWeek.toApiDayOfWeek(),
                         isClosed = schedule.isClosed,

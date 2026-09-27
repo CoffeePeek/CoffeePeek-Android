@@ -10,10 +10,10 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-/** Chip / small controls — matches web filter tags (~16dp). */
+/** Buttons and single-line fields use a pill; larger surfaces keep their own radii. */
 private val CpShapes = Shapes(
-    extraSmall = RoundedCornerShape(CpDimens.radiusSm),
-    small = RoundedCornerShape(CpDimens.radiusLg),
+    extraSmall = RoundedCornerShape(percent = 50),
+    small = RoundedCornerShape(percent = 50),
     medium = RoundedCornerShape(CpDimens.radiusMd),
     large = RoundedCornerShape(CpDimens.radiusLg),
     extraLarge = RoundedCornerShape(CpDimens.radius2xl),
@@ -21,8 +21,8 @@ private val CpShapes = Shapes(
 private val DarkColorScheme: ColorScheme = darkColorScheme(
     primary              = CpColor.Primary,
     onPrimary            = CpColor.DarkTextOnPrimary,
-    primaryContainer     = CpColor.PrimaryDark,
-    onPrimaryContainer   = CpColor.DarkTextOnPrimary,
+    primaryContainer     = CpColor.DarkSurfaceAlt,
+    onPrimaryContainer   = CpColor.DarkTextPrimary,
     secondary            = CpColor.GoldWarm,
     onSecondary          = CpColor.DarkTextOnPrimary,
     secondaryContainer   = CpColor.GoldWarmHover,
@@ -47,8 +47,8 @@ private val DarkColorScheme: ColorScheme = darkColorScheme(
 private val LightColorScheme: ColorScheme = lightColorScheme(
     primary              = CpColor.Primary,
     onPrimary            = CpColor.LightTextOnPrimary,
-    primaryContainer     = CpColor.PrimaryLight,
-    onPrimaryContainer   = CpColor.LightTextOnPrimary,
+    primaryContainer     = CpColor.LightSurfaceAlt,
+    onPrimaryContainer   = CpColor.LightTextPrimary,
     secondary            = CpColor.GoldWarm,
     onSecondary          = CpColor.LightTextOnPrimary,
     secondaryContainer   = CpColor.GoldWarmSoft,

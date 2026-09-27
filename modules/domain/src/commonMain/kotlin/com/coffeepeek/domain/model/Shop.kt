@@ -14,7 +14,10 @@ data class CoffeeShop(
     val isNew: Boolean = false,
     val isVisited: Boolean = false,
     val tags: List<String> = emptyList(),
+    val brewMethods: List<String> = emptyList(),
+    val roasterPhotoUrls: List<String> = emptyList(),
     val type: String = CoffeeShopType.COFFEE_BAR,
+    val location: ShopLocation? = null,
 )
 
 data class CoffeeShopDetails(
@@ -26,14 +29,20 @@ data class CoffeeShopDetails(
     val isNew: Boolean = false,
     val canCreateReview: Boolean? = null,
     val existingReviewId: String? = null,
+    // photos: hero-sized; fullscreenPhotos: same order, for the viewer.
     val photos: List<String> = emptyList(),
+    val fullscreenPhotos: List<String> = photos,
+    val shopPhotos: List<ShopPhoto> = emptyList(),
     val reviews: List<Review> = emptyList(),
     val userCheckIns: List<CheckIn> = emptyList(),
     val contact: ShopContact? = null,
     val brewMethods: List<String> = emptyList(),
+    val brewMethodItems: List<CatalogItem> = emptyList(),
     val coffeeBeans: List<String> = emptyList(),
     val roasters: List<CatalogItem> = emptyList(),
     val equipment: List<String> = emptyList(),
+    val equipmentItems: List<CatalogItem> = emptyList(),
+    val tagItems: List<CatalogItem> = emptyList(),
     val schedules: List<ShopSchedule> = emptyList(),
     val menu: ShopMenu? = null,
 )
@@ -54,11 +63,13 @@ data class ShopMenuItem(
     val availability: String,
     val price: Double? = null,
     val currency: String = "BYN",
+    val volumeMl: Int? = null,
 )
 
 data class ShopMenuPhoto(
     val id: String,
     val fullUrl: String,
+    val previewUrl: String = fullUrl,
     val sortIndex: Int = 0,
 )
 
@@ -89,15 +100,23 @@ data class ScheduleInterval(
 
 data class Review(
     val id: String,
+    // Moderation record this review is linked to; null means there's no pending moderation entry to edit.
+    val moderationReviewId: String? = null,
     val shopId: String = "",
     val userId: String = "",
     val username: String,
-    val avatarUrl: String? = null,
     val header: String,
     val comment: String,
     val rating: ReviewRating,
     val createdAt: String,
     val photoUrls: List<String> = emptyList(),
+    val helpfulCount: Int = 0,
+    val isHelpfulByCurrentUser: Boolean = false,
+)
+
+data class HelpfulVote(
+    val isHelpful: Boolean,
+    val helpfulCount: Int,
 )
 
 data class ReviewRating(
@@ -162,6 +181,8 @@ data class MapCoffeeZone(
     val longitude: Double,
     val radiusMeters: Double,
     val shopCount: Int,
+    // (latitude, longitude); empty → draw a circle from radiusMeters
+    val polygon: List<Pair<Double, Double>> = emptyList(),
 )
 
 data class MapContent(
@@ -194,4 +215,21 @@ data class PagedResult<T>(
     val totalCount: Int,
     val totalPages: Int,
     val currentPage: Int,
+)
+
+/** A shop the current user submitted, with its moderation outcome. */
+data class ShopSubmission(
+    val id: String,
+    val name: String,
+    val address: String?,
+    val status: ModerationStatus,
+    val rejectedReason: String?,
+    // Set once the shop is live in the catalog; may lag briefly behind Approved.
+    val publishedShopId: String?,
+)
+
+data class ReviewSubmission(
+    val review: Review,
+    val status: ModerationStatus,
+    val rejectedReason: String?,
 )

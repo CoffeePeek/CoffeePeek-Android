@@ -28,6 +28,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,8 +41,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,10 +54,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -70,16 +71,22 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeeShopImage
 import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.component.CpSearchField
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
+import com.coffeepeek.admin.ui.component.liquidGlass
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.CompositionLocalProvider
 import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
 import com.coffeepeek.domain.model.CatalogItem
+import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.MapShop
 import com.coffeepeek.domain.model.MapCoffeeZone
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
+import com.coffeepeek.admin.utils.formatOneDecimal
 
 @Composable
-fun MapScreen(vm: MapViewModel = koinViewModel()) {
+fun MapScreen(vm: MapViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
     val pendingFocus by Navigator.pendingMapFocus.collectAsState()
     val pendingFocusShop = pendingFocus?.let { focus ->
@@ -111,7 +118,7 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
         CoffeeMap(
             shops = mapShops,
             clusters = state.clusters,
-            zones = state.zones,
+            zones = if (state.showZones) state.zones else emptyList(),
             selectedShopId = selectedShopId,
             onBoundsChanged = vm::onBoundsChanged,
             onShopClick = vm::onShopSelected,
@@ -126,41 +133,38 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
             onLocationPermissionDenied = {},
         )
 
-        OutlinedTextField(
-            value = state.query,
-            onValueChange = vm::onQueryChange,
+        Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
                 .fillMaxWidth()
-                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
-            placeholder = { Text("Поиск по карте") },
-            leadingIcon = {
-                Icon(CpIcons.Search, contentDescription = null)
-            },
-            trailingIcon = if (state.query.isNotEmpty()) {
-                {
-                    IconButton(onClick = { vm.onQueryChange("") }) {
-                        Icon(CpIcons.Close, contentDescription = "Очистить поиск")
-                    }
-                }
-            } else {
-                null
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(CpDimens.radiusMd),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-            ),
-        )
+                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3)
+                .zIndex(2f),
+            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
+        ) {
+            CpSearchField(
+                value = state.query,
+                onValueChange = vm::onQueryChange,
+                placeholder = "Поиск кофейни…",
+                fieldHeight = CpDimens.buttonHeight,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (state.showSearchSuggestions) {
+                MapSearchSuggestions(
+                    results = state.searchResults,
+                    isLoading = state.isSearchLoading,
+                    failed = state.searchFailed,
+                    onSelect = vm::onSearchResultSelected,
+                )
+            }
+        }
 
         if (state.isTruncated) {
             Surface(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .statusBarsPadding()
-                    .padding(top = 80.dp, start = CpDimens.spacing4, end = CpDimens.spacing4),
+                    .padding(top = 60.dp, start = CpDimens.spacing4, end = CpDimens.spacing4),
                 shape = RoundedCornerShape(CpDimens.radiusMd),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 3.dp,
@@ -183,7 +187,7 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
                 .align(Alignment.TopEnd)
                 .statusBarsPadding()
                 .padding(
-                    top = if (state.isTruncated) 132.dp else 84.dp,
+                    top = if (state.isTruncated) 112.dp else 64.dp,
                     end = CpDimens.spacing4,
                 ),
             verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
@@ -194,6 +198,17 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
                     CpIcons.MyLocation,
                     contentDescription = "Моё местоположение",
                     modifier = Modifier.size(30.dp),
+                )
+            }
+            // iOS convention: a toggled glass control shows its "on" state via the accent-tinted icon.
+            MapControlButton(
+                onClick = vm::toggleZones,
+                contentColor = if (state.showZones) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            ) {
+                Icon(
+                    CpIcons.Map,
+                    contentDescription = if (state.showZones) "Скрыть зоны" else "Показать зоны",
+                    modifier = Modifier.size(26.dp),
                 )
             }
         }
@@ -214,13 +229,14 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
                     .align(Alignment.BottomCenter)
                     .padding(
                         bottom = navClearance + if (state.selectedShop == null) 32.dp else 148.dp,
-                    ),
-                shape = RoundedCornerShape(CpDimens.radius2xl),
+                    )
+                    .height(CpDimens.buttonHeight),
+                shape = RoundedCornerShape(percent = 50),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.onSurface,
                     contentColor = MaterialTheme.colorScheme.surface,
                 ),
-                contentPadding = PaddingValues(horizontal = CpDimens.spacing5, vertical = CpDimens.spacing3),
+                contentPadding = PaddingValues(horizontal = CpDimens.spacing5),
             ) {
                 Text("Искать в этой области", style = MaterialTheme.typography.labelLarge)
             }
@@ -256,6 +272,95 @@ fun MapScreen(vm: MapViewModel = koinViewModel()) {
                         bottom = navClearance + CpDimens.spacing4,
                     ),
             )
+        }
+    }
+}
+
+@Composable
+private fun MapSearchSuggestions(
+    results: List<CoffeeShop>,
+    isLoading: Boolean,
+    failed: Boolean,
+    onSelect: (CoffeeShop) -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(CpDimens.radiusLg),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 6.dp,
+    ) {
+        when {
+            isLoading -> Box(
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CoffeePeekLoader(size = 24.dp)
+            }
+
+            failed -> Text(
+                text = "Не удалось выполнить поиск",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(CpDimens.spacing4),
+            )
+
+            results.isEmpty() -> Text(
+                text = "Кофейни не найдены",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(CpDimens.spacing4),
+            )
+
+            else -> Column {
+                results.forEachIndexed { index, shop ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 56.dp)
+                            .clickable { onSelect(shop) }
+                            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing2),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+                    ) {
+                        Icon(
+                            imageVector = CpIcons.Location,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp),
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = shop.title,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            shop.address?.takeIf(String::isNotBlank)?.let { address ->
+                                Text(
+                                    text = address,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = CpIcons.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                    if (index != results.lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 56.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -308,8 +413,8 @@ private fun MapZoneCard(
             }
             Button(
                 onClick = onShowShops,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(CpDimens.buttonRadius),
+                modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
+                shape = RoundedCornerShape(percent = 50),
             ) {
                 Text("Показать кофейни")
             }
@@ -332,22 +437,19 @@ private fun mapShopCountLabel(count: Int): String {
 private fun MapControlButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
     content: @Composable () -> Unit,
 ) {
-    Surface(
-        modifier = modifier.size(44.dp),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 4.dp,
-        shadowElevation = 6.dp,
-        onClick = onClick,
-        content = {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                content()
-            }
-        },
-    )
+    // Liquid Glass without backdrop blur: the native map view can't be sampled by Haze.
+    Box(
+        modifier = modifier
+            .size(CpDimens.buttonHeight)
+            .liquidGlass(CircleShape, hazeState = null)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        CompositionLocalProvider(LocalContentColor provides contentColor) { content() }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -419,24 +521,11 @@ private fun MapFiltersDialog(
                             .padding(horizontal = CpDimens.spacing5, vertical = CpDimens.spacing4),
                         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
                     ) {
-                        OutlinedTextField(
+                        CpSearchField(
                             value = state.query,
                             onValueChange = onQueryChange,
+                            placeholder = "Поиск кофейни…",
                             modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            placeholder = { Text("Поиск кофейни…") },
-                            leadingIcon = { Icon(CpIcons.Search, contentDescription = null) },
-                            shape = RoundedCornerShape(CpDimens.inputRadius),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                                focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-                                unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
                         )
                         FilterSection("Цена") {
                             CompactPriceFilter(
@@ -496,12 +585,13 @@ private fun MapFiltersDialog(
                         }
                         Button(
                             onClick = onApply,
-                            shape = RoundedCornerShape(CpDimens.buttonRadius),
+                            modifier = Modifier.height(CpDimens.buttonHeight),
+                            shape = RoundedCornerShape(percent = 50),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary,
                             ),
-                            contentPadding = PaddingValues(horizontal = CpDimens.spacing5, vertical = CpDimens.spacing3),
+                            contentPadding = PaddingValues(horizontal = CpDimens.spacing5),
                         ) {
                             Text("Готово", style = MaterialTheme.typography.labelLarge)
                         }
@@ -543,11 +633,11 @@ private fun SingleSelectMenu(
             onClick = { expanded = true },
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = CpDimens.selectMinHeight)
+                .height(CpDimens.buttonHeight)
                 .onGloballyPositioned { coordinates ->
                     anchorWidth = with(density) { coordinates.size.width.toDp() }
                 },
-            shape = RoundedCornerShape(CpDimens.selectRadius),
+            shape = RoundedCornerShape(percent = 50),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             colors = ButtonDefaults.outlinedButtonColors(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -665,11 +755,11 @@ private fun CatalogMultiSelectMenu(
             onClick = { expanded = true },
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = CpDimens.selectMinHeight)
+                .height(CpDimens.buttonHeight)
                 .onGloballyPositioned { coordinates ->
                     anchorWidth = with(density) { coordinates.size.width.toDp() }
                 },
-            shape = RoundedCornerShape(CpDimens.selectRadius),
+            shape = RoundedCornerShape(percent = 50),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             colors = ButtonDefaults.outlinedButtonColors(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -784,7 +874,7 @@ private fun MapShopBottomSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val photoUrl = details?.photos?.firstOrNull() ?: details?.shop?.photoUrl
+    val photoUrl = details?.shop?.photoUrl ?: details?.photos?.firstOrNull()
     val rating = details?.shop?.rating
     val reviewCount = details?.shop?.reviewCount ?: 0
     val hours = details?.schedules?.let { formatMapHoursSummary(it) }
@@ -848,7 +938,7 @@ private fun MapShopBottomSheet(
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = "%.1f".format(rating),
+                            text = formatOneDecimal(rating),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )

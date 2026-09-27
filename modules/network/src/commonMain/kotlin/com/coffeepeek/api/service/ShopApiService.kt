@@ -2,6 +2,8 @@ package com.coffeepeek.api.service
 
 import com.coffeepeek.api.model.ApiResponse
 import com.coffeepeek.api.model.request.CreateShopReq
+import com.coffeepeek.api.model.request.ModerationStatusDto
+import com.coffeepeek.api.model.response.shop.MyModerationShopsPageDto
 import com.coffeepeek.api.model.response.shop.CatalogItemDto
 import com.coffeepeek.api.model.response.shop.CityItemDto
 import com.coffeepeek.api.model.response.shop.CoffeeShopDetailsDto
@@ -96,6 +98,23 @@ class ShopApiService(private val client: HttpClient) {
         }
     }
 
+    suspend fun getMyModerationShops(
+        status: ModerationStatusDto,
+        page: Int,
+        pageSize: Int,
+    ): Result<MyModerationShopsPageDto> = runCatching {
+        val response = client.get("/api/ModerationShops/mine") {
+            parameter("page", page)
+            parameter("pageSize", pageSize)
+            parameter("status", status.name)
+        }
+        val apiResponse = response.body<ApiResponse<MyModerationShopsPageDto>>()
+        if (!response.status.isSuccess() || !apiResponse.isSuccess || apiResponse.data == null) {
+            throw ApiException(apiResponse.message)
+        }
+        apiResponse.data
+    }
+
     // ── Catalogs ──────────────────────────────────────────────────────────────
 
     suspend fun getCities(): Result<List<CityItemDto>> = runCatching {
@@ -146,7 +165,6 @@ class ShopApiService(private val client: HttpClient) {
         maxLat: Double,
         maxLon: Double,
         zoom: Int,
-        query: String? = null,
         cityId: String? = null,
         type: String? = null,
         roasterIds: List<String>? = null,
@@ -163,7 +181,6 @@ class ShopApiService(private val client: HttpClient) {
             parameter("maxLat", maxLat)
             parameter("maxLon", maxLon)
             parameter("zoom", zoom)
-            query?.let { parameter("q", it) }
             cityId?.let { parameter("cityId", it) }
             type?.let { parameter("type", it) }
             roasterIds?.forEach { parameter("roasters", it) }

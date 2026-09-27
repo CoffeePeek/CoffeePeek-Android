@@ -6,7 +6,8 @@
 
 Файл: `.github/workflows/android-firebase-distribution.yml`
 
-- На `pull_request` и `push` в `main` собирает `debug` APK.
+- На `pull_request` в `main` собирает `debug` APK для проверки.
+- На `push` в `main` и `workflow_dispatch` собирает APK с тем же release keystore, что и обычная Android-доставка.
 - На `push` в `main` и `workflow_dispatch`:
   - скачивает собранный APK,
   - отправляет его в Firebase App Distribution (если настроены секреты).
@@ -27,9 +28,12 @@
   - `FIREBASE_TESTER_GROUPS` пример: `android-qa,product-team`
   - `FIREBASE_TESTERS` пример: `qa1@example.com,qa2@example.com`
 
-Опциональные (прилетят в `BuildConfig` при сборке):
+Для подписанной Firebase-сборки также обязательны:
 
-- `GOOGLE_WEB_CLIENT_ID`
+- `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` — те же значения, что в обычной Android-доставке.
+- `GOOGLE_WEB_CLIENT_ID` — Web OAuth client ID, который использует приложение и принимает backend.
+
+В Google Cloud Console должен быть зарегистрирован Android OAuth client для пакета `com.coffeepeek` и SHA-1 этого release keystore. Если обычный release APK уже входит через Google, дополнительный SHA-1 для Firebase App Distribution не нужен: подпись теперь одинаковая. APK, ранее опубликованные с CI debug-ключом, может потребоваться удалить перед установкой нового APK из-за смены подписи.
 
 ## Как получить `FIREBASE_SERVICE_ACCOUNT_JSON`
 

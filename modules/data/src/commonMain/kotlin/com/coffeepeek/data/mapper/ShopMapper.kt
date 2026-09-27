@@ -1,10 +1,12 @@
 package com.coffeepeek.data.mapper
 
+import com.coffeepeek.data.time.utcSchedulesToLocal
 import com.coffeepeek.api.model.response.shop.CoffeeShopDetailsDto
 import com.coffeepeek.api.model.response.shop.ReviewDto
 import com.coffeepeek.api.model.response.shop.ShopMenuDto
 import com.coffeepeek.api.model.response.shop.ShopMenuItemDto
 import com.coffeepeek.api.model.response.shop.ShortShopDto
+import com.coffeepeek.api.model.response.shop.variantOr
 import com.coffeepeek.data.util.FileUrlResolver
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CoffeeShop
@@ -16,6 +18,7 @@ import com.coffeepeek.domain.model.ReviewRating
 import com.coffeepeek.domain.model.ShopMenu
 import com.coffeepeek.domain.model.ShopMenuItem
 import com.coffeepeek.domain.model.ShopMenuPhoto
+import com.coffeepeek.domain.model.ShopPhoto
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -32,7 +35,7 @@ internal object ShopMapper {
         rating = rating.takeIf { it > 0 },
         cityName = null,
         priceRange = priceRangeLabel(priceRange),
-        photoUrl = photos.firstOrNull()?.fullUrl,
+        photoUrl = photos.firstOrNull()?.let { it.urls.variantOr(it.fullUrl) { u -> u.card } },
         isFavorite = isFavorite,
         address = location?.address,
         isOpen = isOpen,
@@ -40,19 +43,22 @@ internal object ShopMapper {
         isVisited = isVisited,
         reviewCount = reviewCount,
         tags = extractBackendTags(tags, shopTags)
-            .ifEmpty { (brewMethods + roasters + beans).map { it.name } }
+            .ifEmpty { (brewMethods + beans).mapNotNull { it.name?.takeIf(String::isNotBlank) } }
             .take(3),
+        brewMethods = brewMethods.mapNotNull { it.name?.takeIf(String::isNotBlank) },
+        roasterPhotoUrls = roasters.mapNotNull { it.photoUrl?.takeIf(String::isNotBlank) }.distinct(),
         type = parseShopType(type, coffeeFocus),
+        location = location?.toDomain(),
     )
 
     fun CoffeeShopDetailsDto.toDomain(fileUrls: FileUrlResolver) = CoffeeShopDetails(
         shop = CoffeeShop(
             id = id,
-            title = name,
+            title = name.orEmpty(),
             rating = rating.takeIf { it > 0 },
             cityName = null,
             priceRange = priceRangeLabel(priceRange),
-            photoUrl = photos.firstOrNull()?.fullUrl,
+            photoUrl = photos.firstOrNull()?.let { it.urls.variantOr(it.fullUrl) { u -> u.card } },
             isFavorite = isFavorite,
             address = location?.address,
             isOpen = isOpen,
@@ -60,36 +66,50 @@ internal object ShopMapper {
             isVisited = isVisited,
             reviewCount = reviewCount,
             tags = extractBackendTags(tags, shopTags)
-                .ifEmpty { (brewMethods + roasters + coffeeBeans).map { it.name } }
+                .ifEmpty {
+                    (brewMethods + coffeeBeans)
+                        .mapNotNull { it.name?.takeIf(String::isNotBlank) }
+                }
                 .take(3),
+            brewMethods = brewMethods.mapNotNull { it.name?.takeIf(String::isNotBlank) },
+            roasterPhotoUrls = roasters.mapNotNull { it.photoUrl?.takeIf(String::isNotBlank) }.distinct(),
             type = parseShopType(type, coffeeFocus),
+            location = location?.toDomain(),
         ),
         cityId = cityId,
         description = description,
-        location = location?.let {
-            com.coffeepeek.domain.model.ShopLocation(
-                address = it.address,
-                latitude = it.latitude,
-                longitude = it.longitude,
-            )
-        },
+        location = location?.toDomain(),
         isVisited = isVisited,
         isNew = isNew,
         canCreateReview = canCreateReview,
         existingReviewId = existingReviewId,
-        photos = photos.mapNotNull { it.fullUrl },
+        photos = photos.mapNotNull { it.urls.variantOr(it.fullUrl) { u -> u.detail } },
+        fullscreenPhotos = photos.mapNotNull { it.urls.variantOr(it.fullUrl) { u -> u.fullscreen } },
+        shopPhotos = photos.mapNotNull { photo ->
+            val id = photo.id.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val url = photo.urls.variantOr(photo.fullUrl) { it.fullscreen } ?: return@mapNotNull null
+            ShopPhoto(
+                id = id,
+                fullUrl = url,
+                previewUrl = photo.urls.variantOr(url) { it.thumbnail } ?: url,
+                sortIndex = photo.sortIndex,
+            )
+        }.sortedBy { it.sortIndex },
         reviews = reviews.map { it.toDomain(fileUrls) },
         userCheckIns = userCheckIns.map { checkIn ->
             CheckIn(
                 id = checkIn.id,
                 shopId = checkIn.shopId,
-                shopName = checkIn.shopName.ifBlank { name },
-                note = checkIn.note,
+                shopName = checkIn.shopName.orEmpty().ifBlank { name.orEmpty() },
+                note = checkIn.note.orEmpty(),
                 createdAt = checkIn.createdAt,
                 reviewId = checkIn.reviewId,
                 visitedAt = checkIn.visitedAt,
                 photoUrls = checkIn.photos.mapNotNull { photo ->
-                    fileUrls.resolve(photo.storageKey, photo.fullUrl)
+                    fileUrls.resolve(photo.storageKey, photo.urls.variantOr(photo.fullUrl) { it.fullscreen })
+                },
+                photoThumbnailUrls = checkIn.photos.mapNotNull { photo ->
+                    fileUrls.resolve(photo.storageKey, photo.urls.variantOr(photo.fullUrl) { it.thumbnail })
                 },
                 rating = checkIn.rating?.let { rating ->
                     ReviewRating(
@@ -108,11 +128,25 @@ internal object ShopMapper {
                 phone = c.phoneNumber,
             )
         },
-        brewMethods = brewMethods.map { it.name },
-        coffeeBeans = coffeeBeans.map { it.name },
-        roasters = roasters.map { CatalogItem(it.id, it.name, it.slug) },
-        equipment = equipments.map { it.name },
-        schedules = schedules.orEmpty().map { schedule ->
+        brewMethods = brewMethods.mapNotNull { it.name?.takeIf(String::isNotBlank) },
+        brewMethodItems = brewMethods.map {
+            CatalogItem(id = it.id, name = it.name.orEmpty(), slug = it.slug, photoUrl = it.photoUrl)
+        },
+        coffeeBeans = coffeeBeans.mapNotNull { it.name?.takeIf(String::isNotBlank) },
+        roasters = roasters.map {
+            CatalogItem(
+                id = it.id,
+                name = it.name.orEmpty(),
+                slug = it.slug,
+                photoUrl = it.photoUrl,
+            )
+        },
+        equipment = equipments.mapNotNull { it.name?.takeIf(String::isNotBlank) },
+        equipmentItems = equipments.map {
+            CatalogItem(id = it.id, name = it.name.orEmpty(), slug = it.slug, photoUrl = it.photoUrl)
+        },
+        tagItems = parseTagItems(shopTags).ifEmpty { parseTagItems(tags) },
+        schedules = utcSchedulesToLocal(schedules.orEmpty().map { schedule ->
             com.coffeepeek.domain.model.ShopSchedule(
                 dayOfWeek = parseDayOfWeek(schedule.dayOfWeek),
                 isClosed = schedule.isClosed,
@@ -123,17 +157,25 @@ internal object ShopMapper {
                     )
                 },
             )
-        },
+        }),
         menu = menu?.toDomain(),
     )
 
+    private fun com.coffeepeek.api.model.response.shop.LocationDto.toDomain() =
+        com.coffeepeek.domain.model.ShopLocation(
+            address = address,
+            latitude = latitude,
+            longitude = longitude,
+        )
+
     fun ReviewDto.toDomain(fileUrls: FileUrlResolver) = Review(
         id = id,
+        moderationReviewId = moderationReviewId,
         shopId = coffeeShopId,
         userId = userId,
-        username = username,
-        header = header,
-        comment = comment,
+        username = username.orEmpty(),
+        header = header.orEmpty(),
+        comment = comment.orEmpty(),
         rating = ReviewRating(
             place = rating.place,
             service = rating.service,
@@ -143,6 +185,8 @@ internal object ShopMapper {
         photoUrls = photos.mapNotNull { photo ->
             fileUrls.resolve(photo.storageKey, photo.fullUrl)
         },
+        helpfulCount = helpfulCount,
+        isHelpfulByCurrentUser = isHelpfulByCurrentUser,
     )
 
     fun ShopMenuDto.toDomain() = ShopMenu(
@@ -152,10 +196,11 @@ internal object ShopMapper {
         items = items.map { it.toDomain() },
         photos = photos
             .mapNotNull { photo ->
-                val url = photo.fullUrl?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                val url = photo.urls.variantOr(photo.fullUrl) { it.fullscreen } ?: return@mapNotNull null
                 ShopMenuPhoto(
                     id = photo.id,
                     fullUrl = url,
+                    previewUrl = photo.urls.variantOr(url) { it.detail } ?: url,
                     sortIndex = photo.sortIndex,
                 )
             }
@@ -170,6 +215,7 @@ internal object ShopMapper {
         availability = availability,
         price = price.toDoubleOrNull(),
         currency = currency.ifBlank { "BYN" },
+        volumeMl = volumeMl.toIntOrNull(),
     )
 
     fun parseShopType(type: JsonElement?, coffeeFocus: JsonElement? = null): String {
@@ -212,6 +258,29 @@ internal object ShopMapper {
             else -> token.toIntOrNull()?.coerceIn(0, 6) ?: 0
         }
     }
+
+    private fun JsonElement?.toIntOrNull(): Int? {
+        val primitive = this as? JsonPrimitive ?: return null
+        primitive.contentOrNull?.trim()?.toIntOrNull()?.let { return it }
+        return primitive.doubleOrNull?.toInt()
+    }
+
+    private fun parseTagItems(raw: JsonElement?): List<CatalogItem> {
+        val array = raw as? JsonArray ?: return emptyList()
+        return array.mapNotNull { item ->
+            val obj = item as? JsonObject ?: return@mapNotNull null
+            val id = obj.readString("id") ?: return@mapNotNull null
+            if (id.isBlank()) return@mapNotNull null
+            CatalogItem(
+                id = id,
+                name = obj.readTagName().orEmpty(),
+                slug = obj.readString("slug").orEmpty(),
+            )
+        }.distinctBy { it.id }
+    }
+
+    private fun JsonObject.readString(key: String): String? =
+        (this[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
 
     private fun extractBackendTags(vararg rawCandidates: JsonElement?): List<String> {
         val parsed = rawCandidates

@@ -1,6 +1,7 @@
 package com.coffeepeek.api.model.response.shop
 
 import com.coffeepeek.api.model.ApiResponse
+import com.coffeepeek.api.utils.JsonExt
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -59,5 +60,45 @@ class MapResponseDtoTest {
         assertEquals("Октябрьская", data.zones.single().name)
         assertEquals(500.0, data.zones.single().radiusMeters)
         assertTrue(data.isTruncated)
+    }
+
+    @Test
+    fun decodesUpdatedContractWithNullsPolygonAndStringNumbers() {
+        val response = JsonExt.json.decodeFromString<ApiResponse<GetShopsInBoundsResponseDto>>(
+            """
+                {
+                  "isSuccess": true,
+                  "message": "ok",
+                  "statusCode": "200",
+                  "data": {
+                    "shops": [{ "id": "s1", "latitude": "53.9", "longitude": "27.56", "title": null, "type": 1, "primaryZoneId": null }],
+                    "clusters": [{
+                      "id": null, "latitude": "53.9", "longitude": "27.56", "count": "18",
+                      "bounds": { "minLatitude": "53.87", "minLongitude": "27.51", "maxLatitude": "53.93", "maxLongitude": "27.62" }
+                    }],
+                    "zones": [{
+                      "id": "z1", "name": null, "description": null,
+                      "latitude": "53.89", "longitude": "27.57", "radiusMeters": "500", "shopCount": "7",
+                      "polygon": [
+                        { "latitude": "53.88", "longitude": "27.56" },
+                        { "latitude": "53.90", "longitude": "27.56" },
+                        { "latitude": "53.89", "longitude": "27.58" }
+                      ]
+                    }],
+                    "isTruncated": null
+                  }
+                }
+            """.trimIndent(),
+        )
+
+        val data = requireNotNull(response.data)
+        assertEquals(null, data.clusters.single().id)
+        assertEquals(18, data.clusters.single().count)
+        val zone = data.zones.single()
+        assertEquals("", zone.name)
+        assertEquals(7, zone.shopCount)
+        assertEquals(3, zone.polygon.size)
+        assertEquals(53.90, zone.polygon[1].latitude)
+        assertEquals(false, data.isTruncated)
     }
 }

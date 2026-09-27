@@ -2,13 +2,18 @@ package com.coffeepeek.data.repository
 
 import com.coffeepeek.api.model.request.CreateRoasterSubmissionReq
 import com.coffeepeek.api.service.RoasterApiService
+import com.coffeepeek.data.mapper.toDomain
+import com.coffeepeek.data.mapper.toDto
 import com.coffeepeek.data.util.FileUrlResolver
 import com.coffeepeek.domain.model.CreateRoasterInput
+import com.coffeepeek.domain.model.ModerationStatus
+import com.coffeepeek.domain.model.PagedResult
 import com.coffeepeek.domain.model.RoasterContact
 import com.coffeepeek.domain.model.RoasterDetails
 import com.coffeepeek.domain.model.RoasterLocation
 import com.coffeepeek.domain.model.RoasterPhoto
 import com.coffeepeek.domain.model.RoasterShop
+import com.coffeepeek.domain.model.RoasterSubmission
 import com.coffeepeek.domain.model.RoasterSubmissionResult
 import com.coffeepeek.domain.repository.PhotoRepository
 import com.coffeepeek.domain.repository.RoasterRepository
@@ -73,4 +78,26 @@ class RoasterRepositoryImpl(
             message = result.message,
         )
     }
+
+    override suspend fun getMyRoasterSubmissions(
+        status: ModerationStatus,
+        page: Int,
+        pageSize: Int,
+    ): Result<PagedResult<RoasterSubmission>> =
+        roasterApiService.getMyModerationRoasters(status.toDto(), page, pageSize).map { response ->
+            PagedResult(
+                items = response.items.map {
+                    RoasterSubmission(
+                        id = it.id,
+                        name = it.name,
+                        about = it.about,
+                        status = it.moderationStatus.toDomain(),
+                        rejectedReason = it.rejectedReason,
+                    )
+                },
+                totalCount = response.totalItems,
+                totalPages = response.totalPages,
+                currentPage = response.currentPage,
+            )
+        }
 }

@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -24,6 +24,9 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
 import kotlin.math.min
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 
 @Composable
 fun CoffeePeekPullToRefresh(
@@ -36,7 +39,7 @@ fun CoffeePeekPullToRefresh(
     val density = LocalDensity.current
     val thresholdPx = with(density) { 72.dp.toPx() }
     var pullOffset by remember { mutableFloatStateOf(0f) }
-    var lastRefreshAt by remember { mutableLongStateOf(0L) }
+    var lastRefreshMark by remember { mutableStateOf<TimeMark?>(null) }
 
     val isRefreshingState by rememberUpdatedState(isRefreshing)
     val listStateState by rememberUpdatedState(listState)
@@ -79,13 +82,13 @@ fun CoffeePeekPullToRefresh(
             }
 
             override suspend fun onPreFling(available: Velocity): Velocity {
-                val now = System.currentTimeMillis()
+                val refreshAllowed = lastRefreshMark?.elapsedNow()?.let { it > 1.seconds } ?: true
                 if (
                     pullOffset >= thresholdPx &&
                     !isRefreshingState &&
-                    now - lastRefreshAt > 1_000L
+                    refreshAllowed
                 ) {
-                    lastRefreshAt = now
+                    lastRefreshMark = TimeSource.Monotonic.markNow()
                     onRefreshState()
                 }
                 pullOffset = 0f

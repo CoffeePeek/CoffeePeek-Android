@@ -3,6 +3,7 @@ package com.coffeepeek.data.session
 import com.coffeepeek.api.model.response.AuthResp
 import com.coffeepeek.domain.model.Session
 import com.coffeepeek.domain.repository.SessionRepository
+import kotlin.concurrent.Volatile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach

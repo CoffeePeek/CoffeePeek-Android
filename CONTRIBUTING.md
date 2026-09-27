@@ -1,6 +1,6 @@
 # Contributing to CoffeePeek
 
-Спасибо, что хотите помочь с проектом. Это **Android-приложение** на Kotlin и Jetpack Compose для экосистемы specialty-кофе.
+Спасибо, что хотите помочь с проектом. Это **Kotlin Multiplatform-приложение** на Compose Multiplatform для Android и iOS.
 
 ## Быстрый старт
 
@@ -8,8 +8,9 @@
 
 | Инструмент | Версия |
 |------------|--------|
-| JDK | **17** (см. `buildSrc/.../Config.kt`) |
-| Android Studio | с SDK **36** |
+| JDK | **17** |
+| Android Studio | с SDK **37** |
+| Xcode | **27** для iOS-сборки |
 | Git | актуальная |
 
 > **Важно:** сборка на JDK 24/26 может падать с ошибкой `java.lang.IllegalArgumentException: 26.0.1`. Используйте JDK 17 для Gradle и IDE.
@@ -74,6 +75,8 @@ modules/room/         SQLite (сессия, настройки)
 
 - `composeApp/src/commonMain/` — UI и логика
 - `composeApp/src/androidMain/` — MapLibre, Google Auth, manifest, ресурсы
+- `composeApp/src/iosMain/` — MapKit, Google Auth bridge, PhotosUI, CoreLocation
+- `iosApp/` — SwiftUI entry point, Xcode project и iOS-конфигурация
 
 ---
 
@@ -90,7 +93,7 @@ modules/room/         SQLite (сессия, настройки)
 - UI: Compose Material 3, цвета из `CpColor` / `MaterialTheme`, отступы `CpDimens`.
 - Строки для UI — в `composeApp/src/commonMain/composeResources/values/strings.xml`.
 - Новый API: DTO в `network`, интерфейс в `domain`, реализация в `data`, регистрация в `DataModule` + `KoinApp`.
-- Платформенный код (MapLibre, Intent, permissions) — только в `androidMain`.
+- Общий код размещайте в `commonMain`; платформенные API — в соответствующих `androidMain`/`iosMain` actual-реализациях.
 - Минимальный diff: не рефакторить несвязанный код в том же PR.
 
 ### Коммиты
@@ -114,6 +117,7 @@ feat: публичный чек-ин с обязательным коммент�
 Перед отправкой:
 
 - [ ] `./gradlew :composeApp:assembleDebug` проходит
+- [ ] `xcodebuild` или Run схемы `iosApp` проходит для iOS-изменений
 - [ ] Проверен основной сценарий (логин → лента / карта / профиль)
 - [ ] Нет секретов и `local.properties` в коммите
 
@@ -136,7 +140,8 @@ feat: публичный чек-ин с обязательным коммент�
 | Бизнес-контракт | `modules/domain/` |
 | Маппинг и кэш | `modules/data/` |
 | Локальная БД | `modules/room/` |
-| Android API (карта, picker) | `composeApp/.../androidMain/` |
+| Android API (MapLibre, picker) | `composeApp/.../androidMain/` |
+| iOS API (MapKit, PhotosUI) | `composeApp/.../iosMain/` |
 
 ---
 

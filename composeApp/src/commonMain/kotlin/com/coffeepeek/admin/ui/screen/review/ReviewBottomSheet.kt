@@ -18,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -37,7 +38,7 @@ import com.coffeepeek.admin.ui.component.SwipeDismissModalBottomSheet
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.utils.MAX_REVIEW_PHOTOS
 import com.coffeepeek.admin.utils.PickedImage
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 import org.koin.core.parameter.parametersOf
 
 @Composable
@@ -46,7 +47,7 @@ fun CreateReviewBottomSheet(
     placeName: String?,
     onDismiss: () -> Unit,
 ) {
-    val vm: CreateReviewViewModel = koinViewModel(
+    val vm: CreateReviewViewModel = platformViewModel(
         key = "create-review-$shopId",
         parameters = { parametersOf(shopId) },
     )
@@ -77,6 +78,8 @@ fun CreateReviewBottomSheet(
         onRetry = {},
         onSubmit = { vm.submit(onSuccess = onDismiss) },
         onDismiss = onDismiss,
+        draftRestored = state.draftRestored,
+        onDiscardDraft = vm::discardDraft,
     )
 }
 
@@ -87,7 +90,7 @@ fun EditReviewBottomSheet(
     onDismiss: () -> Unit,
     onSaved: () -> Unit = onDismiss,
 ) {
-    val vm: EditReviewViewModel = koinViewModel(
+    val vm: EditReviewViewModel = platformViewModel(
         key = "edit-review-$reviewId",
         parameters = { parametersOf(reviewId) },
     )
@@ -119,6 +122,8 @@ fun EditReviewBottomSheet(
         onRetry = vm::loadReview,
         onSubmit = { vm.submit(onSuccess = onSaved) },
         onDismiss = onDismiss,
+        draftRestored = state.draftRestored,
+        onDiscardDraft = vm::discardDraft,
     )
 }
 
@@ -150,6 +155,8 @@ private fun ReviewEditorBottomSheet(
     onRetry: () -> Unit,
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
+    draftRestored: Boolean = false,
+    onDiscardDraft: () -> Unit = {},
 ) {
     val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
@@ -174,7 +181,8 @@ private fun ReviewEditorBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.92f)
+                // Keep the shop hero/title visible behind the modal.
+                .fillMaxHeight(0.76f)
                 .verticalScroll(scrollState)
                 .imePadding()
                 .navigationBarsPadding()
@@ -208,6 +216,9 @@ private fun ReviewEditorBottomSheet(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                }
+                if (draftRestored && !isLoading) {
+                    DraftNotice(onDiscard = onDiscardDraft)
                 }
             }
 
@@ -262,6 +273,32 @@ private fun ReviewEditorBottomSheet(
                     }
                 }
             }
+        }
+    }
+}
+
+/** Shown when the form was pre-filled from a saved draft (see ReviewDraftStore for the policy). */
+@Composable
+private fun DraftNotice(onDiscard: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = CpIcons.NoteEdit,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.size(CpDimens.spacing1))
+        Text(
+            text = "Черновик восстановлен",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onDiscard) {
+            Text("Удалить черновик", style = MaterialTheme.typography.labelMedium)
         }
     }
 }

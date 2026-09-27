@@ -1,5 +1,7 @@
 package com.coffeepeek.admin.ui.screen.review
 
+import com.coffeepeek.admin.ui.component.CpTopBar
+
 import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,28 +35,18 @@ import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.PhotoAttachmentsSection
 import com.coffeepeek.admin.ui.component.ReviewRatingCards
 import com.coffeepeek.admin.utils.MAX_REVIEW_PHOTOS
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 import org.koin.core.parameter.parametersOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateReviewScreen(shopId: String) {
-    val vm: CreateReviewViewModel = koinViewModel(parameters = { parametersOf(shopId) })
+    val vm: CreateReviewViewModel = platformViewModel(parameters = { parametersOf(shopId) })
     val state by vm.state.collectAsState()
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Новый отзыв") },
-                navigationIcon = {
-                    IconButton(onClick = { Navigator.popBack() }) {
-                        Icon(CpIcons.Back, contentDescription = "Назад")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+            CpTopBar("Новый отзыв")
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -102,22 +94,12 @@ fun CreateReviewScreen(shopId: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditReviewScreen(reviewId: String) {
-    val vm: EditReviewViewModel = koinViewModel(parameters = { parametersOf(reviewId) })
+    val vm: EditReviewViewModel = platformViewModel(parameters = { parametersOf(reviewId) })
     val state by vm.state.collectAsState()
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Редактировать отзыв") },
-                navigationIcon = {
-                    IconButton(onClick = { Navigator.popBack() }) {
-                        Icon(CpIcons.Back, contentDescription = "Назад")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+            CpTopBar("Редактировать отзыв")
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -179,7 +161,11 @@ fun EditReviewScreen(reviewId: String) {
                         CoffeePeekLoader()
                     }
                 } else {
-                    AppButton(text = "Сохранить изменения", onClick = { vm.submit() })
+                    AppButton(
+                        text = "Сохранить изменения",
+                        onClick = { vm.submit() },
+                        enabled = state.canEdit,
+                    )
                 }
             }
         }

@@ -3,6 +3,7 @@ package com.coffeepeek.data.di
 import com.coffeepeek.api.CoffeePeekClient
 import com.coffeepeek.api.CoffeePeekRepo
 import com.coffeepeek.data.session.SessionTokenProvider
+import com.coffeepeek.data.session.createPlatformSessionSecureStore
 import com.coffeepeek.data.repository.AuthRepositoryImpl
 import com.coffeepeek.data.repository.CheckInRepositoryImpl
 import com.coffeepeek.data.repository.FavoriteRepositoryImpl
@@ -10,6 +11,7 @@ import com.coffeepeek.data.repository.PhotoRepositoryImpl
 import com.coffeepeek.data.repository.ReviewRepositoryImpl
 import com.coffeepeek.data.repository.RoasterRepositoryImpl
 import com.coffeepeek.data.repository.SessionRepositoryImpl
+import com.coffeepeek.data.repository.ShopChangeRequestRepositoryImpl
 import com.coffeepeek.data.repository.ShopIssueReportRepositoryImpl
 import com.coffeepeek.data.repository.ShopRepositoryImpl
 import com.coffeepeek.data.repository.UserRepositoryImpl
@@ -23,6 +25,7 @@ import com.coffeepeek.domain.repository.PhotoRepository
 import com.coffeepeek.domain.repository.ReviewRepository
 import com.coffeepeek.domain.repository.RoasterRepository
 import com.coffeepeek.domain.repository.SessionRepository
+import com.coffeepeek.domain.repository.ShopChangeRequestRepository
 import com.coffeepeek.domain.repository.ShopIssueReportRepository
 import com.coffeepeek.domain.repository.ShopRepository
 import com.coffeepeek.domain.repository.UserRepository
@@ -33,25 +36,27 @@ import kotlinx.coroutines.launch
 import com.coffeepeek.room.DatabaseCore
 import org.koin.core.module.Module
 import org.koin.dsl.module
-import java.io.File
 
 fun dataModule(
     baseUrl: String,
-    cacheFolder: File,
+    cacheFolderPath: String,
+    appCacheRootPath: String,
     database: DatabaseCore,
+    platformContext: Any? = null,
     debug: Boolean = false,
 ): Module = module {
-    single { CoroutineScope(Dispatchers.IO + SupervisorJob()) }
+    single { CoroutineScope(Dispatchers.Default + SupervisorJob()) }
 
-    single<SessionRepository> { SessionRepositoryImpl(database) }
+    single { createPlatformSessionSecureStore(database, platformContext) }
+    single<SessionRepository> { SessionRepositoryImpl(database, get()) }
     single { SessionTokenProvider(get(), get()) }
     single { FileUrlResolver(baseUrl) }
     single {
         UserSessionCleaner(
             sessionRepository = get(),
             favoriteRepository = get(),
-            httpCacheFolder = cacheFolder,
-            appCacheRoot = cacheFolder.parentFile ?: cacheFolder,
+            httpCacheFolderPath = cacheFolderPath,
+            appCacheRootPath = appCacheRootPath,
         )
     }
 
@@ -60,7 +65,7 @@ fun dataModule(
         val tokenProvider = get<SessionTokenProvider>()
         CoffeePeekClient(
             url = baseUrl,
-            cacheFolder = cacheFolder,
+            cacheFolderPath = cacheFolderPath,
             debug = debug,
             getToken = { tokenProvider.current() },
             saveToken = { authResp ->
@@ -90,6 +95,7 @@ fun dataModule(
     single { get<CoffeePeekRepo>().checkInApiService }
     single { get<CoffeePeekRepo>().shopIssueReportApiService }
     single { get<CoffeePeekRepo>().roasterApiService }
+    single { get<CoffeePeekRepo>().shopChangeRequestApiService }
     single<PhotoRepository> { PhotoRepositoryImpl(get()) }
     single<AuthRepository> { AuthRepositoryImpl(get(), get(), get()) }
     single<FavoriteRepository> { FavoriteRepositoryImpl(database) }
@@ -99,4 +105,5 @@ fun dataModule(
     single<CheckInRepository> { CheckInRepositoryImpl(get(), get(), get()) }
     single<ShopIssueReportRepository> { ShopIssueReportRepositoryImpl(get()) }
     single<RoasterRepository> { RoasterRepositoryImpl(get(), get(), get()) }
+    single<ShopChangeRequestRepository> { ShopChangeRequestRepositoryImpl(get(), get()) }
 }

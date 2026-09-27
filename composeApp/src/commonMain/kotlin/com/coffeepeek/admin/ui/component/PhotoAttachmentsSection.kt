@@ -2,24 +2,21 @@ package com.coffeepeek.admin.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -50,12 +47,27 @@ fun PhotoAttachmentsSection(
     hint: String = "Добавьте до $maxPhotos фото (необязательно).",
 ) {
     var isPhotoLoading by remember { mutableStateOf(false) }
+    var showPhotoSourceSheet by remember { mutableStateOf(false) }
     val remaining = (maxPhotos - photos.size).coerceAtLeast(1)
     val photoPicker = rememberPhotoPicker(
         maxSelection = remaining,
         isLoading = { isPhotoLoading = it },
         onPhotosPicked = onPhotosAdded,
     )
+
+    if (showPhotoSourceSheet) {
+        PhotoSourceBottomSheet(
+            onDismiss = { showPhotoSourceSheet = false },
+            onGallery = {
+                showPhotoSourceSheet = false
+                photoPicker.pickFromGallery()
+            },
+            onCamera = {
+                showPhotoSourceSheet = false
+                photoPicker.takePhoto()
+            },
+        )
+    }
 
     Column(modifier = modifier) {
         Text(title, style = MaterialTheme.typography.labelLarge)
@@ -73,7 +85,7 @@ fun PhotoAttachmentsSection(
         )
         Spacer(Modifier.height(CpDimens.spacing2))
 
-        if (photos.isNotEmpty()) {
+        if (photos.isNotEmpty() || photos.size < maxPhotos) {
             val photoShape = RoundedCornerShape(CpDimens.radiusMd)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
@@ -81,27 +93,30 @@ fun PhotoAttachmentsSection(
                 modifier = Modifier.padding(bottom = CpDimens.spacing2),
             ) {
                 photos.forEachIndexed { index, photo ->
-                    Box(
-                        modifier = Modifier
-                            .size(96.dp)
-                            .clip(photoShape)
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outline,
-                                shape = photoShape,
-                            ),
-                    ) {
+                    // Outer box is NOT clipped so the delete badge can overhang the corner and stay visible.
+                    Box(modifier = Modifier.size(96.dp)) {
                         CpImage(
                             data = photo.bytes,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(photoShape)
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    shape = photoShape,
+                                ),
                             contentScale = ContentScale.Crop,
                         )
-                        IconButton(
-                            onClick = { onRemovePhoto(index) },
+                        Box(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
-                                .size(28.dp)
-                                .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(50)),
+                                .offset(x = 6.dp, y = (-6).dp)
+                                .size(24.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(Color.Black.copy(alpha = 0.75f))
+                                .border(1.5.dp, Color.White, RoundedCornerShape(50))
+                                .clickable { onRemovePhoto(index) },
+                            contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 CpIcons.Close,
@@ -112,40 +127,35 @@ fun PhotoAttachmentsSection(
                         }
                     }
                 }
-            }
-        }
-
-        if (photos.size < maxPhotos) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-            ) {
-                OutlinedButton(
-                    onClick = photoPicker.pickFromGallery,
-                    enabled = !isPhotoLoading,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(CpIcons.Gallery, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(CpDimens.spacing1))
-                    Text("Галерея", style = MaterialTheme.typography.labelMedium)
-                }
-                OutlinedButton(
-                    onClick = photoPicker.takePhoto,
-                    enabled = !isPhotoLoading,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(CpIcons.Camera, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(CpDimens.spacing1))
-                    Text("Камера", style = MaterialTheme.typography.labelMedium)
-                }
-            }
-            if (isPhotoLoading) {
-                Spacer(Modifier.height(CpDimens.spacing2))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    CoffeePeekLoader(size = CpDimens.loaderButton, strokeWidth = 2.dp)
+                if (photos.size < maxPhotos) {
+                    Box(
+                        modifier = Modifier
+                            .size(96.dp)
+                            .clip(photoShape)
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outline,
+                                shape = photoShape,
+                            )
+                            .clickable(
+                                enabled = !isPhotoLoading,
+                                onClickLabel = "Добавить фото",
+                                onClick = { showPhotoSourceSheet = true },
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (isPhotoLoading) {
+                            CoffeePeekLoader(size = CpDimens.loaderButton, strokeWidth = 2.dp)
+                        } else {
+                            Icon(
+                                imageVector = CpIcons.Camera,
+                                contentDescription = "Добавить фото",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+                    }
                 }
             }
         }

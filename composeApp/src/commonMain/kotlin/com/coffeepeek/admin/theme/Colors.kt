@@ -7,8 +7,6 @@ object CpColor {
     // ── Brand ─────────────────────────────────────────────────────────────────
     val Primary        = Color(0xFFEAB308)
     val PrimaryHover   = Color(0xFFFACC15)
-    val PrimaryDark    = Color(0xFFCA8A04)
-    val PrimaryLight   = Color(0xFFFEF3C7)
     val PrimaryTint10  = Color(0x1AEAB308)
     val AccentTextLight = Color(0xFF7A5700)
     val AccentTextDark  = Color(0xFFFACC15)

@@ -42,6 +42,7 @@ import com.adamglin.phosphoricons.regular.Monitor
 import com.adamglin.phosphoricons.regular.NavigationArrow
 import com.adamglin.phosphoricons.regular.NotePencil
 import com.adamglin.phosphoricons.regular.PencilSimple
+import com.adamglin.phosphoricons.regular.PersonSimpleWalk
 import com.adamglin.phosphoricons.regular.Phone
 import com.adamglin.phosphoricons.regular.Plus
 import com.adamglin.phosphoricons.regular.ShareNetwork
@@ -50,6 +51,7 @@ import com.adamglin.phosphoricons.regular.Sparkle
 import com.adamglin.phosphoricons.regular.SquaresFour
 import com.adamglin.phosphoricons.regular.Star
 import com.adamglin.phosphoricons.regular.Sun
+import com.adamglin.phosphoricons.regular.ThumbsUp
 import com.adamglin.phosphoricons.regular.Trash
 import com.adamglin.phosphoricons.regular.User
 import com.adamglin.phosphoricons.regular.WarningCircle
@@ -90,6 +92,7 @@ object CpIcons {
     val Menu: ImageVector get() = PhosphorIcons.Regular.ForkKnife
     val MyLocation: ImageVector get() = Location
     val Navigation: ImageVector get() = PhosphorIcons.Regular.NavigationArrow
+    val Distance: ImageVector get() = PhosphorIcons.Regular.PersonSimpleWalk
     val Photo: ImageVector get() = PhosphorIcons.Regular.ImageSquare
     val Profile: ImageVector get() = PhosphorIcons.Regular.User
     val Review: ImageVector get() = PhosphorIcons.Regular.ChatCenteredText
@@ -102,6 +105,7 @@ object CpIcons {
     val ThemeDark: ImageVector get() = PhosphorIcons.Regular.Moon
     val ThemeLight: ImageVector get() = PhosphorIcons.Regular.Sun
     val ThemeSystem: ImageVector get() = PhosphorIcons.Regular.Monitor
+    val Helpful: ImageVector get() = PhosphorIcons.Regular.ThumbsUp
     val Time: ImageVector get() = PhosphorIcons.Regular.Clock
     val User: ImageVector get() = PhosphorIcons.Regular.User
     val Visibility: ImageVector get() = PhosphorIcons.Regular.Eye

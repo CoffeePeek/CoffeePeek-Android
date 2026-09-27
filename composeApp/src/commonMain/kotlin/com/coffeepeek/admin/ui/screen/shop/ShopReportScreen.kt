@@ -1,5 +1,7 @@
 package com.coffeepeek.admin.ui.screen.shop
 
+import com.coffeepeek.admin.ui.component.CpTopBar
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -35,28 +37,18 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.icons.CpIcons
-import org.koin.compose.viewmodel.koinViewModel
+import com.coffeepeek.admin.di.platformViewModel
 import org.koin.core.parameter.parametersOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopReportScreen(shopId: String, shopTitle: String) {
-    val vm: ShopReportViewModel = koinViewModel(parameters = { parametersOf(shopId) })
+    val vm: ShopReportViewModel = platformViewModel(parameters = { parametersOf(shopId) })
     val state by vm.state.collectAsState()
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Сообщить о неточности") },
-                navigationIcon = {
-                    IconButton(onClick = Navigator::popBack) {
-                        Icon(CpIcons.Back, contentDescription = "Назад")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+            CpTopBar("Сообщить о неточности")
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { contentPadding ->
@@ -101,6 +93,7 @@ fun ShopReportScreen(shopId: String, shopTitle: String) {
                     minLines = 3,
                     maxLines = 6,
                     isError = state.error != null,
+                    shape = RoundedCornerShape(CpDimens.buttonRadius),
                 )
             }
 

@@ -8,7 +8,15 @@ import java.io.File
 actual object Locator {
     val appContext get() = CoffeePeekApplication.context
 
-    actual val cacheFolder: File by lazy { File(appContext.cacheDir, "cache").apply { mkdirs() } }
+    actual val cacheFolderPath: String by lazy {
+        File(appContext.cacheDir, "cache").apply { mkdirs() }.absolutePath
+    }
+
+    actual val appCacheRootPath: String
+        get() = appContext.cacheDir.absolutePath
+
+    actual val platformContext: Any?
+        get() = appContext
 
     actual val database: DatabaseCore by lazy {
         MyRoomRepositoryImpl(appContext, Constants.DB_NAME)

@@ -1,9 +1,10 @@
 package com.coffeepeek.admin.locator
 
 import com.coffeepeek.room.DatabaseCore
-import java.io.File
 
 expect object Locator {
-    val cacheFolder: File
+    val cacheFolderPath: String
+    val appCacheRootPath: String
+    val platformContext: Any?
     val database: DatabaseCore
 }
