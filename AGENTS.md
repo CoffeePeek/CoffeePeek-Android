@@ -18,7 +18,7 @@ feature/                   migration plan; feature modules added progressively
 iosApp/                     native iOS application boundary, when present
 ```
 
-Do not treat the target `app/`, `core/`, `features/` layout as already
+Do not treat the complete target `app/`, `core/`, `feature/` layout as already
 implemented. Before a structural change, inspect `settings.gradle.kts`, relevant
 module build files, source sets, DI, navigation, and existing abstractions.
 
