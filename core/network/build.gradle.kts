@@ -4,40 +4,32 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
     androidTarget {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.fromTarget(Config.JVM_VERSION))
-        }
+        compilerOptions { jvmTarget.set(JvmTarget.fromTarget(Config.JVM_VERSION)) }
     }
+    // Match existing consumers; no platform-specific iOS implementation.
     iosArm64()
     iosSimulatorArm64()
-
     sourceSets {
-        androidMain.dependencies {
-            implementation(libs.ktor.client.okhttp)
-        }
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
-        }
         commonMain.dependencies {
-            implementation(project(":core:network"))
-            implementation(libs.ktor.client.core)
-            implementation(libs.ktor.client.auth)
+            api(libs.ktor.client.core)
+            api(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.coroutines.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
         }
         commonTest.dependencies {
-            implementation(kotlin("test"))
+            implementation(libs.kotlin.test)
+            implementation("io.ktor:ktor-client-mock:${libs.versions.ktor.get()}")
         }
     }
 }
 
 android {
-    namespace = Config.APPLICATION_ID
+    namespace = "${Config.APPLICATION_ID}.core.network"
     compileSdk = Config.COMPILE_SDK
     compileOptions {
         sourceCompatibility = Config.JAVA_VERSION

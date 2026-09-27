@@ -1,13 +1,8 @@
 package com.coffeepeek.api.utils
 
-import kotlinx.serialization.json.Json
+import com.coffeepeek.core.network.networkJson
 
+/** Compatibility adapter for existing response contract tests. */
 internal object JsonExt {
-
-    val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-        coerceInputValues = true
-    }
-
+    val json = networkJson
 }
