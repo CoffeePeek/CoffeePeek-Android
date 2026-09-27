@@ -9,7 +9,8 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.text.font.FontFamily
 import androidx.test.core.app.ActivityScenario
-import androidx.test.espresso.Espresso
+import android.view.KeyEvent
+import androidx.test.platform.app.InstrumentationRegistry
 import com.coffeepeek.core.designsystem.component.*
 import com.coffeepeek.core.designsystem.icons.CpIcons
 import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
@@ -85,7 +86,7 @@ class PresentationContractTest {
         val shown = mutableStateOf(true)
         render { LoadingDialog(shown.value, "Loading data", "Please wait") }.use {
             compose.onNodeWithContentDescription("Loading data").assertIsDisplayed()
-            Espresso.pressBackUnconditionally()
+            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
             compose.onNodeWithText("Please wait").assertIsDisplayed()
             compose.runOnIdle { shown.value = false }
             compose.onNodeWithText("Please wait").assertDoesNotExist()
