@@ -11,9 +11,12 @@ into the application. Do not pre-create every example module in ARCHITECTURE.md.
 - `database`: Room builder configuration with bundled SQLite; no application
   schema, feature entities or migrations are moved into core.
 
-The first network slice already delegates legacy transport settings to core.
-The new client factory, Result boundary, coroutine and database foundations
-are not wired into the application yet.
+All foundations are independent duplicates prepared for later migration.
+The legacy network client retains its own transport configuration. No application
+or legacy module depends on the new core modules yet.
+
+Each substantial core migration must use a separate `feature/...` branch and PR.
+Application integration must be a separate, explicitly planned stage.
 
 ## Remaining preparation, in order
 

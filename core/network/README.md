@@ -7,7 +7,8 @@ client/engine lifecycle. These additions are prepared for later integration.
 New factory clients validate HTTP status (`expectSuccess = true`), so 4xx/5xx
 responses become failures when wrapped in `requestResult`. Callers may override
 validation explicitly. Legacy client response handling is not changed.
-Consumers: legacy `modules:network` now, feature data modules during migration.
+Future consumers: feature data modules during migration and application composition.
+The legacy network module remains independent until explicit integration.
 Dependencies: Ktor, Kotlin serialization and coroutines; no feature or legacy modules.
 Public surface: `HttpClientFactory`, `requestResult`, `configureApiTransport`,
 `configureUploadTransport`, and `networkJson` for transport contract serialization.

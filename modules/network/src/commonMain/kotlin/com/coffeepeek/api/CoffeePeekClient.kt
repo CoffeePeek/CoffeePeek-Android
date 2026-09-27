@@ -4,17 +4,20 @@ import com.coffeepeek.api.model.response.AuthResp
 import com.coffeepeek.api.service.AuthService
 import com.coffeepeek.api.utils.CurlInterceptor.asCurlString
 import com.coffeepeek.api.utils.httpDebugLog
-import com.coffeepeek.core.network.configureApiTransport
-import com.coffeepeek.core.network.configureUploadTransport
+import com.coffeepeek.api.utils.JsonExt
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.HttpSend
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.cache.HttpCache
 import io.ktor.client.plugins.cache.storage.CacheStorage
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.plugin
+import io.ktor.serialization.kotlinx.json.json
 
 internal expect fun createClient(block: HttpClientConfig<*>.() -> Unit = {}): HttpClient
 
@@ -38,17 +41,23 @@ class CoffeePeekClient(
     }
 
     val plainClient: HttpClient = createClient {
-        configureApiTransport(baseUrl)
+        install(ContentNegotiation) { json(json = JsonExt.json) }
+        defaultRequest { url(baseUrl) }
     }.also { intercept(it) }
 
     val uploadClient: HttpClient = createUploadClient {
-        configureUploadTransport()
+        install(HttpTimeout) {
+            requestTimeoutMillis = 120_000
+            connectTimeoutMillis = 30_000
+            socketTimeoutMillis = 120_000
+        }
     }.also { intercept(it) }
 
     private val tokenRefreshService = AuthService(plainClient, plainClient)
 
     val client: HttpClient = createClient {
-        configureApiTransport(baseUrl)
+        install(ContentNegotiation) { json(json = JsonExt.json) }
+        defaultRequest { url(baseUrl) }
 
         install(Auth) {
             bearer {
