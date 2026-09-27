@@ -11,7 +11,7 @@ imports extend into feature screens, so folder location alone is not ownership.
 
 | Family / current source in composeApp | Evidence / ownership | Preparation |
 |---|---|---|
-| theme/Colors, Dimens, CoffeePeekTheme, Typography | Shared by screens and primitives; Manrope currently uses app resources | Shared subset prepared; feature decoration excluded; font injected |
+| theme/Colors, Dimens, CoffeePeekTheme, Typography | Shared by screens and primitives; legacy Manrope uses app resources | Shared subset prepared; six Manrope weights packaged independently; font override preserved |
 | ui/icons/CpIcons | Common navigation/actions/status symbols, reused across screens | Facade prepared, vendor hidden |
 | component/AppButton and Buttons.Common | Same brand pill/height; AppButton used in add-shop, review, roaster and report screens | AppButton prepared; reconcile width/layout differences at integration |
 | component/LiquidGlass | Modifier used in map, shop, auth and floating navigation | Modifier/local/glass control prepared; screen owns Haze source |
@@ -39,10 +39,11 @@ gesture interception and map interaction stay with their owning UI boundary.
 
 ## Resource decisions
 
-Manrope fonts, brand logos, mascots and Google/brew/rating/currency drawables are
-currently app resources. Fonts/logos are candidates for a dedicated resource
-slice; review/check-in ratings, brewing and auth artwork are not automatically
-shared design-system assets. No assets are moved merely to make core look complete.
+Manrope is now packaged independently in design-system with OFL notice and
+exact-copy hashes. Legacy fonts remain until integration. Brand app icons, mascots
+and Google/brew/rating/currency drawables remain app/feature-owned pending actual
+consumers and ownership. They are not automatically design-system assets.
+See RESOURCES.md. No assets are moved merely to make core look complete.
 Directional icon mirroring and semantic descriptions require RTL/accessibility
 verification during integration; callers provide descriptions for actionable icons.
 
@@ -52,7 +53,7 @@ verification during integration; callers provide descriptions for actionable ico
 2. Badges/segmented controls, loading/error, refresh and sheet/FAB prepared.
    Sheet keyboard/insets/scrolling and refresh consumer interaction QA
    remains part of consumer integration.
-3. Resource ownership and brand-font packaging; safe RTL-aware insets.
+3. Brand-font packaging is prepared; next prepare safe RTL-aware insets.
 4. Separate integration PRs for consumer families, visual parity checks and legacy
    removal. No migrated feature should add new code to legacy components.
 

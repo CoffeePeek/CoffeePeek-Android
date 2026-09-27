@@ -13,9 +13,10 @@ business models. No umbrella utility or base-screen abstraction is introduced.
 
 `theme/`: shared palette/dimensions, light/dark Material theme and typography.
 Auth-specific decoration and application header/bottom-navigation metrics remain
-outside core. `CoffeePeekTheme` requires a FontFamily: existing Manrope resources
-remain in composeApp, supplied at integration; there is no generated app-resource
-dependency or silently substituted brand font in core.
+outside core. CoffeePeekTheme now defaults to the six packaged Manrope weights,
+while allowing explicit FontFamily overrides for callers/tests. The generated
+resource accessors are internal to design-system, with no app-resource dependency.
+Legacy font copies remain in composeApp until consumer integration.
 
 `icons/`: existing Phosphor-backed `CpIcons` facade, including intentional aliases.
 Feature mappings (brew methods, prices and ratings) stay with feature presentation.
@@ -108,8 +109,8 @@ Open androidMain/preview/ComponentPreviews.kt in Android Studio Design/Split mod
 Every component family has @PreviewLightDark, including fields/error/disabled
 states, grouped rows, badges, segmented control, loader, sheet, dialogs and FAB.
 Refresh has both idle/interactive and running light/dark samples.
-CoffeePeekTheme uses preview uiMode to select the palette; FontFamily.Default is
-an explicit fixture until brand resources are prepared. Previews require no app
+CoffeePeekTheme uses preview uiMode to select the palette and packaged Manrope.
+Previews require no app
 DI, network, navigation or data. Android annotations/tooling stay in androidMain
 and debug tooling, not commonMain.
 
@@ -139,8 +140,8 @@ There are no timers, global loading/error state or Navigator dependencies.
 
 Existing components/resources/screens remain unchanged and have no dependency on
 this module. New independent copies are a temporary migration boundary, not a
-second long-term source of truth. Integrate one consumer family at a time, supply
-the brand font, check light/dark rendering, accessibility, RTL and font scaling,
+second long-term source of truth. Integrate one consumer family at a time,
+check light/dark rendering, accessibility, RTL and font scaling with the brand font,
 then remove legacy implementations when unused. See AUDIT.md for remaining slices.
 
 Unit tests cover tokens, font injection and icon aliases. Android instrumentation

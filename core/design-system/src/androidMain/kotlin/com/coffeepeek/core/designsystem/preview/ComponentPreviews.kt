@@ -6,7 +6,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.core.designsystem.component.*
@@ -14,10 +14,10 @@ import com.coffeepeek.core.designsystem.icons.CpIcons
 import com.coffeepeek.core.designsystem.modifier.GlassIconButton
 import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
 
-/** Uses system preview uiMode for both themes. Brand font is injected at integration. */
+/** Uses system preview uiMode and the design-system's packaged brand font. */
 @Composable
 private fun PreviewTheme(content: @Composable () -> Unit) {
-    CoffeePeekTheme(FontFamily.Default) {
+    CoffeePeekTheme {
         Surface { Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             content()
         } }
@@ -30,6 +30,15 @@ private fun ButtonsPreview() = PreviewTheme {
     AppButton("Unavailable", {}, enabled = false)
     GlassIconButton({}, contentDescription = "Close", hazeState = null) {
         Icon(CpIcons.Close, null)
+    }
+}
+
+@PreviewLightDark @Composable
+private fun BrandTypographyPreview() = PreviewTheme {
+    listOf(FontWeight.Light, FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold,
+        FontWeight.Bold, FontWeight.ExtraBold).forEach { weight ->
+        Text("Manrope ${weight.weight}: Кофе Coffee", fontWeight = weight,
+            style = MaterialTheme.typography.bodyLarge)
     }
 }
 
