@@ -13,6 +13,8 @@ modules/domain/             legacy shared models and repository contracts
 modules/network/            legacy HTTP infrastructure and feature API code
 modules/data/               legacy repository implementations
 modules/room/               legacy Room infrastructure and persistence
+core/                      prepared independent infrastructure/design-system
+feature/                   migration plan; feature modules added progressively
 iosApp/                     native iOS application boundary, when present
 ```
 
@@ -34,12 +36,15 @@ feature/<name>/
 ├── api/       intentionally public contracts only
 ├── domain/    business rules, domain models, repository interfaces
 ├── data/      remote/local implementations, DTOs, entities, DAOs, mappers
-└── ui/        ViewModels, UI state/events and presentation
+└── impl/      composition/DI entry point and ui/ presentation implementation
 ```
 
-These are logical boundaries first. A feature starts as one Gradle module; split
-it into `api`, `domain`, `data`, or `ui` Gradle modules only when a real ABI,
-dependency, compilation, or reuse boundary justifies that cost.
+The agreed target for migrated business features is separate api/domain/data/impl
+Gradle boundaries under singular feature/. Create these incrementally for the
+feature being migrated, not empty modules for every future screen. UI packages
+live inside impl; impl assembles data via narrow factories/DI entry points.
+This does not require every core infrastructure module to have a domain/data
+pair. See feature/README.md for the migration sequence and dependency graph.
 
 - `api` is public by necessity, not by default. Keep routes, entry points, and
   minimal cross-feature contracts there.
@@ -76,6 +81,14 @@ module boundary.
 
 ## Before coding
 
+- Continue the branch stack from the current migration tip, not main. Each new
+  PR targets its immediate parent branch and describes only its own changes.
+  Work only in migration branches. Before merging a child, retarget it to main
+  after its parent has reached main; recheck its diff and tests. Do not merge
+  children into an already merged parent and assume they reached main.
+- Branch isolation does not prove application correctness: every integration
+  slice must compile the Android app and test the affected behaviour.
+
 1. Identify the business feature and the owning layer.
 2. Search for a reusable existing implementation before creating a parallel one.
 3. Inspect relevant Gradle dependencies and source sets.
@@ -98,6 +111,11 @@ implementation details.
 - Keep changes scoped: architecture work must not silently include unrelated UI,
   dependency, navigation, or product changes.
 - Never commit credentials, API keys, passwords, or tokens.
+- Add/update PreviewLightDark fixtures for each reusable UI family and migrated
+  screen. Keep Android preview tooling in androidMain, with fake/injected state
+  and no production DI/network. Record modal/IDE rendering limitations.
+- Preserve Kotlin Result request contracts and rethrow CancellationException;
+  do not use suspend runCatching where it would swallow cancellation.
 
 ## Decision rule
 

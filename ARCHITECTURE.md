@@ -20,6 +20,8 @@ modules/domain/                     models and repository interfaces
 modules/network/                    Ktor, DTOs and API services
 modules/data/                       repository implementations and mapping
 modules/room/                       Room persistence
+core/                               prepared infrastructure/design-system
+feature/                            migration plan, not implemented features yet
 ```
 
 Target ownership is feature-based:
@@ -27,18 +29,23 @@ Target ownership is feature-based:
 ```text
 application composition
         │
-        ├── features/<business-capability>
+        ├── feature/<business-capability>
         │       ├── api
         │       ├── domain
         │       ├── data
-        │       └── ui
+        │       └── impl
+        │            ├── di
+        │            └── ui
         │
         └── core/<shared-infrastructure>
 ```
 
-The directories above are logical first, Gradle modules second. A feature should
-begin with clear packages in one KMP module. Extract a submodule only where it
-provides a meaningful boundary.
+The agreed migration target is api/domain/data/impl Gradle boundaries per
+business feature, created progressively under singular feature/. The split
+provides a small cross-feature ABI, independently testable domain/data and
+hidden presentation/composition. Do not scaffold all future features or force
+domain/data onto infrastructure modules with no business responsibilities.
+The existing core modules and legacy layout remain authoritative until migrated.
 
 ## Dependency model
 
@@ -51,7 +58,11 @@ app / current composition module
           │               │
           └── other feature API only ──┘
 
-within one feature:   ui → domain ← data
+within one feature:
+    impl → api
+    impl → domain ← data
+    impl composition → data (only factory/DI wiring)
+    impl/ui → domain, api, design-system (never data implementation)
 ```
 
 Allowed dependencies:
@@ -60,6 +71,7 @@ Allowed dependencies:
 |---|---|
 | Application composition | Required features and core modules |
 | Feature UI | Its own domain/api and needed core infrastructure |
+| Feature impl composition | Its api/domain and data wiring entry points |
 | Feature data | Its own domain and needed core infrastructure |
 | Feature domain | Kotlin and deliberately allowed domain dependencies |
 | Feature API | Minimal public dependencies only |
@@ -171,6 +183,11 @@ shared code where library support permits; use `expect`/`actual` only for a real
 platform difference.
 
 ## Incremental migration
+
+Use stacked PRs from the current migration branch tip. A child PR targets its
+immediate parent. After merging a parent to main, retarget its child to main and
+verify the diff before merging; do not merge into stale already-merged branches.
+Branches isolate unfinished work from main, not runtime behaviour from users.
 
 Use strangler migration. A temporary mixture of legacy and feature-based code is
 valid, provided new code does not reproduce legacy violations.
