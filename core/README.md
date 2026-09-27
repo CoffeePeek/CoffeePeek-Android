@@ -8,7 +8,8 @@ into the application. Do not pre-create every example module in ARCHITECTURE.md.
 - `coroutines`: injectable IO dispatcher and caller-owned supervised scope.
 - `network`: shared transport settings, engine-injected factory and Kotlin
   `Result` request boundary, plus independent bearer-session callbacks and
-  origin-scoped refresh. Cancellation is rethrown, not turned into failure.
+  origin-scoped refresh, opt-in anonymous HTTP cache and safe diagnostics.
+  Cancellation is rethrown, not turned into failure.
 - `database`: Room builder configuration with bundled SQLite; no application
   schema, feature entities or migrations are moved into core.
 
@@ -22,10 +23,9 @@ Application integration must be a separate, explicitly planned stage.
 
 ## Remaining preparation, in order
 
-1. Network: auth/refresh is prepared and tested independently. Next isolate cache
-   configuration and safe diagnostics; keep platform file storage outside common
-   code. Preserve upload signed URLs and avoid credential logging. Implement
-   session adapters only at integration and coordinate logout with active refresh.
+1. Network: transport, auth/refresh, anonymous cache and diagnostics are prepared
+   independently. Platform storage, debug sinks and session adapters remain for
+   integration; coordinate logout with active refresh and choose cache limits.
 2. Database: validate driver setup against a small test-only Room schema and
    Android instrumentation. Keep actual schema/migration ownership above feature
    persistence; decide composition when the first feature is extracted.
