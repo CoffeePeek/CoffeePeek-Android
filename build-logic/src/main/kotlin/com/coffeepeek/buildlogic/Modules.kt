@@ -6,6 +6,16 @@ object Modules {
 
     val legacy = Legacy
     val core = Core
+    val feature = Feature
+
+    object Feature {
+        val favorites = Favorites
+        object Favorites {
+            const val api = ":feature:favorites:api"
+            const val domain = ":feature:favorites:domain"
+            const val data = ":feature:favorites:data"
+        }
+    }
 
     object Legacy {
         const val domain = ":modules:domain"
@@ -31,6 +41,9 @@ object Modules {
         core.network,
         core.database,
         core.designSystem,
+        feature.favorites.api,
+        feature.favorites.domain,
+        feature.favorites.data,
     )
 }
 

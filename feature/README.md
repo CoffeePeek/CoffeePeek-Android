@@ -1,6 +1,8 @@
 # Feature migration: API / implementation
 
-This directory currently contains the plan only, not registered Gradle modules.
+This directory now contains independent favorites api/domain/data modules.
+Screen implementation and its DI bridge are the next stacked slice.
+They are not connected to the old application. See favorites/README.md.
 Actual registration remains in build-logic Modules.all. Android is the integration
 target; no native iOS implementation is part of these slices.
 
@@ -29,9 +31,10 @@ Keep data implementations internal and expose only the narrow construction
 surface required for feature composition. Enforce UI import boundaries as well
 as Gradle edges, because impl also contains composition.
 
-Other features depend only on this feature's api. Do not export the whole domain
-module to avoid designing a small cross-feature capability. Shared domain ABI,
-if actually necessary, must be intentionally designed, not moved to core/common.
+Other features use api for navigation/screen entry and may directly consume
+intentionally supported pure domain contracts, as agreed for favorites. Never
+depend on another feature's data/impl/di from business/UI. Shared domain ABI
+must be deliberately supported, not moved to core/common.
 Composition owns the root graph and assembles feature implementations.
 
 HTTP requests belong to feature data/remote, not screens. Room persistence belongs
@@ -49,10 +52,10 @@ existing object-plus-instance-accessor pattern:
 implementation(project(module.feature.favorites.api))
 implementation(project(module.feature.favorites.domain))
 implementation(project(module.feature.favorites.data))
-implementation(project(module.feature.favorites.impl))
 ```
 
-These are planned accessors, not currently callable. Register only real module
+Favorites api/domain/data accessors are now callable; impl/di follow next.
+Register only real module
 paths in Modules.all. Domain/data are nested by business owner, not new global
 technical-layer buckets. Core api/impl splits need their own concrete ABI/reuse
 reason; a transport module does not need artificial business domain/data modules.
@@ -83,7 +86,7 @@ never rewrite published stack history or unrelated work without agreement.
 7. Delete legacy copies only after every consumer has switched. Repeat by owner;
    do not relocate all screens/models/repositories at once.
 
-## Pilot audit: favorites (candidate, not yet selected)
+## Pilot audit: favorites (selected, prepared independently)
 
 Current UI: composeApp ui/screen/favorites, FavoritesViewModel and FavoritesScreen.
 Current contract: modules/domain FavoriteRepository and CoffeeShop/Details.
