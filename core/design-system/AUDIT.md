@@ -56,6 +56,9 @@ verification during integration; callers provide descriptions for actionable ico
 3. Brand-font packaging and native inset recipes are prepared independently.
    Insets have synthetic LTR/RTL previews and measured-layout tests; OS inset
    delivery and real keyboard/cutout/large-font behaviour need consumer QA.
+   Large-font/RTL fixtures and targeted component tests are prepared; grouped
+   rows/actions now use growing 48.dp minimum targets. See ADAPTIVE_LAYOUT.md
+   for tested families, intentional ellipsis and remaining platform/visual QA.
 4. Separate integration PRs for consumer families, visual parity checks and legacy
    removal. No migrated feature should add new code to legacy components.
 

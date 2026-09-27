@@ -40,6 +40,8 @@ Application integration must be a separate, explicitly planned stage.
    RTL-safe inset recipes now have paired previews and measured-layout tests;
    no unused legacy Insets wrapper is duplicated. Real OS/IME/cutout behaviour
    still requires consumer-level QA. No further speculative core module is needed.
+   Targeted large-font/RTL tests and scale-2 paired previews are also prepared;
+   stepper targets grow from a 48.dp minimum instead of fixed 32.dp height.
    Existing controls are not integrated. Verify large font scale, RTL and visual
    parity per consumer before removing legacy copies.
 4. Navigation: add infrastructure only if the first feature's entry-point

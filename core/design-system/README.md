@@ -115,6 +115,13 @@ Real system bars/IME/modal integration and large-font screen QA remain separate.
 
 ## Light/dark previews
 
+AdaptivePreviews.kt adds LTR/RTL light/dark fixtures at fontScale 2.0. Stepper
+actions now have growing 48.dp minimum targets rather than fixed 32.dp height.
+Grouped rows use a 48.dp minimum; action rows/stepper halves expose button roles.
+ADAPTIVE_LAYOUT.md documents the targeted measured-layout/semantic tests and
+preserved ellipsis policies. Large-font screen, OS scaling and pixel parity QA
+remain integration responsibilities; this is not a complete accessibility audit.
+
 Open androidMain/preview/ComponentPreviews.kt in Android Studio Design/Split mode.
 Every component family has @PreviewLightDark, including fields/error/disabled
 states, grouped rows, badges, segmented control, loader, sheet, dialogs and FAB.
