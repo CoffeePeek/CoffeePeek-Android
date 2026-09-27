@@ -49,6 +49,39 @@ supplies the back callback/description; the back glyph mirrors in RTL.
 These APIs prepare existing visual families, not search/auth business rules.
 Focus handling on the search IME action remains local UI behaviour.
 
+## Handle-dismiss sheet and floating actions
+
+SwipeDismissModalBottomSheet preserves the legacy handle-only vertical drag:
+Material sheet-body gestures are disabled; a 72.dp downward distance or
+900.dp/s downward velocity dismisses, and short drags animate back. Back and
+scrim dismissal remain Material behaviour. The handle is now 48.dp and exposes
+a caller-localized accessible dismiss action. Visibility/removal is caller-owned.
+Content is a ColumnScope slot: review/check-in/photo-source models stay outside.
+Material provides modal focus and default system/IME inset handling; validate
+keyboard/content scrolling and any custom consumer insets at integration.
+
+FabMenu accepts neutral icon/description/callback/enabled actions, not routes or
+feature models. It retains joined rounded corners and the existing success
+palette, with minimum 48.dp action targets. The legacy component currently has
+no call sites; this is a small prepared primitive, not a reason to create a module
+or add a menu to existing screens.
+
+## Light/dark previews
+
+Open androidMain/preview/ComponentPreviews.kt in Android Studio Design/Split mode.
+Every component family has @PreviewLightDark, including fields/error/disabled
+states, grouped rows, badges, segmented control, loader, sheet, dialogs and FAB.
+CoffeePeekTheme uses preview uiMode to select the palette; FontFamily.Default is
+an explicit fixture until brand resources are prepared. Previews require no app
+DI, network, navigation or data. Android annotations/tooling stay in androidMain
+and debug tooling, not commonMain.
+
+Use Interactive Preview / Run Preview for modal windows and stateful callbacks;
+static layout previews are not guaranteed to display separate dialog windows.
+Compilation is checked, but IDE rendering and brand-font visual parity require
+manual inspection. After each slice, review both themes before integration.
+Keep @PreviewLightDark coverage up to date whenever adding a reusable UI family.
+
 ## Migration and verification
 
 Presentation slice: IconBadge/its palette are neutral visual primitives, reused
@@ -84,6 +117,11 @@ top-bar back actions. Large-font/RTL screen layouts require integration QA.
 Presentation tests cover enabled/selected actions, settings callbacks, progress
 semantics, error dismissal and modal back/visibility behaviour. They do not
 prove pixel parity, all animation frames or outside-touch geometry.
+Overlay tests cover accessible dismissal, the modal Back dispatcher, long/short
+handle drags and enabled/disabled FAB callbacks. Direct system-key injection on
+the API 37 emulator did not close the Material modal; dispatcher testing does not
+prove system/predictive gesture routing. That remains an explicit integration QA
+item, along with velocity-only flings, scrim geometry, IME and nested scrolling.
 
 ```shell
 ./gradlew :core:design-system:testDebugUnitTest :core:design-system:assembleDebug

@@ -34,8 +34,9 @@ Application integration must be a separate, explicitly planned stage.
 2. Database: runtime contracts are covered by Android instrumentation fixtures.
    Keep actual schema/migration ownership above feature persistence; decide
    composition and validate production migration history during integration.
-3. Design system: finish isolated overlay/gesture contracts, assess pull-to-refresh
-   separately, and prepare brand-font resources and RTL-safe inset handling.
+3. Design system: handle-dismiss sheet/FAB and paired theme previews are prepared.
+   Assess pull-to-refresh separately, then prepare brand-font resources and
+   RTL-safe inset handling.
    Existing controls are not integrated. Verify large font scale, RTL and visual
    parity per consumer before removing legacy copies.
 4. Navigation: add infrastructure only if the first feature's entry-point

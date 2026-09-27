@@ -24,6 +24,9 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        androidMain.dependencies {
+            implementation("androidx.compose.ui:ui-tooling-preview:${libs.versions.androidx.composeUi.get()}")
+        }
         androidInstrumentedTest.dependencies {
             implementation(libs.androidx.compose.ui.test.junit4)
             implementation(libs.androidx.activity.compose)
@@ -31,6 +34,10 @@ kotlin {
             implementation(libs.androidx.espresso.core)
         }
     }
+}
+
+dependencies {
+    add("debugImplementation", compose.uiTooling)
 }
 
 android {
