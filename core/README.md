@@ -12,6 +12,8 @@ into the application. Do not pre-create every example module in ARCHITECTURE.md.
   schema, feature entities or migrations are moved into core.
 
 All foundations are independent duplicates prepared for later migration.
+`design-system` now prepares shared visual tokens, injected-font typography, icons,
+generic controls/rows and the glass modifier; its audit tracks remaining UI slices.
 The legacy network client retains its own transport configuration. No application
 or legacy module depends on the new core modules yet.
 
