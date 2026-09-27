@@ -32,6 +32,23 @@ Haze ownership belongs to the screen; no global renderer or platform abstraction
 is created. Shared UI lives in commonMain with Android as the initial build target.
 Native iOS integration is outside this stage.
 
+## Fields and top bars slice
+
+CompactOutlinedTextField exposes the basic decoration contract. AppTextField adds
+the brand label/error style, accessible field label/error, enabled/read-only state
+and caller-configured keyboard actions. Ordinary fields default to a text keyboard,
+not email. Password visibility is caller-owned; callers supply the localized toggle
+description matching that state and handle onPasswordVisibilityChange.
+
+CpSearchField keeps query state outside the component, emits search/clear actions
+and requires a localized clear description. Disabled/read-only search cannot clear
+the query. Fields use minimum rather than fixed heights; search has a 48.dp clear
+target. CpTopBar has no default back action or Navigator dependency. Its caller
+supplies the back callback/description; the back glyph mirrors in RTL.
+
+These APIs prepare existing visual families, not search/auth business rules.
+Focus handling on the search IME action remains local UI behaviour.
+
 ## Migration and verification
 
 Existing components/resources/screens remain unchanged and have no dependency on
@@ -44,6 +61,9 @@ Unit tests cover tokens, font injection and icon aliases. Android instrumentatio
 tests render buttons, a grouped checkbox and the glass fallback, verifying labels,
 enabled state and callbacks. These are behavioural contracts, not pixel-perfect
 parity tests or verification of Haze backdrop rendering and every icon.
+Input tests additionally cover hoisted editing, error semantics, disabled fields,
+password action labels/state, search IME/clear/read-only behaviour and explicit
+top-bar back actions. Large-font/RTL screen layouts require integration QA.
 
 ```shell
 ./gradlew :core:design-system:testDebugUnitTest :core:design-system:assembleDebug

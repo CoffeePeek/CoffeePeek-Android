@@ -16,8 +16,8 @@ imports extend into feature screens, so folder location alone is not ownership.
 | component/AppButton and Buttons.Common | Same brand pill/height; AppButton used in add-shop, review, roaster and report screens | AppButton prepared; reconcile width/layout differences at integration |
 | component/LiquidGlass | Modifier used in map, shop, auth and floating navigation | Modifier/local/glass control prepared; screen owns Haze source |
 | component/GroupedList | GroupSection/CheckmarkRow/ActionRow/separators reused in filter and form UIs | Generic rows prepared; CatalogItem selection/expansion remains outside core |
-| AppTextField, CompactOutlinedTextField, CpSearchField | Overlapping field style, content padding, icons; keyboard/focus and labels differ | Next slice: explicit field/search contracts, localization, error/disabled semantics |
-| CpTopBar, Buttons.BackButton, FloatingBottomNavBar | CpTopBar imports Navigator; root destinations and selection are app composition | Extract stateless top-bar/back affordance later; do not move root graph |
+| AppTextField, CompactOutlinedTextField, CpSearchField | Overlapping field style, content padding, icons; keyboard/focus and labels differ | Prepared: hoisted state, keyboard contracts, caller labels and error/disabled semantics |
+| CpTopBar, Buttons.BackButton, FloatingBottomNavBar | CpTopBar imports Navigator; root destinations and selection are app composition | Stateless CpTopBar/back prepared; root navigation remains outside core |
 | SettingsList, SettingsIconBadge, CapsuleSegmentedControl | Visual row/badge/selection primitives with repeated radii and typography | Next generic components slice after callback/accessibility inventory |
 | DescriptionCard, ClickableAnnotatedText, Texts | Presentation helpers; text wrappers alone may not justify new public APIs | Consolidate on theme typography; preserve link handling with caller callbacks |
 | CoffeePeekLoader, CoffeePeekPullToRefresh, LoadingDialog, ErrorDialog | Loading/error primitives; animation, action and lifecycle behaviours differ | Separate rendering from effects; verify animation/error semantics before extracting |
@@ -48,7 +48,7 @@ verification during integration; callers provide descriptions for actionable ico
 
 ## Next slices
 
-1. Fields/search and generic top bars without Navigator dependencies.
+1. Fields/search and generic top bars prepared independently; integrate later.
 2. Badges/segmented controls, loading/error and overlay primitives with UI tests.
 3. Resource ownership and brand-font packaging; safe RTL-aware insets.
 4. Separate integration PRs for consumer families, visual parity checks and legacy
