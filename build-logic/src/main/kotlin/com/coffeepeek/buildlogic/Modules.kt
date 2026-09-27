@@ -14,6 +14,8 @@ object Modules {
             const val api = ":feature:favorites:api"
             const val domain = ":feature:favorites:domain"
             const val data = ":feature:favorites:data"
+            const val impl = ":feature:favorites:impl"
+            const val di = ":feature:favorites:di"
         }
     }
 
@@ -44,6 +46,8 @@ object Modules {
         feature.favorites.api,
         feature.favorites.domain,
         feature.favorites.data,
+        feature.favorites.impl,
+        feature.favorites.di,
     )
 }
 

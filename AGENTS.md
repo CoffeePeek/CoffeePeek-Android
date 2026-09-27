@@ -14,7 +14,7 @@ modules/network/            legacy HTTP infrastructure and feature API code
 modules/data/               legacy repository implementations
 modules/room/               legacy Room infrastructure and persistence
 core/                      prepared independent infrastructure/design-system
-feature/                   independent favorites api/domain/data preparation
+feature/                   independent favorites api/domain/data/impl/di preparation
 iosApp/                     native iOS application boundary, when present
 ```
 
@@ -36,13 +36,15 @@ feature/<name>/
 ├── api/       intentionally public contracts only
 ├── domain/    business rules, domain models, repository interfaces
 ├── data/      remote/local implementations, DTOs, entities, DAOs, mappers
-└── impl/      composition/DI entry point and ui/ presentation implementation
+├── impl/      screen entry point and ui/ presentation implementation
+└── di/        optional Koin assembly and composition bridges
 ```
 
 The agreed target for migrated business features is separate api/domain/data/impl
 Gradle boundaries under singular feature/. Create these incrementally for the
 feature being migrated, not empty modules for every future screen. UI packages
-live inside impl; impl assembles data via narrow factories/DI entry points.
+live inside impl; composition assembles data via narrow factories. A separate
+feature di module keeps Koin/legacy bridges outside UI when needed.
 This does not require every core infrastructure module to have a domain/data
 pair. See feature/README.md for the migration sequence and dependency graph.
 

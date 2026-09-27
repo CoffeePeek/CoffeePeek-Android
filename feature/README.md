@@ -1,7 +1,6 @@
 # Feature migration: API / implementation
 
-This directory now contains independent favorites api/domain/data modules.
-Screen implementation and its DI bridge are the next stacked slice.
+This directory now contains independent favorites api/domain/data/impl/di modules.
 They are not connected to the old application. See favorites/README.md.
 Actual registration remains in build-logic Modules.all. Android is the integration
 target; no native iOS implementation is part of these slices.
@@ -17,8 +16,8 @@ feature/<name>/
   data/                  remote/local, DTOs/entities/DAOs, mappers, repository impl
   impl/
     src/commonMain/.../
-      di/                minimal feature wiring/entry point
       ui/                screens, ViewModels, state/events, feature components
+  di/                    optional Koin assembly and composition bridges
 ```
 
 Each boundary becomes a separate KMP Gradle module as its code is prepared.
@@ -52,9 +51,10 @@ existing object-plus-instance-accessor pattern:
 implementation(project(module.feature.favorites.api))
 implementation(project(module.feature.favorites.domain))
 implementation(project(module.feature.favorites.data))
+implementation(project(module.feature.favorites.impl))
 ```
 
-Favorites api/domain/data accessors are now callable; impl/di follow next.
+Favorites accessors are now callable, including module.feature.favorites.di.
 Register only real module
 paths in Modules.all. Domain/data are nested by business owner, not new global
 technical-layer buckets. Core api/impl splits need their own concrete ABI/reuse
@@ -64,8 +64,8 @@ reason; a transport module does not need artificial business domain/data modules
 
 Every next slice starts from the current migration tip, not main. A PR targets
 its immediate parent branch; keep its diff independently reviewable.
-Current plan branch is based on feature/core-design-system-overlays (#44), which
-is based on feature/core-design-system-controls (#43).
+Favorites foundation is based on feature/core-design-system-adaptive-layout (#49);
+favorites UI/DI is based on that foundation, not main.
 After a parent merges to main, retarget its child to main before merging it.
 If a parent changes, update descendants explicitly and re-run affected checks;
 never rewrite published stack history or unrelated work without agreement.

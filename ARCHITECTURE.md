@@ -21,7 +21,7 @@ modules/network/                    Ktor, DTOs and API services
 modules/data/                       repository implementations and mapping
 modules/room/                       Room persistence
 core/                               prepared infrastructure/design-system
-feature/favorites/                  independent api/domain/data preparation
+feature/favorites/                  independent api/domain/data/impl/di preparation
 ```
 
 Target ownership is feature-based:
@@ -33,9 +33,9 @@ application composition
         │       ├── api
         │       ├── domain
         │       ├── data
-        │       └── impl
-        │            ├── di
-        │            └── ui
+        │       ├── impl
+        │       │    └── ui
+        │       └── di (optional composition boundary)
         │
         └── core/<shared-infrastructure>
 ```

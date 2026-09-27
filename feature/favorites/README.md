@@ -1,68 +1,112 @@
-# Favorites: independent contracts and storage
+# Favorites: independent preparation
 
-This foundation is stacked on feature/core-design-system-adaptive-layout (#49).
-No old screen, DI, navigation, repository, JSON key or database schema is changed.
-Screen implementation and the Koin/Room composition bridge follow in a child PR.
+No old screen, repository, DI binding, navigation graph, JSON key or database
+schema is replaced. New modules are registered through module.feature.favorites.*
+and callable independently. Branch is stacked on core-design-system-adaptive-layout
+(#49). Foundation and UI/DI are separate stacked PRs; application switching/removal is a separate future slice.
 
-## Module boundaries and creation gate
+## Boundaries and module gate
 
-| Module | Responsibility / public surface | Dependencies | Consumers / isolation reason |
+| Module | Owns / public surface | Dependencies | Consumers / why a module |
 |---|---|---|---|
-| api | Serializable FavoritesRoute: NavKey and Composable FavoritesEntry contract | Navigation 3 runtime, Compose runtime, serialization | Navigation/application composition; minimal ABI without screen/VM |
-| domain | FavoriteShop saved snapshot, FavoritesRepository Result/Flow, ObserveFavoriteIdsUseCase | Kotlin + coroutines | Own UI/data and deliberately supported cross-feature consumers; independent business ABI/tests |
-| data | Internal JSON DTO/mapping/repository; FavoritesStorage construction port and repository factory | domain + serialization/coroutines | Manual composition only; prevents UI importing persistence implementation |
+| api | Serializable FavoritesRoute: NavKey and minimal Composable FavoritesEntry interface | Navigation 3 runtime, Compose runtime, serialization | Root/feature navigation; small screen-construction ABI without VM/data |
+| domain | FavoriteShop snapshot, FavoritesRepository Result/Flow contracts, ObserveFavoriteIdsUseCase | Kotlin + coroutines only | Own UI/data, explicitly supported cross-feature membership consumers; independent business ABI/tests |
+| data | Internal StoredFavorite/mapping/repository; public storage construction port and factory | domain + serialization | di/manual composition only; UI cannot import DTOs or repository implementation |
+| impl | Internal ViewModel/state/screen/cards; entry factory and Navigation 3 registration | api/domain, design-system, lifecycle, Kamel | di/root composition; public API consumers do not acquire screen or VM implementation |
+| di | favoritesModule and favoritesRoomModule; internal settings bridge | api/domain/data, impl factory, Koin, temporary legacy Room boundary | Application composition only; isolates legacy/Koin from both data and UI |
 
-Domain/data use manual constructor/factory injection, no Koin, Android, Room or
-legacy dependencies. Data requires an injected CoroutineDispatcher; parsing,
-observation and persistence run there. Production composition will supply the
-core IO dispatcher. Storage is a raw keyed-string port, not a feature DTO export.
+```text
+root (later) → di → data → domain ← impl/ui
+                  └────→ impl entry factory → api
+               bridge → existing SettingRepository
+root Navigation 3 entryProvider → favoritesEntry → FavoritesEntry.Content
+```
 
-## Compatibility and behaviour
+Domain/data are manually constructed; no Koin annotations, contexts or service
+lookups. Data requires an injected dispatcher for storage and parsing; production
+DI supplies the core IO dispatcher. The only Koin graph is explicitly loaded by composition, not started as
+a global singleton. The feature DI module is justified by its concrete legacy
+storage bridge, not a generic core DI aggregator. Factories hide implementations.
+Feature UI depends on neither data nor di; Gradle enforces this restriction.
+Other business/UI features may consume favorites domain deliberately; api remains
+the route/entry boundary. No generic BaseViewModel or Navigator singleton.
+
+## Current vs target and behaviour
 
 Legacy FavoritesViewModel/Screen, FavoriteRepositoryImpl and LocalFavoriteShopDto
-remain unchanged. This feature has no favorites HTTP endpoint; no artificial
-remote service is introduced. Future feature HTTP code belongs in data.
+stay in their existing folders. New UI uses a favorites-owned saved snapshot,
+not the large CoffeeShopDetails aggregate or feed.ShopCard implementation.
+The original feature has no favorites HTTP service; no artificial remote layer
+or endpoint is introduced. Future HTTP DTOs/services belong in this data module.
 
-The key remains local_favorite_shops. Internal StoredFavorite field names/defaults
-match legacy JSON, including singular roasterPhotoUrl fallback and plural logos.
-Duplicate persisted IDs keep their first (newest) snapshot. Save replaces by ID
-and moves to the front; last removal deletes the key; clear deletes only this key.
-Corrupt JSON returns Result.failure, never silent empty data or a read-driven
-overwrite. Explicit clear can delete corrupt data. Unknown fields are ignored;
-preservation of unknown future fields on writes is not promised.
+The storage key remains local_favorite_shops. Internal JSON field names/defaults
+match the existing saved format, including single roasterPhotoUrl fallback and
+plural roasterPhotoUrls. Duplicate saved IDs retain their first (newest) snapshot.
+A save replaces by ID and moves it to the front. Removing
+the last row deletes the key, and clear deletes only this key. Corrupt data is an
+explicit Result failure, not silently interpreted as empty and overwritten.
+Clear is an explicit destructive user/session operation and can delete corrupt
+data; it is never triggered by a read failure. Unknown fields are ignored like
+the legacy serializer; their preservation on future writes is not promised.
 
-One repository instance serializes read-modify-write operations. Storage
-observation covers initial/own/external changes. Independent instances or legacy
-writers are NOT protected by this mutex. Before integration unify all writers or
-provide transactional storage; JSON compatibility alone does not prevent races.
-Ordinary failures use Kotlin Result; CancellationException is always rethrown.
-ObserveFavoriteIdsUseCase projects distinct membership sets, preserving failures
-and suppressing metadata-only updates for catalog/detail/session consumers.
-No meaningless one-call load/remove use cases are added.
+One repository instance serializes its read-modify-write operations. Observation
+comes from storage, covering external writes without FavoriteSync. Sharing one
+Koin instance is mandatory; independent repository instances/old writers are not
+protected by its mutex. Before integration, switch all writes to one owner or
+provide transactional storage. Do not run parallel old/new writers and assume
+that shared JSON format prevents races.
 
-## Navigation and KMP
+The membership use case projects/deduplicates ID sets for catalog/detail/session
+consumers without exposing saved-card presentation or metadata-only updates.
+No one-call load/remove use-case wrappers are introduced. Cancellation is rethrown;
+ordinary persistence failures are Result failures. ViewModel scopes are lifecycle
+owned. Removal waits for confirmed storage observation; failure keeps the card
+and shows a safe localized error, never raw storage exception text.
 
-Navigation 3 1.2.0 runtime owns the typed route contract only. Its AAR requires
-compileSdk 37, applied to api only here; root app SDK/target/min stay unchanged.
-Root will need compileSdk 37 before integration. API implements no NavDisplay,
-root graph, shop route or screen. Root owns navigation and lifecycle decorators.
+## Navigation / UI / platform boundaries
 
-Domain/data declare Android and iOS variants; simulator compilation verifies
-portable Kotlin, not native UI or a Swift framework. Future SwiftUI integration
-needs a framework/bridge adapting suspend/Flow/Result and native storage,
-lifecycle and navigation. No Swift code or speculative expect/actual is added.
+Navigation 3 1.2.0 is used only by the new feature. Its AAR requires compileSdk 37,
+so api/impl/di compile against 37; the old app and its target/min SDK are unchanged.
+Root must update its compile SDK before consuming these modules. Root owns
+NavDisplay, back stack, entry saveable/ViewModel-store decorators and shop routes;
+favorites only registers FavoritesRoute and emits onOpenShop(id)/onBack.
+The API does not publish a shop route for another business owner.
 
-## Verification and next slices
+The new screen covers loading/empty/error/list, retry, separate remove action and
+pending-removal disablement. It uses brand primitives and feature-owned cards.
+Distance is a host-injected label by ID: no location permissions/global platform
+service is copied. Kamel renders URLs in UI; it is not a favorites HTTP service.
+The prepared card is not a pixel-identical feed card: mascot/provider art,
+roaster logo overlays, price-bean/rating presentation and distance permissions
+remain consumer-integration decisions. All saved fields remain in data/domain.
+Default Russian strings match the current feature language; localization/resource
+ownership, complete visual parity and long-label/RTL/large-font UI QA remain gates.
 
-13 unit tests cover JSON compatibility/all fields, duplicates/order/delete,
-corruption safety, failures/cancellation, concurrent writes, initial/external
-observation, membership projection and route serialization. Android foundation
-modules, legacy app and iOS-simulator domain/data compile.
+Domain/data declare and compile iOS simulator variants with no Android APIs,
+Koin or native iOS implementation. Android api/impl/di are the tested UI/composition
+boundary at this stage. For native SwiftUI, share domain/data through a future
+framework/bridge, adapt suspend/Flow/Result at that boundary and supply native
+storage/lifecycle/navigation; do not expose Compose VM/Android NavDisplay to Swift.
+Compose iOS UI is a separate choice requiring native variants of its dependencies
+(including design-system), testing and platform integration. No speculative
+expect/actual declarations, Swift code or framework export are added now.
 
-Next child prepares impl/ui and optional feature-owned di with manual entry
-construction, isolated Koin bridge, PreviewLightDark and Android navigation tests.
-Application integration remains separate: map catalog models, unify writers and
-session cleanup, replace global events, wire distance/shop routes, verify real
-stored rows/DB and full UI/Back/process restoration before deleting legacy code.
+## Tests, previews, remaining integration
+
+Contract tests cover legacy JSON/default/logo compatibility, all saved fields,
+ordering/deduplication, last removal, corruption, concurrent writes, observation,
+Result/cancellation, membership projection, VM lifecycle/pending/failure/retry,
+route serialization, and an isolated Koin/setting bridge graph.
+Android fixtures exercise screen states/callbacks and a real NavDisplay/entryProvider
+with saveable and VM-store decorators. They use fake data and no network/real DB.
+The real database migration history is not tested by this feature fixture.
+FavoritesPreviews.kt supplies PreviewLightDark for content/loading/empty/error
+without DI, network or actual photo URLs. Compile checks are not manual IDE QA.
+
+Before switching: map catalog models to snapshots, unify favorite writers and
+session cleanup, replace global event consumers, wire distance/shop navigation,
+validate real saved rows/DB and transitions/Back/process restoration/IME/screens.
+Then integrate through root in a dedicated PR, build/smoke-test Android, and remove
+legacy code only after every consumer migrates. Native iOS UI remains later.
 
 Reference: [Navigation 3 releases](https://developer.android.com/jetpack/androidx/releases/navigation3).
