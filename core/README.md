@@ -9,7 +9,8 @@ into the application. Do not pre-create every example module in ARCHITECTURE.md.
 - `network`: shared transport settings, engine-injected factory and Kotlin
   `Result` request boundary. Cancellation is rethrown, not turned into failure.
 - `database`: Room builder configuration with bundled SQLite; no application
-  schema, feature entities or migrations are moved into core.
+  schema, feature entities or migrations are moved into core. Android test-only
+  schemas cover persistence, caller migrations and fail-safe missing migrations.
 
 All foundations are independent duplicates prepared for later migration.
 The legacy network client retains its own transport configuration. No application
@@ -25,9 +26,9 @@ Application integration must be a separate, explicitly planned stage.
    reusable transport policies with injected token access. Preserve upload
    signed URLs and avoid credential logging. Test refresh concurrency, failures,
    cancellation and retry boundaries before replacing the legacy client.
-2. Database: validate driver setup against a small test-only Room schema and
-   Android instrumentation. Keep actual schema/migration ownership above feature
-   persistence; decide composition when the first feature is extracted.
+2. Database: runtime contracts are covered by Android instrumentation fixtures.
+   Actual schema/migration ownership stays above feature persistence; decide
+   composition and validate production migration history during integration.
 3. Design system: inventory existing themes, fonts, resources and shared UI
    primitives. Separate shared tokens from feature-specific styling. Prepare
    Android-compatible theme/components without switching screens or redesigning
