@@ -22,7 +22,7 @@ imports extend into feature screens, so folder location alone is not ownership.
 | DescriptionCard, ClickableAnnotatedText, Texts | Presentation helpers; text wrappers alone may not justify new public APIs | Consolidate on theme typography; preserve link handling with caller callbacks |
 | CoffeePeekLoader, CoffeePeekPullToRefresh, LoadingDialog, ErrorDialog | Loading/error primitives; animation, action and lifecycle behaviours differ | Loader/error/modal and refresh prepared; caller loading state, explicit cooldown and localized accessibility; feed consumers remain untouched |
 | SwipeDismissModalBottomSheet, FabMenu | Sheet reused by review/check-in/photo source; FAB currently has no consumers | Handle-only sheet and neutral FAB prepared; accessible dismiss, callback/disabled and drag/back tests; no screen state |
-| Insets | Shared safe-area padding; depends on SizeObserver and hardcoded Ltr | Rewrite using direct density and layout direction; verify RTL; do not copy its coupling |
+| Insets | No external call sites; SizeObserver coupling, hardcoded Ltr, doubled side width | Do not copy unused wrapper; native Compose recipes documented/tested for density, RTL and consumption, with paired previews |
 | PhotoViewer, FullScreenImageDialog, SwipeablePhotoStack, PhotoSourceBottomSheet, PhotoAttachmentsSection | Image loading, zoom, selection and platform picking must be separated | Generic gallery rendering may move later; platform picker and feature attachments do not |
 | ReviewContent, CityCatalogChips, BrewMethodIcon, PriceBeanSlider, GuestAuthCard | Review/CheckIn/City models, feature-specific labels/assets/business affordances | Remain feature-owned; split neutral layout only if actual reuse warrants it |
 | CoffeeShopPlaceholderImage and resources | Product imagery/image-loader policy vs generic rendering | Decide resource/image-loading ownership separately; no DTO/image repository in core |
@@ -53,7 +53,9 @@ verification during integration; callers provide descriptions for actionable ico
 2. Badges/segmented controls, loading/error, refresh and sheet/FAB prepared.
    Sheet keyboard/insets/scrolling and refresh consumer interaction QA
    remains part of consumer integration.
-3. Brand-font packaging is prepared; next prepare safe RTL-aware insets.
+3. Brand-font packaging and native inset recipes are prepared independently.
+   Insets have synthetic LTR/RTL previews and measured-layout tests; OS inset
+   delivery and real keyboard/cutout/large-font behaviour need consumer QA.
 4. Separate integration PRs for consumer families, visual parity checks and legacy
    removal. No migrated feature should add new code to legacy components.
 

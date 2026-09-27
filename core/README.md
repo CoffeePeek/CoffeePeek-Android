@@ -37,7 +37,9 @@ Application integration must be a separate, explicitly planned stage.
 3. Design system: handle-dismiss sheet/FAB and paired theme previews are prepared.
    Pull-to-refresh now has isolated gesture/cooldown contracts and paired previews.
    Six Manrope weights and their license are packaged; previews use the brand font.
-   Next prepare RTL-safe inset handling.
+   RTL-safe inset recipes now have paired previews and measured-layout tests;
+   no unused legacy Insets wrapper is duplicated. Real OS/IME/cutout behaviour
+   still requires consumer-level QA. No further speculative core module is needed.
    Existing controls are not integrated. Verify large font scale, RTL and visual
    parity per consumer before removing legacy copies.
 4. Navigation: add infrastructure only if the first feature's entry-point

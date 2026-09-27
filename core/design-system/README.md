@@ -103,11 +103,22 @@ Interactive Preview covers idle/refresh completion; a second light/dark fixture
 shows the running indicator. IME/RTL/horizontal nesting, density changes during
 an active gesture and pixel parity still require consumer-level integration QA.
 
+## Insets and RTL recipes
+
+No new public Insets wrapper is needed: use Compose foundation's direction-aware
+padding/size modifiers and explicit consumption at Scaffold/list boundaries.
+The unused legacy Insets object is not copied or modified. INSETS.md documents
+ownership, horizontal safeDrawing, exact logical spacers and keyboard policy.
+InsetsPreviews.kt adds paired LTR/RTL light/dark fixtures with synthetic asymmetry;
+InsetsRecipeTest checks measured geometry, consumption, density and inset updates.
+Real system bars/IME/modal integration and large-font screen QA remain separate.
+
 ## Light/dark previews
 
 Open androidMain/preview/ComponentPreviews.kt in Android Studio Design/Split mode.
 Every component family has @PreviewLightDark, including fields/error/disabled
 states, grouped rows, badges, segmented control, loader, sheet, dialogs and FAB.
+InsetsPreviews.kt provides additional LTR and RTL recipe fixtures.
 Refresh has both idle/interactive and running light/dark samples.
 CoffeePeekTheme uses preview uiMode to select the palette and packaged Manrope.
 Previews require no app
