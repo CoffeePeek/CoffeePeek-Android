@@ -6,6 +6,10 @@ import io.ktor.client.engine.HttpClientEngine
 
 /** The caller owns the returned client and closes it at the end of its lifecycle. */
 class HttpClientFactory(private val engine: HttpClientEngine) {
+    fun authenticatedApi(baseUrl: String, session: BearerSession): HttpClient = api(baseUrl) {
+        configureBearerAuthentication(baseUrl, session)
+    }
+
     fun api(
         baseUrl: String,
         configure: HttpClientConfig<*>.() -> Unit = {},
