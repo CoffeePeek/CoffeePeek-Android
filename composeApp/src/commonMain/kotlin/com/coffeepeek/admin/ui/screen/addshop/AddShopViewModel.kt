@@ -182,7 +182,14 @@ class AddShopViewModel(
 
     fun onNameChange(v: String)         { _state.update { it.copy(name = v.take(55)) } }
     fun onAddressChange(v: String) {
-        _state.update { it.copy(address = v, locationHint = null) }
+        _state.update {
+            it.copy(
+                address = v,
+                latitude = null,
+                longitude = null,
+                locationHint = null,
+            )
+        }
     }
     fun onDescriptionChange(v: String)  { _state.update { it.copy(description = v) } }
     fun onCitySelect(city: City)        { _state.update { it.copy(selectedCity = city) } }
@@ -444,6 +451,8 @@ class AddShopViewModel(
                     name        = s.name.trim(),
                     address     = s.address.trim(),
                     cityId      = city.id,
+                    latitude    = s.latitude,
+                    longitude   = s.longitude,
                     description = s.description.trim().takeIf { it.isNotEmpty() },
                     priceRange  = s.priceRange,
                     phone       = s.phone.trim().takeIf { it.isNotEmpty() },

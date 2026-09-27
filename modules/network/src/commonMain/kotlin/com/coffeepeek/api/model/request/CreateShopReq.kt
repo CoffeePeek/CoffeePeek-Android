@@ -8,6 +8,8 @@ data class CreateShopReq(
     @SerialName("name")          val name: String,
     @SerialName("address")       val address: String,
     @SerialName("cityId")        val cityId: String,
+    @SerialName("latitude")      val latitude: Double?       = null,
+    @SerialName("longitude")     val longitude: Double?      = null,
     @SerialName("description")   val description: String?      = null,
     @SerialName("priceRange")    val priceRange: String?       = null,
     @SerialName("shopContact")   val shopContact: CreateShopContactReq? = null,

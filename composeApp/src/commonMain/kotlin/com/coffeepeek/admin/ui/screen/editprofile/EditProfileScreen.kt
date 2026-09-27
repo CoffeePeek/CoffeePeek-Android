@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -26,7 +25,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -58,7 +56,7 @@ import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CpCircularBackButton
-import com.coffeepeek.admin.ui.component.SwipeDismissModalBottomSheet
+import com.coffeepeek.admin.ui.component.PhotoSourceBottomSheet
 import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.rememberPhotoPicker
 import com.coffeepeek.admin.di.platformViewModel
@@ -77,7 +75,7 @@ fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
     )
 
     if (showAvatarSourceSheet) {
-        AvatarSourceSheet(
+        PhotoSourceBottomSheet(
             onDismiss = { showAvatarSourceSheet = false },
             onGallery = {
                 showAvatarSourceSheet = false
@@ -87,6 +85,7 @@ fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
                 showAvatarSourceSheet = false
                 photoPicker.takePhoto()
             },
+            title = "Фото профиля",
         )
     }
 
@@ -363,72 +362,6 @@ private fun AvatarPickerSection(
     }
 }
 
-@Composable
-private fun AvatarSourceSheet(
-    onDismiss: () -> Unit,
-    onGallery: () -> Unit,
-    onCamera: () -> Unit,
-) {
-    SwipeDismissModalBottomSheet(onDismissRequest = onDismiss) {
-        Text(
-            text = "Фото профиля",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing2),
-        )
-        Column(
-            modifier = Modifier
-                .padding(horizontal = CpDimens.spacing4)
-                .clip(RoundedCornerShape(CpDimens.radius2xl))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-        ) {
-            AvatarSourceRow(CpIcons.Gallery, "Выбрать из галереи", onGallery)
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant,
-                modifier = Modifier.padding(start = 56.dp),
-            )
-            AvatarSourceRow(CpIcons.Camera, "Сделать фото", onCamera)
-        }
-        TextButton(
-            onClick = onDismiss,
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(CpDimens.spacing2),
-        ) {
-            Text("Отмена", style = MaterialTheme.typography.labelLarge)
-        }
-    }
-}
-
-@Composable
-private fun AvatarSourceRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .clickable(onClickLabel = title, onClick = onClick)
-            .padding(horizontal = CpDimens.spacing4),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(22.dp),
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
-}
 
 @Composable
 private fun FieldLabel(text: String) {

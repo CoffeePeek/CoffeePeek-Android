@@ -11,7 +11,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,7 +33,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
@@ -53,7 +51,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -86,11 +83,7 @@ import com.coffeepeek.admin.utils.MAX_MENU_PHOTOS
 import com.coffeepeek.admin.utils.MAX_SHOP_PHOTOS
 import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.admin.location.LocationPermissionEffect
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.layout.ContentScale
-import com.coffeepeek.admin.utils.CpImage
-import com.coffeepeek.admin.utils.PhotoPickerController
-import com.coffeepeek.admin.utils.rememberPhotoPicker
 import org.jetbrains.compose.resources.painterResource
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
@@ -182,14 +175,6 @@ fun AddShopScreen(vm: AddShopViewModel = platformViewModel()) {
             return@Scaffold
         }
 
-        var isPhotoLoading by remember { mutableStateOf(false) }
-        val remainingPhotos = (MAX_SHOP_PHOTOS - state.photos.size).coerceAtLeast(1)
-        val photoPicker = rememberPhotoPicker(
-            maxSelection = remainingPhotos,
-            isLoading = { isPhotoLoading = it },
-            onPhotosPicked = vm::addPhotos,
-        )
-
         AnimatedContent(
             targetState = state.currentStep,
             transitionSpec = {
@@ -209,12 +194,7 @@ fun AddShopScreen(vm: AddShopViewModel = platformViewModel()) {
                 when (step) {
                     AddShopStep.BASIC    -> StepBasic(state = state, vm = vm)
                     AddShopStep.CONTACTS -> StepContacts(state, vm)
-                    AddShopStep.PHOTOS   -> StepPhotos(
-                        state = state,
-                        vm = vm,
-                        photoPicker = photoPicker,
-                        isPhotoLoading = isPhotoLoading,
-                    )
+                    AddShopStep.PHOTOS   -> StepPhotos(state = state, vm = vm)
                     AddShopStep.FEATURES -> StepFeatures(state, vm)
                     AddShopStep.SCHEDULE -> StepSchedule(state, vm)
                 }
@@ -440,100 +420,16 @@ private fun StepBasic(
 private fun StepPhotos(
     state: AddShopUiState,
     vm: AddShopViewModel,
-    photoPicker: PhotoPickerController,
-    isPhotoLoading: Boolean,
 ) {
     StepLegend(optional = true)
-    Text(
-        text = "Добавьте фотографии кофейни (до $MAX_SHOP_PHOTOS). Можно выбрать несколько сразу.",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(bottom = CpDimens.spacing3),
+    PhotoAttachmentsSection(
+        photos = state.photos.map { PickedImage(it.bytes, it.fileName, it.contentType) },
+        maxPhotos = MAX_SHOP_PHOTOS,
+        onPhotosAdded = vm::addPhotos,
+        onRemovePhoto = vm::removePhoto,
+        title = "Фотографии кофейни",
+        hint = "До $MAX_SHOP_PHOTOS фотографий (необязательно). Можно выбрать несколько сразу.",
     )
-    Text(
-        text = "Добавлено: ${state.photos.size}/$MAX_SHOP_PHOTOS",
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.padding(bottom = CpDimens.spacing3),
-    )
-
-    if (state.photos.isNotEmpty()) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-            modifier = Modifier.padding(bottom = CpDimens.spacing3),
-        ) {
-            state.photos.forEachIndexed { index, photo ->
-                Box(
-                    modifier = Modifier
-                        .size(96.dp)
-                        .clip(RoundedCornerShape(CpDimens.radiusMd)),
-                ) {
-                    CpImage(
-                        data = photo.bytes,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
-                    IconButton(
-                        onClick = { vm.removePhoto(index) },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(28.dp)
-                            .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(50)),
-                    ) {
-                        Icon(
-                            CpIcons.Close,
-                            contentDescription = "Удалить",
-                            tint = Color.White,
-                            modifier = Modifier.size(14.dp),
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    if (state.photos.size < MAX_SHOP_PHOTOS) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-        ) {
-            OutlinedButton(
-                onClick = photoPicker.pickFromGallery,
-                enabled = !isPhotoLoading,
-                modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
-                shape = RoundedCornerShape(percent = 50),
-            ) {
-                Icon(CpIcons.Gallery, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(CpDimens.spacing1))
-                Text("Галерея", style = MaterialTheme.typography.labelMedium)
-            }
-            OutlinedButton(
-                onClick = photoPicker.takePhoto,
-                enabled = !isPhotoLoading,
-                modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
-                shape = RoundedCornerShape(percent = 50),
-            ) {
-                Icon(CpIcons.Camera, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(CpDimens.spacing1))
-                Text("Камера", style = MaterialTheme.typography.labelMedium)
-            }
-        }
-        if (isPhotoLoading) {
-            Spacer(Modifier.height(CpDimens.spacing2))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                CoffeePeekLoader(
-                    size = CpDimens.loaderButton,
-                    strokeWidth = 2.dp,
-                )
-                Spacer(Modifier.width(CpDimens.spacing2))
-                Text("Обработка фото…", style = MaterialTheme.typography.bodySmall)
-            }
-        }
-    }
 
     Spacer(Modifier.height(CpDimens.spacing6))
     PhotoAttachmentsSection(

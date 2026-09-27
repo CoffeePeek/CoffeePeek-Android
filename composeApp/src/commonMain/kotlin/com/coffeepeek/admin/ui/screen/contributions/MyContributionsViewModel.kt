@@ -2,11 +2,13 @@ package com.coffeepeek.admin.ui.screen.contributions
 
 import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.screen.shopchange.hint
 import com.coffeepeek.admin.ui.screen.shopchange.title
 import com.coffeepeek.admin.utils.utcIsoToLocalDateTime
 import com.coffeepeek.domain.model.ModerationStatus
 import com.coffeepeek.domain.model.PagedResult
 import com.coffeepeek.domain.model.Review
+import com.coffeepeek.domain.model.ShopChangeSection
 import com.coffeepeek.domain.repository.ReviewRepository
 import com.coffeepeek.domain.repository.RoasterRepository
 import com.coffeepeek.domain.repository.SessionRepository
@@ -36,6 +38,8 @@ data class ContributionItem(
     val id: String,
     val title: String,
     val subtitle: String? = null,
+    val meta: String? = null,
+    val changeSection: ShopChangeSection? = null,
     val rejectedReason: String? = null,
     val target: Navigator.Screen? = null,
     /** Reviews render as review cards instead of the generic row. */
@@ -138,12 +142,11 @@ class MyContributionsViewModel(
                 ContributionItem(
                     id = it.id,
                     title = it.name,
+                    subtitle = it.address,
                     // Approved but not yet created in the catalog: nothing to open yet.
-                    subtitle = if (it.status == ModerationStatus.Approved && it.publishedShopId == null) {
+                    meta = if (it.status == ModerationStatus.Approved && it.publishedShopId == null) {
                         "Скоро появится в каталоге"
-                    } else {
-                        it.address
-                    },
+                    } else null,
                     rejectedReason = it.rejectedReason,
                     target = it.publishedShopId?.let { id -> Navigator.Screen.ShopDetail(id) },
                 )
@@ -163,12 +166,26 @@ class MyContributionsViewModel(
                 ContributionItem(
                     id = it.id,
                     title = it.section.title(),
-                    subtitle = utcIsoToLocalDateTime(it.createdAtUtc),
+                    subtitle = it.payload.summary(it.section.hint()),
+                    meta = utcIsoToLocalDateTime(it.createdAtUtc),
+                    changeSection = it.section,
                     rejectedReason = it.rejectionReason,
                     target = Navigator.Screen.ShopChangeRequestDetail(requestId = it.id),
                 )
             }
         }
+}
+
+private fun com.coffeepeek.domain.model.ShopChangePayload.summary(fallback: String): String {
+    description?.let { return it.ifBlank { "Описание очищено" } }
+    if (contacts != null) return "Телефон, почта, сайт и Instagram"
+    photos?.let { return "Фото: ${it.retainedPhotoIds.size} сохранено · ${it.newPhotos.size} добавлено" }
+    tagIds?.let { return "Выбрано особенностей: ${it.size}" }
+    roasterIds?.let { return "Выбрано обжарщиков: ${it.size}" }
+    equipmentIds?.let { return "Выбрано оборудования: ${it.size}" }
+    brewMethodIds?.let { return "Выбрано методов: ${it.size}" }
+    menu?.let { return "Меню: ${it.items.size} позиций · ${it.newPhotos.size} новых фото" }
+    return fallback
 }
 
 private fun <T> Result<PagedResult<T>>.mapItems(transform: (T) -> ContributionItem) =

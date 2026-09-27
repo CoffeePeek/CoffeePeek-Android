@@ -25,6 +25,8 @@ data class CreateShopInput(
     val name: String,
     val address: String,
     val cityId: String,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val description: String? = null,
     val priceRange: Int? = null,
     val phone: String? = null,

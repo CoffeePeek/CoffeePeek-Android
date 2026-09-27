@@ -233,6 +233,8 @@ class ShopRepositoryImpl(
                 name        = input.name,
                 address     = input.address,
                 cityId      = input.cityId,
+                latitude    = input.latitude,
+                longitude   = input.longitude,
                 description = input.description?.takeIf { it.isNotBlank() },
                 shopContact = if (listOf(input.phone, input.email, input.website, input.instagram).any { !it.isNullOrBlank() }) {
                     CreateShopContactReq(
