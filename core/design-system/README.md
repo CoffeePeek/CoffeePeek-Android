@@ -66,11 +66,48 @@ palette, with minimum 48.dp action targets. The legacy component currently has
 no call sites; this is a small prepared primitive, not a reason to create a module
 or add a menu to existing screens.
 
+## Pull-to-refresh
+
+CoffeePeekPullToRefresh is prepared independently from the three legacy feed
+consumers (normal list, error and empty states). Pass the same LazyListState
+to the component and LazyColumn, and attach its scrollModifier to that list.
+The caller owns isRefreshing, request deduplication, failures and cancellation;
+this component emits onRefresh only and never calls a repository.
+
+The legacy visual defaults remain: 72.dp threshold, 0.5 drag resistance, 1.4x
+offset cap and branded loader. Cooldown is an explicit finite nonnegative
+Duration (default one second), shared by pull and accessible refresh actions.
+It throttles UI signals, not network jobs. A caller must publish isRefreshing
+promptly and prevent duplicate work at its own boundary. Zero cooldown is allowed.
+At the exact cooldown boundary another signal is allowed (legacy used strictly
+greater than one second).
+
+Only user-input downward scroll remaining at the top contributes to a pull.
+Upward movement retracts it; release below threshold or away from top resets
+without a request. Disabled/refreshing states block requests. Active pull release
+consumes only vertical fling velocity, never horizontal/ordinary list flings.
+Like legacy, visual offset resets immediately on release/completion; this stage
+does not introduce new settle animation or platform pull-to-refresh behaviour.
+
+Threshold/density/cooldown changes rebuild the private gesture policy, resetting
+its pull and cooldown; updated list/callback/enabled/loading values are read live.
+This corrects stale-density and non-user-scroll handling in the legacy copy.
+Strings are caller supplied, with determinate pulling vs indeterminate loading
+semantics and a custom accessibility refresh action (also available away from top).
+
+Common unit tests exercise drag/cap/retraction/threshold/cooldown and invalid
+configuration. Android tests exercise real list pulls, short/away-from-top pulls,
+disabled/running states, caller completion and accessible action throttling.
+Interactive Preview covers idle/refresh completion; a second light/dark fixture
+shows the running indicator. IME/RTL/horizontal nesting, density changes during
+an active gesture and pixel parity still require consumer-level integration QA.
+
 ## Light/dark previews
 
 Open androidMain/preview/ComponentPreviews.kt in Android Studio Design/Split mode.
 Every component family has @PreviewLightDark, including fields/error/disabled
 states, grouped rows, badges, segmented control, loader, sheet, dialogs and FAB.
+Refresh has both idle/interactive and running light/dark samples.
 CoffeePeekTheme uses preview uiMode to select the palette; FontFamily.Default is
 an explicit fixture until brand resources are prepared. Previews require no app
 DI, network, navigation or data. Android annotations/tooling stay in androidMain

@@ -1,6 +1,8 @@
 package com.coffeepeek.core.designsystem.preview
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -116,4 +118,28 @@ private fun ErrorDialogPreview() = PreviewTheme {
 @PreviewLightDark @Composable
 private fun LoadingDialogPreview() = PreviewTheme {
     LoadingDialog(true, "Loading", "Please wait")
+}
+
+@PreviewLightDark @Composable
+private fun PullToRefreshPreview() = PreviewTheme {
+    var refreshing by remember { mutableStateOf(false) }
+    val list = rememberLazyListState()
+    CoffeePeekPullToRefresh(list, refreshing, { refreshing = true }, "Refresh", "Refreshing",
+        modifier = Modifier.height(240.dp)) { scrollModifier ->
+        LazyColumn(state = list, modifier = scrollModifier.fillMaxSize()) {
+            items(12) { Text("Example item ${it + 1}", Modifier.fillMaxWidth().padding(16.dp)) }
+        }
+    }
+    AppButton("Finish sample refresh", { refreshing = false }, enabled = refreshing)
+}
+
+@PreviewLightDark @Composable
+private fun RefreshingPreview() = PreviewTheme {
+    val list = rememberLazyListState()
+    CoffeePeekPullToRefresh(list, true, {}, "Refresh", "Refreshing",
+        modifier = Modifier.height(240.dp)) { scrollModifier ->
+        LazyColumn(state = list, modifier = scrollModifier.fillMaxSize()) {
+            items(4) { Text("Existing item ${it + 1}", Modifier.padding(16.dp)) }
+        }
+    }
 }
