@@ -7,7 +7,8 @@ into the application. Do not pre-create every example module in ARCHITECTURE.md.
 
 - `coroutines`: injectable IO dispatcher and caller-owned supervised scope.
 - `network`: shared transport settings, engine-injected factory and Kotlin
-  `Result` request boundary. Cancellation is rethrown, not turned into failure.
+  `Result` request boundary, plus independent bearer-session callbacks and
+  origin-scoped refresh. Cancellation is rethrown, not turned into failure.
 - `database`: Room builder configuration with bundled SQLite; no application
   schema, feature entities or migrations are moved into core. Android test-only
   schemas cover persistence, caller migrations and fail-safe missing migrations.
@@ -29,11 +30,18 @@ Application integration must be a separate, explicitly planned stage.
 2. Database: runtime contracts are covered by Android instrumentation fixtures.
    Actual schema/migration ownership stays above feature persistence; decide
    composition and validate production migration history during integration.
-3. Design system: inventory existing themes, fonts, resources and shared UI
+3. Network: auth/refresh is prepared and tested independently. Next isolate cache
+   configuration and safe diagnostics; keep platform file storage outside common
+   code. Preserve upload signed URLs and avoid credential logging. Implement
+   session adapters only at integration and coordinate logout with active refresh.
+4. Database: validate driver setup against a small test-only Room schema and
+   Android instrumentation. Keep actual schema/migration ownership above feature
+   persistence; decide composition when the first feature is extracted.
+5. Design system: inventory existing themes, fonts, resources and shared UI
    primitives. Separate shared tokens from feature-specific styling. Prepare
    Android-compatible theme/components without switching screens or redesigning
    them. Document resource and platform dependencies before adding the module.
-4. Navigation: add infrastructure only if the first feature's entry-point
+6. Navigation: add infrastructure only if the first feature's entry-point
    contract demonstrates a shared need. Root graph and Koin assembly stay in
    application composition; no generic core DI module is required.
 
