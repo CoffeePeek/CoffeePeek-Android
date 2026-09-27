@@ -15,7 +15,8 @@ All foundations are independent duplicates prepared for later migration.
 The legacy network client retains its own transport configuration. No application
 or legacy module depends on the new core modules yet.
 
-Each substantial core migration must use a separate `feature/...` branch and PR.
+Each new module uses a dedicated `feature/...` branch and PR. Small related
+changes may remain in the current PR; split large migrations with many new files.
 Application integration must be a separate, explicitly planned stage.
 
 ## Remaining preparation, in order
