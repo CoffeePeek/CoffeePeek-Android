@@ -11,11 +11,13 @@ class HttpClientFactory(private val engine: HttpClientEngine) {
         configure: HttpClientConfig<*>.() -> Unit = {},
     ): HttpClient = HttpClient(engine) {
         configureApiTransport(baseUrl)
+        expectSuccess = true
         configure()
     }
 
     fun upload(configure: HttpClientConfig<*>.() -> Unit = {}): HttpClient = HttpClient(engine) {
         configureUploadTransport()
+        expectSuccess = true
         configure()
     }
 }
