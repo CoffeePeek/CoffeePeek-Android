@@ -1,11 +1,9 @@
-import com.coffeepeek.buildlogic.module
 import com.coffeepeek.config.Config
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -14,20 +12,10 @@ kotlin {
             jvmTarget.set(JvmTarget.fromTarget(Config.JVM_VERSION))
         }
     }
-    iosArm64()
-    iosSimulatorArm64()
 
     sourceSets {
-        androidMain.dependencies {
-            implementation("androidx.security:security-crypto:1.0.0")
-        }
         commonMain.dependencies {
-            implementation(project(module.legacy.domain))
-            implementation(project(module.legacy.network))
-            implementation(project(module.legacy.room))
-            implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.koin.core)
-            implementation(libs.ktor.serialization.kotlinx.json)
+            api(libs.kotlinx.coroutines.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -36,7 +24,7 @@ kotlin {
 }
 
 android {
-    namespace = "${Config.APPLICATION_ID}.data"
+    namespace = "${Config.APPLICATION_ID}.core.coroutines"
     compileSdk = Config.COMPILE_SDK
     compileOptions {
         sourceCompatibility = Config.JAVA_VERSION

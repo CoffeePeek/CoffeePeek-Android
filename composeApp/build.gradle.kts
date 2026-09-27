@@ -1,3 +1,4 @@
+import com.coffeepeek.buildlogic.module
 import com.coffeepeek.config.Config
 import com.coffeepeek.config.PrintValueTask
 import org.gradle.api.provider.Provider
@@ -42,10 +43,10 @@ kotlin {
             implementation("org.slf4j:slf4j-nop:2.0.16")
         }
         commonMain.dependencies {
-            implementation(project(":modules:domain"))
-            implementation(project(":modules:data"))
-            implementation(project(":modules:network"))
-            implementation(project(":modules:room"))
+            implementation(project(module.legacy.domain))
+            implementation(project(module.legacy.data))
+            implementation(project(module.legacy.network))
+            implementation(project(module.legacy.room))
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
