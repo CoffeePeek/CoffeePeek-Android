@@ -51,6 +51,22 @@ Focus handling on the search IME action remains local UI behaviour.
 
 ## Migration and verification
 
+Presentation slice: IconBadge/its palette are neutral visual primitives, reused
+by settings and contribution UI. SettingsSection/Row/Divider exclude AppVersionFooter:
+version lookup and localization stay in composition. Section titles are rendered
+as supplied (callers decide uppercase); row callbacks and enabled state are explicit.
+Directional row chevrons mirror in RTL. CapsuleSegmentedControl exposes tab
+selection, accepts enabled state and requires nonempty unique options with a valid
+selection. Its minimum-height targets can grow with typography.
+
+CoffeePeekLoader retains the existing animation and exposes localized indeterminate
+progress semantics; it does not start work. ErrorDialog requires all user-facing
+strings and emits dismiss. LoadingDialog visibility is caller-owned and uses a
+non-dismissible modal instead of the legacy touch-consuming full-screen overlay.
+This is an intentional new contract, not a drop-in visual/interaction replacement.
+At integration check back handling, modal sizing/focus and cancellation UX explicitly.
+There are no timers, global loading/error state or Navigator dependencies.
+
 Existing components/resources/screens remain unchanged and have no dependency on
 this module. New independent copies are a temporary migration boundary, not a
 second long-term source of truth. Integrate one consumer family at a time, supply
@@ -64,6 +80,10 @@ parity tests or verification of Haze backdrop rendering and every icon.
 Input tests additionally cover hoisted editing, error semantics, disabled fields,
 password action labels/state, search IME/clear/read-only behaviour and explicit
 top-bar back actions. Large-font/RTL screen layouts require integration QA.
+
+Presentation tests cover enabled/selected actions, settings callbacks, progress
+semantics, error dismissal and modal back/visibility behaviour. They do not
+prove pixel parity, all animation frames or outside-touch geometry.
 
 ```shell
 ./gradlew :core:design-system:testDebugUnitTest :core:design-system:assembleDebug

@@ -16,7 +16,9 @@ into the application. Do not pre-create every example module in ARCHITECTURE.md.
 
 All foundations are independent duplicates prepared for later migration.
 `design-system` now prepares shared visual tokens, injected-font typography, icons,
-generic controls/rows and the glass modifier; its audit tracks remaining UI slices.
+generic controls/rows, fields/search, stateless top bars and the glass modifier.
+The presentation slice adds badges/settings rows, segmented selection and
+loading/error surfaces. Its audit tracks remaining UI slices.
 The legacy network client retains its own transport configuration. No application
 or legacy module depends on the new core modules yet.
 
@@ -32,15 +34,28 @@ Application integration must be a separate, explicitly planned stage.
 2. Database: runtime contracts are covered by Android instrumentation fixtures.
    Keep actual schema/migration ownership above feature persistence; decide
    composition and validate production migration history during integration.
-3. Design system: inventory existing themes, fonts, resources and shared UI
-   primitives. Separate shared tokens from feature-specific styling. Prepare
-   Android-compatible theme/components without switching screens or redesigning
-   them. Document resource and platform dependencies before adding the module.
+3. Design system: finish isolated overlay/gesture contracts, assess pull-to-refresh
+   separately, and prepare brand-font resources and RTL-safe inset handling.
+   Existing controls are not integrated. Verify large font scale, RTL and visual
+   parity per consumer before removing legacy copies.
 4. Navigation: add infrastructure only if the first feature's entry-point
    contract demonstrates a shared need. Root graph and Koin assembly stay in
    application composition; no generic core DI module is required.
 
 ## Integration gate
+
+No core navigation, DI, common/utils, image-loading or storage module is required
+merely to complete a diagram. Extract them only for concrete shared consumers.
+Settings/preferences persistence needs a separate ownership audit; auth tokens,
+feature entities, DAOs and business UI must not become design-system/core code.
+
+## Merge provenance
+
+PRs #39 (cache/diagnostics) and #42 (inputs/top bars) were merged into their
+parent feature branches after those parents had reached main. Consequently main
+01bc457 did not contain those slices. The controls branch replays their commits
+and resolves only the overlapping roadmap text. Its PR must target main, not
+an already merged feature branch.
 
 Compile each affected module and run its contract tests first. Then integrate
 one infrastructure boundary at a time, build the Android application and verify
