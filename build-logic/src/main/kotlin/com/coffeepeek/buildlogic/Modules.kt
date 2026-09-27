@@ -18,6 +18,7 @@ object Modules {
         const val coroutines = ":core:coroutines"
         const val network = ":core:network"
         const val database = ":core:database"
+        const val designSystem = ":core:design-system"
     }
 
     val all: List<String> = listOf(
@@ -29,6 +30,7 @@ object Modules {
         core.coroutines,
         core.network,
         core.database,
+        core.designSystem,
     )
 }
 
