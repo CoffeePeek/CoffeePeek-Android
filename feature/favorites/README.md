@@ -74,9 +74,13 @@ repository and getFavorites still report Result.failure; add/remove fail without
 overwriting corrupt rows. clearAll propagates failure. Cancellation is never
 converted to a Result or an empty set. This legacy fallback must be removed when
 those consumers migrate to Result/Flow observation with explicit error UI.
-The current FavoriteSync app event bus is not replaced by this adapter; feed and
-details observation must migrate to the new membership flow (or a temporary
-app-owned notification bridge) when the screen is switched.
+The adapter itself does not emit FavoriteSync events. Android feed and shop
+details now observe ObserveFavoriteIdsUseCase from feature domain; failures retain
+the last displayed membership, and newly loaded rows are reconciled against the
+latest known ID set. On iOS the optional observer is absent and feed keeps its
+old FavoriteSync subscription. Existing feed/details still notify FavoriteSync
+after their own writes for the old favorites screen, which remains active. That
+old screen is the last FavoriteSync consumer to remove at the UI switch.
 
 The membership use case projects/deduplicates ID sets for catalog/detail/session
 consumers without exposing saved-card presentation or metadata-only updates.
@@ -123,13 +127,16 @@ Legacy-adapter tests cover shared reads/writes, full snapshot/location mapping,
 old singular-logo rows, corruption, failure and cancellation propagation.
 Android fixtures exercise screen states/callbacks and a real NavDisplay/entryProvider
 with saveable and VM-store decorators. They use fake data and no network/real DB.
+App-level tests exercise feed/detail membership changes both before and after
+their initial shop responses, including reconciliation of late-loaded rows.
 The real database migration history is not tested by this feature fixture.
 FavoritesPreviews.kt supplies PreviewLightDark for content/loading/empty/error
 without DI, network or actual photo URLs. Compile checks are not manual IDE QA.
 
 Android DI now supplies the adapter from the same singleton to existing
-consumers, including ShopRepositoryImpl and UserSessionCleaner. Before replacing
-the old screen, migrate global FavoriteSync consumers, wire distance/shop navigation,
+consumers, including ShopRepositoryImpl and UserSessionCleaner. Feed/details now
+observe membership directly; before replacing the old screen, migrate that
+screen's remaining FavoriteSync subscription, wire distance/shop navigation,
 validate real saved rows/DB and transitions/Back/process restoration/IME/screens.
 Keep UI/nav integration in a dedicated PR, build/smoke-test Android, and remove
 legacy code only after every consumer migrates. Native iOS UI remains later.

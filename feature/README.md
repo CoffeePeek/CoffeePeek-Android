@@ -1,7 +1,8 @@
 # Feature migration: API / implementation
 
 This directory now contains independent favorites api/domain/data/impl/di modules.
-Android composition now uses favorites di plus a compatibility adapter; the old
+Android composition now uses favorites di plus a compatibility adapter, and feed
+and detail screens observe favorites domain membership. The old favorites
 screen/navigation and iOS binding remain. See favorites/README.md.
 Actual registration remains in build-logic Modules.all. Android is the integration
 target; no native iOS implementation is part of these slices.
@@ -101,8 +102,9 @@ Dependencies to resolve before screen/navigation integration:
 
 - UI uses feed.ShopCard and app location helpers: do not depend on feed impl or
   put CoffeeShop business presentation in design-system just to bypass this.
-- FavoriteSync is a global app event bus also observed by other consumers:
-  decide a minimal favorites api observation contract and its ownership.
+- FavoriteSync still updates the old favorites screen; Android feed/detail now
+  consume the feature domain membership flow. Retire the last event subscriber
+  only when switching the screen.
 - Navigator and BaseViewModel couple presentation to app/global scope: inject
   navigation actions and use caller/lifecycle-owned coroutine work.
 - Persistence must preserve existing serialized rows/key during transition.
