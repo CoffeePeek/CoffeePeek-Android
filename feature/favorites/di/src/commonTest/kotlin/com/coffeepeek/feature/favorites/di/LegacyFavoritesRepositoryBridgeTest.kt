@@ -85,7 +85,7 @@ class LegacyFavoritesRepositoryBridgeTest {
         val legacy = createLegacyFavoritesRepositoryBridge(repository)
 
         assertTrue(legacy.getFavorites().isFailure)
-        assertFailsWith<Exception> { legacy.getFavoriteIds() }
+        assertEquals(emptySet(), legacy.getFavoriteIds())
         assertTrue(legacy.addFavorite(CoffeeShop("new", "New", null, cityName = null,
             priceRange = null, photoUrl = null)).isFailure)
         assertTrue(legacy.removeFavorite("old").isFailure)
@@ -102,9 +102,10 @@ class LegacyFavoritesRepositoryBridgeTest {
 
         storage.readFailure = IllegalStateException("read failed")
         assertTrue(legacy.getFavorites().isFailure)
-        assertFailsWith<IllegalStateException> { legacy.isFavorite("id") }
+        assertFalse(legacy.isFavorite("id"))
         storage.readFailure = CancellationException("cancelled")
         assertFailsWith<CancellationException> { legacy.getFavorites() }
+        assertFailsWith<CancellationException> { legacy.isFavorite("id") }
         storage.readFailure = null
         storage.writeFailure = IllegalStateException("write failed")
         assertFailsWith<IllegalStateException> { legacy.clearAll() }

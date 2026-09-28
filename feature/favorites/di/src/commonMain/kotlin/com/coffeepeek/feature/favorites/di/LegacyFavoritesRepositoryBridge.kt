@@ -6,6 +6,7 @@ import com.coffeepeek.domain.model.ShopLocation
 import com.coffeepeek.domain.repository.FavoriteRepository as LegacyFavoriteRepository
 import com.coffeepeek.feature.favorites.domain.FavoriteShop
 import com.coffeepeek.feature.favorites.domain.FavoritesRepository
+import kotlinx.coroutines.CancellationException
 
 /** Temporary bridge for existing consumers. Wire it to the SAME new repository instance as the new screen. */
 fun createLegacyFavoritesRepositoryBridge(repository: FavoritesRepository): LegacyFavoriteRepository =
@@ -14,7 +15,15 @@ fun createLegacyFavoritesRepositoryBridge(repository: FavoritesRepository): Lega
 private class LegacyFavoritesRepositoryBridge(
     private val repository: FavoritesRepository,
 ) : LegacyFavoriteRepository {
-    override suspend fun getFavoriteIds(): Set<String> = repository.read().getOrThrow().mapTo(mutableSetOf()) { it.id }
+    override suspend fun getFavoriteIds(): Set<String> = repository.read().fold(
+        onSuccess = { shops -> shops.mapTo(mutableSetOf()) { it.id } },
+        onFailure = { error ->
+            if (error is CancellationException) throw error
+            // Legacy read-only queries historically treated malformed rows as empty.
+            // Writes still fail through Result rather than overwriting those rows.
+            emptySet()
+        },
+    )
 
     override suspend fun isFavorite(shopId: String): Boolean = shopId in getFavoriteIds()
 

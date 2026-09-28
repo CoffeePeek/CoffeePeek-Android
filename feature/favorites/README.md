@@ -67,9 +67,13 @@ factory itself does not register a Koin binding. Android composition now opts ou
 of dataModule's legacy binding and loads favoritesRoomModule plus
 legacyFavoritesConsumersModule, which resolves the same new repository singleton.
 iOS keeps dataModule's default legacy binding. Do not load both writers.
-The old getFavoriteIds/isFavorite/clearAll methods return no Result, so failures
-propagate as exceptions; getFavorites/add/remove retain Result. Corrupt data
-cannot silently appear empty. Cancellation is never converted to a Result.
+The old getFavoriteIds/isFavorite methods return no Result and previously treated
+malformed rows as empty; the temporary adapter returns an empty membership set
+on ordinary read failures so old feed/detail callers do not crash. Its new
+repository and getFavorites still report Result.failure; add/remove fail without
+overwriting corrupt rows. clearAll propagates failure. Cancellation is never
+converted to a Result or an empty set. This legacy fallback must be removed when
+those consumers migrate to Result/Flow observation with explicit error UI.
 The current FavoriteSync app event bus is not replaced by this adapter; feed and
 details observation must migrate to the new membership flow (or a temporary
 app-owned notification bridge) when the screen is switched.

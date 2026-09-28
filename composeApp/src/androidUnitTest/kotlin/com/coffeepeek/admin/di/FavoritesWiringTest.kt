@@ -18,6 +18,7 @@ import org.koin.dsl.koinApplication
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class FavoritesWiringTest {
     private class Settings : SettingRepository {
@@ -50,6 +51,13 @@ class FavoritesWiringTest {
             assertEquals(listOf("a"), current.read().getOrThrow().map { it.id })
             current.remove("a").getOrThrow()
             assertEquals(emptySet(), legacy.getFavoriteIds())
+
+            settings.save(Setting("local_favorite_shops", "corrupt"))
+            assertEquals(emptySet(), legacy.getFavoriteIds())
+            assertTrue(current.read().isFailure)
+            assertTrue(legacy.addFavorite(CoffeeShop("b", "B", null,
+                cityName = null, priceRange = null, photoUrl = null)).isFailure)
+            assertEquals("corrupt", settings.read("local_favorite_shops")?.value)
         } finally { app.close() }
     }
 }
