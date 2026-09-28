@@ -15,6 +15,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import com.coffeepeek.admin.di.platformViewModel
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
@@ -52,16 +53,16 @@ fun SuggestShopChangeScreen(shopId: String) {
                     } else {
                         "Что обновить в «${state.shopTitle}»?"
                     },
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
                 )
-                Spacer(Modifier.height(CpDimens.spacing4))
+                Spacer(Modifier.height(CpDimens.spacing5))
             }
             item {
-                GroupSection(
-                    title = "Разделы",
-                    footer = "Каждая секция уходит отдельной заявкой на модерацию.",
-                ) {
-                    ShopChangeSection.entries.forEachIndexed { index, section ->
+                GroupSection {
+                    ShopChangeSection.entries
+                        .filterNot { it == ShopChangeSection.Equipment }
+                        .forEachIndexed { index, section ->
                         if (index > 0) RowSeparator()
                         NavigationRow(
                             label = section.title(),

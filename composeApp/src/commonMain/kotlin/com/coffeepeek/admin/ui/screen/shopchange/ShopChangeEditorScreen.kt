@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -39,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -51,6 +53,10 @@ import com.coffeepeek.admin.ui.component.CpTopBar
 import com.coffeepeek.admin.ui.component.CheckmarkSection
 import com.coffeepeek.admin.ui.component.PhotoAttachmentsSection
 import com.coffeepeek.admin.ui.component.RoasterAvatar
+import com.coffeepeek.admin.ui.component.RowSeparator
+import com.coffeepeek.admin.ui.component.GroupSection
+import com.coffeepeek.admin.ui.component.brewMethodIcon
+import com.coffeepeek.admin.ui.component.shopTagIcon
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.MAX_MENU_PHOTOS
@@ -60,6 +66,7 @@ import com.coffeepeek.domain.model.MenuItemAvailability
 import com.coffeepeek.domain.model.ShopChangeSection
 import com.coffeepeek.domain.model.ShopPhoto
 import org.koin.core.parameter.parametersOf
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun ShopChangeEditorScreen(shopId: String, sectionName: String, requestId: String) {
@@ -115,16 +122,45 @@ fun ShopChangeEditorScreen(shopId: String, sectionName: String, requestId: Strin
                     ShopChangeSection.Description -> DescriptionEditor(state, vm)
                     ShopChangeSection.Contacts -> ContactsEditor(state, vm)
                     ShopChangeSection.Photos -> PhotosEditor(state, vm)
-                    ShopChangeSection.Tags -> CatalogEditor(state.catalogTags, state.selectedTagIds, vm::toggleTag)
+                    ShopChangeSection.Tags -> CheckmarkSection(
+                        title = "Особенности",
+                        items = state.catalogTags,
+                        selectedIds = state.selectedTagIds,
+                        onToggle = vm::toggleTag,
+                        collapsedCount = Int.MAX_VALUE,
+                        leading = { item ->
+                            Icon(
+                                imageVector = shopTagIcon(item.slug),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        },
+                    )
                     ShopChangeSection.Roasters -> CheckmarkSection(
                         title = "Обжарщики",
                         items = state.catalogRoasters,
                         selectedIds = state.selectedRoasterIds,
                         onToggle = vm::toggleRoaster,
+                        collapsedCount = Int.MAX_VALUE,
                         leading = { item -> RoasterAvatar(item) },
                     )
                     ShopChangeSection.Equipment -> CatalogEditor(state.catalogEquipment, state.selectedEquipmentIds, vm::toggleEquipment)
-                    ShopChangeSection.BrewMethods -> CatalogEditor(state.catalogBrewMethods, state.selectedBrewMethodIds, vm::toggleBrewMethod)
+                    ShopChangeSection.BrewMethods -> CheckmarkSection(
+                        title = "Методы заваривания",
+                        items = state.catalogBrewMethods,
+                        selectedIds = state.selectedBrewMethodIds,
+                        onToggle = vm::toggleBrewMethod,
+                        collapsedCount = Int.MAX_VALUE,
+                        leading = { item ->
+                            Icon(
+                                painter = painterResource(brewMethodIcon(item.name)),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        },
+                    )
                     ShopChangeSection.Menu -> MenuEditor(state, vm)
                 }
                 Spacer(Modifier.height(CpDimens.spacing4))
@@ -303,66 +339,21 @@ private fun CatalogEditor(
 
 @Composable
 private fun MenuEditor(state: ShopChangeEditorUiState, vm: ShopChangeEditorViewModel) {
-    Text("Позиции", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-    Spacer(Modifier.height(CpDimens.spacing2))
-    state.menuRows.forEach { row ->
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = CpDimens.spacing3)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(CpDimens.radiusMd))
-                .padding(CpDimens.spacing3),
-        ) {
-            Text(row.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(CpDimens.spacing2))
-            Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1)) {
-                MenuItemAvailability.entries.forEach { availability ->
-                    FilterChip(
-                        selected = row.availability == availability,
-                        onClick = { vm.updateMenuRow(row.slug) { it.copy(availability = availability) } },
-                        label = {
-                            Text(
-                                when (availability) {
-                                    MenuItemAvailability.Unknown -> "Неизв."
-                                    MenuItemAvailability.Present -> "Есть"
-                                    MenuItemAvailability.Absent -> "Нет"
-                                },
-                            )
-                        },
-                    )
-                }
-            }
-            Spacer(Modifier.height(CpDimens.spacing2))
-            Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-                CompactOutlinedTextField(
-                    value = row.priceText,
-                    onValueChange = { value -> vm.updateMenuRow(row.slug) { it.copy(priceText = value) } },
-                    modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
-                    placeholder = { Text("Цена") },
-                    singleLine = true,
-                    contentPadding = CpDimens.singleLineFieldContentPadding,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = RoundedCornerShape(percent = 50),
-                    colors = fieldColors(),
-                )
-                CompactOutlinedTextField(
-                    value = row.volumeText,
-                    onValueChange = { value ->
-                        vm.updateMenuRow(row.slug) { it.copy(volumeText = value.filter(Char::isDigit)) }
-                    },
-                    modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
-                    placeholder = { Text("мл") },
-                    singleLine = true,
-                    contentPadding = CpDimens.singleLineFieldContentPadding,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(percent = 50),
-                    colors = fieldColors(),
-                )
-            }
+    GroupSection(title = "Позиции меню") {
+        if (state.menuRows.isEmpty()) {
+            Text(
+                text = "Каталог напитков пуст",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(CpDimens.spacing4),
+            )
+        }
+        state.menuRows.forEachIndexed { index, row ->
+            if (index > 0) RowSeparator()
+            MenuItemEditor(row = row, vm = vm)
         }
     }
-    Spacer(Modifier.height(CpDimens.spacing3))
-    Text("Фото меню", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+    Spacer(Modifier.height(CpDimens.spacing5))
+    Text("Фото меню", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
     Spacer(Modifier.height(CpDimens.spacing2))
     RetainedPhotoRow(state.retainedMenuPhotos, onRemove = vm::removeRetainedMenuPhoto)
     val remaining = MAX_MENU_PHOTOS - state.retainedMenuPhotos.size - state.alreadyUploadedMenuPhotos.size
@@ -376,6 +367,103 @@ private fun MenuEditor(state: ShopChangeEditorUiState, vm: ShopChangeEditorViewM
             title = "Новые фото меню",
             hint = "До $MAX_MENU_PHOTOS фото меню, включая сохранённые.",
         )
+    }
+}
+
+@Composable
+private fun MenuItemEditor(row: ShopChangeMenuRow, vm: ShopChangeEditorViewModel) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
+    ) {
+        Text(
+            text = row.name,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(CpDimens.spacing2))
+        AvailabilityPicker(
+            selected = row.availability,
+            onSelect = { availability ->
+                vm.updateMenuRow(row.slug) { it.copy(availability = availability) }
+            },
+        )
+        Spacer(Modifier.height(CpDimens.spacing2))
+        Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
+            CompactOutlinedTextField(
+                value = row.priceText,
+                onValueChange = { value -> vm.updateMenuRow(row.slug) { it.copy(priceText = value) } },
+                modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
+                placeholder = { Text("Цена, BYN") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                shape = RoundedCornerShape(CpDimens.radiusMd),
+                colors = fieldColors(),
+            )
+            CompactOutlinedTextField(
+                value = row.volumeText,
+                onValueChange = { value ->
+                    vm.updateMenuRow(row.slug) { it.copy(volumeText = value.filter(Char::isDigit)) }
+                },
+                modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
+                placeholder = { Text("Объём, мл") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                shape = RoundedCornerShape(CpDimens.radiusMd),
+                colors = fieldColors(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun AvailabilityPicker(
+    selected: MenuItemAvailability,
+    onSelect: (MenuItemAvailability) -> Unit,
+) {
+    val shape = RoundedCornerShape(CpDimens.radiusMd)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(2.dp),
+    ) {
+        MenuItemAvailability.entries.forEach { availability ->
+            val isSelected = availability == selected
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(CpDimens.radiusSm))
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.surface
+                        else Color.Transparent,
+                    )
+                    .selectable(
+                        selected = isSelected,
+                        role = Role.RadioButton,
+                        onClick = { onSelect(availability) },
+                    )
+                    .padding(vertical = CpDimens.spacing2),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = when (availability) {
+                        MenuItemAvailability.Unknown -> "Не указано"
+                        MenuItemAvailability.Present -> "Есть"
+                        MenuItemAvailability.Absent -> "Нет"
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+        }
     }
 }
 

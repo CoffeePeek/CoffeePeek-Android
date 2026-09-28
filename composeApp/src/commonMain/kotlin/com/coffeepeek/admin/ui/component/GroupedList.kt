@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -53,26 +54,32 @@ private val RowInset = 16.dp
 
 @Composable
 fun GroupSection(
-    title: String,
+    title: String? = null,
     trailing: String? = null,
     footer: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = RowInset)
-                .padding(bottom = 6.dp),
-        ) {
-            Text(
-                text = title.uppercase(),
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            if (trailing != null) {
-                Text(text = trailing, fontSize = 13.sp, color = CpColor.Primary)
+        if (title != null || trailing != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = RowInset)
+                    .padding(bottom = 6.dp),
+            ) {
+                if (title != null) {
+                    Text(
+                        text = title.uppercase(),
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
+                if (trailing != null) {
+                    Text(text = trailing, fontSize = 13.sp, color = CpColor.Primary)
+                }
             }
         }
         Column(
