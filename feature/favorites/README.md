@@ -114,12 +114,15 @@ reads device location or permissions. Android composition reuses the app's
 existing distance calculation, reads last known location only if permission
 was already granted, and shows no distance otherwise. No permission prompt or
 location service is copied into the feature. Kamel renders URLs in UI; it is
-not a favorites HTTP service.
-The prepared card is not a pixel-identical feed card: mascot/provider art,
-roaster logo overlays and price-bean/rating presentation remain follow-up work.
-All saved fields remain in data/domain.
+not a favorites HTTP service. The feature-owned card now presents the saved
+rating, remove action, roaster logos, open status, brew methods, address,
+distance, price label and tag in the legacy card's visual hierarchy. It does
+not import feed UI or legacy CoffeeShop. Exact parity is impossible from the
+saved format: it contains neither `isNew` nor shop type; the old screen also
+cannot reconstruct those values from saved rows. The BYN price symbols and
+photo placeholder art still differ. All saved fields remain in data/domain.
 Default Russian strings match the current feature language; localization/resource
-ownership, complete visual parity and long-label/RTL/large-font UI QA remain gates.
+ownership, RTL/large-font and real-photo UI QA remain gates.
 
 Domain/data declare and compile iOS simulator variants with no Android APIs,
 Koin or native iOS implementation. Android api/impl/di are the tested UI/composition
@@ -145,19 +148,24 @@ their initial shop responses, including reconciliation of late-loaded rows.
 Android instrumented app tests also verify that the new screen adapter sends
 shop-open and Back actions to the existing root Navigator. Feature UI tests
 verify coordinate forwarding and missing-coordinate handling; app unit tests
-verify formatting and absent/invalid location. These do not validate real
-saved rows or a full signed-in user journey.
-The real database migration history is not tested by this feature fixture.
-FavoritesPreviews.kt supplies PreviewLightDark for content/loading/empty/error
-without DI, network or actual photo URLs. Compile checks are not manual IDE QA.
+verify formatting and absent/invalid location. A DI instrumented test writes
+legacy JSON to the actual Room settings table, closes and reopens the database,
+then verifies the new repository and legacy adapter share that persisted row
+and one writer. It uses a uniquely named test database, not user data. This
+does not validate a full signed-in user journey or historic Room migrations
+from schema versions 1/2. FavoritesPreviews.kt supplies PreviewLightDark for
+content, closed/long-title, loading, empty and error without DI, network or
+actual photo URLs. UI tests render light and dark; IDE preview pixels have not
+been manually inspected in this environment.
 
 Android DI supplies the adapter from the same singleton to existing consumers,
 including ShopRepositoryImpl and UserSessionCleaner. Feed/details observe
 membership directly. The Android screen is now wired for shop navigation,
-Back and an optional distance label without a new permission prompt. Visual
-parity with legacy ShopCard is still pending. Validate real saved rows/DB,
-transitions, Back, process restoration and IME on a device before merging this
-integration.
+Back and an optional distance label without a new permission prompt. The card
+uses all presentation fields actually persisted by the old format, but real
+photos/logos, RTL, large fonts and visual details need device review. Validate
+a signed-in journey with pre-existing favorites, transitions, Back, process
+restoration and IME before merging this integration.
 Root Navigation 3 migration, final FavoriteSync removal and legacy UI deletion
 remain separate follow-up steps. Native iOS UI remains later.
 

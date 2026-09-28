@@ -26,6 +26,12 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }
+        androidInstrumentedTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.androidx.room.runtime)
+            implementation(libs.androidx.testExt.junit)
+            implementation(libs.androidx.test.runner)
+        }
 
     }
 }
@@ -35,7 +41,7 @@ android {
     compileSdk = 37
     defaultConfig {
         minSdk = Config.MIN_SDK
-
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     compileOptions {
         sourceCompatibility = Config.JAVA_VERSION

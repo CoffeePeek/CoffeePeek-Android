@@ -88,6 +88,47 @@ class FavoritesScreenTest {
         }
     }
 
+    @Test fun cardShowsAvailableSavedMetadataWithoutFetchingCatalog() {
+        val saved = FavoriteShop(
+            id = "id", title = "Кофейня", rating = 4.8, reviewCount = 12,
+            address = "Кофейная, 1", priceRange = "\$\$", isOpen = true,
+            brewMethods = listOf("Эспрессо", "Фильтр"), tags = listOf("Спешелти"),
+        )
+        render {
+            FavoritesScreen(FavoritesUiState(shops = listOf(saved), isLoading = false),
+                {}, {}, {}, {})
+        }.use {
+            compose.onNodeWithText("COFFEEPEEK").assertIsDisplayed()
+            compose.onNodeWithText("4.8").assertIsDisplayed()
+            compose.onNodeWithText("(12)").assertIsDisplayed()
+            compose.onNodeWithText("ОТКРЫТО").assertIsDisplayed()
+            compose.onNodeWithText("Эспрессо").assertIsDisplayed()
+            compose.onNodeWithText("Кофейная, 1").assertIsDisplayed()
+            compose.onNodeWithText("\$\$").assertIsDisplayed()
+            compose.onNodeWithText("Спешелти").assertIsDisplayed()
+        }
+    }
+
+    @Test fun longClosedCardRendersInLightAndDarkThemes() {
+        val title = "Кофейня с длинным названием и разными способами заваривания"
+        val state = FavoritesUiState(
+            shops = listOf(FavoriteShop("closed", title, cityName = "Минск", isOpen = false,
+                brewMethods = listOf("Пуровер", "Эспрессо", "Фильтр"))),
+            isLoading = false,
+        )
+        for (dark in listOf(false, true)) {
+            render {
+                CoffeePeekTheme(darkTheme = dark) {
+                    FavoritesScreen(state, {}, {}, {}, {})
+                }
+            }.use {
+                compose.onNodeWithText(title).assertIsDisplayed()
+                compose.onNodeWithText("ЗАКРЫТО").assertIsDisplayed()
+                compose.onNodeWithText("+1").assertIsDisplayed()
+            }
+        }
+    }
+
     private data class ShopKey(val id: String) : NavKey
 
     @Test fun navigation3EntryConstructsManualVmAndDelegatesShopRouteToHost() {
