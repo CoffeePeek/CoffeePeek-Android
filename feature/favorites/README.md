@@ -1,9 +1,10 @@
-# Favorites: independent preparation
+# Favorites: incremental Android integration
 
-No old screen, repository, DI binding, navigation graph, JSON key or database
- schema is replaced. New modules are registered through module.feature.favorites.*
-and callable independently. Branch is stacked on core-design-system-adaptive-layout
-(#49). Foundation and UI/DI are separate stacked PRs; application switching/removal is a separate future slice.
+Android application composition now binds the new repository and a legacy-contract
+adapter as one writer. The old screen, navigation, repository implementation file,
+JSON key and database schema remain; the old repository binding is omitted on
+Android only. iOS keeps its existing binding and runtime behaviour. These changes
+are stacked on #49 → favorites foundation → UI/DI → compatibility bridge.
 
 ## Boundaries and module gate
 
@@ -16,17 +17,17 @@ and callable independently. Branch is stacked on core-design-system-adaptive-lay
 | di | favoritesModule and favoritesRoomModule; internal settings bridge; temporary legacy repository adapter factory | api/domain/data, impl factory, Koin, temporary legacy Room and domain contracts | Application composition only; isolates legacy/Koin from both data and UI |
 
 ```text
-root (later) → di → data → domain ← impl/ui
+Android root → di → data → domain ← impl/ui
                   └────→ impl entry factory → api
                bridge → existing SettingRepository
                adapter → existing FavoriteRepository contract
-root Navigation 3 entryProvider → favoritesEntry → FavoritesEntry.Content
+root Navigation 3 entryProvider → favoritesEntry → FavoritesEntry.Content (later)
 ```
 
 Domain/data are manually constructed; no Koin annotations, contexts or service
 lookups. Data requires an injected dispatcher for storage and parsing; production
-DI supplies the core IO dispatcher. The only Koin graph is explicitly loaded by composition, not started as
-a global singleton. The feature DI module is justified by its concrete legacy
+DI supplies the core IO dispatcher. Feature modules declare Koin bindings but
+only application composition starts Koin. The feature DI module is justified by its concrete legacy
 storage bridge, not a generic core DI aggregator. Factories hide implementations.
 Feature UI depends on neither data nor di; Gradle enforces this restriction.
 Other business/UI features may consume favorites domain deliberately; api remains
@@ -51,19 +52,21 @@ data; it is never triggered by a read failure. Unknown fields are ignored like
 the legacy serializer; their preservation on future writes is not promised.
 
 One repository instance serializes its read-modify-write operations. Observation
-comes from storage, covering external writes without FavoriteSync. Sharing one
-Koin instance is mandatory; independent repository instances/old writers are not
-protected by its mutex. Before integration, switch all writes to one owner or
-provide transactional storage. Do not run parallel old/new writers and assume
-that shared JSON format prevents races.
+comes from storage, covering external writes without FavoriteSync. Android now
+shares one Koin instance across the new contract and legacy adapter. Independent
+repository instances or direct old writers are not protected by its mutex; do not
+reintroduce a parallel writer and assume shared JSON prevents races. iOS retains
+its one legacy writer until its own migration.
 
 For the transition, createLegacyFavoritesRepositoryBridge(newRepository) adapts
 the existing repository contract for feed/detail/session consumers. It maps
 CoffeeShop snapshots to FavoriteShop and saved snapshots back to the existing
 CoffeeShopDetails shape without putting legacy models in domain/data. Both the
 adapter and new screen MUST receive the same new repository singleton. The
-factory does not register or replace the old Koin binding: application composition
-must explicitly replace it later, rather than load two independent writers.
+factory itself does not register a Koin binding. Android composition now opts out
+of dataModule's legacy binding and loads favoritesRoomModule plus
+legacyFavoritesConsumersModule, which resolves the same new repository singleton.
+iOS keeps dataModule's default legacy binding. Do not load both writers.
 The old getFavoriteIds/isFavorite/clearAll methods return no Result, so failures
 propagate as exceptions; getFavorites/add/remove retain Result. Corrupt data
 cannot silently appear empty. Cancellation is never converted to a Result.
@@ -81,8 +84,8 @@ and shows a safe localized error, never raw storage exception text.
 ## Navigation / UI / platform boundaries
 
 Navigation 3 1.2.0 is used only by the new feature. Its AAR requires compileSdk 37,
-so api/impl/di compile against 37; the old app and its target/min SDK are unchanged.
-Root must update its compile SDK before consuming these modules. Root owns
+so api/impl/di and the Android app compile against 37; target/min SDK remain
+unchanged. Root owns
 NavDisplay, back stack, entry saveable/ViewModel-store decorators and shop routes;
 favorites only registers FavoritesRoute and emits onOpenShop(id)/onBack.
 The API does not publish a shop route for another business owner.
@@ -120,12 +123,11 @@ The real database migration history is not tested by this feature fixture.
 FavoritesPreviews.kt supplies PreviewLightDark for content/loading/empty/error
 without DI, network or actual photo URLs. Compile checks are not manual IDE QA.
 
-Before switching: bind the adapter from the SAME new repository singleton for
-all existing consumers, including ShopRepositoryImpl and UserSessionCleaner;
-replace the old Koin favorite binding rather than adding a second writer.
-Then replace global event consumers, wire distance/shop navigation,
+Android DI now supplies the adapter from the same singleton to existing
+consumers, including ShopRepositoryImpl and UserSessionCleaner. Before replacing
+the old screen, migrate global FavoriteSync consumers, wire distance/shop navigation,
 validate real saved rows/DB and transitions/Back/process restoration/IME/screens.
-Then integrate through root in a dedicated PR, build/smoke-test Android, and remove
+Keep UI/nav integration in a dedicated PR, build/smoke-test Android, and remove
 legacy code only after every consumer migrates. Native iOS UI remains later.
 
 Reference: [Navigation 3 releases](https://developer.android.com/jetpack/androidx/releases/navigation3).

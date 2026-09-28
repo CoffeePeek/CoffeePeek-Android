@@ -36,29 +36,33 @@ import com.coffeepeek.domain.model.ShopChangeSection
 import com.coffeepeek.admin.di.imageModule
 import com.coffeepeek.data.di.dataModule
 import org.koin.core.context.startKoin
+import org.koin.core.module.Module
 import org.koin.dsl.module
 
-fun initKoin() {
+fun initKoin(
+    registerLegacyFavorites: Boolean = true,
+    platformModules: List<Module> = emptyList(),
+) {
     check(AppConfig.baseUrl.isNotBlank()) {
         "API_BASE_URL is not configured. Copy local.properties.example to local.properties."
     }
     val database = Locator.database
     ThemeManager.initialize(database.settingRepository)
 
-    startKoin {
-        modules(
-            dataModule(
-                baseUrl = Constants.BASE_URL,
-                cacheFolderPath = Locator.cacheFolderPath,
-                appCacheRootPath = Locator.appCacheRootPath,
-                database = database,
-                platformContext = Locator.platformContext,
-                debug = AppConfig.isDebug,
-            ),
-            appModule(database.settingRepository),
-            imageModule(),
-        )
-    }
+    val commonModules = listOf(
+        dataModule(
+            baseUrl = Constants.BASE_URL,
+            cacheFolderPath = Locator.cacheFolderPath,
+            appCacheRootPath = Locator.appCacheRootPath,
+            database = database,
+            platformContext = Locator.platformContext,
+            debug = AppConfig.isDebug,
+            registerLegacyFavorites = registerLegacyFavorites,
+        ),
+        appModule(database.settingRepository),
+        imageModule(),
+    )
+    startKoin { modules(commonModules + platformModules) }
 }
 
 private fun appModule(settingRepository: com.coffeepeek.room.repository.SettingRepository) = module {

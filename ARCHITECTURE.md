@@ -21,7 +21,7 @@ modules/network/                    Ktor, DTOs and API services
 modules/data/                       repository implementations and mapping
 modules/room/                       Room persistence
 core/                               prepared infrastructure/design-system
-feature/favorites/                  independent api/domain/data/impl/di preparation
+feature/favorites/                  api/domain/data/impl/di; Android DI bridge active
 ```
 
 Target ownership is feature-based:
@@ -62,7 +62,7 @@ within one feature:
     impl → api
     impl → domain ← data
     optional di → api, domain, data factories, impl entry factory
-    di bridges → legacy storage (temporary, composition-only)
+    di bridges → legacy storage/contracts (temporary, composition-only)
     impl/ui → domain, api, design-system (never data implementation)
 ```
 

@@ -32,6 +32,7 @@ kotlin {
 
     sourceSets {
         androidMain.dependencies {
+            implementation(project(module.feature.favorites.di))
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.appcompat)
@@ -128,7 +129,8 @@ val apiBaseUrl: String = run {
 
 android {
     namespace = Config.APPLICATION_ID
-    compileSdk = Config.COMPILE_SDK
+    // Navigation 3 1.2.0 in the Android-only favorites feature requires API 37.
+    compileSdk = 37
 
     buildFeatures {
         buildConfig = true

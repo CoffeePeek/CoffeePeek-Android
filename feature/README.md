@@ -1,7 +1,8 @@
 # Feature migration: API / implementation
 
 This directory now contains independent favorites api/domain/data/impl/di modules.
-They are not connected to the old application. See favorites/README.md.
+Android composition now uses favorites di plus a compatibility adapter; the old
+screen/navigation and iOS binding remain. See favorites/README.md.
 Actual registration remains in build-logic Modules.all. Android is the integration
 target; no native iOS implementation is part of these slices.
 
@@ -24,11 +25,12 @@ Each boundary becomes a separate KMP Gradle module as its code is prepared.
 Do not create empty placeholders or a second application. Api has no data/UI
 implementation or Koin declarations. Domain uses pure Kotlin/approved domain
 dependencies; it may depend on api only when those contracts are equally pure.
-Data depends on domain and needed core infrastructure. Impl depends on api/domain,
-design-system and data wiring factories; ui packages cannot access data internals.
+Data depends on domain and needed core infrastructure. Impl depends on api/domain
+and design-system; its UI cannot access data internals. The optional di module
+owns data factories, Koin assembly and temporary legacy adapters.
 Keep data implementations internal and expose only the narrow construction
 surface required for feature composition. Enforce UI import boundaries as well
-as Gradle edges, because impl also contains composition.
+as Gradle edges.
 
 Other features use api for navigation/screen entry and may directly consume
 intentionally supported pure domain contracts, as agreed for favorites. Never
@@ -52,6 +54,7 @@ implementation(project(module.feature.favorites.api))
 implementation(project(module.feature.favorites.domain))
 implementation(project(module.feature.favorites.data))
 implementation(project(module.feature.favorites.impl))
+implementation(project(module.feature.favorites.di))
 ```
 
 Favorites accessors are now callable, including module.feature.favorites.di.
@@ -65,7 +68,7 @@ reason; a transport module does not need artificial business domain/data modules
 Every next slice starts from the current migration tip, not main. A PR targets
 its immediate parent branch; keep its diff independently reviewable.
 Favorites foundation is based on feature/core-design-system-adaptive-layout (#49);
-favorites UI/DI is based on that foundation, not main.
+favorites UI/DI, compatibility bridge and Android DI integration follow in order.
 After a parent merges to main, retarget its child to main before merging it.
 If a parent changes, update descendants explicitly and re-run affected checks;
 never rewrite published stack history or unrelated work without agreement.
@@ -86,7 +89,7 @@ never rewrite published stack history or unrelated work without agreement.
 7. Delete legacy copies only after every consumer has switched. Repeat by owner;
    do not relocate all screens/models/repositories at once.
 
-## Pilot audit: favorites (selected, prepared independently)
+## Pilot audit: favorites (Android DI integrated; UI still legacy)
 
 Current UI: composeApp ui/screen/favorites, FavoritesViewModel and FavoritesScreen.
 Current contract: modules/domain FavoriteRepository and CoffeeShop/Details.
@@ -94,7 +97,7 @@ Current data: modules/data FavoriteRepositoryImpl and LocalFavoriteShopDto,
 using modules/room DatabaseCore.settingRepository and local_favorite_shops JSON.
 There is no favorites HTTP service to move.
 
-Dependencies to resolve before integration:
+Dependencies to resolve before screen/navigation integration:
 
 - UI uses feed.ShopCard and app location helpers: do not depend on feed impl or
   put CoffeeShop business presentation in design-system just to bypass this.
