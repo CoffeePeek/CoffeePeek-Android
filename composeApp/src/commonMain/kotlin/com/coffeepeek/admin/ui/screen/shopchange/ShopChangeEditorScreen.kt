@@ -48,7 +48,9 @@ import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CpTopBar
+import com.coffeepeek.admin.ui.component.CheckmarkSection
 import com.coffeepeek.admin.ui.component.PhotoAttachmentsSection
+import com.coffeepeek.admin.ui.component.RoasterAvatar
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.MAX_MENU_PHOTOS
@@ -114,7 +116,13 @@ fun ShopChangeEditorScreen(shopId: String, sectionName: String, requestId: Strin
                     ShopChangeSection.Contacts -> ContactsEditor(state, vm)
                     ShopChangeSection.Photos -> PhotosEditor(state, vm)
                     ShopChangeSection.Tags -> CatalogEditor(state.catalogTags, state.selectedTagIds, vm::toggleTag)
-                    ShopChangeSection.Roasters -> CatalogEditor(state.catalogRoasters, state.selectedRoasterIds, vm::toggleRoaster)
+                    ShopChangeSection.Roasters -> CheckmarkSection(
+                        title = "Обжарщики",
+                        items = state.catalogRoasters,
+                        selectedIds = state.selectedRoasterIds,
+                        onToggle = vm::toggleRoaster,
+                        leading = { item -> RoasterAvatar(item) },
+                    )
                     ShopChangeSection.Equipment -> CatalogEditor(state.catalogEquipment, state.selectedEquipmentIds, vm::toggleEquipment)
                     ShopChangeSection.BrewMethods -> CatalogEditor(state.catalogBrewMethods, state.selectedBrewMethodIds, vm::toggleBrewMethod)
                     ShopChangeSection.Menu -> MenuEditor(state, vm)
