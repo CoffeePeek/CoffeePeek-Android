@@ -32,6 +32,7 @@ kotlin {
 
     sourceSets {
         androidMain.dependencies {
+            implementation(project(module.feature.favorites.api))
             implementation(project(module.feature.favorites.di))
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
@@ -72,6 +73,12 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+        }
+        androidInstrumentedTest.dependencies {
+            implementation(libs.androidx.compose.ui.test.junit4)
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.test.runner)
+            implementation(libs.androidx.espresso.core)
         }
     }
 }
@@ -139,6 +146,7 @@ android {
 
     defaultConfig {
         applicationId = Config.APPLICATION_ID
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = Config.MIN_SDK
         targetSdk = Config.TARGET_SDK
         versionCode = appVersionCode.get()

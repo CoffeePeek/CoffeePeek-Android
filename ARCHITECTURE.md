@@ -21,7 +21,7 @@ modules/network/                    Ktor, DTOs and API services
 modules/data/                       repository implementations and mapping
 modules/room/                       Room persistence
 core/                               prepared infrastructure/design-system
-feature/favorites/                  api/domain/data/impl/di; Android DI bridge active
+feature/favorites/                  api/domain/data/impl/di; Android screen/DI active
 ```
 
 Target ownership is feature-based:
