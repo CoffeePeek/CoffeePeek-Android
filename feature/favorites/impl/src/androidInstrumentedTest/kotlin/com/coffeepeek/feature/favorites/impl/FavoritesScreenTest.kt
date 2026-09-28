@@ -67,6 +67,27 @@ class FavoritesScreenTest {
         }
     }
 
+    @Test fun distanceUsesSavedCoordinatesAndSkipsIncompleteLocations() {
+        val requested = mutableListOf<Pair<Double, Double>>()
+        val shops = listOf(
+            FavoriteShop("located", "Кофейня рядом", latitude = 53.9, longitude = 27.56),
+            FavoriteShop("missing", "Кофейня без координат", latitude = 53.9),
+        )
+        render {
+            FavoritesScreen(
+                state = FavoritesUiState(shops = shops, isLoading = false),
+                onRetry = {}, onRemove = {}, onOpenShop = {}, onBack = {},
+                distanceForCoordinates = { latitude, longitude ->
+                    requested += latitude to longitude
+                    "950 м"
+                },
+            )
+        }.use {
+            compose.onNodeWithText("950 м", substring = true).assertIsDisplayed()
+            compose.runOnIdle { assertEquals(setOf(53.9 to 27.56), requested.toSet()) }
+        }
+    }
+
     private data class ShopKey(val id: String) : NavKey
 
     @Test fun navigation3EntryConstructsManualVmAndDelegatesShopRouteToHost() {

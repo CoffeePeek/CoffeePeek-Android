@@ -8,6 +8,7 @@ interface FavoritesEntry {
     fun Content(
         onOpenShop: (String) -> Unit,
         onBack: () -> Unit,
-        distanceForShop: (String) -> String? = { null },
+        /** Called only for saved shops with both coordinates; the host owns location permission and formatting. */
+        distanceForCoordinates: (latitude: Double, longitude: Double) -> String? = { _, _ -> null },
     )
 }

@@ -28,7 +28,7 @@ internal fun FavoritesScreen(
     onRemove: (String) -> Unit,
     onOpenShop: (String) -> Unit,
     onBack: () -> Unit,
-    distanceForShop: (String) -> String? = { null },
+    distanceForCoordinates: (Double, Double) -> String? = { _, _ -> null },
 ) {
     Scaffold(topBar = { CpTopBar("Избранное", "Назад", onBack = onBack) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
@@ -48,7 +48,10 @@ internal fun FavoritesScreen(
                         contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         items(state.shops, key = { it.id }) { shop ->
-                            FavoriteCard(shop, shop.id in state.removing, distanceForShop(shop.id),
+                            val distance = shop.latitude?.let { latitude ->
+                                shop.longitude?.let { longitude -> distanceForCoordinates(latitude, longitude) }
+                            }
+                            FavoriteCard(shop, shop.id in state.removing, distance,
                                 { onOpenShop(shop.id) }, { onRemove(shop.id) })
                         }
                     }
@@ -89,7 +92,7 @@ private fun FavoriteCard(shop: FavoriteShop, removing: Boolean, distance: String
                     Icon(CpIcons.FavoriteFilled, "Удалить из избранного: ${shop.title}")
                 }
             }
-            listOfNotNull(shop.cityName, shop.address, distance).takeIf { it.isNotEmpty() }?.let {
+            listOfNotNull(shop.cityName, shop.address, distance?.let { "$it от вас" }).takeIf { it.isNotEmpty() }?.let {
                 Text(it.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
             }
             shop.rating?.let { Text("Рейтинг: $it · Отзывов: ${shop.reviewCount}", style = MaterialTheme.typography.bodySmall) }

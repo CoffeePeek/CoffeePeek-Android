@@ -109,11 +109,15 @@ a shop route for another business owner.
 
 The new screen covers loading/empty/error/list, retry, separate remove action and
 pending-removal disablement. It uses brand primitives and feature-owned cards.
-Distance is a host-injected label by ID: no location permissions/global platform
-service is copied. Kamel renders URLs in UI; it is not a favorites HTTP service.
+Distance is a host-injected label from saved coordinates: the feature never
+reads device location or permissions. Android composition reuses the app's
+existing distance calculation, reads last known location only if permission
+was already granted, and shows no distance otherwise. No permission prompt or
+location service is copied into the feature. Kamel renders URLs in UI; it is
+not a favorites HTTP service.
 The prepared card is not a pixel-identical feed card: mascot/provider art,
-roaster logo overlays, price-bean/rating presentation and distance permissions
-remain consumer-integration decisions. All saved fields remain in data/domain.
+roaster logo overlays and price-bean/rating presentation remain follow-up work.
+All saved fields remain in data/domain.
 Default Russian strings match the current feature language; localization/resource
 ownership, complete visual parity and long-label/RTL/large-font UI QA remain gates.
 
@@ -139,18 +143,21 @@ with saveable and VM-store decorators. They use fake data and no network/real DB
 App-level tests exercise feed/detail membership changes both before and after
 their initial shop responses, including reconciliation of late-loaded rows.
 Android instrumented app tests also verify that the new screen adapter sends
-shop-open and Back actions to the existing root Navigator. They do not validate
-real saved rows or a full signed-in user journey.
+shop-open and Back actions to the existing root Navigator. Feature UI tests
+verify coordinate forwarding and missing-coordinate handling; app unit tests
+verify formatting and absent/invalid location. These do not validate real
+saved rows or a full signed-in user journey.
 The real database migration history is not tested by this feature fixture.
 FavoritesPreviews.kt supplies PreviewLightDark for content/loading/empty/error
 without DI, network or actual photo URLs. Compile checks are not manual IDE QA.
 
 Android DI supplies the adapter from the same singleton to existing consumers,
 including ShopRepositoryImpl and UserSessionCleaner. Feed/details observe
-membership directly. The Android screen is now wired for shop navigation and
-Back, but its optional distance label is not supplied yet; visual parity with
-legacy ShopCard is also pending. Validate real saved rows/DB, transitions,
-Back, process restoration and IME on a device before merging this integration.
+membership directly. The Android screen is now wired for shop navigation,
+Back and an optional distance label without a new permission prompt. Visual
+parity with legacy ShopCard is still pending. Validate real saved rows/DB,
+transitions, Back, process restoration and IME on a device before merging this
+integration.
 Root Navigation 3 migration, final FavoriteSync removal and legacy UI deletion
 remain separate follow-up steps. Native iOS UI remains later.
 

@@ -15,10 +15,14 @@ import com.coffeepeek.feature.favorites.impl.ui.FavoritesViewModel
 /** Manual construction: UI does not fetch anything from Koin or application globals. */
 fun createFavoritesEntry(repository: FavoritesRepository): FavoritesEntry = object : FavoritesEntry {
     @Composable
-    override fun Content(onOpenShop: (String) -> Unit, onBack: () -> Unit, distanceForShop: (String) -> String?) {
+    override fun Content(
+        onOpenShop: (String) -> Unit,
+        onBack: () -> Unit,
+        distanceForCoordinates: (Double, Double) -> String?,
+    ) {
         val vm = viewModel { FavoritesViewModel(repository) }
         val state by vm.state.collectAsStateWithLifecycle()
-        FavoritesScreen(state, vm::retry, vm::remove, onOpenShop, onBack, distanceForShop)
+        FavoritesScreen(state, vm::retry, vm::remove, onOpenShop, onBack, distanceForCoordinates)
     }
 }
 
@@ -27,7 +31,7 @@ fun EntryProviderScope<NavKey>.favoritesEntry(
     screen: FavoritesEntry,
     onOpenShop: (String) -> Unit,
     onBack: () -> Unit,
-    distanceForShop: (String) -> String? = { null },
+    distanceForCoordinates: (Double, Double) -> String? = { _, _ -> null },
 ) {
-    entry<FavoritesRoute> { screen.Content(onOpenShop, onBack, distanceForShop) }
+    entry<FavoritesRoute> { screen.Content(onOpenShop, onBack, distanceForCoordinates) }
 }

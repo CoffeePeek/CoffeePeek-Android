@@ -60,7 +60,7 @@ class FavoritesDestinationTest {
         override fun Content(
             onOpenShop: (String) -> Unit,
             onBack: () -> Unit,
-            distanceForShop: (String) -> String?,
+            distanceForCoordinates: (Double, Double) -> String?,
         ) {
             Column {
                 Button(onClick = { onOpenShop("shop-42") }) { Text("Open shop") }
