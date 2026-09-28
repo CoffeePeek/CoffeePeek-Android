@@ -16,6 +16,7 @@ kotlin {
             api(project(module.feature.favorites.domain))
             api(project(module.feature.favorites.api))
             api(project(module.feature.favorites.data))
+            api(project(module.legacy.domain))
             api(project(module.legacy.room))
             api(libs.koin.core)
             implementation(project(module.feature.favorites.impl))

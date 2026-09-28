@@ -1,7 +1,7 @@
 # Favorites: independent preparation
 
 No old screen, repository, DI binding, navigation graph, JSON key or database
-schema is replaced. New modules are registered through module.feature.favorites.*
+ schema is replaced. New modules are registered through module.feature.favorites.*
 and callable independently. Branch is stacked on core-design-system-adaptive-layout
 (#49). Foundation and UI/DI are separate stacked PRs; application switching/removal is a separate future slice.
 
@@ -13,12 +13,13 @@ and callable independently. Branch is stacked on core-design-system-adaptive-lay
 | domain | FavoriteShop snapshot, FavoritesRepository Result/Flow contracts, ObserveFavoriteIdsUseCase | Kotlin + coroutines only | Own UI/data, explicitly supported cross-feature membership consumers; independent business ABI/tests |
 | data | Internal StoredFavorite/mapping/repository; public storage construction port and factory | domain + serialization | di/manual composition only; UI cannot import DTOs or repository implementation |
 | impl | Internal ViewModel/state/screen/cards; entry factory and Navigation 3 registration | api/domain, design-system, lifecycle, Kamel | di/root composition; public API consumers do not acquire screen or VM implementation |
-| di | favoritesModule and favoritesRoomModule; internal settings bridge | api/domain/data, impl factory, Koin, temporary legacy Room boundary | Application composition only; isolates legacy/Koin from both data and UI |
+| di | favoritesModule and favoritesRoomModule; internal settings bridge; temporary legacy repository adapter factory | api/domain/data, impl factory, Koin, temporary legacy Room and domain contracts | Application composition only; isolates legacy/Koin from both data and UI |
 
 ```text
 root (later) → di → data → domain ← impl/ui
                   └────→ impl entry factory → api
                bridge → existing SettingRepository
+               adapter → existing FavoriteRepository contract
 root Navigation 3 entryProvider → favoritesEntry → FavoritesEntry.Content
 ```
 
@@ -55,6 +56,20 @@ Koin instance is mandatory; independent repository instances/old writers are not
 protected by its mutex. Before integration, switch all writes to one owner or
 provide transactional storage. Do not run parallel old/new writers and assume
 that shared JSON format prevents races.
+
+For the transition, createLegacyFavoritesRepositoryBridge(newRepository) adapts
+the existing repository contract for feed/detail/session consumers. It maps
+CoffeeShop snapshots to FavoriteShop and saved snapshots back to the existing
+CoffeeShopDetails shape without putting legacy models in domain/data. Both the
+adapter and new screen MUST receive the same new repository singleton. The
+factory does not register or replace the old Koin binding: application composition
+must explicitly replace it later, rather than load two independent writers.
+The old getFavoriteIds/isFavorite/clearAll methods return no Result, so failures
+propagate as exceptions; getFavorites/add/remove retain Result. Corrupt data
+cannot silently appear empty. Cancellation is never converted to a Result.
+The current FavoriteSync app event bus is not replaced by this adapter; feed and
+details observation must migrate to the new membership flow (or a temporary
+app-owned notification bridge) when the screen is switched.
 
 The membership use case projects/deduplicates ID sets for catalog/detail/session
 consumers without exposing saved-card presentation or metadata-only updates.
@@ -97,14 +112,18 @@ Contract tests cover legacy JSON/default/logo compatibility, all saved fields,
 ordering/deduplication, last removal, corruption, concurrent writes, observation,
 Result/cancellation, membership projection, VM lifecycle/pending/failure/retry,
 route serialization, and an isolated Koin/setting bridge graph.
+Legacy-adapter tests cover shared reads/writes, full snapshot/location mapping,
+old singular-logo rows, corruption, failure and cancellation propagation.
 Android fixtures exercise screen states/callbacks and a real NavDisplay/entryProvider
 with saveable and VM-store decorators. They use fake data and no network/real DB.
 The real database migration history is not tested by this feature fixture.
 FavoritesPreviews.kt supplies PreviewLightDark for content/loading/empty/error
 without DI, network or actual photo URLs. Compile checks are not manual IDE QA.
 
-Before switching: map catalog models to snapshots, unify favorite writers and
-session cleanup, replace global event consumers, wire distance/shop navigation,
+Before switching: bind the adapter from the SAME new repository singleton for
+all existing consumers, including ShopRepositoryImpl and UserSessionCleaner;
+replace the old Koin favorite binding rather than adding a second writer.
+Then replace global event consumers, wire distance/shop navigation,
 validate real saved rows/DB and transitions/Back/process restoration/IME/screens.
 Then integrate through root in a dedicated PR, build/smoke-test Android, and remove
 legacy code only after every consumer migrates. Native iOS UI remains later.
