@@ -1,8 +1,10 @@
 # Feature migration: API / implementation
 
 This directory now contains independent favorites api/domain/data/impl/di modules.
-Android composition now uses favorites di plus a compatibility adapter; the old
-screen/navigation and iOS binding remain. See favorites/README.md.
+Android composition now uses favorites di plus a compatibility adapter; feed
+and detail observe favorites domain membership, and the Android favorites route
+renders the new screen. The shared root still uses Navigation 2, while iOS keeps
+the old favorites screen and binding. See favorites/README.md.
 Actual registration remains in build-logic Modules.all. Android is the integration
 target; no native iOS implementation is part of these slices.
 
@@ -89,22 +91,25 @@ never rewrite published stack history or unrelated work without agreement.
 7. Delete legacy copies only after every consumer has switched. Repeat by owner;
    do not relocate all screens/models/repositories at once.
 
-## Pilot audit: favorites (Android DI integrated; UI still legacy)
+## Pilot audit: favorites (Android screen and DI integrated)
 
-Current UI: composeApp ui/screen/favorites, FavoritesViewModel and FavoritesScreen.
+Legacy UI remains in composeApp ui/screen/favorites for iOS; Android now enters
+the new feature screen through the shared root's Favorites destination.
 Current contract: modules/domain FavoriteRepository and CoffeeShop/Details.
 Current data: modules/data FavoriteRepositoryImpl and LocalFavoriteShopDto,
 using modules/room DatabaseCore.settingRepository and local_favorite_shops JSON.
 There is no favorites HTTP service to move.
 
-Dependencies to resolve before screen/navigation integration:
+Remaining integration concerns:
 
-- UI uses feed.ShopCard and app location helpers: do not depend on feed impl or
-  put CoffeeShop business presentation in design-system just to bypass this.
-- FavoriteSync is a global app event bus also observed by other consumers:
-  decide a minimal favorites api observation contract and its ownership.
-- Navigator and BaseViewModel couple presentation to app/global scope: inject
-  navigation actions and use caller/lifecycle-owned coroutine work.
+- The legacy iOS screen uses feed.ShopCard and app location helpers. Do not
+  depend on feed impl or put CoffeeShop business presentation in design-system
+  just to bypass this on Android.
+- FavoriteSync remains for the legacy iOS screen; Android feed/detail consume
+  the feature domain membership flow. Retire the event path only when every
+  remaining consumer has switched.
+- The Android feature screen uses injected navigation callbacks and a
+  lifecycle-owned ViewModel; the shared root Navigator remains transitional.
 - Persistence must preserve existing serialized rows/key during transition.
 - Session cleanup also consumes favorites: audit all repository consumers before
   deleting the legacy implementation.

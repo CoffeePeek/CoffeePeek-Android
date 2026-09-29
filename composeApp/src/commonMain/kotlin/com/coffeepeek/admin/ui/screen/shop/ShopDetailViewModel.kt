@@ -2,6 +2,7 @@ package com.coffeepeek.admin.ui.screen.shop
 
 import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.favorites.withFavoriteMembership
 import com.coffeepeek.admin.utils.ClipboardHelper
 import com.coffeepeek.admin.utils.FavoriteSync
 import com.coffeepeek.admin.utils.OpenInBrowser
@@ -19,6 +20,8 @@ import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.ReviewRepository
 import com.coffeepeek.domain.repository.SessionRepository
 import com.coffeepeek.domain.repository.ShopRepository
+import com.coffeepeek.feature.favorites.domain.ObserveFavoriteIdsUseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,13 +52,25 @@ class ShopDetailViewModel(
     private val reviewRepository: ReviewRepository,
     private val sessionRepository: SessionRepository,
     private val checkInDraftStore: CheckInDraftStore,
+    private val observeFavoriteIds: ObserveFavoriteIdsUseCase? = null,
 ) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(ShopDetailUiState())
     val uiState = _uiState.asStateFlow()
+    private val favoriteIds = MutableStateFlow<Set<String>?>(null)
 
     init {
         load()
+        observeFavoriteIds?.invoke()
+            ?.onEach { result ->
+                result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                val ids = result.getOrNull() ?: return@onEach
+                favoriteIds.value = ids
+                _uiState.update { state ->
+                    state.copy(details = state.details?.withFavoriteMembership(ids))
+                }
+            }
+            ?.launchIn(workScope)
         ReviewSync.changes
             .onEach { changedShopId ->
                 if (changedShopId == shopId) {
@@ -81,7 +96,7 @@ class ShopDetailViewModel(
             .onSuccess { details ->
                 _uiState.update {
                     it.copy(
-                        details = details,
+                        details = favoriteIds.value?.let(details::withFavoriteMembership) ?: details,
                         isLoggedIn = isLoggedIn,
                         currentUserId = currentUserId,
                         isLoading = false,

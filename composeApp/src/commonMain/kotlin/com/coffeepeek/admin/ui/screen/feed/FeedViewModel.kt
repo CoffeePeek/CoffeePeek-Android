@@ -3,6 +3,7 @@ package com.coffeepeek.admin.ui.screen.feed
 import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.settings.CityPreference
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.favorites.withFavoriteMembership
 import com.coffeepeek.admin.utils.FavoriteSync
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
@@ -11,6 +12,8 @@ import com.coffeepeek.domain.model.ShopFilters
 import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.SessionRepository
 import com.coffeepeek.domain.repository.ShopRepository
+import com.coffeepeek.feature.favorites.domain.ObserveFavoriteIdsUseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -101,12 +104,14 @@ class FeedViewModel(
     private val favoriteRepository: FavoriteRepository,
     private val cityPreference: CityPreference,
     private val sessionRepository: SessionRepository,
+    private val observeFavoriteIds: ObserveFavoriteIdsUseCase? = null,
 ) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
     val uiState = _uiState.asStateFlow()
 
     private val queryFlow = MutableStateFlow("")
+    private val favoriteIds = MutableStateFlow<Set<String>?>(null)
     private var shopsLoadJob: Job? = null
     private var isCityReady = false
 
@@ -130,21 +135,28 @@ class FeedViewModel(
             }
             .launchIn(workScope)
 
-        FavoriteSync.changes
-            .onEach { change ->
-                _uiState.update { state ->
-                    state.copy(
-                        shops = state.shops.map { shop ->
-                            if (shop.id == change.shopId) {
-                                shop.copy(isFavorite = change.isFavorite)
-                            } else {
-                                shop
-                            }
-                        },
-                    )
+        if (observeFavoriteIds == null) {
+            FavoriteSync.changes
+                .onEach { change ->
+                    _uiState.update { state ->
+                        state.copy(shops = state.shops.map { shop ->
+                            if (shop.id == change.shopId) shop.copy(isFavorite = change.isFavorite) else shop
+                        })
+                    }
                 }
-            }
-            .launchIn(workScope)
+                .launchIn(workScope)
+        } else {
+            observeFavoriteIds()
+                .onEach { result ->
+                    result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                    val ids = result.getOrNull() ?: return@onEach
+                    favoriteIds.value = ids
+                    _uiState.update { state ->
+                        state.copy(shops = state.shops.map { it.withFavoriteMembership(ids) })
+                    }
+                }
+                .launchIn(workScope)
+        }
     }
 
     private fun loadCatalogs() {
@@ -369,7 +381,9 @@ class FeedViewModel(
                 if (!isActive) return@onSuccess
                 _uiState.update { state ->
                     state.copy(
-                        shops = if (reset) result.items else state.shops + result.items,
+                        shops = (if (reset) result.items else state.shops + result.items).let { shops ->
+                            favoriteIds.value?.let { ids -> shops.map { it.withFavoriteMembership(ids) } } ?: shops
+                        },
                         currentPage = result.currentPage,
                         totalPages = result.totalPages,
                         hasMore = result.currentPage < result.totalPages,

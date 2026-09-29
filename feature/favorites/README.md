@@ -1,10 +1,12 @@
 # Favorites: incremental Android integration
 
 Android application composition now binds the new repository and a legacy-contract
-adapter as one writer. The old screen, navigation, repository implementation file,
-JSON key and database schema remain; the old repository binding is omitted on
-Android only. iOS keeps its existing binding and runtime behaviour. These changes
-are stacked on #49 → favorites foundation → UI/DI → compatibility bridge.
+adapter as one writer. Its Favorites destination renders the new feature screen
+through a platform adapter, while the shared root remains on Navigation 2. The
+old screen, route, repository implementation file, JSON key and database schema
+remain; the old repository binding is omitted on Android only. iOS keeps its
+existing screen, binding and runtime behaviour. These changes are stacked on
+#49 → favorites foundation → UI/DI → compatibility bridge → Android integration.
 
 ## Boundaries and module gate
 
@@ -21,7 +23,8 @@ Android root → di → data → domain ← impl/ui
                   └────→ impl entry factory → api
                bridge → existing SettingRepository
                adapter → existing FavoriteRepository contract
-root Navigation 3 entryProvider → favoritesEntry → FavoritesEntry.Content (later)
+Android root Navigation 2 destination → FavoritesEntry.Content (active)
+future Navigation 3 root entryProvider → favoritesEntry (prepared)
 ```
 
 Domain/data are manually constructed; no Koin annotations, contexts or service
@@ -74,9 +77,14 @@ repository and getFavorites still report Result.failure; add/remove fail without
 overwriting corrupt rows. clearAll propagates failure. Cancellation is never
 converted to a Result or an empty set. This legacy fallback must be removed when
 those consumers migrate to Result/Flow observation with explicit error UI.
-The current FavoriteSync app event bus is not replaced by this adapter; feed and
-details observation must migrate to the new membership flow (or a temporary
-app-owned notification bridge) when the screen is switched.
+The adapter itself does not emit FavoriteSync events. Android feed and shop
+details now observe ObserveFavoriteIdsUseCase from feature domain; failures retain
+the last displayed membership, and newly loaded rows are reconciled against the
+latest known ID set. On iOS the optional observer is absent and feed keeps its
+old FavoriteSync subscription. Existing feed/details still notify FavoriteSync
+after their own writes for the legacy iOS favorites screen. Android no longer
+renders that screen; remove the event path only after its remaining consumers
+are audited and switched.
 
 The membership use case projects/deduplicates ID sets for catalog/detail/session
 consumers without exposing saved-card presentation or metadata-only updates.
@@ -87,22 +95,34 @@ and shows a safe localized error, never raw storage exception text.
 
 ## Navigation / UI / platform boundaries
 
-Navigation 3 1.2.0 is used only by the new feature. Its AAR requires compileSdk 37,
-so api/impl/di and the Android app compile against 37; target/min SDK remain
-unchanged. Root owns
-NavDisplay, back stack, entry saveable/ViewModel-store decorators and shop routes;
-favorites only registers FavoritesRoute and emits onOpenShop(id)/onBack.
-The API does not publish a shop route for another business owner.
+Navigation 3 1.2.0 is used by the prepared feature route and its isolated UI
+tests. Its AAR requires compileSdk 37, so api/impl/di and the Android app compile
+against 37; target/min SDK remain unchanged. The shared root still owns a
+Navigation 2 NavHost and ShopDetail route. Android's Favorites destination calls
+FavoritesEntry.Content and translates onOpenShop(id)/onBack into the existing
+root navigation events. iOS still renders the legacy screen from the same root
+route. This temporary platform difference is isolated to the composition module;
+feature UI itself has no Navigator dependency. A separate root migration will
+own Navigation 3 NavDisplay, back stack and entry decorators. Do not nest a
+second NavDisplay inside the Navigation 2 destination. The API does not publish
+a shop route for another business owner.
 
 The new screen covers loading/empty/error/list, retry, separate remove action and
 pending-removal disablement. It uses brand primitives and feature-owned cards.
-Distance is a host-injected label by ID: no location permissions/global platform
-service is copied. Kamel renders URLs in UI; it is not a favorites HTTP service.
-The prepared card is not a pixel-identical feed card: mascot/provider art,
-roaster logo overlays, price-bean/rating presentation and distance permissions
-remain consumer-integration decisions. All saved fields remain in data/domain.
+Distance is a host-injected label from saved coordinates: the feature never
+reads device location or permissions. Android composition reuses the app's
+existing distance calculation, reads last known location only if permission
+was already granted, and shows no distance otherwise. No permission prompt or
+location service is copied into the feature. Kamel renders URLs in UI; it is
+not a favorites HTTP service. The feature-owned card now presents the saved
+rating, remove action, roaster logos, open status, brew methods, address,
+distance, price label and tag in the legacy card's visual hierarchy. It does
+not import feed UI or legacy CoffeeShop. Exact parity is impossible from the
+saved format: it contains neither `isNew` nor shop type; the old screen also
+cannot reconstruct those values from saved rows. The BYN price symbols and
+photo placeholder art still differ. All saved fields remain in data/domain.
 Default Russian strings match the current feature language; localization/resource
-ownership, complete visual parity and long-label/RTL/large-font UI QA remain gates.
+ownership, RTL/large-font and real-photo UI QA remain gates.
 
 Domain/data declare and compile iOS simulator variants with no Android APIs,
 Koin or native iOS implementation. Android api/impl/di are the tested UI/composition
@@ -123,15 +143,30 @@ Legacy-adapter tests cover shared reads/writes, full snapshot/location mapping,
 old singular-logo rows, corruption, failure and cancellation propagation.
 Android fixtures exercise screen states/callbacks and a real NavDisplay/entryProvider
 with saveable and VM-store decorators. They use fake data and no network/real DB.
-The real database migration history is not tested by this feature fixture.
-FavoritesPreviews.kt supplies PreviewLightDark for content/loading/empty/error
-without DI, network or actual photo URLs. Compile checks are not manual IDE QA.
+App-level tests exercise feed/detail membership changes both before and after
+their initial shop responses, including reconciliation of late-loaded rows.
+Android instrumented app tests also verify that the new screen adapter sends
+shop-open and Back actions to the existing root Navigator. Feature UI tests
+verify coordinate forwarding and missing-coordinate handling; app unit tests
+verify formatting and absent/invalid location. A DI instrumented test writes
+legacy JSON to the actual Room settings table, closes and reopens the database,
+then verifies the new repository and legacy adapter share that persisted row
+and one writer. It uses a uniquely named test database, not user data. This
+does not validate a full signed-in user journey or historic Room migrations
+from schema versions 1/2. FavoritesPreviews.kt supplies PreviewLightDark for
+content, closed/long-title, loading, empty and error without DI, network or
+actual photo URLs. UI tests render light and dark; IDE preview pixels have not
+been manually inspected in this environment.
 
-Android DI now supplies the adapter from the same singleton to existing
-consumers, including ShopRepositoryImpl and UserSessionCleaner. Before replacing
-the old screen, migrate global FavoriteSync consumers, wire distance/shop navigation,
-validate real saved rows/DB and transitions/Back/process restoration/IME/screens.
-Keep UI/nav integration in a dedicated PR, build/smoke-test Android, and remove
-legacy code only after every consumer migrates. Native iOS UI remains later.
+Android DI supplies the adapter from the same singleton to existing consumers,
+including ShopRepositoryImpl and UserSessionCleaner. Feed/details observe
+membership directly. The Android screen is now wired for shop navigation,
+Back and an optional distance label without a new permission prompt. The card
+uses all presentation fields actually persisted by the old format, but real
+photos/logos, RTL, large fonts and visual details need device review. Validate
+a signed-in journey with pre-existing favorites, transitions, Back, process
+restoration and IME before merging this integration.
+Root Navigation 3 migration, final FavoriteSync removal and legacy UI deletion
+remain separate follow-up steps. Native iOS UI remains later.
 
 Reference: [Navigation 3 releases](https://developer.android.com/jetpack/androidx/releases/navigation3).

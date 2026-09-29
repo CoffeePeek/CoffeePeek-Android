@@ -5,7 +5,6 @@ import com.coffeepeek.admin.ui.screen.auth.registr.RegisterScreen
 import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesScreen
 import com.coffeepeek.admin.ui.screen.deleteaccount.DeleteAccountPendingScreen
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileScreen
-import com.coffeepeek.admin.ui.screen.favorites.FavoritesScreen
 import com.coffeepeek.admin.ui.screen.contributions.ContributionKind
 import com.coffeepeek.admin.ui.screen.contributions.MyContributionsScreen
 import com.coffeepeek.admin.ui.screen.roaster.AddRoasterScreen
@@ -30,6 +29,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.coffeepeek.admin.ui.dialogs.ErrorDialog
 import com.coffeepeek.admin.ui.dialogs.LoadingDialog
+import com.coffeepeek.admin.ui.favorites.FavoritesDestination
 import com.coffeepeek.admin.ui.screen.auth.AuthScreen
 import com.coffeepeek.admin.ui.screen.main.MainScreen
 import com.coffeepeek.admin.ui.screen.review.CreateReviewScreen
@@ -350,7 +350,7 @@ object Navigator {
                     val route = backStack.toRoute<Screen.ReviewEdit>()
                     EditReviewScreen(reviewId = route.reviewId)
                 }
-                composable<Screen.Favorites> { FavoritesScreen() }
+                composable<Screen.Favorites> { FavoritesDestination() }
                 composable<Screen.VisitedPlaces> { VisitedPlacesScreen() }
                 composable<Screen.CitySettings> { CityScreen() }
                 composable<Screen.ThemeSettings> { ThemeScreen() }

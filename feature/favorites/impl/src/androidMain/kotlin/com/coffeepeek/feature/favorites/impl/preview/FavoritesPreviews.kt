@@ -9,13 +9,22 @@ import com.coffeepeek.feature.favorites.impl.ui.FavoritesUiState
 
 @Composable
 private fun Sample(state: FavoritesUiState) = CoffeePeekTheme {
-    FavoritesScreen(state, {}, {}, {}, {}, { "1 км" })
+    FavoritesScreen(state, {}, {}, {}, {}, { _, _ -> "1 км" })
 }
 
 @PreviewLightDark @Composable
 private fun FavoritesContentPreview() = Sample(FavoritesUiState(
     shops = listOf(FavoriteShop("sample", "Любимая кофейня", rating = 4.8, reviewCount = 12,
-        cityName = "Минск", address = "Улица Кофейная, 1", isOpen = true, tags = listOf("Спешелти"))),
+        cityName = "Минск", address = "Улица Кофейная, 1", latitude = 53.9, longitude = 27.56,
+        isOpen = true, priceRange = "\$\$", tags = listOf("Спешелти"),
+        brewMethods = listOf("Эспрессо", "Фильтр"))),
+    isLoading = false,
+))
+
+@PreviewLightDark @Composable
+private fun FavoritesClosedPreview() = Sample(FavoritesUiState(
+    shops = listOf(FavoriteShop("closed", "Кофейня с очень длинным названием без фото",
+        cityName = "Минск", isOpen = false, brewMethods = listOf("Пуровер"))),
     isLoading = false,
 ))
 
