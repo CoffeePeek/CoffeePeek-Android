@@ -15,12 +15,27 @@ must be verified before moving on even when it does not get its own PR.
   `./gradlew :composeApp:assembleDebug :composeApp:testDebugUnitTest
   :feature:favorites:data:testDebugUnitTest
   :feature:favorites:impl:testDebugUnitTest --no-daemon` (passed).
-- [ ] Put Android favorites completion before the already prepared shop-report
-  PR in the merge order, without rewriting published PR history.
-- [ ] Complete the Android consumer/writer audit in step 1.
-- [ ] Prove historical Room persistence compatibility in step 2.
-- [ ] Verify the complete Android user journey in step 3.
-- [ ] Finish UI, accessibility and locale QA in step 4.
+- [x] Create `feature/favorites-android-finalization` from #67 and carry the
+  rules and plan forward. The published #68 remains unchanged while favorites
+  work is paused there.
+- [x] Map Android favorite readers and writers in step 1.
+- [x] Decide and test session-cleanup failure behaviour in step 1. All logout
+  paths continue after favorite-storage failure; the failure is returned to
+  explicit logout / shown on forced logout, disk-cache cleanup still runs, and
+  cancellation still propagates.
+- [x] Prove historical Room persistence compatibility in step 2: v1 and v2
+  fixtures both migrated to v3 on Pixel 10a / Android 17; saved favorites were
+  readable through the new repository and legacy adapter, mutations persisted,
+  and clear remained clear after reopening.
+- [ ] Verify the complete Android user journey in step 3. Existing unit tests
+  cover late membership updates in feed/detail and destination callbacks; the
+  complete signed-in round trips, logout, location-permission states, and
+  process recreation are not verified end-to-end.
+- [ ] Finish UI, accessibility and locale QA in step 4. The favorite-card
+  removal target is now 48dp and only Russian favorites resources exist;
+  visual/screen-reader QA and product locale confirmation remain open. The
+  latest UI instrumentation run had 2/7 tests lose the Compose hierarchy while
+  the test Activity was not foreground.
 - [ ] Perform Android-only cleanup and the final gate in step 5.
 
 ## Baseline and boundaries
@@ -39,59 +54,87 @@ must be verified before moving on even when it does not get its own PR.
 
 ## 0. Put the work in the intended PR order
 
-The current `feature/favorites-android-completion` branch descends from
-`feature/shop-report-domain-data` (#68). If left as-is, favorites completion
-cannot be merged before the next feature. Create a new favorites work branch
-from `feature/design-system-colocated-previews` (#67) and copy only the
-documentation changes from the current branch. Keep #68 open but pause further
-shop-report work. When favorites is ready, put #68 after the favorites checkpoint
-by merging the completed favorites branch into #68 and retargeting its PR;
-verify both PR diffs and tests before any merge. Do not force-push or delete the
-existing work branch until all content is accounted for.
+The earlier `feature/favorites-android-completion` branch descended from
+`feature/shop-report-domain-data` (#68). The active
+`feature/favorites-android-finalization` branch now starts at
+`feature/design-system-colocated-previews` (#67), so its eventual PR can merge
+before #68. Keep #68 open but pause further shop-report work. Once favorites is
+ready and merged, retarget #68 to `main` and verify its diff and tests. Do not
+force-push or delete the earlier work branch until all content is accounted for.
 
 Exit: favorites can be reviewed and merged before shop-report; #68 still has
 only its intended shop-report diff against its updated base.
 
 ## 1. Establish a reproducible Android baseline
 
-1. Check the current Android app build and the affected feature, bridge, and
-   app tests. Record the exact commands and results in the checkpoint PR.
-2. Audit every Android consumer of favorite reads, writes, membership and
+Audit findings so far: Android DI disables `dataModule`'s legacy favorite writer
+and registers one `FavoritesRepository`, its old-contract adapter, and the
+screen entry from the Android Room settings storage. Feed and shop details still
+write through the old contract but observe the new repository's membership flow.
+`ShopRepositoryImpl`, `AuthRepositoryImpl`, and session cleanup also consume the
+old contract, which resolves to that adapter on Android. iOS keeps the old writer
+and old favorites screen; `FavoriteSync` is still part of that shared path.
+No second Android writer has been found.
+
+1. [x] Check the current Android app build and the affected feature, bridge,
+   and app tests. Record exact commands and results below.
+2. [x] Audit every Android consumer of favorite reads, writes, membership and
    session cleanup: the new screen, feed, shop detail, `ShopRepositoryImpl`,
    `UserSessionCleaner`, explicit logout and forced logout. Verify that Android
    DI resolves a single new repository plus its old-contract adapter, that the
    old Android writer binding is disabled, and that no direct writes bypass the
    adapter. Record which shared consumers remain for iOS before cleanup.
-3. Capture the current navigation and data behaviour with existing tests
+3. [x] Capture the current navigation and data behaviour with existing tests
    before changing it; avoid a root navigation rewrite in this step.
-4. Define the failure policy for session cleanup. Today the cleaner clears the
-   session before clearing favorites; test what happens if storage clear fails
-   during explicit or forced logout, then choose a safe Android behaviour
-   without silently losing the error or altering iOS semantics accidentally.
+4. [x] Define and implement the failure policy for session cleanup. The cleaner
+   always attempts disk-cache cleanup; explicit logout reports the cleanup
+   failure but continues Google sign-out and review-draft cleanup; forced
+   logout reports the cleanup warning while continuing sign-out/navigation.
+   The Android favorites binding is unchanged; shared behavior was regression-
+   compiled and tested for iOS Simulator.
 
 Exit: a documented consumer/writer map, a green baseline or explicit failures,
 no unaccounted second Android writer, and an explicit logout failure policy.
 
 ## 2. Prove persisted-data compatibility
 
-1. Add Android instrumentation coverage for real, historically accurate Room
+1. [x] Add Android instrumentation coverage for real, historically accurate Room
    database fixtures at versions 1 and 2, migrated to the current version 3.
    Verify that `local_favorite_shops` survives, the new repository can read it,
    and the legacy adapter sees the same rows. Version 1's exported schema is
    present under `modules/room/schemas`; version 2's exported schema is in
    repository history at `e440150`. Use those actual schemas rather than
    fabricating version fixtures.
-2. Exercise save, remove and session clear after migration, including reopening
-   the database. Include old singular-logo JSON, unknown fields, duplicate IDs,
-   ordering and removal of the last item. Keep tests on uniquely named
-   disposable databases, never a developer or user database.
-3. Retain coverage for malformed JSON and cancellation: read failures must not
+2. [x] Exercise save, remove and session clear after migration, including reopening
+   the database. Migration fixtures cover old singular-logo JSON and unknown
+   fields; repository tests cover duplicate IDs, ordering, malformed data, and
+   removing the last item. All instrumentation uses uniquely named disposable
+   databases, never a developer or user database.
+3. [x] Retain coverage for malformed JSON and cancellation: read failures must not
    silently overwrite saved rows, ordinary failures stay in `Result`, and
    cancellation must not become `Result`. Test that clear is only an explicit
    session/user operation, not a response to a failed read.
 
 Exit: both historical migration paths use their exported schemas and pass,
 and the shared-writer behaviour remains verified after database reopen.
+
+Verification: `:composeApp:compileDebugAndroidTestKotlin` and the focused
+`connectedDebugAndroidTest` for `FavoritesRoomMigrationTest` passed on Pixel 10a
+(Android 17). `:feature:favorites:impl:compileDebugKotlinAndroid`,
+`:feature:favorites:impl:testDebugUnitTest`, and the instrumentation-test Kotlin
+compile also passed after increasing the remove target to 48dp. Existing common
+repository tests cover duplicate IDs/order, malformed JSON, non-destructive read
+failure, `Result` failures, and cancellation propagation.
+
+Session cleanup verification: `:modules:data:allTests` passed, including a new
+test that proves a favorite-clear exception is preserved while cache cleanup
+still runs. `:composeApp:compileDebugKotlinAndroid`,
+`:composeApp:testDebugUnitTest`, `:composeApp:assembleDebug`, and
+`:modules:data:allTests` (including iOS Simulator compilation/tests) passed.
+`:composeApp:assembleRelease` also passed. On the latest UI instrumentation rerun,
+5 of 7 tests passed and 2 failed with `No compose hierarchies found`; device
+logs show the test Activity was not foreground when Compose assertions ran. No
+unrelated foreground app was closed or altered.
 
 ## 3. Verify the complete Android journey
 
@@ -116,12 +159,13 @@ saved row, crash, or navigation regression. Record the device/API used.
 1. Inspect light/dark previews and the running screen with real photos/logos,
    missing images, long titles, large system font and RTL layout. Check touch
    targets, accessibility labels and screen-reader order. In particular, the
-   saved-card remove control is currently drawn at 36dp and needs a measured
-   accessible touch target. Fix only issues owned by favorites; shared component
-   defects belong to the design system.
-2. Audit actual supported app locales. The feature currently has Russian
-   strings only; add another translation only when that locale is confirmed as
-   supported, and keep all feature strings/accessibility text in resources.
+   saved-card remove control had a 36dp target and is now 48dp. Fix only issues
+   owned by favorites; shared component defects belong to the design system.
+2. Audit actual supported app locales. Favorites currently has Russian strings
+   only and this checkout has no alternate favorites resource directory or app
+   locale configuration. Keep translation pending until the product's
+   supported locale list is confirmed; keep all feature strings/accessibility
+   text in resources.
 3. Compare the saved card with the legacy Android behaviour using only fields
    persisted in favorites. Document unavoidable differences such as unavailable
    `isNew`/shop type instead of inventing missing data.

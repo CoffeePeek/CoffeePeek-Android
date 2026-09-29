@@ -78,7 +78,9 @@ internal fun FavoriteCard(
                         RatingBadge(rating, shop.reviewCount)
                     }
                     Box(
-                        modifier = Modifier.size(36.dp)
+                        // Keep the full interactive target comfortably usable by touch and
+                        // assistive technology; the icon itself remains visually compact.
+                        modifier = Modifier.size(48.dp)
                             .clip(RoundedCornerShape(CpDimens.radiusLg))
                             .background(Color.Black.copy(alpha = 0.68f))
                             .clickable(enabled = !removing, role = Role.Button, onClick = onRemove),
