@@ -74,18 +74,15 @@ import com.coffeepeek.admin.ui.component.priceLevelValue
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.AppButton
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
-import com.coffeepeek.admin.ui.component.CoffeeShopImage
-import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CpCircularBackButton
 import com.coffeepeek.admin.ui.component.brewMethodIcon
 import com.coffeepeek.admin.ui.component.PhotoAttachmentsSection
+import com.coffeepeek.admin.ui.component.RoasterAvatar
 import com.coffeepeek.admin.utils.MAX_MENU_PHOTOS
 import com.coffeepeek.admin.utils.MAX_SHOP_PHOTOS
 import com.coffeepeek.admin.utils.PickedImage
 import com.coffeepeek.admin.location.LocationPermissionEffect
-import androidx.compose.ui.layout.ContentScale
 import org.jetbrains.compose.resources.painterResource
-import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
 import com.coffeepeek.admin.di.platformViewModel
 
@@ -665,31 +662,6 @@ private fun StepFeatures(state: AddShopUiState, vm: AddShopViewModel) {
             selectedIds = state.selectedEquipmentIds,
             onToggle = vm::toggleEquipment,
         )
-    }
-}
-
-@Composable
-private fun RoasterAvatar(item: CatalogItem) {
-    Box(
-        modifier = Modifier
-            .size(28.dp)
-            .clip(CircleShape),
-    ) {
-        val photoUrl = item.photoUrl?.takeIf(String::isNotBlank)
-        if (photoUrl != null) {
-            CoffeeShopImage(
-                imageUrl = photoUrl,
-                contentDescription = item.name,
-                contentScale = ContentScale.Crop,
-                placeholderLabelSize = 6.sp,
-                modifier = Modifier.fillMaxSize(),
-            )
-        } else {
-            CoffeeShopPlaceholderImage(
-                labelSize = 6.sp,
-                contentDescription = item.name,
-            )
-        }
     }
 }
 

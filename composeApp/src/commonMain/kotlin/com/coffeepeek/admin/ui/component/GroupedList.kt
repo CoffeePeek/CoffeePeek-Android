@@ -6,12 +6,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,26 +54,32 @@ private val RowInset = 16.dp
 
 @Composable
 fun GroupSection(
-    title: String,
+    title: String? = null,
     trailing: String? = null,
     footer: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = RowInset)
-                .padding(bottom = 6.dp),
-        ) {
-            Text(
-                text = title.uppercase(),
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            if (trailing != null) {
-                Text(text = trailing, fontSize = 13.sp, color = CpColor.Primary)
+        if (title != null || trailing != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = RowInset)
+                    .padding(bottom = 6.dp),
+            ) {
+                if (title != null) {
+                    Text(
+                        text = title.uppercase(),
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
+                if (trailing != null) {
+                    Text(text = trailing, fontSize = 13.sp, color = CpColor.Primary)
+                }
             }
         }
         Column(
@@ -147,6 +157,41 @@ fun ActionRow(
     }
 }
 
+/** iOS-style navigation row: the whole 44dp+ row opens the next screen. */
+@Composable
+fun NavigationRow(
+    label: String,
+    onClick: () -> Unit,
+    description: String? = null,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .heightIn(min = RowMinHeight)
+            .padding(horizontal = RowInset, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = label, fontSize = 17.sp, color = MaterialTheme.colorScheme.onSurface)
+            if (description != null) {
+                Text(
+                    text = description,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Icon(
+            imageVector = CpIcons.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
 @Composable
 fun RowSeparator() {
     HorizontalDivider(
@@ -203,6 +248,31 @@ fun CheckmarkSection(
         if (extraRows != null) {
             if (visibleItems.isNotEmpty()) RowSeparator()
             extraRows()
+        }
+    }
+}
+
+@Composable
+fun RoasterAvatar(item: CatalogItem) {
+    Box(
+        modifier = Modifier
+            .size(28.dp)
+            .clip(CircleShape),
+    ) {
+        val photoUrl = item.photoUrl?.takeIf(String::isNotBlank)
+        if (photoUrl != null) {
+            CoffeeShopImage(
+                imageUrl = photoUrl,
+                contentDescription = item.name,
+                contentScale = ContentScale.Crop,
+                placeholderLabelSize = 6.sp,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            CoffeeShopPlaceholderImage(
+                labelSize = 6.sp,
+                contentDescription = item.name,
+            )
         }
     }
 }

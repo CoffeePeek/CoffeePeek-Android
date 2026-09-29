@@ -2,7 +2,6 @@ package com.coffeepeek.admin.ui.component
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +37,8 @@ fun CoffeePeekPullToRefresh(
 ) {
     val density = LocalDensity.current
     val thresholdPx = with(density) { 72.dp.toPx() }
+    val indicatorSize = CpDimens.loaderButton
+    val indicatorSizePx = with(density) { indicatorSize.toPx() }
     var pullOffset by remember { mutableFloatStateOf(0f) }
     var lastRefreshMark by remember { mutableStateOf<TimeMark?>(null) }
 
@@ -115,12 +116,14 @@ fun CoffeePeekPullToRefresh(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = CpDimens.spacing2)
-                    .graphicsLayer { alpha = progress },
+                    .graphicsLayer {
+                        alpha = progress
+                        translationY = ((contentOffsetPx - indicatorSizePx) / 2f).coerceAtLeast(0f)
+                    },
                 contentAlignment = Alignment.TopCenter,
             ) {
                 CoffeePeekLoader(
-                    size = CpDimens.loaderButton,
+                    size = indicatorSize,
                     strokeWidth = 2.dp,
                 )
             }
