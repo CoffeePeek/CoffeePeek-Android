@@ -158,7 +158,8 @@ empty packages to fill a template.
 
 Use one-way MVI flow where it clarifies behaviour: UI emits typed actions,
 ViewModel reduces durable state or emits one-off events, and the runtime screen
-maps navigation events to caller callbacks. No generic MVI base class is required.
+maps navigation events to caller callbacks. New MVI ViewModels can inherit the
+typed core/presentation base; legacy ViewModels remain on their current path.
 
 Give each standalone component its own named file. `NameScreen` is the runtime
 adapter that observes a lifecycle-owned ViewModel and forwards state/events to
@@ -169,9 +170,13 @@ source file, not in a preview-only file. Shared `commonMain` Compose UI uses pai
 multiplatform light/dark previews; Android-only UI can use `PreviewLightDark` in
 `androidMain`. Do not move shared UI to Android solely for preview tooling.
 
-Use the existing BaseViewModel only where its behaviour is genuinely reusable and
-safe across KMP platforms. Audit lifecycle cancellation, `Result` errors, loading
-ownership and event delivery before changing it; do not mandate inheritance.
+The old application BaseViewModel remains transitional for legacy screens. New
+MVI ViewModels inherit the typed core/presentation base, which owns a private
+state flow and one-off event channel on top of the multiplatform lifecycle
+ViewModel. It launches each submitted action independently in the standard
+lifecycle scope, without a serialized queue, global catch-all, or the old
+loading/error behaviour. Features implement suspending action handlers and own
+their Result failures, cancellation, and conflicting-action policy.
 Place reusable visual tokens/components in design-system, feature-specific UI and
 assets in the feature, and user-facing strings/accessibility text in resources.
 Verify supported locales and translation parity before documenting their number.
@@ -185,6 +190,7 @@ responsibilities. Examples:
 core/network          HttpClient, auth/interceptors, serialization, logging, errors
 core/database         Room factory/configuration, database bootstrap, migrations
 core/coroutines       dispatcher and application-scope abstractions
+core/presentation     typed MVI ViewModel base and state/action/event contract
 core/navigation       shared navigation infrastructure, if truly required
 core/design-system    theme, typography, dimensions, icons, UI primitives
 ```
@@ -192,6 +198,14 @@ core/design-system    theme, typography, dimensions, icons, UI primitives
 Feature-specific API services, DTOs, entities, and DAOs are not core code. Do
 not create broad `base`, `common`, `utils`, `helpers`, `misc`, or `shared`
 modules. Name cross-cutting code by its actual responsibility instead.
+The presentation base extends the multiplatform lifecycle ViewModel and owns
+private `MutableStateFlow` plus a buffered one-off event channel. It exposes
+read-only `state`/`events`, atomic `updateState`, `currentState`, and suspending
+`sendEvent`. Its public `onAction` launches a coroutine for each action and
+delegates to the feature's suspending `handleActionInternal`. It does not own
+an action queue, custom scope, global errors or loading. Feature impl modules
+keep Result/error decisions local and guard actions that must not overlap.
+Event-less screens may use `Nothing` without an event class.
 
 ## Navigation and DI
 

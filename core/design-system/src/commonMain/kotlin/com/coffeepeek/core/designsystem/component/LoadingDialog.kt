@@ -9,6 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
@@ -34,3 +36,12 @@ fun LoadingDialog(show: Boolean, loadingDescription: String, text: String? = nul
         }
     }
 }
+
+// Modal rendering requires Interactive Preview or Run Preview in some IDE versions.
+@Composable
+private fun LoadingDialogPreviewContent(darkTheme: Boolean) = CoffeePeekTheme(darkTheme = darkTheme) {
+    LoadingDialog(true, "Loading", "Please wait")
+}
+
+@Preview @Composable private fun LoadingDialogLightPreview() = LoadingDialogPreviewContent(false)
+@Preview @Composable private fun LoadingDialogDarkPreview() = LoadingDialogPreviewContent(true)

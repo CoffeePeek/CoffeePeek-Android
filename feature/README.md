@@ -41,7 +41,8 @@ Do not create empty placeholders or a second application. Api has no data/UI
 implementation or Koin declarations. Domain uses pure Kotlin/approved domain
 dependencies; it may depend on api only when those contracts are equally pure.
 Data depends on domain and needed core infrastructure. Impl depends on api/domain
-and design-system; its UI cannot access data internals. Favorites Koin and the
+and design-system; new MVI ViewModels extend core/presentation's typed base, while
+its UI cannot access data internals. Favorites Koin and the
 temporary legacy bridge live in composeApp/androidMain. New features should be
 assembled by composeApp Koin/platform packages unless another Gradle boundary
 has a demonstrated need.
@@ -116,11 +117,12 @@ list into empty modules or remove the iOS legacy path before its replacement wor
 2. Completed: move the temporary favorites Koin/Room/legacy bridge into Android
    application composition, preserving one repository instance/writer and its
    persistence tests. The former favorites/di module is removed.
-3. Audit the existing BaseViewModel against lifecycle, cancellation, Result and
-   error presentation. Extract only a proven reusable pattern; do not require
-   migrated ViewModels to inherit a generic base.
-4. Move existing design-system preview-only fixtures beside their components in
-   scoped groups, checking paired themes and preserving commonMain UI ownership.
+3. Completed: audit the existing BaseViewModel against lifecycle, cancellation,
+   Result and error presentation. Fix cancellation handling and lifecycle cleanup;
+   do not require migrated ViewModels to inherit a generic base.
+4. Completed: move design-system preview-only fixtures beside their components
+   in scoped groups, with paired themes and commonMain UI ownership. IDE/modal
+   visual rendering still requires manual inspection.
 5. Decide the iOS presentation boundary for favorites explicitly: shared Compose
    UI in the current SwiftUI host or a native SwiftUI screen over shared domain/data.
    Then prepare required native targets, platform storage/DI and tests before
@@ -157,6 +159,25 @@ Possible pilot public capabilities: favorite observation/change and route/entry
 contracts. Final signatures depend on consumer audit, not speculative DTO export.
 Domain/data/UI preparation can proceed independently; switching the app requires
 its own testable integration slice.
+
+## Legacy BaseViewModel audit
+
+Twenty-one legacy ViewModels inherit BaseViewModel; only auth and registration
+call its launchRequest helper. Those callers unwrap repository Result with
+getOrThrow, so request failures still enter their existing local/global error
+paths. launchRequest now rethrows CancellationException and releases the global
+loading indicator in finally. ViewModelStore disposal cancels its work scope
+through the registered closeable; the duplicate onCleared cancellation was
+removed and is covered by a lifecycle test. Unused stateHere and handleError
+base wrappers were removed after a repository-wide reference search.
+
+The legacy workScope uses Dispatchers.Default and a SupervisorJob. Changing all
+inheritors to viewModelScope here would alter threading and lifecycle behaviour
+outside favorites, so that migration belongs to each owning feature. The global
+LoadingHandler is a Boolean, not request-counted: overlapping legacy requests
+may clear one another's indicator. ErrorHandler likewise owns global presentation.
+Do not copy these patterns into new MVI screens or create another generic base;
+use lifecycle-owned jobs, local state/events and explicit Result handling there.
 
 ## Completion gate per slice
 

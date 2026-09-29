@@ -15,7 +15,7 @@ existing screen, binding and runtime behaviour. These changes are stacked on
 | api | Serializable FavoritesRoute: NavKey and minimal Composable FavoritesEntry interface | Navigation 3 runtime, Compose runtime, serialization | Root/feature navigation; small screen-construction ABI without VM/data |
 | domain | FavoriteShop snapshot, FavoritesRepository Result/Flow contracts, ObserveFavoriteIdsUseCase | Kotlin + coroutines only | Own UI/data, explicitly supported cross-feature membership consumers; independent business ABI/tests |
 | data | Internal StoredFavorite/mapping/repository; public storage construction port and factory | domain + serialization | Application composition only; UI cannot import DTOs or repository implementation |
-| impl | Internal MVI ViewModel/state/actions/events/screen/cards; API implementation and feature Navigation 3 registration | api/domain, design-system, lifecycle, Kamel | Application composition; public API consumers do not acquire screen or VM implementation |
+| impl | Internal MVI ViewModel/state/actions/events/screen/cards; API implementation and feature Navigation 3 registration | api/domain, design-system, core presentation contract, lifecycle, Kamel | Application composition; public API consumers do not acquire screen or VM implementation |
 
 ```text
 Android composition → data → domain ← impl/ui
@@ -51,6 +51,10 @@ ViewModel, `FavoritesUiState` describes durable rendering, and `FavoritesEvent`
 carries one-off shop/back navigation to the runtime screen. The stateless
 `FavoritesScreenContent` and components stay previewable without DI. No
 presentation-only `ui/data`, backend or formatter package is needed here.
+The ViewModel inherits the typed core presentation base. Core owns its private
+state flow and event channel; favorites owns the actions, repository observation,
+Result failures and cancellation handling. `updateState` performs atomic
+`MutableStateFlow.update` without duplicating that extension.
 
 The storage key remains local_favorite_shops. Internal JSON field names/defaults
 match the existing saved format, including single roasterPhotoUrl fallback and

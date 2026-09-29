@@ -9,6 +9,7 @@ import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,11 +32,13 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
 import com.coffeepeek.core.designsystem.theme.CpColor
 import com.coffeepeek.core.designsystem.theme.CpDimens
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 private const val ROTATION_DURATION_MS = 1600
 private const val FILL_DURATION_MS = 2800
@@ -209,3 +212,11 @@ private fun pathAlongPerimeter(points: List<Offset>, endFraction: Float): Path {
     }
     return path
 }
+
+@Composable
+private fun CoffeePeekLoaderPreviewContent(darkTheme: Boolean) = CoffeePeekTheme(darkTheme = darkTheme) {
+    Surface { CoffeePeekLoader("Loading") }
+}
+
+@Preview @Composable private fun CoffeePeekLoaderLightPreview() = CoffeePeekLoaderPreviewContent(false)
+@Preview @Composable private fun CoffeePeekLoaderDarkPreview() = CoffeePeekLoaderPreviewContent(true)

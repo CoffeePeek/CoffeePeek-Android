@@ -1,9 +1,16 @@
 package com.coffeepeek.core.designsystem.component
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,9 +23,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.core.designsystem.theme.CpDimens
+import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Attach the supplied modifier to the LazyColumn using [listState].
@@ -105,3 +114,38 @@ fun CoffeePeekPullToRefresh(
         }
     }
 }
+
+@Composable
+private fun CoffeePeekPullToRefreshPreviewContent(darkTheme: Boolean) = CoffeePeekTheme(darkTheme = darkTheme) {
+    var refreshing by remember { mutableStateOf(false) }
+    val list = rememberLazyListState()
+    Surface {
+        Column(Modifier.padding(16.dp)) {
+            CoffeePeekPullToRefresh(list, refreshing, { refreshing = true }, "Refresh", "Refreshing",
+                modifier = Modifier.height(240.dp)) { scrollModifier ->
+                LazyColumn(state = list, modifier = scrollModifier.fillMaxSize()) {
+                    items(12) { Text("Example item ${it + 1}", Modifier.fillMaxWidth().padding(16.dp)) }
+                }
+            }
+            AppButton("Finish sample refresh", { refreshing = false }, enabled = refreshing)
+        }
+    }
+}
+
+@Composable
+private fun CoffeePeekRefreshingPreviewContent(darkTheme: Boolean) = CoffeePeekTheme(darkTheme = darkTheme) {
+    val list = rememberLazyListState()
+    Surface {
+        CoffeePeekPullToRefresh(list, true, {}, "Refresh", "Refreshing",
+            modifier = Modifier.height(240.dp).padding(16.dp)) { scrollModifier ->
+            LazyColumn(state = list, modifier = scrollModifier.fillMaxSize()) {
+                items(4) { Text("Existing item ${it + 1}", Modifier.padding(16.dp)) }
+            }
+        }
+    }
+}
+
+@Preview @Composable private fun CoffeePeekPullToRefreshLightPreview() = CoffeePeekPullToRefreshPreviewContent(false)
+@Preview @Composable private fun CoffeePeekPullToRefreshDarkPreview() = CoffeePeekPullToRefreshPreviewContent(true)
+@Preview @Composable private fun CoffeePeekRefreshingLightPreview() = CoffeePeekRefreshingPreviewContent(false)
+@Preview @Composable private fun CoffeePeekRefreshingDarkPreview() = CoffeePeekRefreshingPreviewContent(true)

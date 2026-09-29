@@ -21,6 +21,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,8 +31,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
+import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
 import com.coffeepeek.core.designsystem.theme.CpDimens
 import com.coffeepeek.core.designsystem.icons.CpIcons
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun SettingsSection(
@@ -140,3 +143,17 @@ fun SettingsDivider() {
         thickness = 1.dp,
     )
 }
+
+@Composable
+private fun SettingsListPreviewContent(darkTheme: Boolean) = CoffeePeekTheme(darkTheme = darkTheme) {
+    Surface {
+        SettingsSection("Settings", description = "Presentation only") {
+            SettingsRow(CpIcons.Settings, "Appearance", description = "System theme", onClick = {})
+            SettingsDivider()
+            SettingsRow(CpIcons.Settings, "Unavailable", onClick = {}, enabled = false)
+        }
+    }
+}
+
+@Preview @Composable private fun SettingsListLightPreview() = SettingsListPreviewContent(false)
+@Preview @Composable private fun SettingsListDarkPreview() = SettingsListPreviewContent(true)

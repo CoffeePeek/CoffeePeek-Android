@@ -30,6 +30,7 @@ object Modules {
         const val network = ":core:network"
         const val database = ":core:database"
         const val designSystem = ":core:design-system"
+        const val presentation = ":core:presentation"
     }
 
     val all: List<String> = listOf(
@@ -42,6 +43,7 @@ object Modules {
         core.network,
         core.database,
         core.designSystem,
+        core.presentation,
         feature.favorites.api,
         feature.favorites.domain,
         feature.favorites.data,

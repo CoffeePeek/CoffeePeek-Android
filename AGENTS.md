@@ -108,8 +108,14 @@ still owns its root back stack and cross-feature routing.
 - For MVI screens, model real user intents as `Action`, durable rendering data as
   immutable `State`, and non-replayable effects such as navigation as `Event`.
   Send actions into one ViewModel entry point. The screen maps events to caller
-  callbacks; it does not own the app's navigation implementation. Do not invent
-  unused action/event classes or a generic MVI base class.
+  callbacks; it does not own the app's navigation implementation. New MVI
+  ViewModels inherit `core/presentation`'s typed `MviViewModel`; the old
+  application `BaseViewModel` is not their parent. Do not invent unused event
+  classes: use `Nothing` when appropriate. The base launches each submitted
+  action in its lifecycle scope; features implement suspending
+  `handleActionInternal`. Independent actions may overlap, so features guard
+  duplicate or conflicting work. `Result` failures and cancellation policy
+  remain explicit in each feature.
 - Place each component's preview beside its component in the same source file.
   For shared `commonMain` Compose UI, use paired light/dark multiplatform
   previews in that file; for Android-only UI, use `PreviewLightDark` there.
@@ -119,9 +125,11 @@ still owns its root back stack and cross-feature routing.
   keep translations aligned and avoid new hard-coded UI strings. Put reusable
   visual assets/tokens in design-system only when truly shared; feature-specific
   resources stay with their feature.
-- Review the existing legacy `BaseViewModel` before extracting common ViewModel
-  behaviour. Share only proven lifecycle/state/error patterns; do not require
-  inheritance or introduce a generic base class just to reduce line count.
+- Keep the existing application `BaseViewModel` transitional. The new typed
+  `MviViewModel` owns a private state flow and buffered event channel but not
+  navigation, Koin, custom scopes or global error/loading policy. Its
+  `updateState` delegates to the atomic `kotlinx.coroutines.flow.update`; do
+  not add an unbounded action queue or swallow action failures in the base.
   Preserve `Result` failures and coroutine cancellation semantics.
 
 ## KMP and platforms

@@ -62,5 +62,5 @@ verification during integration; callers provide descriptions for actionable ico
 4. Separate integration PRs for consumer families, visual parity checks and legacy
    removal. No migrated feature should add new code to legacy components.
 
-Android ComponentPreviews provides light/dark samples for every prepared family.
+Colocated commonMain previews provide light/dark samples for every prepared family.
 Modal samples need Interactive/Run Preview; fixtures do not depend on the app.

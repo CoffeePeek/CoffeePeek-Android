@@ -2,6 +2,7 @@ package com.coffeepeek.core.designsystem.component
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -11,6 +12,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -20,6 +23,9 @@ import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import com.coffeepeek.core.designsystem.theme.CpDimens
+import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
+import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Single-line outlined field that can stay at [CpDimens.controlHeight].
@@ -105,3 +111,14 @@ fun CompactOutlinedTextField(
         )
     }
 }
+
+@Composable
+private fun CompactOutlinedTextFieldPreviewContent(darkTheme: Boolean) = CoffeePeekTheme(darkTheme = darkTheme) {
+    Surface {
+        CompactOutlinedTextField("", {}, modifier = Modifier.padding(16.dp),
+            placeholder = { Text("Compact input") })
+    }
+}
+
+@Preview @Composable private fun CompactOutlinedTextFieldLightPreview() = CompactOutlinedTextFieldPreviewContent(false)
+@Preview @Composable private fun CompactOutlinedTextFieldDarkPreview() = CompactOutlinedTextFieldPreviewContent(true)
