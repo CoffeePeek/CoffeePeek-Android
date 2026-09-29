@@ -158,7 +158,8 @@ empty packages to fill a template.
 
 Use one-way MVI flow where it clarifies behaviour: UI emits typed actions,
 ViewModel reduces durable state or emits one-off events, and the runtime screen
-maps navigation events to caller callbacks. No generic MVI base class is required.
+maps navigation events to caller callbacks. New MVI ViewModels can inherit the
+typed core/presentation base; legacy ViewModels remain on their current path.
 
 Give each standalone component its own named file. `NameScreen` is the runtime
 adapter that observes a lifecycle-owned ViewModel and forwards state/events to
@@ -169,9 +170,10 @@ source file, not in a preview-only file. Shared `commonMain` Compose UI uses pai
 multiplatform light/dark previews; Android-only UI can use `PreviewLightDark` in
 `androidMain`. Do not move shared UI to Android solely for preview tooling.
 
-Use the existing BaseViewModel only where its behaviour is genuinely reusable and
-safe across KMP platforms. Audit lifecycle cancellation, `Result` errors, loading
-ownership and event delivery before changing it; do not mandate inheritance.
+The old application BaseViewModel remains transitional for legacy screens. New
+MVI ViewModels inherit the typed core/presentation base, which only declares
+state/actions/events on top of the multiplatform lifecycle ViewModel. It does
+not copy the old global loading/error behaviour or custom work scope.
 Place reusable visual tokens/components in design-system, feature-specific UI and
 assets in the feature, and user-facing strings/accessibility text in resources.
 Verify supported locales and translation parity before documenting their number.
@@ -185,6 +187,7 @@ responsibilities. Examples:
 core/network          HttpClient, auth/interceptors, serialization, logging, errors
 core/database         Room factory/configuration, database bootstrap, migrations
 core/coroutines       dispatcher and application-scope abstractions
+core/presentation     typed MVI ViewModel base and state/action/event contract
 core/navigation       shared navigation infrastructure, if truly required
 core/design-system    theme, typography, dimensions, icons, UI primitives
 ```
@@ -192,6 +195,11 @@ core/design-system    theme, typography, dimensions, icons, UI primitives
 Feature-specific API services, DTOs, entities, and DAOs are not core code. Do
 not create broad `base`, `common`, `utils`, `helpers`, `misc`, or `shared`
 modules. Name cross-cutting code by its actual responsibility instead.
+The presentation base extends the multiplatform lifecycle ViewModel but does
+not own mutable state, event channels, custom scopes, global errors or loading.
+Feature impl modules override typed state/action/event members and keep mutable
+implementations private. Event-less screens may use `Nothing` and the default
+empty event stream. Use kotlinx.coroutines' existing `MutableStateFlow.update`.
 
 ## Navigation and DI
 

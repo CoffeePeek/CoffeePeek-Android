@@ -13,14 +13,18 @@ into the application. Do not pre-create every example module in ARCHITECTURE.md.
 - `database`: Room builder configuration with bundled SQLite; no application
   schema, feature entities or migrations are moved into core. Android test-only
   schemas cover persistence, caller migrations and fail-safe missing migrations.
+- `presentation`: typed MVI ViewModel base shared by migrated feature
+  implementations. Favorites is the first subclass; mutable state, event
+  channels and error presentation remain feature-owned.
 
 All foundations are independent duplicates prepared for later migration.
 `design-system` now prepares shared visual tokens, injected-font typography, icons,
 generic controls/rows, fields/search, stateless top bars and the glass modifier.
 The presentation slice adds badges/settings rows, segmented selection and
 loading/error surfaces. Its audit tracks remaining UI slices.
-The legacy network client retains its own transport configuration. No application
-or legacy module depends on the new core modules yet.
+The legacy network client retains its own transport configuration. Application
+composition and favorites consume selected core boundaries; this is not a
+wholesale migration of legacy infrastructure.
 
 Each new module uses a dedicated `feature/...` branch and PR. Small related
 changes may remain in the current PR; split large migrations with many new files.
@@ -39,7 +43,7 @@ Application integration must be a separate, explicitly planned stage.
    Six Manrope weights and their license are packaged; previews use the brand font.
    RTL-safe inset recipes now have paired previews and measured-layout tests;
    no unused legacy Insets wrapper is duplicated. Real OS/IME/cutout behaviour
-   still requires consumer-level QA. No further speculative core module is needed.
+   still requires consumer-level QA. Do not add speculative core modules.
    Targeted large-font/RTL tests and scale-2 paired previews are also prepared;
    stepper targets grow from a 48.dp minimum instead of fixed 32.dp height.
    Existing controls are not integrated. Verify large font scale, RTL and visual

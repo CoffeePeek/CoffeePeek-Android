@@ -1,7 +1,7 @@
 package com.coffeepeek.feature.favorites.impl.ui
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.coffeepeek.core.presentation.MviViewModel
 import com.coffeepeek.feature.favorites.domain.repository.FavoritesRepository
 import com.coffeepeek.feature.favorites.impl.ui.compose.model.FavoritesAction
 import com.coffeepeek.feature.favorites.impl.ui.compose.model.FavoritesEvent
@@ -15,17 +15,18 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-internal class FavoritesViewModel(private val repository: FavoritesRepository) : ViewModel() {
+internal class FavoritesViewModel(private val repository: FavoritesRepository) :
+    MviViewModel<FavoritesUiState, FavoritesAction, FavoritesEvent>() {
     private val mutableState = MutableStateFlow(FavoritesUiState())
-    val state = mutableState.asStateFlow()
+    override val state = mutableState.asStateFlow()
     private val eventChannel = Channel<FavoritesEvent>(Channel.BUFFERED)
-    val events = eventChannel.receiveAsFlow()
+    override val events = eventChannel.receiveAsFlow()
     private var observation: Job? = null
     private var generation = 0
 
     init { retry() }
 
-    fun onAction(action: FavoritesAction) {
+    override fun onAction(action: FavoritesAction) {
         when (action) {
             FavoritesAction.Retry -> retry()
             is FavoritesAction.Remove -> remove(action.shopId)
