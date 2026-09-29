@@ -1,15 +1,10 @@
 package com.coffeepeek.admin.ui.screen.map
 
 import com.coffeepeek.admin.ui.icons.CpIcons
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,52 +14,37 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.coffeepeek.admin.map.CoffeeMap
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
@@ -76,8 +56,6 @@ import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
 import com.coffeepeek.admin.ui.component.liquidGlass
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.CompositionLocalProvider
-import com.coffeepeek.admin.ui.model.COFFEE_FOCUS_OPTIONS
-import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.MapShop
@@ -182,33 +160,42 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
             }
         }
 
+        MapZoomControl(
+            onZoomIn = vm::zoomIn,
+            onZoomOut = vm::zoomOut,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = CpDimens.spacing4),
+        )
+
         Column(
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .statusBarsPadding()
+                .align(Alignment.BottomEnd)
                 .padding(
-                    top = if (state.isTruncated) 112.dp else 64.dp,
                     end = CpDimens.spacing4,
+                    bottom = navClearance + when {
+                        state.selectedShop != null || state.selectedZone != null -> 180.dp
+                        else -> CpDimens.spacing4
+                    },
                 ),
             verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
             horizontalAlignment = Alignment.End,
         ) {
-            MapControlButton(onClick = vm::requestMyLocation) {
-                Icon(
-                    CpIcons.MyLocation,
-                    contentDescription = "Моё местоположение",
-                    modifier = Modifier.size(30.dp),
-                )
-            }
-            // iOS convention: a toggled glass control shows its "on" state via the accent-tinted icon.
             MapControlButton(
                 onClick = vm::toggleZones,
                 contentColor = if (state.showZones) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             ) {
                 Icon(
-                    CpIcons.Map,
+                    CpIcons.Polygon,
                     contentDescription = if (state.showZones) "Скрыть зоны" else "Показать зоны",
                     modifier = Modifier.size(26.dp),
+                )
+            }
+            MapControlButton(onClick = vm::requestMyLocation) {
+                Icon(
+                    CpIcons.Navigation,
+                    contentDescription = "Моё местоположение",
+                    modifier = Modifier.size(30.dp),
                 )
             }
         }
@@ -452,415 +439,61 @@ private fun MapControlButton(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun MapFiltersDialog(
-    state: MapUiState,
-    onDismiss: () -> Unit,
-    onQueryChange: (String) -> Unit,
-    onPrice: (Int?) -> Unit,
-    onCoffeeFocusChange: (String?) -> Unit,
-    onToggleCatalog: (String, String) -> Unit,
-    onClear: () -> Unit,
-    onApply: () -> Unit,
+private fun MapZoomControl(
+    onZoomIn: () -> Unit,
+    onZoomOut: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val filters = state.filters
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+    val shape = RoundedCornerShape(CpDimens.radiusLg)
+    Column(
+        modifier = modifier
+            .width(CpDimens.buttonHeight)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape),
     ) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
+                .fillMaxWidth()
+                .height(CpDimens.buttonHeight)
+                .clip(
+                    RoundedCornerShape(
+                        topStart = CpDimens.radiusLg,
+                        topEnd = CpDimens.radiusLg,
+                    ),
+                )
+                .clickable(onClick = onZoomIn),
             contentAlignment = Alignment.Center,
         ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 560.dp)
-                    .heightIn(max = 760.dp),
-                shape = RoundedCornerShape(CpDimens.radius4xl),
-                color = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                tonalElevation = 0.dp,
-                shadowElevation = 12.dp,
-            ) {
-                Column {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = CpDimens.spacing5, top = CpDimens.spacing3, end = CpDimens.spacing2, bottom = CpDimens.spacing3),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "Фильтры",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.weight(1f),
-                        )
-                        IconButton(onClick = onDismiss) {
-                            Icon(
-                                imageVector = CpIcons.Close,
-                                contentDescription = "Закрыть фильтры",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                    Column(
-                        modifier = Modifier
-                            .weight(1f, fill = false)
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = CpDimens.spacing5, vertical = CpDimens.spacing4),
-                        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
-                    ) {
-                        CpSearchField(
-                            value = state.query,
-                            onValueChange = onQueryChange,
-                            placeholder = "Поиск кофейни…",
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        FilterSection("Цена") {
-                            CompactPriceFilter(
-                                selected = filters.priceRange,
-                                onSelect = onPrice,
-                            )
-                        }
-                        FilterSection("Формат точки") {
-                            SingleSelectMenu(
-                                placeholder = "Любой формат",
-                                items = COFFEE_FOCUS_OPTIONS.map { it.id to it.label },
-                                selectedId = filters.coffeeFocus,
-                                onSelect = onCoffeeFocusChange,
-                            )
-                        }
-                        if (state.roasters.isNotEmpty()) {
-                            CatalogMultiSelectMenu("Обжарщики", state.roasters, filters.roasterIds) {
-                                onToggleCatalog("roaster", it)
-                            }
-                        }
-                        if (state.beans.isNotEmpty()) {
-                            CatalogMultiSelectMenu("Зёрна", state.beans, filters.beanIds) {
-                                onToggleCatalog("bean", it)
-                            }
-                        }
-                        if (state.equipment.isNotEmpty()) {
-                            CatalogMultiSelectMenu("Оборудование", state.equipment, filters.equipmentIds) {
-                                onToggleCatalog("equipment", it)
-                            }
-                        }
-                        if (state.brewMethods.isNotEmpty()) {
-                            CatalogMultiSelectMenu("Заваривание", state.brewMethods, filters.brewMethodIds) {
-                                onToggleCatalog("brew", it)
-                            }
-                        }
-                        if (state.shopTags.isNotEmpty()) {
-                            CatalogMultiSelectMenu("Особенности", state.shopTags, filters.tagIds) {
-                                onToggleCatalog("tag", it)
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(CpDimens.spacing4),
-                        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2, Alignment.End),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        TextButton(onClick = onClear) {
-                            Text(
-                                text = "Сбросить",
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.labelLarge,
-                            )
-                        }
-                        Button(
-                            onClick = onApply,
-                            modifier = Modifier.height(CpDimens.buttonHeight),
-                            shape = RoundedCornerShape(percent = 50),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                            ),
-                            contentPadding = PaddingValues(horizontal = CpDimens.spacing5),
-                        ) {
-                            Text("Готово", style = MaterialTheme.typography.labelLarge)
-                        }
-                    }
-                }
-            }
+            Icon(
+                imageVector = CpIcons.Add,
+                contentDescription = "Приблизить карту",
+                modifier = Modifier.size(22.dp),
+            )
         }
-
-    }
-}
-
-@Composable
-private fun FilterSection(title: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground,
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.outline,
         )
-        content()
-    }
-}
-
-@Composable
-private fun SingleSelectMenu(
-    placeholder: String,
-    items: List<Pair<String, String>>,
-    selectedId: String?,
-    onSelect: (String?) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    var anchorWidth by remember { mutableStateOf(0.dp) }
-    val density = LocalDensity.current
-    val menuShape = RoundedCornerShape(CpDimens.selectRadius)
-    val selectedLabel = items.firstOrNull { it.first == selectedId }?.second
-    Box(modifier = Modifier.fillMaxWidth()) {
-        OutlinedButton(
-            onClick = { expanded = true },
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(CpDimens.buttonHeight)
-                .onGloballyPositioned { coordinates ->
-                    anchorWidth = with(density) { coordinates.size.width.toDp() }
-                },
-            shape = RoundedCornerShape(percent = 50),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-            ),
-            contentPadding = PaddingValues(horizontal = CpDimens.spacing4),
+                .clip(
+                    RoundedCornerShape(
+                        bottomStart = CpDimens.radiusLg,
+                        bottomEnd = CpDimens.radiusLg,
+                    ),
+                )
+                .clickable(onClick = onZoomOut),
+            contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = selectedLabel ?: placeholder,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (selectedId == null) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
             Icon(
-                CpIcons.ChevronUpDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
+                imageVector = CpIcons.Minus,
+                contentDescription = "Отдалить карту",
+                modifier = Modifier.size(22.dp),
             )
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .width(anchorWidth.coerceAtLeast(280.dp))
-                .clip(menuShape)
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                    shape = menuShape,
-                ),
-            shape = menuShape,
-            containerColor = MaterialTheme.colorScheme.surface,
-            tonalElevation = 0.dp,
-        ) {
-            val defaultSelected = selectedId == null
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        text = placeholder,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Normal,
-                        color = if (defaultSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface,
-                    )
-                },
-                onClick = {
-                    onSelect(null)
-                    expanded = false
-                },
-                trailingIcon = if (defaultSelected) {
-                    {
-                        Icon(
-                            CpIcons.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                } else null,
-            )
-            items.forEach { (id, label) ->
-                val selected = id == selectedId
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            label,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Normal,
-                            color = if (selected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    onClick = {
-                        onSelect(id)
-                        expanded = false
-                    },
-                    trailingIcon = if (selected) {
-                        {
-                            Icon(
-                                CpIcons.Check,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    } else null,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun CatalogMultiSelectMenu(
-    title: String,
-    items: List<CatalogItem>,
-    selectedIds: Set<String>,
-    onToggle: (String) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    var anchorWidth by remember { mutableStateOf(0.dp) }
-    val density = LocalDensity.current
-    val menuShape = RoundedCornerShape(CpDimens.selectRadius)
-    Box(modifier = Modifier.fillMaxWidth()) {
-        OutlinedButton(
-            onClick = { expanded = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(CpDimens.buttonHeight)
-                .onGloballyPositioned { coordinates ->
-                    anchorWidth = with(density) { coordinates.size.width.toDp() }
-                },
-            shape = RoundedCornerShape(percent = 50),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-            ),
-            contentPadding = PaddingValues(horizontal = CpDimens.spacing4),
-        ) {
-            Text(
-                text = if (selectedIds.isEmpty()) title else "$title · ${selectedIds.size}",
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (selectedIds.isEmpty()) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Icon(
-                CpIcons.ChevronUpDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .width(anchorWidth.coerceAtLeast(280.dp))
-                .heightIn(max = 320.dp)
-                .clip(menuShape)
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                    shape = menuShape,
-                ),
-            shape = menuShape,
-            containerColor = MaterialTheme.colorScheme.surface,
-            tonalElevation = 0.dp,
-        ) {
-            items.forEach { item ->
-                val selected = item.id in selectedIds
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            item.name,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Normal,
-                            color = if (selected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    onClick = { onToggle(item.id) },
-                    trailingIcon = if (selected) {
-                        {
-                            Icon(
-                                CpIcons.Check,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    } else null,
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun CompactPriceFilter(
-    selected: Int?,
-    onSelect: (Int?) -> Unit,
-) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-    ) {
-        listOf(null to "Любая", 1 to "до 8", 2 to "≈ 8", 3 to "> 8").forEach { (value, label) ->
-            val isSelected = selected == value
-            Surface(
-                onClick = { onSelect(value) },
-                shape = RoundedCornerShape(CpDimens.radiusLg),
-                color = if (isSelected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.surface,
-                contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-                border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.padding(horizontal = CpDimens.spacing4, vertical = 10.dp),
-                )
-            }
         }
     }
 }
