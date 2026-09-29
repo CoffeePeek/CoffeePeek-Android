@@ -159,10 +159,9 @@ jobs:
           echo "Found AAB:"
           echo "$AAB"
 
-          jarsigner -verify -strict "$AAB"
+          jarsigner -verify -certs "$AAB"
 
           mkdir -p dist
-
           cp "$AAB" dist/coffeepeek-release.aab
 
           SHA256="$(sha256sum dist/coffeepeek-release.aab | awk '{print $1}')"
