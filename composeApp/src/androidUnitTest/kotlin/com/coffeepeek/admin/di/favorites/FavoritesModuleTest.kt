@@ -1,4 +1,4 @@
-package com.coffeepeek.feature.favorites.di
+package com.coffeepeek.admin.di.favorites
 
 import com.coffeepeek.feature.favorites.api.FavoritesEntry
 import com.coffeepeek.feature.favorites.domain.model.FavoriteShop

@@ -1,4 +1,4 @@
-package com.coffeepeek.feature.favorites.di
+package com.coffeepeek.admin.di.favorites
 
 import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.CoffeeShopDetails
@@ -9,7 +9,7 @@ import com.coffeepeek.feature.favorites.domain.repository.FavoritesRepository
 import kotlinx.coroutines.CancellationException
 
 /** Temporary bridge for existing consumers. Wire it to the SAME new repository instance as the new screen. */
-fun createLegacyFavoritesRepositoryBridge(repository: FavoritesRepository): LegacyFavoriteRepository =
+internal fun createLegacyFavoritesRepositoryBridge(repository: FavoritesRepository): LegacyFavoriteRepository =
     LegacyFavoritesRepositoryBridge(repository)
 
 private class LegacyFavoritesRepositoryBridge(

@@ -22,7 +22,7 @@ modules/network/                    Ktor, DTOs and API services
 modules/data/                       repository implementations and mapping
 modules/room/                       Room persistence
 core/                               prepared infrastructure/design-system
-feature/favorites/                  api/domain/data/impl/di; Android screen/DI active
+feature/favorites/                  api/domain/data/impl; Android screen active
 ```
 
 Target ownership is feature-based:
@@ -42,8 +42,8 @@ application composition
 
 The agreed migration target is api/domain/data/impl Gradle boundaries per
 business feature, created progressively under singular feature/. A feature di
-Gradle module is not required for each feature; favorites/di currently isolates a
-legacy compatibility bridge and should be revisited in a separate migration slice.
+Gradle module is not required for each feature; favorites Koin assembly and its
+temporary legacy compatibility bridge now live in composeApp/androidMain.
 Root Koin assembly and platform bridges normally belong in composeApp packages.
 The split provides a small cross-feature ABI, independently testable domain/data and
 hidden presentation/composition. Do not scaffold all future features or force
@@ -211,8 +211,8 @@ second application or universal feature DI aggregator without a concrete need.
 DI must not circumvent Gradle boundaries or fetch another feature's internal
 class. Dagger/Hilt is not part of the current KMP composition strategy.
 
-For favorites, domain/data use manual constructor/factory injection. Its existing
-transitional di Gradle module owns Koin assembly and the temporary Room settings
+For favorites, domain/data use manual constructor/factory injection. Android
+application composition owns Koin assembly and the temporary Room settings
 bridge; impl UI sees domain only and does not perform Koin lookups. Supported pure domain
 contracts may be reused directly by other features, as agreed for this migration.
 API remains the navigation/screen-entry ABI, not a re-export of business models.

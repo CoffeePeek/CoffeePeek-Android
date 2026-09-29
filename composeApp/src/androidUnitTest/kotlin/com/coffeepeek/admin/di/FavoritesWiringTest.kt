@@ -4,8 +4,8 @@ import com.coffeepeek.data.di.dataModule
 import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.repository.FavoriteRepository as LegacyFavoriteRepository
 import com.coffeepeek.feature.favorites.api.FavoritesEntry
-import com.coffeepeek.feature.favorites.di.favoritesRoomModule
-import com.coffeepeek.feature.favorites.di.legacyFavoritesConsumersModule
+import com.coffeepeek.admin.di.favorites.favoritesRoomModule
+import com.coffeepeek.admin.di.favorites.legacyFavoritesConsumersModule
 import com.coffeepeek.feature.favorites.domain.repository.FavoritesRepository
 import com.coffeepeek.room.DatabaseCore
 import com.coffeepeek.room.model.Setting

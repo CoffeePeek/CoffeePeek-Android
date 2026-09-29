@@ -14,7 +14,7 @@ modules/network/            legacy HTTP infrastructure and feature API code
 modules/data/               legacy repository implementations
 modules/room/               legacy Room infrastructure and persistence
 core/                      prepared independent infrastructure/design-system
-feature/                   favorites modules; Android screen/DI integrated
+feature/                   favorites api/domain/data/impl; Android screen integrated
 iosApp/                     native iOS application boundary, when present
 ```
 
@@ -42,9 +42,9 @@ feature/<name>/
 The agreed target for migrated business features is separate api/domain/data/impl
 Gradle boundaries under singular feature/. Create these incrementally for the
 feature being migrated, not empty modules for every future screen. UI packages
-live inside impl; composition assembles data via narrow factories. The existing
-`feature/favorites/di` module is a transitional exception, not a module to copy for each
-feature. Put root Koin assembly and platform/legacy bridges in composeApp, grouped
+live inside impl; composition assembles data via narrow factories. Favorites
+Koin assembly and its temporary legacy bridge live in composeApp/androidMain.
+Put root Koin assembly and platform/legacy bridges in composeApp, grouped
 by feature; only extract a separate integration module for a demonstrated need.
 This does not require every core infrastructure module to have a domain/data
 pair. See feature/README.md for the migration sequence and dependency graph.

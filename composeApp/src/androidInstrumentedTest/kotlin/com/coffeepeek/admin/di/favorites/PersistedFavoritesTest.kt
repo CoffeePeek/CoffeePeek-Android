@@ -1,4 +1,4 @@
-package com.coffeepeek.feature.favorites.di
+package com.coffeepeek.admin.di.favorites
 
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4

@@ -33,7 +33,9 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(project(module.feature.favorites.api))
-            implementation(project(module.feature.favorites.di))
+            implementation(project(module.feature.favorites.data))
+            implementation(project(module.feature.favorites.impl))
+            implementation(project(module.core.coroutines))
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.appcompat)
@@ -74,9 +76,15 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        androidUnitTest.dependencies {
+            implementation(libs.kotlinx.coroutines.test)
+        }
         androidInstrumentedTest.dependencies {
+            implementation(libs.kotlin.test)
             implementation(libs.androidx.compose.ui.test.junit4)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.room.runtime)
+            implementation(libs.androidx.testExt.junit)
             implementation(libs.androidx.test.runner)
             implementation(libs.androidx.espresso.core)
         }

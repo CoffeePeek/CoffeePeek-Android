@@ -1,7 +1,7 @@
 # Feature migration: API / implementation
 
-This directory now contains independent favorites api/domain/data/impl/di modules.
-Android composition now uses favorites di plus a compatibility adapter; feed
+This directory now contains independent favorites api/domain/data/impl modules.
+Android application composition owns favorites Koin and its compatibility adapter; feed
 and detail observe favorites domain membership, and the Android favorites route
 renders the new screen. The shared root still uses Navigation 2, while iOS keeps
 the old favorites screen and binding. See favorites/README.md.
@@ -41,8 +41,8 @@ Do not create empty placeholders or a second application. Api has no data/UI
 implementation or Koin declarations. Domain uses pure Kotlin/approved domain
 dependencies; it may depend on api only when those contracts are equally pure.
 Data depends on domain and needed core infrastructure. Impl depends on api/domain
-and design-system; its UI cannot access data internals. The existing favorites/di
-module is a temporary exception for its legacy bridge. New features should be
+and design-system; its UI cannot access data internals. Favorites Koin and the
+temporary legacy bridge live in composeApp/androidMain. New features should be
 assembled by composeApp Koin/platform packages unless another Gradle boundary
 has a demonstrated need.
 Keep data implementations internal and expose only the narrow construction
@@ -72,10 +72,9 @@ implementation(project(module.feature.favorites.api))
 implementation(project(module.feature.favorites.domain))
 implementation(project(module.feature.favorites.data))
 implementation(project(module.feature.favorites.impl))
-implementation(project(module.feature.favorites.di)) // existing migration bridge only
 ```
 
-Favorites accessors are now callable, including module.feature.favorites.di.
+Favorites accessors are now callable for these four boundaries.
 Register only real module
 paths in Modules.all. Domain/data are nested by business owner, not new global
 technical-layer buckets. Core api/impl splits need their own concrete ABI/reuse
@@ -114,9 +113,9 @@ list into empty modules or remove the iOS legacy path before its replacement wor
 
 1. Give favorites UI its own text/accessibility resources. Audit actual locale
    directories first; do not invent a second translation to complete a diagram.
-2. Move the temporary favorites Koin/Room/legacy bridge into Android application
-   composition, preserving one repository instance/writer and its persistence tests.
-   Remove favorites/di only when all app references have moved.
+2. Completed: move the temporary favorites Koin/Room/legacy bridge into Android
+   application composition, preserving one repository instance/writer and its
+   persistence tests. The former favorites/di module is removed.
 3. Audit the existing BaseViewModel against lifecycle, cancellation, Result and
    error presentation. Extract only a proven reusable pattern; do not require
    migrated ViewModels to inherit a generic base.
