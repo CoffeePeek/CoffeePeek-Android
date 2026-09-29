@@ -14,7 +14,7 @@ modules/network/            legacy HTTP infrastructure and feature API code
 modules/data/               legacy repository implementations
 modules/room/               legacy Room infrastructure and persistence
 core/                      prepared independent infrastructure/design-system
-feature/                   migration plan; feature modules added progressively
+feature/                   favorites modules; Android DI integrated, UI still legacy
 iosApp/                     native iOS application boundary, when present
 ```
 
@@ -36,13 +36,15 @@ feature/<name>/
 ├── api/       intentionally public contracts only
 ├── domain/    business rules, domain models, repository interfaces
 ├── data/      remote/local implementations, DTOs, entities, DAOs, mappers
-└── impl/      composition/DI entry point and ui/ presentation implementation
+├── impl/      screen entry point and ui/ presentation implementation
+└── di/        optional Koin assembly and composition bridges
 ```
 
 The agreed target for migrated business features is separate api/domain/data/impl
 Gradle boundaries under singular feature/. Create these incrementally for the
 feature being migrated, not empty modules for every future screen. UI packages
-live inside impl; impl assembles data via narrow factories/DI entry points.
+live inside impl; composition assembles data via narrow factories. A separate
+feature di module keeps Koin/legacy bridges outside UI when needed.
 This does not require every core infrastructure module to have a domain/data
 pair. See feature/README.md for the migration sequence and dependency graph.
 
@@ -61,8 +63,13 @@ pair. See feature/README.md for the migration sequence and dependency graph.
 - The application composition module owns application startup, root DI, root
   navigation, and platform configuration; it does not own feature business logic.
 
-Features may depend on another feature only through that feature's `api`. The
-dependency graph must remain acyclic. DI and navigation must not bypass these
+Features use another feature's `api` for navigation/screen contracts. Intentionally
+supported pure `domain` contracts may also be consumed directly, as agreed for
+favorites; never depend on another feature's data/impl/di from business or UI code.
+Domain/data use constructor/manual DI. An optional feature-owned `di` module may
+assemble Koin and temporary composition bridges; only application composition
+consumes it, and no DI wiring belongs in domain/data or generic core DI.
+The dependency graph must remain acyclic. DI and navigation must not bypass these
 boundaries.
 
 ## KMP and platforms

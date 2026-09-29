@@ -1,6 +1,8 @@
 # Feature migration: API / implementation
 
-This directory currently contains the plan only, not registered Gradle modules.
+This directory now contains independent favorites api/domain/data/impl/di modules.
+Android composition now uses favorites di plus a compatibility adapter; the old
+screen/navigation and iOS binding remain. See favorites/README.md.
 Actual registration remains in build-logic Modules.all. Android is the integration
 target; no native iOS implementation is part of these slices.
 
@@ -15,23 +17,25 @@ feature/<name>/
   data/                  remote/local, DTOs/entities/DAOs, mappers, repository impl
   impl/
     src/commonMain/.../
-      di/                minimal feature wiring/entry point
       ui/                screens, ViewModels, state/events, feature components
+  di/                    optional Koin assembly and composition bridges
 ```
 
 Each boundary becomes a separate KMP Gradle module as its code is prepared.
 Do not create empty placeholders or a second application. Api has no data/UI
 implementation or Koin declarations. Domain uses pure Kotlin/approved domain
 dependencies; it may depend on api only when those contracts are equally pure.
-Data depends on domain and needed core infrastructure. Impl depends on api/domain,
-design-system and data wiring factories; ui packages cannot access data internals.
+Data depends on domain and needed core infrastructure. Impl depends on api/domain
+and design-system; its UI cannot access data internals. The optional di module
+owns data factories, Koin assembly and temporary legacy adapters.
 Keep data implementations internal and expose only the narrow construction
 surface required for feature composition. Enforce UI import boundaries as well
-as Gradle edges, because impl also contains composition.
+as Gradle edges.
 
-Other features depend only on this feature's api. Do not export the whole domain
-module to avoid designing a small cross-feature capability. Shared domain ABI,
-if actually necessary, must be intentionally designed, not moved to core/common.
+Other features use api for navigation/screen entry and may directly consume
+intentionally supported pure domain contracts, as agreed for favorites. Never
+depend on another feature's data/impl/di from business/UI. Shared domain ABI
+must be deliberately supported, not moved to core/common.
 Composition owns the root graph and assembles feature implementations.
 
 HTTP requests belong to feature data/remote, not screens. Room persistence belongs
@@ -50,9 +54,11 @@ implementation(project(module.feature.favorites.api))
 implementation(project(module.feature.favorites.domain))
 implementation(project(module.feature.favorites.data))
 implementation(project(module.feature.favorites.impl))
+implementation(project(module.feature.favorites.di))
 ```
 
-These are planned accessors, not currently callable. Register only real module
+Favorites accessors are now callable, including module.feature.favorites.di.
+Register only real module
 paths in Modules.all. Domain/data are nested by business owner, not new global
 technical-layer buckets. Core api/impl splits need their own concrete ABI/reuse
 reason; a transport module does not need artificial business domain/data modules.
@@ -61,8 +67,8 @@ reason; a transport module does not need artificial business domain/data modules
 
 Every next slice starts from the current migration tip, not main. A PR targets
 its immediate parent branch; keep its diff independently reviewable.
-Current plan branch is based on feature/core-design-system-overlays (#44), which
-is based on feature/core-design-system-controls (#43).
+Favorites foundation is based on feature/core-design-system-adaptive-layout (#49);
+favorites UI/DI, compatibility bridge and Android DI integration follow in order.
 After a parent merges to main, retarget its child to main before merging it.
 If a parent changes, update descendants explicitly and re-run affected checks;
 never rewrite published stack history or unrelated work without agreement.
@@ -83,7 +89,7 @@ never rewrite published stack history or unrelated work without agreement.
 7. Delete legacy copies only after every consumer has switched. Repeat by owner;
    do not relocate all screens/models/repositories at once.
 
-## Pilot audit: favorites (candidate, not yet selected)
+## Pilot audit: favorites (Android DI integrated; UI still legacy)
 
 Current UI: composeApp ui/screen/favorites, FavoritesViewModel and FavoritesScreen.
 Current contract: modules/domain FavoriteRepository and CoffeeShop/Details.
@@ -91,7 +97,7 @@ Current data: modules/data FavoriteRepositoryImpl and LocalFavoriteShopDto,
 using modules/room DatabaseCore.settingRepository and local_favorite_shops JSON.
 There is no favorites HTTP service to move.
 
-Dependencies to resolve before integration:
+Dependencies to resolve before screen/navigation integration:
 
 - UI uses feed.ShopCard and app location helpers: do not depend on feed impl or
   put CoffeeShop business presentation in design-system just to bypass this.

@@ -21,7 +21,7 @@ modules/network/                    Ktor, DTOs and API services
 modules/data/                       repository implementations and mapping
 modules/room/                       Room persistence
 core/                               prepared infrastructure/design-system
-feature/                            migration plan, not implemented features yet
+feature/favorites/                  api/domain/data/impl/di; Android DI bridge active
 ```
 
 Target ownership is feature-based:
@@ -33,9 +33,9 @@ application composition
         │       ├── api
         │       ├── domain
         │       ├── data
-        │       └── impl
-        │            ├── di
-        │            └── ui
+        │       ├── impl
+        │       │    └── ui
+        │       └── di (optional composition boundary)
         │
         └── core/<shared-infrastructure>
 ```
@@ -56,12 +56,13 @@ app / current composition module
           ▼               ▼                ▼
       feature A       feature B        core infrastructure
           │               │
-          └── other feature API only ──┘
+          └── other feature API / supported pure domain contracts ──┘
 
 within one feature:
     impl → api
     impl → domain ← data
-    impl composition → data (only factory/DI wiring)
+    optional di → api, domain, data factories, impl entry factory
+    di bridges → legacy storage/contracts (temporary, composition-only)
     impl/ui → domain, api, design-system (never data implementation)
 ```
 
@@ -80,7 +81,7 @@ Allowed dependencies:
 Forbidden dependencies:
 
 - `core → feature`;
-- `feature A → feature B` implementation (`domain`, `data`, or `ui`);
+- `feature A business/UI → feature B` implementation (`data`, `impl`, or `di`);
 - `domain → data`, UI, Android, Compose, Ktor, Room, SQL, HTTP, or Koin;
 - `data → ui`;
 - UI → DTO, entity, DAO, Ktor service, or repository implementation;
@@ -166,6 +167,13 @@ ViewModels, repositories, services, or implementation objects.
 Koin definitions may be declared by a feature, but application composition
 assembles them. DI must not circumvent Gradle boundaries or fetch another
 feature's internal class.
+
+For favorites, domain/data use manual constructor/factory injection. Its optional
+di Gradle module owns Koin assembly and the temporary Room settings bridge; impl
+UI sees domain only and does not perform Koin lookups. Supported pure domain
+contracts may be reused directly by other features, as agreed for this migration.
+API remains the navigation/screen-entry ABI, not a re-export of business models.
+Composable entry interfaces are allowed there; screen/VM implementations are not.
 
 ## KMP platform boundaries
 
