@@ -28,6 +28,9 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.max
 
+private const val MIN_MAP_ZOOM = 3f
+private const val MAX_MAP_ZOOM = 20f
+
 data class MapFiltersUi(
     val cityId: String? = null,
     val coffeeFocus: String? = null,
@@ -73,17 +76,6 @@ data class MapUiState(
     val cameraTarget: Pair<Double, Double>? = null,
     val cameraZoom: Float? = null,
 ) {
-    val activeFilterCount: Int
-        get() {
-            var count = 0
-            if (query.isNotBlank()) count++
-            if (filters.coffeeFocus != null) count++
-            if (filters.priceRange != null) count++
-            if (filters.minRating != null) count++
-            count += filters.roasterIds.size + filters.beanIds.size +
-                filters.equipmentIds.size + filters.brewMethodIds.size + filters.tagIds.size
-            return count
-        }
 }
 
 class MapViewModel(
@@ -195,14 +187,6 @@ class MapViewModel(
         }
     }
 
-    fun toggleFilters() {
-        _state.update { it.copy(showFilters = !it.showFilters) }
-    }
-
-    fun dismissFilters() {
-        _state.update { it.copy(showFilters = false) }
-    }
-
     fun onQueryChange(query: String) {
         queryJob?.cancel()
         _state.update {
@@ -272,46 +256,31 @@ class MapViewModel(
         pauseBoundsUpdates(700)
     }
 
-    fun setCoffeeFocus(coffeeFocus: String?) {
-        _state.update { it.copy(filters = it.filters.copy(coffeeFocus = coffeeFocus)) }
-    }
-
-    fun setPriceRange(priceRange: Int?) {
-        _state.update { it.copy(filters = it.filters.copy(priceRange = priceRange)) }
-    }
-
-    fun setMinRating(rating: Double?) {
-        _state.update { it.copy(filters = it.filters.copy(minRating = rating)) }
-    }
-
-    fun toggleFilterCatalog(type: String, id: String) {
-        _state.update { state ->
-            val filters = when (type) {
-                "roaster" -> state.filters.copy(roasterIds = state.filters.roasterIds.toggle(id))
-                "bean" -> state.filters.copy(beanIds = state.filters.beanIds.toggle(id))
-                "equipment" -> state.filters.copy(equipmentIds = state.filters.equipmentIds.toggle(id))
-                "brew" -> state.filters.copy(brewMethodIds = state.filters.brewMethodIds.toggle(id))
-                "tag" -> state.filters.copy(tagIds = state.filters.tagIds.toggle(id))
-                else -> state.filters
-            }
-            state.copy(filters = filters)
-        }
-    }
-
-    fun applyFilters() {
-        _state.update { it.copy(showFilters = false) }
-        searchCurrentArea()
-    }
-
-    fun clearFilters() {
-        _state.update {
-            it.copy(query = "", filters = MapFiltersUi(cityId = it.filters.cityId))
-        }
-        searchCurrentArea()
-    }
-
     fun requestMyLocation() {
         _state.update { it.copy(myLocationRequest = it.myLocationRequest + 1) }
+    }
+
+    fun zoomIn() = changeZoom(1f)
+
+    fun zoomOut() = changeZoom(-1f)
+
+    private fun changeZoom(delta: Float) {
+        val current = _state.value
+        val bounds = current.pendingBounds ?: current.activeBounds ?: return
+        val zoom = current.pendingZoom ?: current.activeZoom ?: return
+        val nextZoom = (zoom + delta).coerceIn(MIN_MAP_ZOOM, MAX_MAP_ZOOM)
+        if (nextZoom == zoom) return
+
+        _state.update {
+            it.copy(
+                cameraTarget = (bounds.minLat + bounds.maxLat) / 2.0 to
+                    (bounds.minLon + bounds.maxLon) / 2.0,
+                cameraZoom = nextZoom,
+                pendingZoom = nextZoom,
+                showSearchArea = false,
+            )
+        }
+        pauseBoundsUpdates(500)
     }
 
     fun focusOnShop(focus: com.coffeepeek.admin.ui.Navigator.MapShopFocus) {
@@ -516,8 +485,6 @@ class MapViewModel(
         pinned: MapShop?,
     ): List<MapShop> = (loaded + listOfNotNull(pinned)).distinctBy { it.id }
 
-    private fun Set<String>.toggle(id: String): Set<String> =
-        if (contains(id)) this - id else this + id
 }
 
 internal fun formatMapHoursSummary(schedules: List<ShopSchedule>): String? {
