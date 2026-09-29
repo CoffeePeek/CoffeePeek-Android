@@ -83,10 +83,13 @@ reason; a transport module does not need artificial business domain/data modules
 
 ## Branch and PR stack
 
-Every next slice starts from the current migration tip, not main. A PR targets
-its immediate parent branch; keep its diff independently reviewable.
-Favorites foundation is based on feature/core-design-system-adaptive-layout (#49);
-favorites UI/DI, compatibility bridge and Android DI integration follow in order.
+Every next work branch starts from the current migration tip, not main. Group
+related tested steps into a checkpoint PR; create the next stacked PR when its
+diff would grow beyond about 50 changed files, or earlier for a clear review or
+risk boundary. A cohesive change may exceed that guide if documented. Each PR
+targets the previous open checkpoint branch, not an individual closed slice.
+The favorites foundation and Android integration are collected in checkpoint
+PRs #53, #57 and #62; presentation follow-ups are collected in #67.
 After a parent merges to main, retarget its child to main before merging it.
 If a parent changes, update descendants explicitly and re-run affected checks;
 never rewrite published stack history or unrelated work without agreement.
@@ -109,8 +112,9 @@ never rewrite published stack history or unrelated work without agreement.
 
 ## Next slices after Android favorites integration
 
-Keep each item a separate stacked PR with its own build/tests. Do not turn this
-list into empty modules or remove the iOS legacy path before its replacement works.
+Treat each item as a separately verified step, not necessarily a separate PR.
+Group related work under the checkpoint rule above. Do not turn this list into
+empty modules or remove the iOS legacy path before its replacement works.
 
 1. Give favorites UI its own text/accessibility resources. Audit actual locale
    directories first; do not invent a second translation to complete a diagram.
