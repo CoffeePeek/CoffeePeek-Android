@@ -6,6 +6,21 @@ continues from the current migration tip. Related steps can share one checkpoint
 PR; the working split point is about 50 changed files in its diff. Each step
 must be verified before moving on even when it does not get its own PR.
 
+## Progress
+
+- [x] Synchronize local `main`, all seven open checkpoint branches, and the
+  current work branch from `origin/main` without changing PR diffs or merging
+  anything into `main`.
+- [x] Verify the synchronized Android baseline with
+  `./gradlew :composeApp:assembleDebug :composeApp:testDebugUnitTest
+  :feature:favorites:data:testDebugUnitTest
+  :feature:favorites:impl:testDebugUnitTest --no-daemon` (passed).
+- [ ] Complete the Android consumer/writer audit in step 1.
+- [ ] Prove historical Room persistence compatibility in step 2.
+- [ ] Verify the complete Android user journey in step 3.
+- [ ] Finish UI, accessibility and locale QA in step 4.
+- [ ] Perform Android-only cleanup and the final gate in step 5.
+
 ## Baseline and boundaries
 
 - The Android root still uses Navigation 2. Its Favorites destination already
