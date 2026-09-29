@@ -19,7 +19,11 @@ import androidx.compose.ui.unit.dp
 import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
 import com.coffeepeek.core.designsystem.theme.CpColor
 import com.coffeepeek.core.designsystem.theme.CpDimens
+import com.coffeepeek.feature.favorites.impl.resources.Res
+import com.coffeepeek.feature.favorites.impl.resources.favorites_closed
+import com.coffeepeek.feature.favorites.impl.resources.favorites_open
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun OpenStatusBadge(isOpen: Boolean, modifier: Modifier = Modifier) {
@@ -32,7 +36,8 @@ internal fun OpenStatusBadge(isOpen: Boolean, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(8.dp).clip(CircleShape).background(color))
-        Text(if (isOpen) "ОТКРЫТО" else "ЗАКРЫТО", style = MaterialTheme.typography.labelSmall,
+        Text(stringResource(if (isOpen) Res.string.favorites_open else Res.string.favorites_closed),
+            style = MaterialTheme.typography.labelSmall,
             color = color, fontWeight = FontWeight.Bold)
     }
 }

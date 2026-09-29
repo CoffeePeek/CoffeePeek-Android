@@ -28,7 +28,16 @@ import com.coffeepeek.core.designsystem.component.CoffeePeekLoader
 import com.coffeepeek.core.designsystem.component.CpTopBar
 import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
 import com.coffeepeek.feature.favorites.domain.FavoriteShop
+import com.coffeepeek.feature.favorites.impl.resources.Res
+import com.coffeepeek.feature.favorites.impl.resources.favorites_back
+import com.coffeepeek.feature.favorites.impl.resources.favorites_empty
+import com.coffeepeek.feature.favorites.impl.resources.favorites_load_error
+import com.coffeepeek.feature.favorites.impl.resources.favorites_loading
+import com.coffeepeek.feature.favorites.impl.resources.favorites_retry
+import com.coffeepeek.feature.favorites.impl.resources.favorites_title
+import com.coffeepeek.feature.favorites.impl.resources.favorites_update_error
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.jetbrains.compose.resources.stringResource
 
 /** Runtime adapter. The entry supplies the lifecycle-owned ViewModel and navigation callbacks. */
 @Composable
@@ -59,20 +68,22 @@ internal fun FavoritesScreenContent(
     onBack: () -> Unit,
     distanceForCoordinates: (Double, Double) -> String? = { _, _ -> null },
 ) {
-    Scaffold(topBar = { CpTopBar("Избранное", "Назад", onBack = onBack) }) { padding ->
+    Scaffold(topBar = { CpTopBar(stringResource(Res.string.favorites_title),
+        stringResource(Res.string.favorites_back), onBack = onBack) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             when {
                 state.isLoading && state.shops.isEmpty() -> Box(
                     Modifier.fillMaxSize(), contentAlignment = Alignment.Center,
-                ) { CoffeePeekLoader("Загрузка избранного") }
+                ) { CoffeePeekLoader(stringResource(Res.string.favorites_loading)) }
                 state.loadFailed && state.shops.isEmpty() ->
-                    FavoritesMessage("Не удалось загрузить избранное", onRetry)
-                state.shops.isEmpty() -> FavoritesMessage("Пока нет избранных кофеен")
+                    FavoritesMessage(stringResource(Res.string.favorites_load_error), onRetry)
+                state.shops.isEmpty() -> FavoritesMessage(stringResource(Res.string.favorites_empty))
                 else -> {
                     if (state.actionFailed || state.loadFailed) {
-                        Text("Не удалось обновить избранное", Modifier.padding(16.dp),
+                        Text(stringResource(Res.string.favorites_update_error), Modifier.padding(16.dp),
                             color = MaterialTheme.colorScheme.error)
-                        AppButton("Повторить", onRetry, Modifier.padding(horizontal = 16.dp))
+                        AppButton(stringResource(Res.string.favorites_retry), onRetry,
+                            Modifier.padding(horizontal = 16.dp))
                     }
                     LazyColumn(
                         Modifier.fillMaxSize().windowInsetsPadding(

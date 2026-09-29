@@ -14,14 +14,18 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
+import com.coffeepeek.feature.favorites.impl.resources.Res
+import com.coffeepeek.feature.favorites.impl.resources.favorites_photo_missing
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun FavoritePhoto(url: String?, title: String, modifier: Modifier) {
     if (url.isNullOrBlank()) {
-        Box(modifier.semantics { contentDescription = "Фото $title отсутствует" },
+        val missingDescription = stringResource(Res.string.favorites_photo_missing, title)
+        Box(modifier.semantics { contentDescription = missingDescription },
             contentAlignment = Alignment.Center) {
             Text("COFFEEPEEK", style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurfaceVariant)

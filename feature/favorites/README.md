@@ -124,8 +124,9 @@ not import feed UI or legacy CoffeeShop. Exact parity is impossible from the
 saved format: it contains neither `isNew` nor shop type; the old screen also
 cannot reconstruct those values from saved rows. The BYN price symbols and
 photo placeholder art still differ. All saved fields remain in data/domain.
-Default Russian strings match the current feature language; localization/resource
-ownership, RTL/large-font and real-photo UI QA remain gates.
+Feature-owned common Compose resources now hold the Russian UI and accessibility
+strings. A second source locale has not been confirmed; translation, RTL/large-font
+and real-photo UI QA remain gates.
 
 Domain/data declare and compile iOS simulator variants with no Android APIs,
 Koin or native iOS implementation. Android api/impl/di are the tested UI/composition

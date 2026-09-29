@@ -13,7 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.core.designsystem.component.AppButton
 import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
+import com.coffeepeek.feature.favorites.impl.resources.Res
+import com.coffeepeek.feature.favorites.impl.resources.favorites_retry
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun FavoritesMessage(text: String, onRetry: (() -> Unit)? = null) {
@@ -21,7 +24,7 @@ internal fun FavoritesMessage(text: String, onRetry: (() -> Unit)? = null) {
         Column(horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            onRetry?.let { AppButton("Повторить", it) }
+            onRetry?.let { AppButton(stringResource(Res.string.favorites_retry), it) }
         }
     }
 }

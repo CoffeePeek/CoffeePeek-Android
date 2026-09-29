@@ -86,11 +86,35 @@ never rewrite published stack history or unrelated work without agreement.
 4. Prepare data implementations/adapters and mapper/persistence tests, with no
    application switching yet. Document current vs target models/schema.
 5. Prepare impl/ui using core design-system, injected dependencies, caller
-   navigation callbacks and PreviewLightDark fixtures.
+   navigation callbacks and colocated paired light/dark previews.
 6. Integrate only that capability through root DI/navigation in a dedicated PR.
    Build the Android app, smoke-test user flows and verify stored-data compatibility.
 7. Delete legacy copies only after every consumer has switched. Repeat by owner;
    do not relocate all screens/models/repositories at once.
+
+## Next slices after Android favorites integration
+
+Keep each item a separate stacked PR with its own build/tests. Do not turn this
+list into empty modules or remove the iOS legacy path before its replacement works.
+
+1. Give favorites UI its own text/accessibility resources. Audit actual locale
+   directories first; do not invent a second translation to complete a diagram.
+2. Move the temporary favorites Koin/Room/legacy bridge into Android application
+   composition, preserving one repository instance/writer and its persistence tests.
+   Remove favorites/di only when all app references have moved.
+3. Audit the existing BaseViewModel against lifecycle, cancellation, Result and
+   error presentation. Extract only a proven reusable pattern; do not require
+   migrated ViewModels to inherit a generic base.
+4. Move existing design-system preview-only fixtures beside their components in
+   scoped groups, checking paired themes and preserving commonMain UI ownership.
+5. Decide the iOS presentation boundary for favorites explicitly: shared Compose
+   UI in the current SwiftUI host or a native SwiftUI screen over shared domain/data.
+   Then prepare required native targets, platform storage/DI and tests before
+   switching the iOS route and retiring its legacy writer/events.
+6. Migrate root navigation separately after feature entry contracts work on both
+   platforms. Do not mix a Navigation 3 root swap with persistence or UI parity.
+7. Repeat the feature migration by business owner; remove legacy modules only
+   after all consumers on Android and iOS have moved.
 
 ## Pilot audit: favorites (Android screen and DI integrated)
 

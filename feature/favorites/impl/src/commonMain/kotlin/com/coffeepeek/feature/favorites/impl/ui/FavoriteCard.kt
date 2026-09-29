@@ -38,9 +38,14 @@ import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
 import com.coffeepeek.core.designsystem.theme.CpColor
 import com.coffeepeek.core.designsystem.theme.CpDimens
 import com.coffeepeek.feature.favorites.domain.FavoriteShop
+import com.coffeepeek.feature.favorites.impl.resources.Res
+import com.coffeepeek.feature.favorites.impl.resources.favorites_distance_from_you
+import com.coffeepeek.feature.favorites.impl.resources.favorites_remove_description
+import com.coffeepeek.feature.favorites.impl.resources.favorites_roaster_logo_description
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.jetbrains.compose.resources.stringResource
 
 /** Feature-owned rendering: never imports feed UI or legacy shop aggregates. */
 @Composable
@@ -81,7 +86,9 @@ internal fun FavoriteCard(
                     ) {
                         Icon(
                             CpIcons.FavoriteFilled,
-                            contentDescription = "Удалить из избранного: ${shop.title}",
+                            contentDescription = stringResource(
+                                Res.string.favorites_remove_description, shop.title,
+                            ),
                             tint = CpColor.Error,
                             modifier = Modifier.size(22.dp),
                         )
@@ -103,7 +110,9 @@ internal fun FavoriteCard(
                             ) {
                                 KamelImage(
                                     resource = { asyncPainterResource(url) },
-                                    contentDescription = "Логотип обжарщика ${index + 1}",
+                                    contentDescription = stringResource(
+                                        Res.string.favorites_roaster_logo_description, index + 1,
+                                    ),
                                     modifier = Modifier.fillMaxSize().clip(CircleShape),
                                     contentScale = ContentScale.Crop,
                                     onLoading = { Icon(CpIcons.Coffee, null, Modifier.size(18.dp)) },
@@ -143,7 +152,7 @@ internal fun FavoriteCard(
                 val location = listOfNotNull(
                     shop.address?.takeIf(String::isNotBlank)
                         ?: shop.cityName?.takeIf(String::isNotBlank),
-                    distance?.let { "$it от вас" },
+                    distance?.let { stringResource(Res.string.favorites_distance_from_you, it) },
                 ).joinToString(" • ")
                 if (location.isNotBlank()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
