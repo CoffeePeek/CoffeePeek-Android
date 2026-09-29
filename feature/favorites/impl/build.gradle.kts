@@ -17,6 +17,7 @@ kotlin {
             api(project(module.feature.favorites.api))
             implementation(project(module.feature.favorites.domain))
             implementation(project(module.core.designSystem))
+            implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kamel)

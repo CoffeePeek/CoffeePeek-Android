@@ -10,7 +10,7 @@ target; no native iOS implementation is part of these slices.
 
 ## Target layout and graph
 
-For each migrated business capability (not each individual screen):
+For each migrated business capability (not each individual screen), normally:
 
 ```text
 feature/<name>/
@@ -20,7 +20,6 @@ feature/<name>/
   impl/
     src/commonMain/.../
       ui/                screens, ViewModels, state/events, feature components
-  di/                    optional Koin assembly and composition bridges
 ```
 
 Each boundary becomes a separate KMP Gradle module as its code is prepared.
@@ -28,8 +27,10 @@ Do not create empty placeholders or a second application. Api has no data/UI
 implementation or Koin declarations. Domain uses pure Kotlin/approved domain
 dependencies; it may depend on api only when those contracts are equally pure.
 Data depends on domain and needed core infrastructure. Impl depends on api/domain
-and design-system; its UI cannot access data internals. The optional di module
-owns data factories, Koin assembly and temporary legacy adapters.
+and design-system; its UI cannot access data internals. The existing favorites/di
+module is a temporary exception for its legacy bridge. New features should be
+assembled by composeApp Koin/platform packages unless another Gradle boundary
+has a demonstrated need.
 Keep data implementations internal and expose only the narrow construction
 surface required for feature composition. Enforce UI import boundaries as well
 as Gradle edges.
@@ -56,7 +57,7 @@ implementation(project(module.feature.favorites.api))
 implementation(project(module.feature.favorites.domain))
 implementation(project(module.feature.favorites.data))
 implementation(project(module.feature.favorites.impl))
-implementation(project(module.feature.favorites.di))
+implementation(project(module.feature.favorites.di)) // existing migration bridge only
 ```
 
 Favorites accessors are now callable, including module.feature.favorites.di.

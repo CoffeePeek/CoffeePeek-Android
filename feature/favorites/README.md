@@ -30,8 +30,11 @@ future Navigation 3 root entryProvider → favoritesEntry (prepared)
 Domain/data are manually constructed; no Koin annotations, contexts or service
 lookups. Data requires an injected dispatcher for storage and parsing; production
 DI supplies the core IO dispatcher. Feature modules declare Koin bindings but
-only application composition starts Koin. The feature DI module is justified by its concrete legacy
-storage bridge, not a generic core DI aggregator. Factories hide implementations.
+only application composition starts Koin. The feature DI module is a transitional
+exception justified by its concrete legacy storage bridge, not a pattern for
+future features or a generic core DI aggregator. Future composition and platform
+bridges normally belong in composeApp packages; move this bridge only in a
+separate tested migration slice. Factories hide implementations.
 Feature UI depends on neither data nor di; Gradle enforces this restriction.
 Other business/UI features may consume favorites domain deliberately; api remains
 the route/entry boundary. No generic BaseViewModel or Navigator singleton.
@@ -153,10 +156,11 @@ legacy JSON to the actual Room settings table, closes and reopens the database,
 then verifies the new repository and legacy adapter share that persisted row
 and one writer. It uses a uniquely named test database, not user data. This
 does not validate a full signed-in user journey or historic Room migrations
-from schema versions 1/2. FavoritesPreviews.kt supplies PreviewLightDark for
-content, closed/long-title, loading, empty and error without DI, network or
-actual photo URLs. UI tests render light and dark; IDE preview pixels have not
-been manually inspected in this environment.
+from schema versions 1/2. FavoritesScreen.kt now keeps paired multiplatform
+light/dark previews for content, closed, loading, empty and error beside its
+stateless ScreenContent; each extracted component has previews in its own file,
+without DI, network or actual photo URLs. UI tests render light and dark; IDE
+preview pixels have not been manually inspected in this environment.
 
 Android DI supplies the adapter from the same singleton to existing consumers,
 including ShopRepositoryImpl and UserSessionCleaner. Feed/details observe

@@ -1,8 +1,6 @@
 package com.coffeepeek.feature.favorites.impl
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
@@ -21,8 +19,7 @@ fun createFavoritesEntry(repository: FavoritesRepository): FavoritesEntry = obje
         distanceForCoordinates: (Double, Double) -> String?,
     ) {
         val vm = viewModel { FavoritesViewModel(repository) }
-        val state by vm.state.collectAsStateWithLifecycle()
-        FavoritesScreen(state, vm::retry, vm::remove, onOpenShop, onBack, distanceForCoordinates)
+        FavoritesScreen(vm, onOpenShop, onBack, distanceForCoordinates)
     }
 }
 

@@ -2,7 +2,6 @@ package com.coffeepeek.feature.favorites.impl.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.coffeepeek.feature.favorites.domain.FavoriteShop
 import com.coffeepeek.feature.favorites.domain.FavoritesRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -10,14 +9,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-internal data class FavoritesUiState(
-    val shops: List<FavoriteShop> = emptyList(),
-    val isLoading: Boolean = true,
-    val loadFailed: Boolean = false,
-    val actionFailed: Boolean = false,
-    val removing: Set<String> = emptySet(),
-)
 
 internal class FavoritesViewModel(private val repository: FavoritesRepository) : ViewModel() {
     private val mutableState = MutableStateFlow(FavoritesUiState())
