@@ -253,10 +253,17 @@ platform difference.
 
 ## Incremental migration
 
-Use stacked PRs from the current migration branch tip. A child PR targets its
-immediate parent. After merging a parent to main, retarget its child to main and
-verify the diff before merging; do not merge into stale already-merged branches.
-Branches isolate unfinished work from main, not runtime behaviour from users.
+Use stacked PRs from the current migration branch tip. Group cohesive migration
+steps in a checkpoint PR instead of opening one for every small task. The
+working threshold for the next checkpoint is about 50 changed files in the PR
+diff against its base; a distinct review/risk boundary can justify an earlier
+split, while an indivisible change may exceed it with an explanation. Never
+combine unrelated work to fill a PR. A child PR targets the previous open
+checkpoint branch. After merging a parent to main, retarget its child to main
+and verify the diff before merging; do not merge into stale already-merged
+branches. Branches isolate unfinished work from main, not runtime behaviour
+from users. Verify each logical integration step even when several steps share
+one PR.
 
 Use strangler migration. A temporary mixture of legacy and feature-based code is
 valid, provided new code does not reproduce legacy violations.

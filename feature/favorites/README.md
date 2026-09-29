@@ -1,5 +1,9 @@
 # Favorites: incremental Android integration
 
+For the remaining Android-only verification and cleanup, follow
+[ANDROID_COMPLETION_PLAN.md](ANDROID_COMPLETION_PLAN.md). iOS integration and the
+application-wide root Navigation 3 migration remain separate decisions.
+
 Android application composition now binds the new repository and a legacy-contract
 adapter as one writer. Its Favorites destination renders the new feature screen
 through a platform adapter, while the shared root remains on Navigation 2. The

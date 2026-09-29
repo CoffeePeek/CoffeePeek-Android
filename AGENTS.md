@@ -149,12 +149,21 @@ module boundary.
 ## Before coding
 
 - Continue the branch stack from the current migration tip, not main. Each new
-  PR targets its immediate parent branch and describes only its own changes.
-  Work only in migration branches. Before merging a child, retarget it to main
-  after its parent has reached main; recheck its diff and tests. Do not merge
-  children into an already merged parent and assume they reached main.
+  PR targets the previous open checkpoint branch and describes only the changes
+  since that branch. Work only in migration branches. Group related, independently
+  verifiable steps in one PR; use about 50 changed files in the PR diff as the
+  trigger for a new stacked checkpoint, not one PR per small task. A genuine
+  review/risk boundary may justify an earlier PR, and an indivisible change may
+  exceed 50 files with an explanation. Never mix unrelated work just to reach
+  the threshold. Before merging a child, retarget it to main after its parent
+  has reached main; recheck its diff and tests. Do not merge children into an
+  already merged parent and assume they reached main.
 - Branch isolation does not prove application correctness: every integration
   slice must compile the Android app and test the affected behaviour.
+- Current favorites completion is Android-first. Do not change the iOS screen,
+  binding or writer, or remove shared legacy paths still used by iOS. A root
+  Navigation 3 migration is an application-wide decision, not a prerequisite
+  for finishing the Android favorites feature.
 
 1. Identify the business feature and the owning layer.
 2. Search for a reusable existing implementation before creating a parallel one.
