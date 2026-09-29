@@ -14,6 +14,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.core.designsystem.theme.CpColor
 import com.coffeepeek.core.designsystem.theme.CpDimens
+import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
+import com.coffeepeek.core.designsystem.icons.CpIcons
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /** Neutral action specification; no routes, destinations or business models. */
 data class FabMenuAction(
@@ -50,3 +53,15 @@ fun FabMenu(actions: List<FabMenuAction>, modifier: Modifier = Modifier) {
         }
     }
 }
+
+@Composable
+private fun FabMenuPreviewContent(darkTheme: Boolean) = CoffeePeekTheme(darkTheme = darkTheme) {
+    Surface {
+        FabMenu(listOf(FabMenuAction(CpIcons.Settings, "Settings", {}),
+            FabMenuAction(CpIcons.Close, "Close", {}),
+            FabMenuAction(CpIcons.Search, "Search unavailable", {}, enabled = false)))
+    }
+}
+
+@Preview @Composable private fun FabMenuLightPreview() = FabMenuPreviewContent(false)
+@Preview @Composable private fun FabMenuDarkPreview() = FabMenuPreviewContent(true)

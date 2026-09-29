@@ -50,7 +50,7 @@ This is test-side normalization, not a production text workaround.
 
 ## Preview and remaining QA
 
-AdaptivePreviews.kt contains LTR and RTL PreviewLightDark fixtures at injected
+`GroupedRows.kt` contains LTR and RTL paired previews at injected
 fontScale 2.0, with Manrope and Russian labels. It also includes top bar, fields,
 search and checkmark rows for manual inspection; these additional families are
 not all covered by new large-font geometry tests. Existing paired previews cover

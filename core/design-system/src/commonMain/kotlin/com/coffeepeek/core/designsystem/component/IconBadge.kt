@@ -2,6 +2,9 @@ package com.coffeepeek.core.designsystem.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -9,12 +12,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.coffeepeek.core.designsystem.theme.CpDimens
+import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
+import com.coffeepeek.core.designsystem.icons.CpIcons
+import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 data class IconBadgeColors(
     val background: Color,
@@ -95,3 +103,16 @@ fun IconBadge(
         )
     }
 }
+
+@Composable
+private fun IconBadgePreviewContent(darkTheme: Boolean) = CoffeePeekTheme(darkTheme = darkTheme) {
+    Surface {
+        Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            IconBadge(CpIcons.Settings, IconBadgePalette.Cyan, contentDescription = "Cyan badge")
+            IconBadge(CpIcons.Settings, IconBadgePalette.Gold, contentDescription = "Gold badge")
+        }
+    }
+}
+
+@Preview @Composable private fun IconBadgeLightPreview() = IconBadgePreviewContent(false)
+@Preview @Composable private fun IconBadgeDarkPreview() = IconBadgePreviewContent(true)

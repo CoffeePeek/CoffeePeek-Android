@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,11 +29,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,3 +107,15 @@ fun SwipeDismissModalBottomSheet(
         content = content,
     )
 }
+
+// Modal rendering requires Interactive Preview or Run Preview in some IDE versions.
+@Composable
+private fun SwipeDismissModalBottomSheetPreviewContent(darkTheme: Boolean) = CoffeePeekTheme(darkTheme = darkTheme) {
+    var shown by remember { mutableStateOf(true) }
+    if (shown) SwipeDismissModalBottomSheet({ shown = false }, "Dismiss sheet") {
+        Text("Example sheet: drag the handle to dismiss", Modifier.padding(24.dp))
+    }
+}
+
+@Preview @Composable private fun SwipeDismissModalBottomSheetLightPreview() = SwipeDismissModalBottomSheetPreviewContent(false)
+@Preview @Composable private fun SwipeDismissModalBottomSheetDarkPreview() = SwipeDismissModalBottomSheetPreviewContent(true)

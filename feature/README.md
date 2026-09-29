@@ -120,8 +120,9 @@ list into empty modules or remove the iOS legacy path before its replacement wor
 3. Completed: audit the existing BaseViewModel against lifecycle, cancellation,
    Result and error presentation. Fix cancellation handling and lifecycle cleanup;
    do not require migrated ViewModels to inherit a generic base.
-4. Move existing design-system preview-only fixtures beside their components in
-   scoped groups, checking paired themes and preserving commonMain UI ownership.
+4. Completed: move design-system preview-only fixtures beside their components
+   in scoped groups, with paired themes and commonMain UI ownership. IDE/modal
+   visual rendering still requires manual inspection.
 5. Decide the iOS presentation boundary for favorites explicitly: shared Compose
    UI in the current SwiftUI host or a native SwiftUI screen over shared domain/data.
    Then prepare required native targets, platform storage/DI and tests before

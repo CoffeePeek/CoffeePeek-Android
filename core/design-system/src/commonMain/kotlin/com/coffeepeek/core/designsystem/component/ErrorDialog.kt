@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.coffeepeek.core.designsystem.theme.CpDimens
+import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 object ErrorDialog {
 
@@ -113,3 +115,12 @@ object ErrorDialog {
         }
     }
 }
+
+// Modal rendering requires Interactive Preview or Run Preview in some IDE versions.
+@Composable
+private fun ErrorDialogPreviewContent(darkTheme: Boolean) = CoffeePeekTheme(darkTheme = darkTheme) {
+    ErrorDialog(true, "Try again later", "Something went wrong", "Dismiss", {})
+}
+
+@Preview @Composable private fun ErrorDialogLightPreview() = ErrorDialogPreviewContent(false)
+@Preview @Composable private fun ErrorDialogDarkPreview() = ErrorDialogPreviewContent(true)

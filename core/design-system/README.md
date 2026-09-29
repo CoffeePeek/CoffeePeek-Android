@@ -109,34 +109,34 @@ No new public Insets wrapper is needed: use Compose foundation's direction-aware
 padding/size modifiers and explicit consumption at Scaffold/list boundaries.
 The unused legacy Insets object is not copied or modified. INSETS.md documents
 ownership, horizontal safeDrawing, exact logical spacers and keyboard policy.
-InsetsPreviews.kt adds paired LTR/RTL light/dark fixtures with synthetic asymmetry;
+`CpTopBar.kt` keeps paired LTR/RTL light/dark inset fixtures with synthetic asymmetry;
 InsetsRecipeTest checks measured geometry, consumption, density and inset updates.
 Real system bars/IME/modal integration and large-font screen QA remain separate.
 
 ## Light/dark previews
 
-AdaptivePreviews.kt adds LTR/RTL light/dark fixtures at fontScale 2.0. Stepper
+`GroupedRows.kt` keeps LTR/RTL light/dark fixtures at fontScale 2.0. Stepper
 actions now have growing 48.dp minimum targets rather than fixed 32.dp height.
 Grouped rows use a 48.dp minimum; action rows/stepper halves expose button roles.
 ADAPTIVE_LAYOUT.md documents the targeted measured-layout/semantic tests and
 preserved ellipsis policies. Large-font screen, OS scaling and pixel parity QA
 remain integration responsibilities; this is not a complete accessibility audit.
 
-Open androidMain/preview/ComponentPreviews.kt in Android Studio Design/Split mode.
-Every component family has @PreviewLightDark, including fields/error/disabled
+Open a component's own source file in Android Studio Design/Split mode. Every
+prepared family has colocated paired multiplatform `@Preview` functions with
+explicit `CoffeePeekTheme(darkTheme = false/true)`, including fields/error/disabled
 states, grouped rows, badges, segmented control, loader, sheet, dialogs and FAB.
-InsetsPreviews.kt provides additional LTR and RTL recipe fixtures.
-Refresh has both idle/interactive and running light/dark samples.
-CoffeePeekTheme uses preview uiMode to select the palette and packaged Manrope.
-Previews require no app
-DI, network, navigation or data. Android annotations/tooling stay in androidMain
-and debug tooling, not commonMain.
+`CpTopBar.kt` also has LTR/RTL inset recipes; `GroupedRows.kt` has LTR/RTL
+large-font fixtures. Refresh has both idle/interactive and running samples.
+Previews require no app DI, network, navigation or data. The Compose preview
+annotation is in commonMain; Android Studio's rendering tooling remains a
+debug-only Android dependency. This module currently has an Android target only.
 
 Use Interactive Preview / Run Preview for modal windows and stateful callbacks;
 static layout previews are not guaranteed to display separate dialog windows.
 Compilation is checked, but IDE rendering and brand-font visual parity require
 manual inspection. After each slice, review both themes before integration.
-Keep @PreviewLightDark coverage up to date whenever adding a reusable UI family.
+Keep paired light/dark coverage up to date whenever adding a reusable UI family.
 
 ## Migration and verification
 
