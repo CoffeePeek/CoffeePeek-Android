@@ -3,12 +3,15 @@
 `core/presentation` contains a typed base for migrated feature ViewModels.
 It owns a private `MutableStateFlow` initialized by the subclass and a buffered
 one-off event channel. Consumers see read-only `StateFlow<State>` and
-`Flow<Event>`; subclasses implement `onAction(Action)` and can call atomic
-`updateState`, read `currentState`, or suspend in `sendEvent`.
+`Flow<Event>`. Public `onAction(Action)` launches a lifecycle-owned coroutine;
+subclasses implement suspending `handleActionInternal(Action)` and can call
+atomic `updateState`, read `currentState`, or suspend in `sendEvent`.
 
 It extends the multiplatform lifecycle ViewModel but contains no action queue,
 custom scope, navigation, DI, global loading/error policy, Android API or
-Compose UI. The legacy app BaseViewModel remains untouched.
+Compose UI. Each action runs independently, so a slow action cannot block a
+later navigation intent; features must guard duplicate or conflicting work.
+The legacy app BaseViewModel remains untouched.
 
 - Owner: cross-feature presentation ViewModel contract only.
 - Allowed dependencies: Kotlin, kotlinx.coroutines Flow and the multiplatform
@@ -29,4 +32,6 @@ compare-and-set logic. Call `sendEvent` from a lifecycle-owned coroutine so
 emission order and cancellation stay explicit. An unbounded serialized action
 queue and a default catch-all error handler are deliberately not included:
 slow actions must not block later intents, and each feature must decide how to
-surface failures. Events are in-memory and are not restored after process death.
+surface failures. Separate actions may complete out of order; features own
+any coordination they require. Events are in-memory and are not restored after
+process death.

@@ -111,8 +111,11 @@ still owns its root back stack and cross-feature routing.
   callbacks; it does not own the app's navigation implementation. New MVI
   ViewModels inherit `core/presentation`'s typed `MviViewModel`; the old
   application `BaseViewModel` is not their parent. Do not invent unused event
-  classes: use `Nothing` when appropriate. Action handling, `Result` failures
-  and cancellation policy remain explicit in each feature.
+  classes: use `Nothing` when appropriate. The base launches each submitted
+  action in its lifecycle scope; features implement suspending
+  `handleActionInternal`. Independent actions may overlap, so features guard
+  duplicate or conflicting work. `Result` failures and cancellation policy
+  remain explicit in each feature.
 - Place each component's preview beside its component in the same source file.
   For shared `commonMain` Compose UI, use paired light/dark multiplatform
   previews in that file; for Android-only UI, use `PreviewLightDark` there.

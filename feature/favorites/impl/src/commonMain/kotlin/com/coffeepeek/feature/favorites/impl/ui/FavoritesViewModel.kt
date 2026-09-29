@@ -17,14 +17,12 @@ internal class FavoritesViewModel(private val repository: FavoritesRepository) :
 
     init { retry() }
 
-    override fun onAction(action: FavoritesAction) {
+    override suspend fun handleActionInternal(action: FavoritesAction) {
         when (action) {
             FavoritesAction.Retry -> retry()
             is FavoritesAction.Remove -> remove(action.shopId)
-            is FavoritesAction.OpenShop -> viewModelScope.launch {
-                sendEvent(FavoritesEvent.OpenShop(action.shopId))
-            }
-            FavoritesAction.Back -> viewModelScope.launch { sendEvent(FavoritesEvent.Back) }
+            is FavoritesAction.OpenShop -> sendEvent(FavoritesEvent.OpenShop(action.shopId))
+            FavoritesAction.Back -> sendEvent(FavoritesEvent.Back)
         }
     }
 
@@ -42,18 +40,16 @@ internal class FavoritesViewModel(private val repository: FavoritesRepository) :
         }
     }
 
-    private fun remove(shopId: String) {
+    private suspend fun remove(shopId: String) {
         if (shopId in currentState.removing || currentState.shops.none { it.id == shopId }) return
         updateState { copy(removing = removing + shopId, actionFailed = false) }
-        viewModelScope.launch {
-            try {
-                val result = repository.remove(shopId)
-                result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
-                // Observation owns the list. Failed writes never optimistically erase cards.
-                updateState { copy(actionFailed = result.isFailure) }
-            } finally {
-                updateState { copy(removing = removing - shopId) }
-            }
+        try {
+            val result = repository.remove(shopId)
+            result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+            // Observation owns the list. Failed writes never optimistically erase cards.
+            updateState { copy(actionFailed = result.isFailure) }
+        } finally {
+            updateState { copy(removing = removing - shopId) }
         }
     }
 }

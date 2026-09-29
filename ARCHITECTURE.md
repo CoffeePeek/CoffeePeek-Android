@@ -173,8 +173,10 @@ multiplatform light/dark previews; Android-only UI can use `PreviewLightDark` in
 The old application BaseViewModel remains transitional for legacy screens. New
 MVI ViewModels inherit the typed core/presentation base, which owns a private
 state flow and one-off event channel on top of the multiplatform lifecycle
-ViewModel. It does not copy the old global loading/error behaviour or custom
-work scope. Each feature handles its actions, Result failures and cancellation.
+ViewModel. It launches each submitted action independently in the standard
+lifecycle scope, without a serialized queue, global catch-all, or the old
+loading/error behaviour. Features implement suspending action handlers and own
+their Result failures, cancellation, and conflicting-action policy.
 Place reusable visual tokens/components in design-system, feature-specific UI and
 assets in the feature, and user-facing strings/accessibility text in resources.
 Verify supported locales and translation parity before documenting their number.
@@ -199,9 +201,11 @@ modules. Name cross-cutting code by its actual responsibility instead.
 The presentation base extends the multiplatform lifecycle ViewModel and owns
 private `MutableStateFlow` plus a buffered one-off event channel. It exposes
 read-only `state`/`events`, atomic `updateState`, `currentState`, and suspending
-`sendEvent`. It does not own an action queue, custom scope, global errors or
-loading. Feature impl modules implement typed `onAction` and keep Result/error
-decisions local. Event-less screens may use `Nothing` without an event class.
+`sendEvent`. Its public `onAction` launches a coroutine for each action and
+delegates to the feature's suspending `handleActionInternal`. It does not own
+an action queue, custom scope, global errors or loading. Feature impl modules
+keep Result/error decisions local and guard actions that must not overlap.
+Event-less screens may use `Nothing` without an event class.
 
 ## Navigation and DI
 

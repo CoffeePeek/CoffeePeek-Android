@@ -93,4 +93,14 @@ class FavoritesViewModelTest {
         assertEquals(FavoritesEvent.OpenShop("a"), vm.events.first())
         assertEquals(FavoritesEvent.Back, vm.events.first())
     }
+
+    @Test fun pendingRemovalDoesNotBlockBackNavigation() = runTest(dispatcher) {
+        val repo = Repo(); repo.gate = CompletableDeferred()
+        val vm = vm(repo); runCurrent()
+        vm.onAction(FavoritesAction.Remove("a")); runCurrent()
+        assertEquals(setOf("a"), vm.state.value.removing)
+
+        vm.onAction(FavoritesAction.Back); runCurrent()
+        assertEquals(FavoritesEvent.Back, vm.events.first())
+    }
 }
