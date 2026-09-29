@@ -14,7 +14,7 @@ modules/network/            legacy HTTP infrastructure and feature API code
 modules/data/               legacy repository implementations
 modules/room/               legacy Room infrastructure and persistence
 core/                      prepared independent infrastructure/design-system
-feature/                   favorites modules; Android screen/DI integrated
+feature/                   favorites api/domain/data/impl; Android screen integrated
 iosApp/                     native iOS application boundary, when present
 ```
 
@@ -35,16 +35,17 @@ Organize new code by business feature, not by a global technical layer.
 feature/<name>/
 ├── api/       intentionally public contracts only
 ├── domain/    business rules, domain models, repository interfaces
-├── data/      remote/local implementations, DTOs, entities, DAOs, mappers
-├── impl/      screen entry point and ui/ presentation implementation
-└── di/        optional Koin assembly and composition bridges
+├── data/      backend/local implementations, DTOs, entities, DAOs, mappers
+└── impl/      screen entry point and ui/ presentation implementation
 ```
 
 The agreed target for migrated business features is separate api/domain/data/impl
 Gradle boundaries under singular feature/. Create these incrementally for the
 feature being migrated, not empty modules for every future screen. UI packages
-live inside impl; composition assembles data via narrow factories. A separate
-feature di module keeps Koin/legacy bridges outside UI when needed.
+live inside impl; composition assembles data via narrow factories. Favorites
+Koin assembly and its temporary legacy bridge live in composeApp/androidMain.
+Put root Koin assembly and platform/legacy bridges in composeApp, grouped
+by feature; only extract a separate integration module for a demonstrated need.
 This does not require every core infrastructure module to have a domain/data
 pair. See feature/README.md for the migration sequence and dependency graph.
 
@@ -66,11 +67,62 @@ pair. See feature/README.md for the migration sequence and dependency graph.
 Features use another feature's `api` for navigation/screen contracts. Intentionally
 supported pure `domain` contracts may also be consumed directly, as agreed for
 favorites; never depend on another feature's data/impl/di from business or UI code.
-Domain/data use constructor/manual DI. An optional feature-owned `di` module may
-assemble Koin and temporary composition bridges; only application composition
-consumes it, and no DI wiring belongs in domain/data or generic core DI.
+Domain/data use constructor/manual DI. Koin modules are Kotlin definitions, not
+automatically separate Gradle modules. Application composition assembles them;
+no DI wiring belongs in domain/data or generic core DI. Keep feature UI independent
+of data/legacy implementations. Do not introduce Dagger/Hilt into this KMP project
+without a separate, justified architecture decision.
 The dependency graph must remain acyclic. DI and navigation must not bypass these
 boundaries.
+
+Within a migrated feature, group code by its real responsibility:
+
+```text
+domain/{model,repository,usecase}/
+data/{backend,local,mapper,repository}/
+impl/<Feature>ApiImpl.kt
+impl/navigation/
+impl/ui/<Feature>ViewModel.kt
+impl/ui/compose/<Feature>Screen.kt
+impl/ui/compose/component/
+impl/ui/compose/model/          state, actions, one-off events
+```
+
+Use `backend` only for actual remote APIs/DTOs, `local` for persistence, and
+`mapper`/`formatter` only for real conversions. `ui/data` is an exceptional home
+for strictly presentation-specific preparation, never a replacement for feature
+domain use cases or repository implementations. Do not create empty packages.
+The feature API implementation adapts the public entry contract; feature
+navigation registration may live in `impl/navigation`, while the application
+still owns its root back stack and cross-feature routing.
+
+## Presentation and resources
+
+- Give each independent screen or component its own descriptively named Kotlin
+  file. Keep small private implementation helpers with their owner; do not create
+  a file solely to collect unrelated components or previews.
+- A screen's `NameScreen` is the runtime adapter: obtain its lifecycle-owned
+  ViewModel/dependencies at the feature entry or composition boundary, collect
+  state, and pass state/actions to a stateless `NameScreenContent`. Preview and
+  test `NameScreenContent` with fake state, no Koin, network, or database.
+- For MVI screens, model real user intents as `Action`, durable rendering data as
+  immutable `State`, and non-replayable effects such as navigation as `Event`.
+  Send actions into one ViewModel entry point. The screen maps events to caller
+  callbacks; it does not own the app's navigation implementation. Do not invent
+  unused action/event classes or a generic MVI base class.
+- Place each component's preview beside its component in the same source file.
+  For shared `commonMain` Compose UI, use paired light/dark multiplatform
+  previews in that file; for Android-only UI, use `PreviewLightDark` there.
+  Do not create preview-only files. Keep preview tooling platform-appropriate.
+- Own user-facing text, accessibility descriptions, and images in explicit
+  resources. Audit actual supported locales before claiming a translation exists;
+  keep translations aligned and avoid new hard-coded UI strings. Put reusable
+  visual assets/tokens in design-system only when truly shared; feature-specific
+  resources stay with their feature.
+- Review the existing legacy `BaseViewModel` before extracting common ViewModel
+  behaviour. Share only proven lifecycle/state/error patterns; do not require
+  inheritance or introduce a generic base class just to reduce line count.
+  Preserve `Result` failures and coroutine cancellation semantics.
 
 ## KMP and platforms
 
@@ -106,7 +158,8 @@ module boundary.
 
 Create a use case only for meaningful business behaviour, coordination, or rules;
 do not wrap one repository call without value. Prefer composition over generic
-`Base*`, `Manager`, `Helper`, or `Utils` abstractions. Prefer `internal` for
+`Base*`, `Manager`, `Helper`, or `Utils` abstractions unless an existing base
+demonstrably removes a shared, correct pattern. Prefer `internal` for
 implementation details.
 
 ## After coding
@@ -118,9 +171,10 @@ implementation details.
 - Keep changes scoped: architecture work must not silently include unrelated UI,
   dependency, navigation, or product changes.
 - Never commit credentials, API keys, passwords, or tokens.
-- Add/update PreviewLightDark fixtures for each reusable UI family and migrated
-  screen. Keep Android preview tooling in androidMain, with fake/injected state
-  and no production DI/network. Record modal/IDE rendering limitations.
+- Add/update paired light/dark previews beside every changed reusable component
+  and migrated screen content. Keep Android-only preview tooling in androidMain;
+  shared previews use multiplatform tooling in commonMain. Use fake/injected state,
+  no production DI/network, and record modal/IDE rendering limitations.
 - Preserve Kotlin Result request contracts and rethrow CancellationException;
   do not use suspend runCatching where it would swallow cancellation.
 

@@ -1,7 +1,7 @@
 # Feature migration: API / implementation
 
-This directory now contains independent favorites api/domain/data/impl/di modules.
-Android composition now uses favorites di plus a compatibility adapter; feed
+This directory now contains independent favorites api/domain/data/impl modules.
+Android application composition owns favorites Koin and its compatibility adapter; feed
 and detail observe favorites domain membership, and the Android favorites route
 renders the new screen. The shared root still uses Navigation 2, while iOS keeps
 the old favorites screen and binding. See favorites/README.md.
@@ -10,17 +10,30 @@ target; no native iOS implementation is part of these slices.
 
 ## Target layout and graph
 
-For each migrated business capability (not each individual screen):
+For each migrated business capability (not each individual screen), normally:
 
 ```text
 feature/<name>/
   api/                   routes and minimal cross-feature capabilities
-  domain/                models, repository contracts, meaningful business rules
-  data/                  remote/local, DTOs/entities/DAOs, mappers, repository impl
+  domain/
+    model/               business models
+    repository/          business contracts
+    usecase/             meaningful rules/coordination, when needed
+  data/
+    backend/             feature HTTP APIs and DTOs, only when present
+    local/               persistence interfaces/entities/DAOs, when present
+    mapper/              representation ↔ domain conversion, when present
+    repository/          implementations and narrow construction factories
   impl/
     src/commonMain/.../
-      ui/                screens, ViewModels, state/events, feature components
-  di/                    optional Koin assembly and composition bridges
+      <Feature>ApiImpl.kt
+      navigation/        feature entry registration; root stack stays in app
+      ui/
+        <Feature>ViewModel.kt
+        compose/
+          <Feature>Screen.kt
+          component/      one component per file, preview beside component
+          model/          state, actions, actual one-off events
 ```
 
 Each boundary becomes a separate KMP Gradle module as its code is prepared.
@@ -28,8 +41,10 @@ Do not create empty placeholders or a second application. Api has no data/UI
 implementation or Koin declarations. Domain uses pure Kotlin/approved domain
 dependencies; it may depend on api only when those contracts are equally pure.
 Data depends on domain and needed core infrastructure. Impl depends on api/domain
-and design-system; its UI cannot access data internals. The optional di module
-owns data factories, Koin assembly and temporary legacy adapters.
+and design-system; its UI cannot access data internals. Favorites Koin and the
+temporary legacy bridge live in composeApp/androidMain. New features should be
+assembled by composeApp Koin/platform packages unless another Gradle boundary
+has a demonstrated need.
 Keep data implementations internal and expose only the narrow construction
 surface required for feature composition. Enforce UI import boundaries as well
 as Gradle edges.
@@ -40,10 +55,11 @@ depend on another feature's data/impl/di from business/UI. Shared domain ABI
 must be deliberately supported, not moved to core/common.
 Composition owns the root graph and assembles feature implementations.
 
-HTTP requests belong to feature data/remote, not screens. Room persistence belongs
+HTTP requests belong to feature data/backend, not screens. Room persistence belongs
 to data/local. Core provides transport/driver infrastructure without feature DTOs,
 DAOs or endpoints. Preserve Kotlin Result and rethrow coroutine cancellation.
 Not every feature needs HTTP, Room or a use case wrapping a single repository call.
+Avoid empty packages; `formatter` and `ui/data` appear only for distinct real work.
 
 ## Modules DSL
 
@@ -56,10 +72,9 @@ implementation(project(module.feature.favorites.api))
 implementation(project(module.feature.favorites.domain))
 implementation(project(module.feature.favorites.data))
 implementation(project(module.feature.favorites.impl))
-implementation(project(module.feature.favorites.di))
 ```
 
-Favorites accessors are now callable, including module.feature.favorites.di.
+Favorites accessors are now callable for these four boundaries.
 Register only real module
 paths in Modules.all. Domain/data are nested by business owner, not new global
 technical-layer buckets. Core api/impl splits need their own concrete ABI/reuse
@@ -85,11 +100,35 @@ never rewrite published stack history or unrelated work without agreement.
 4. Prepare data implementations/adapters and mapper/persistence tests, with no
    application switching yet. Document current vs target models/schema.
 5. Prepare impl/ui using core design-system, injected dependencies, caller
-   navigation callbacks and PreviewLightDark fixtures.
+   navigation callbacks and colocated paired light/dark previews.
 6. Integrate only that capability through root DI/navigation in a dedicated PR.
    Build the Android app, smoke-test user flows and verify stored-data compatibility.
 7. Delete legacy copies only after every consumer has switched. Repeat by owner;
    do not relocate all screens/models/repositories at once.
+
+## Next slices after Android favorites integration
+
+Keep each item a separate stacked PR with its own build/tests. Do not turn this
+list into empty modules or remove the iOS legacy path before its replacement works.
+
+1. Give favorites UI its own text/accessibility resources. Audit actual locale
+   directories first; do not invent a second translation to complete a diagram.
+2. Completed: move the temporary favorites Koin/Room/legacy bridge into Android
+   application composition, preserving one repository instance/writer and its
+   persistence tests. The former favorites/di module is removed.
+3. Audit the existing BaseViewModel against lifecycle, cancellation, Result and
+   error presentation. Extract only a proven reusable pattern; do not require
+   migrated ViewModels to inherit a generic base.
+4. Move existing design-system preview-only fixtures beside their components in
+   scoped groups, checking paired themes and preserving commonMain UI ownership.
+5. Decide the iOS presentation boundary for favorites explicitly: shared Compose
+   UI in the current SwiftUI host or a native SwiftUI screen over shared domain/data.
+   Then prepare required native targets, platform storage/DI and tests before
+   switching the iOS route and retiring its legacy writer/events.
+6. Migrate root navigation separately after feature entry contracts work on both
+   platforms. Do not mix a Navigation 3 root swap with persistence or UI parity.
+7. Repeat the feature migration by business owner; remove legacy modules only
+   after all consumers on Android and iOS have moved.
 
 ## Pilot audit: favorites (Android screen and DI integrated)
 

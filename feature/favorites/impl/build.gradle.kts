@@ -17,6 +17,8 @@ kotlin {
             api(project(module.feature.favorites.api))
             implementation(project(module.feature.favorites.domain))
             implementation(project(module.core.designSystem))
+            implementation(compose.components.resources)
+            implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kamel)
@@ -39,6 +41,11 @@ kotlin {
     }
 }
 dependencies { add("debugImplementation", compose.uiTooling) }
+
+compose.resources {
+    packageOfResClass = "com.coffeepeek.feature.favorites.impl.resources"
+    publicResClass = false
+}
 
 android {
     namespace = "com.coffeepeek.feature.favorites.impl"

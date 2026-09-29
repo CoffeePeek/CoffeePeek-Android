@@ -35,7 +35,7 @@ import com.coffeepeek.admin.ui.screen.shopchange.SuggestShopChangeViewModel
 import com.coffeepeek.domain.model.ShopChangeSection
 import com.coffeepeek.admin.di.imageModule
 import com.coffeepeek.data.di.dataModule
-import com.coffeepeek.feature.favorites.domain.ObserveFavoriteIdsUseCase
+import com.coffeepeek.feature.favorites.domain.usecase.ObserveFavoriteIdsUseCase
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.koin.dsl.module

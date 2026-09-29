@@ -16,10 +16,12 @@ import androidx.navigation3.ui.NavDisplay
 import androidx.test.core.app.ActivityScenario
 import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
 import com.coffeepeek.feature.favorites.api.FavoritesRoute
-import com.coffeepeek.feature.favorites.domain.FavoriteShop
-import com.coffeepeek.feature.favorites.domain.FavoritesRepository
-import com.coffeepeek.feature.favorites.impl.ui.FavoritesScreen
-import com.coffeepeek.feature.favorites.impl.ui.FavoritesUiState
+import com.coffeepeek.feature.favorites.domain.model.FavoriteShop
+import com.coffeepeek.feature.favorites.domain.repository.FavoritesRepository
+import com.coffeepeek.feature.favorites.impl.navigation.favoritesEntry
+import com.coffeepeek.feature.favorites.impl.ui.compose.FavoritesScreenContent
+import com.coffeepeek.feature.favorites.impl.ui.compose.model.FavoritesAction
+import com.coffeepeek.feature.favorites.impl.ui.compose.model.FavoritesUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -36,7 +38,7 @@ class FavoritesScreenTest {
 
     @Test fun loadingAndEmptyAreDistinctAndHaveNoNetworkDependencies() {
         val state = mutableStateOf(FavoritesUiState())
-        render { FavoritesScreen(state.value, {}, {}, {}, {}) }.use {
+        render { FavoritesScreenContent(state.value, {}) }.use {
             compose.onNodeWithContentDescription("Загрузка избранного").assertIsDisplayed()
             compose.runOnIdle { state.value = FavoritesUiState(isLoading = false) }
             compose.onNodeWithText("Пока нет избранных кофеен").assertIsDisplayed()
@@ -45,24 +47,27 @@ class FavoritesScreenTest {
     }
 
     @Test fun errorRetryAndBackEmitCallerActions() {
-        var retries = 0; var backs = 0
-        render { FavoritesScreen(FavoritesUiState(isLoading = false, loadFailed = true),
-            { retries++ }, {}, {}, { backs++ }) }.use {
+        val actions = mutableListOf<FavoritesAction>()
+        render { FavoritesScreenContent(FavoritesUiState(isLoading = false, loadFailed = true),
+            actions::add) }.use {
             compose.onNodeWithText("Не удалось загрузить избранное").assertIsDisplayed()
             compose.onNodeWithText("Повторить").performClick()
             compose.onNodeWithContentDescription("Назад").performClick()
-            compose.runOnIdle { assertEquals(1, retries); assertEquals(1, backs) }
+            compose.runOnIdle { assertEquals(listOf(FavoritesAction.Retry, FavoritesAction.Back), actions) }
         }
     }
 
     @Test fun removeIsSeparateFromCardNavigationAndPendingDisablesIt() {
-        var removed: String? = null; var opened: String? = null
+        val actions = mutableListOf<FavoritesAction>()
         val state = mutableStateOf(FavoritesUiState(listOf(FavoriteShop("id", "Кофейня")), isLoading = false))
-        render { FavoritesScreen(state.value, {}, { removed = it }, { opened = it }, {}) }.use {
+        render { FavoritesScreenContent(state.value, actions::add) }.use {
             compose.onNodeWithContentDescription("Удалить из избранного: Кофейня").performClick()
-            compose.runOnIdle { assertEquals("id", removed); assertEquals(null, opened) }
+            compose.runOnIdle { assertEquals(listOf(FavoritesAction.Remove("id")), actions) }
             compose.onNodeWithText("Кофейня").performClick()
-            compose.runOnIdle { assertEquals("id", opened); state.value = state.value.copy(removing = setOf("id")) }
+            compose.runOnIdle {
+                assertEquals(listOf(FavoritesAction.Remove("id"), FavoritesAction.OpenShop("id")), actions)
+                state.value = state.value.copy(removing = setOf("id"))
+            }
             compose.onNodeWithContentDescription("Удалить из избранного: Кофейня").assertIsNotEnabled()
         }
     }
@@ -74,9 +79,9 @@ class FavoritesScreenTest {
             FavoriteShop("missing", "Кофейня без координат", latitude = 53.9),
         )
         render {
-            FavoritesScreen(
+            FavoritesScreenContent(
                 state = FavoritesUiState(shops = shops, isLoading = false),
-                onRetry = {}, onRemove = {}, onOpenShop = {}, onBack = {},
+                onAction = {},
                 distanceForCoordinates = { latitude, longitude ->
                     requested += latitude to longitude
                     "950 м"
@@ -95,8 +100,7 @@ class FavoritesScreenTest {
             brewMethods = listOf("Эспрессо", "Фильтр"), tags = listOf("Спешелти"),
         )
         render {
-            FavoritesScreen(FavoritesUiState(shops = listOf(saved), isLoading = false),
-                {}, {}, {}, {})
+            FavoritesScreenContent(FavoritesUiState(shops = listOf(saved), isLoading = false), {})
         }.use {
             compose.onNodeWithText("COFFEEPEEK").assertIsDisplayed()
             compose.onNodeWithText("4.8").assertIsDisplayed()
@@ -119,7 +123,7 @@ class FavoritesScreenTest {
         for (dark in listOf(false, true)) {
             render {
                 CoffeePeekTheme(darkTheme = dark) {
-                    FavoritesScreen(state, {}, {}, {}, {})
+                    FavoritesScreenContent(state, {})
                 }
             }.use {
                 compose.onNodeWithText(title).assertIsDisplayed()
@@ -142,11 +146,12 @@ class FavoritesScreenTest {
         }
         val screen = createFavoritesEntry(repo)
         val stack = mutableStateListOf<NavKey>(FavoritesRoute)
+        var backRequests = 0
         render {
             NavDisplay(backStack = stack, onBack = { if (stack.size > 1) stack.removeLast() },
                 entryDecorators = listOf(rememberSaveableStateHolderNavEntryDecorator(), rememberViewModelStoreNavEntryDecorator()),
                 entryProvider = entryProvider {
-                    favoritesEntry(screen, { stack.add(ShopKey(it)) }, {})
+                    favoritesEntry(screen, { stack.add(ShopKey(it)) }, { backRequests++ })
                     entry<ShopKey> { Text("Shop ${it.id}") }
                 })
         }.use {
@@ -155,6 +160,8 @@ class FavoritesScreenTest {
             compose.runOnIdle { assertEquals(ShopKey("id"), stack.last()) }
             compose.runOnIdle { stack.removeLast() }
             compose.onNodeWithText("Кофейня").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Назад").performClick()
+            compose.runOnIdle { assertEquals(1, backRequests) }
         }
     }
 }

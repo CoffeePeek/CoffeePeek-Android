@@ -2,32 +2,41 @@ package com.coffeepeek.feature.favorites.impl.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.coffeepeek.feature.favorites.domain.FavoriteShop
-import com.coffeepeek.feature.favorites.domain.FavoritesRepository
+import com.coffeepeek.feature.favorites.domain.repository.FavoritesRepository
+import com.coffeepeek.feature.favorites.impl.ui.compose.model.FavoritesAction
+import com.coffeepeek.feature.favorites.impl.ui.compose.model.FavoritesEvent
+import com.coffeepeek.feature.favorites.impl.ui.compose.model.FavoritesUiState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-internal data class FavoritesUiState(
-    val shops: List<FavoriteShop> = emptyList(),
-    val isLoading: Boolean = true,
-    val loadFailed: Boolean = false,
-    val actionFailed: Boolean = false,
-    val removing: Set<String> = emptySet(),
-)
 
 internal class FavoritesViewModel(private val repository: FavoritesRepository) : ViewModel() {
     private val mutableState = MutableStateFlow(FavoritesUiState())
     val state = mutableState.asStateFlow()
+    private val eventChannel = Channel<FavoritesEvent>(Channel.BUFFERED)
+    val events = eventChannel.receiveAsFlow()
     private var observation: Job? = null
     private var generation = 0
 
     init { retry() }
 
-    fun retry() {
+    fun onAction(action: FavoritesAction) {
+        when (action) {
+            FavoritesAction.Retry -> retry()
+            is FavoritesAction.Remove -> remove(action.shopId)
+            is FavoritesAction.OpenShop -> viewModelScope.launch {
+                eventChannel.send(FavoritesEvent.OpenShop(action.shopId))
+            }
+            FavoritesAction.Back -> viewModelScope.launch { eventChannel.send(FavoritesEvent.Back) }
+        }
+    }
+
+    private fun retry() {
         val current = ++generation
         observation?.cancel()
         mutableState.update { it.copy(isLoading = it.shops.isEmpty(), loadFailed = false, actionFailed = false) }
@@ -41,7 +50,7 @@ internal class FavoritesViewModel(private val repository: FavoritesRepository) :
         }
     }
 
-    fun remove(shopId: String) {
+    private fun remove(shopId: String) {
         if (shopId in state.value.removing || state.value.shops.none { it.id == shopId }) return
         mutableState.update { it.copy(removing = it.removing + shopId, actionFailed = false) }
         viewModelScope.launch {

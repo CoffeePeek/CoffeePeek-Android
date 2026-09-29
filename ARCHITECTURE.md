@@ -3,7 +3,8 @@
 ## Purpose
 
 CoffeePeek evolves toward a feature-based Clean Architecture for Kotlin
-Multiplatform, with Android Compose and native iOS SwiftUI. The goal is
+Multiplatform. Today Android uses Compose and iOS hosts the shared Compose UI in
+SwiftUI; native iOS screens remain a future per-feature choice. The goal is
 predictable ownership, isolated changes, testable logic, and controlled Gradle
 dependencies — not the maximum number of modules or classes.
 
@@ -21,7 +22,7 @@ modules/network/                    Ktor, DTOs and API services
 modules/data/                       repository implementations and mapping
 modules/room/                       Room persistence
 core/                               prepared infrastructure/design-system
-feature/favorites/                  api/domain/data/impl/di; Android screen/DI active
+feature/favorites/                  api/domain/data/impl; Android screen active
 ```
 
 Target ownership is feature-based:
@@ -33,16 +34,18 @@ application composition
         │       ├── api
         │       ├── domain
         │       ├── data
-        │       ├── impl
-        │       │    └── ui
-        │       └── di (optional composition boundary)
+        │       └── impl
+        │            └── ui
         │
         └── core/<shared-infrastructure>
 ```
 
 The agreed migration target is api/domain/data/impl Gradle boundaries per
-business feature, created progressively under singular feature/. The split
-provides a small cross-feature ABI, independently testable domain/data and
+business feature, created progressively under singular feature/. A feature di
+Gradle module is not required for each feature; favorites Koin assembly and its
+temporary legacy compatibility bridge now live in composeApp/androidMain.
+Root Koin assembly and platform bridges normally belong in composeApp packages.
+The split provides a small cross-feature ABI, independently testable domain/data and
 hidden presentation/composition. Do not scaffold all future features or force
 domain/data onto infrastructure modules with no business responsibilities.
 The existing core modules and legacy layout remain authoritative until migrated.
@@ -61,9 +64,11 @@ app / current composition module
 within one feature:
     impl → api
     impl → domain ← data
-    optional di → api, domain, data factories, impl entry factory
-    di bridges → legacy storage/contracts (temporary, composition-only)
     impl/ui → domain, api, design-system (never data implementation)
+
+application composition:
+    composeApp DI → api, domain, data factories, impl entry factory
+    composeApp bridges → legacy storage/contracts (temporary, platform-owned)
 ```
 
 Allowed dependencies:
@@ -113,12 +118,16 @@ Domain models are neither DTOs, Room entities, nor UI models. Repository
 interfaces describe capabilities without exposing HTTP, SQL, Ktor, Room, DTO,
 or entity details.
 
+Within a feature, place domain models, repository contracts and meaningful use
+cases under `model/`, `repository/` and `usecase/` respectively. Add another
+package only when it has a named responsibility.
+
 ### Data
 
 Data owns external and persistence representations and implementations:
 
 ```text
-remote/       feature-specific Ktor APIs and DTOs
+backend/      feature-specific Ktor APIs and DTOs, when present
 local/        feature-specific Room entities and DAOs
 repository/   repository implementations
 mapper/       data ↔ domain mapping
@@ -139,6 +148,33 @@ do not use Ktor, DAOs, DTOs, entities, SQL, or navigation implementation.
 
 Use a UI model only when the UI needs presentation-specific data; otherwise a
 domain model may be used directly.
+
+For migrated Compose features, keep the screen in `impl/ui/compose/`, its
+independent components in `compose/component/`, and actual state/action/event
+types in `compose/model/`. Keep the feature ViewModel at `impl/ui/`. A narrowly
+scoped `impl/ui/data/` may own presentation-only formatting, but business use
+cases stay in domain and storage/network mapping stays in data. Do not create
+empty packages to fill a template.
+
+Use one-way MVI flow where it clarifies behaviour: UI emits typed actions,
+ViewModel reduces durable state or emits one-off events, and the runtime screen
+maps navigation events to caller callbacks. No generic MVI base class is required.
+
+Give each standalone component its own named file. `NameScreen` is the runtime
+adapter that observes a lifecycle-owned ViewModel and forwards state/events to
+stateless `NameScreenContent`; feature entry/application composition supplies its
+dependencies. `NameScreenContent` and components are previewed and tested with
+fake state and callbacks. Keep each preview in the component or screen's own
+source file, not in a preview-only file. Shared `commonMain` Compose UI uses paired
+multiplatform light/dark previews; Android-only UI can use `PreviewLightDark` in
+`androidMain`. Do not move shared UI to Android solely for preview tooling.
+
+Use the existing BaseViewModel only where its behaviour is genuinely reusable and
+safe across KMP platforms. Audit lifecycle cancellation, `Result` errors, loading
+ownership and event delivery before changing it; do not mandate inheritance.
+Place reusable visual tokens/components in design-system, feature-specific UI and
+assets in the feature, and user-facing strings/accessibility text in resources.
+Verify supported locales and translation parity before documenting their number.
 
 ### Core
 
@@ -163,14 +199,21 @@ A feature publishes a small serializable navigation contract only when another
 feature must navigate to it. The composition module owns the root graph and
 wires feature navigation builders together. Pass route arguments, not
 ViewModels, repositories, services, or implementation objects.
+Keep feature-specific entry registration/adapters in `impl/navigation/` and the
+public route/entry contract in `api/`. Neither layer owns the application back
+stack. Extract `core/navigation` only after multiple features demonstrate the
+same infrastructure requirement.
 
 Koin definitions may be declared by a feature, but application composition
-assembles them. DI must not circumvent Gradle boundaries or fetch another
-feature's internal class.
+assembles them. A logical Koin module does not require its own Gradle module.
+The existing composeApp owns root Koin and platform wiring; do not create a
+second application or universal feature DI aggregator without a concrete need.
+DI must not circumvent Gradle boundaries or fetch another feature's internal
+class. Dagger/Hilt is not part of the current KMP composition strategy.
 
-For favorites, domain/data use manual constructor/factory injection. Its optional
-di Gradle module owns Koin assembly and the temporary Room settings bridge; impl
-UI sees domain only and does not perform Koin lookups. Supported pure domain
+For favorites, domain/data use manual constructor/factory injection. Android
+application composition owns Koin assembly and the temporary Room settings
+bridge; impl UI sees domain only and does not perform Koin lookups. Supported pure domain
 contracts may be reused directly by other features, as agreed for this migration.
 API remains the navigation/screen-entry ABI, not a re-export of business models.
 Composable entry interfaces are allowed there; screen/VM implementations are not.
@@ -185,6 +228,10 @@ iosApp      native Swift/SwiftUI application, lifecycle, navigation, integration
 ```
 
 `commonMain` does not mean “non-UI”: Compose Multiplatform UI may live there.
+The current iOS SwiftUI shell hosts the shared Compose framework; it does not
+yet provide native SwiftUI versions of migrated screens. A native screen may
+later use shared domain/data through a deliberate public bridge without copying
+business rules.
 Only Android-specific Compose/API code belongs in `androidMain`. Native SwiftUI
 always belongs in `iosApp`, not `iosMain` or shared feature modules. Prefer
 shared code where library support permits; use `expect`/`actual` only for a real

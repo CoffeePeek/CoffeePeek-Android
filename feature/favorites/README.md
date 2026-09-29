@@ -14,25 +14,25 @@ existing screen, binding and runtime behaviour. These changes are stacked on
 |---|---|---|---|
 | api | Serializable FavoritesRoute: NavKey and minimal Composable FavoritesEntry interface | Navigation 3 runtime, Compose runtime, serialization | Root/feature navigation; small screen-construction ABI without VM/data |
 | domain | FavoriteShop snapshot, FavoritesRepository Result/Flow contracts, ObserveFavoriteIdsUseCase | Kotlin + coroutines only | Own UI/data, explicitly supported cross-feature membership consumers; independent business ABI/tests |
-| data | Internal StoredFavorite/mapping/repository; public storage construction port and factory | domain + serialization | di/manual composition only; UI cannot import DTOs or repository implementation |
-| impl | Internal ViewModel/state/screen/cards; entry factory and Navigation 3 registration | api/domain, design-system, lifecycle, Kamel | di/root composition; public API consumers do not acquire screen or VM implementation |
-| di | favoritesModule and favoritesRoomModule; internal settings bridge; temporary legacy repository adapter factory | api/domain/data, impl factory, Koin, temporary legacy Room and domain contracts | Application composition only; isolates legacy/Koin from both data and UI |
+| data | Internal StoredFavorite/mapping/repository; public storage construction port and factory | domain + serialization | Application composition only; UI cannot import DTOs or repository implementation |
+| impl | Internal MVI ViewModel/state/actions/events/screen/cards; API implementation and feature Navigation 3 registration | api/domain, design-system, lifecycle, Kamel | Application composition; public API consumers do not acquire screen or VM implementation |
 
 ```text
-Android root → di → data → domain ← impl/ui
-                  └────→ impl entry factory → api
-               bridge → existing SettingRepository
-               adapter → existing FavoriteRepository contract
+Android composition → data → domain ← impl/ui
+                   └────→ impl API adapter → api
+                   bridge → existing SettingRepository
+                   adapter → existing FavoriteRepository contract
 Android root Navigation 2 destination → FavoritesEntry.Content (active)
 future Navigation 3 root entryProvider → favoritesEntry (prepared)
 ```
 
 Domain/data are manually constructed; no Koin annotations, contexts or service
 lookups. Data requires an injected dispatcher for storage and parsing; production
-DI supplies the core IO dispatcher. Feature modules declare Koin bindings but
-only application composition starts Koin. The feature DI module is justified by its concrete legacy
-storage bridge, not a generic core DI aggregator. Factories hide implementations.
-Feature UI depends on neither data nor di; Gradle enforces this restriction.
+DI supplies the core IO dispatcher. Android application composition declares the
+favorites Koin bindings and starts Koin. The temporary Room and legacy bridges
+live in composeApp/androidMain under di/favorites, not in a separate Gradle
+module or generic core DI aggregator. Factories hide implementations.
+Feature UI depends on neither data nor application DI; Gradle enforces this restriction.
 Other business/UI features may consume favorites domain deliberately; api remains
 the route/entry boundary. No generic BaseViewModel or Navigator singleton.
 
@@ -41,8 +41,16 @@ the route/entry boundary. No generic BaseViewModel or Navigator singleton.
 Legacy FavoritesViewModel/Screen, FavoriteRepositoryImpl and LocalFavoriteShopDto
 stay in their existing folders. New UI uses a favorites-owned saved snapshot,
 not the large CoffeeShopDetails aggregate or feed.ShopCard implementation.
-The original feature has no favorites HTTP service; no artificial remote layer
+The original feature has no favorites HTTP service; no artificial backend layer
 or endpoint is introduced. Future HTTP DTOs/services belong in this data module.
+
+The package layout now follows ownership: domain model/repository/usecase;
+data local/model, mapper and repository; impl API adapter, feature navigation,
+and ui/compose with component/model folders. `FavoritesAction` enters the
+ViewModel, `FavoritesUiState` describes durable rendering, and `FavoritesEvent`
+carries one-off shop/back navigation to the runtime screen. The stateless
+`FavoritesScreenContent` and components stay previewable without DI. No
+presentation-only `ui/data`, backend or formatter package is needed here.
 
 The storage key remains local_favorite_shops. Internal JSON field names/defaults
 match the existing saved format, including single roasterPhotoUrl fallback and
@@ -96,7 +104,7 @@ and shows a safe localized error, never raw storage exception text.
 ## Navigation / UI / platform boundaries
 
 Navigation 3 1.2.0 is used by the prepared feature route and its isolated UI
-tests. Its AAR requires compileSdk 37, so api/impl/di and the Android app compile
+tests. Its AAR requires compileSdk 37, so api/impl and the Android app compile
 against 37; target/min SDK remain unchanged. The shared root still owns a
 Navigation 2 NavHost and ShopDetail route. Android's Favorites destination calls
 FavoritesEntry.Content and translates onOpenShop(id)/onBack into the existing
@@ -121,11 +129,12 @@ not import feed UI or legacy CoffeeShop. Exact parity is impossible from the
 saved format: it contains neither `isNew` nor shop type; the old screen also
 cannot reconstruct those values from saved rows. The BYN price symbols and
 photo placeholder art still differ. All saved fields remain in data/domain.
-Default Russian strings match the current feature language; localization/resource
-ownership, RTL/large-font and real-photo UI QA remain gates.
+Feature-owned common Compose resources now hold the Russian UI and accessibility
+strings. A second source locale has not been confirmed; translation, RTL/large-font
+and real-photo UI QA remain gates.
 
 Domain/data declare and compile iOS simulator variants with no Android APIs,
-Koin or native iOS implementation. Android api/impl/di are the tested UI/composition
+Koin or native iOS implementation. Android api/impl plus composeApp are the tested UI/composition
 boundary at this stage. For native SwiftUI, share domain/data through a future
 framework/bridge, adapt suspend/Flow/Result at that boundary and supply native
 storage/lifecycle/navigation; do not expose Compose VM/Android NavDisplay to Swift.
@@ -148,15 +157,16 @@ their initial shop responses, including reconciliation of late-loaded rows.
 Android instrumented app tests also verify that the new screen adapter sends
 shop-open and Back actions to the existing root Navigator. Feature UI tests
 verify coordinate forwarding and missing-coordinate handling; app unit tests
-verify formatting and absent/invalid location. A DI instrumented test writes
+verify formatting and absent/invalid location. An app-level DI instrumented test writes
 legacy JSON to the actual Room settings table, closes and reopens the database,
 then verifies the new repository and legacy adapter share that persisted row
 and one writer. It uses a uniquely named test database, not user data. This
 does not validate a full signed-in user journey or historic Room migrations
-from schema versions 1/2. FavoritesPreviews.kt supplies PreviewLightDark for
-content, closed/long-title, loading, empty and error without DI, network or
-actual photo URLs. UI tests render light and dark; IDE preview pixels have not
-been manually inspected in this environment.
+from schema versions 1/2. FavoritesScreen.kt now keeps paired multiplatform
+light/dark previews for content, closed, loading, empty and error beside its
+stateless ScreenContent; each extracted component has previews in its own file,
+without DI, network or actual photo URLs. UI tests render light and dark; IDE
+preview pixels have not been manually inspected in this environment.
 
 Android DI supplies the adapter from the same singleton to existing consumers,
 including ShopRepositoryImpl and UserSessionCleaner. Feed/details observe
