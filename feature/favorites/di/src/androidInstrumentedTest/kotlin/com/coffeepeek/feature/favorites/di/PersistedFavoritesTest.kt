@@ -4,7 +4,7 @@ import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.coffeepeek.domain.repository.FavoriteRepository as LegacyFavoriteRepository
-import com.coffeepeek.feature.favorites.domain.FavoritesRepository
+import com.coffeepeek.feature.favorites.domain.repository.FavoritesRepository
 import com.coffeepeek.room.CoffeePeekDatabase
 import com.coffeepeek.room.CoffeePeekDatabase.Companion.configure
 import com.coffeepeek.room.model.Setting

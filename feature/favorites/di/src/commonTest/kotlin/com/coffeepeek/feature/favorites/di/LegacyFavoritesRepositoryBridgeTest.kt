@@ -2,8 +2,8 @@ package com.coffeepeek.feature.favorites.di
 
 import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.ShopLocation
-import com.coffeepeek.feature.favorites.data.FavoritesStorage
-import com.coffeepeek.feature.favorites.data.createFavoritesRepository
+import com.coffeepeek.feature.favorites.data.local.FavoritesStorage
+import com.coffeepeek.feature.favorites.data.repository.createFavoritesRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher

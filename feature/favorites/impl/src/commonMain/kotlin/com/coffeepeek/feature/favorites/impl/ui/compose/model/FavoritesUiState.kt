@@ -1,6 +1,6 @@
-package com.coffeepeek.feature.favorites.impl.ui
+package com.coffeepeek.feature.favorites.impl.ui.compose.model
 
-import com.coffeepeek.feature.favorites.domain.FavoriteShop
+import com.coffeepeek.feature.favorites.domain.model.FavoriteShop
 
 internal data class FavoritesUiState(
     val shops: List<FavoriteShop> = emptyList(),

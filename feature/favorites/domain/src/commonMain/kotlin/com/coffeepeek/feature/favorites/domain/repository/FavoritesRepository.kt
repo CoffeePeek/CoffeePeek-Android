@@ -1,5 +1,6 @@
-package com.coffeepeek.feature.favorites.domain
+package com.coffeepeek.feature.favorites.domain.repository
 
+import com.coffeepeek.feature.favorites.domain.model.FavoriteShop
 import kotlinx.coroutines.flow.Flow
 
 /** Ordered newest-first snapshots. Failures are explicit; cancellation is never a failure. */

@@ -6,7 +6,7 @@ import com.coffeepeek.domain.repository.FavoriteRepository as LegacyFavoriteRepo
 import com.coffeepeek.feature.favorites.api.FavoritesEntry
 import com.coffeepeek.feature.favorites.di.favoritesRoomModule
 import com.coffeepeek.feature.favorites.di.legacyFavoritesConsumersModule
-import com.coffeepeek.feature.favorites.domain.FavoritesRepository
+import com.coffeepeek.feature.favorites.domain.repository.FavoritesRepository
 import com.coffeepeek.room.DatabaseCore
 import com.coffeepeek.room.model.Setting
 import com.coffeepeek.room.repository.SettingRepository

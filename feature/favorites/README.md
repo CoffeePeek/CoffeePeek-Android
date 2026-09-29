@@ -15,12 +15,12 @@ existing screen, binding and runtime behaviour. These changes are stacked on
 | api | Serializable FavoritesRoute: NavKey and minimal Composable FavoritesEntry interface | Navigation 3 runtime, Compose runtime, serialization | Root/feature navigation; small screen-construction ABI without VM/data |
 | domain | FavoriteShop snapshot, FavoritesRepository Result/Flow contracts, ObserveFavoriteIdsUseCase | Kotlin + coroutines only | Own UI/data, explicitly supported cross-feature membership consumers; independent business ABI/tests |
 | data | Internal StoredFavorite/mapping/repository; public storage construction port and factory | domain + serialization | di/manual composition only; UI cannot import DTOs or repository implementation |
-| impl | Internal ViewModel/state/screen/cards; entry factory and Navigation 3 registration | api/domain, design-system, lifecycle, Kamel | di/root composition; public API consumers do not acquire screen or VM implementation |
+| impl | Internal MVI ViewModel/state/actions/events/screen/cards; API implementation and feature Navigation 3 registration | api/domain, design-system, lifecycle, Kamel | di/root composition; public API consumers do not acquire screen or VM implementation |
 | di | favoritesModule and favoritesRoomModule; internal settings bridge; temporary legacy repository adapter factory | api/domain/data, impl factory, Koin, temporary legacy Room and domain contracts | Application composition only; isolates legacy/Koin from both data and UI |
 
 ```text
 Android root → di → data → domain ← impl/ui
-                  └────→ impl entry factory → api
+                  └────→ impl API adapter → api
                bridge → existing SettingRepository
                adapter → existing FavoriteRepository contract
 Android root Navigation 2 destination → FavoritesEntry.Content (active)
@@ -44,8 +44,16 @@ the route/entry boundary. No generic BaseViewModel or Navigator singleton.
 Legacy FavoritesViewModel/Screen, FavoriteRepositoryImpl and LocalFavoriteShopDto
 stay in their existing folders. New UI uses a favorites-owned saved snapshot,
 not the large CoffeeShopDetails aggregate or feed.ShopCard implementation.
-The original feature has no favorites HTTP service; no artificial remote layer
+The original feature has no favorites HTTP service; no artificial backend layer
 or endpoint is introduced. Future HTTP DTOs/services belong in this data module.
+
+The package layout now follows ownership: domain model/repository/usecase;
+data local/model, mapper and repository; impl API adapter, feature navigation,
+and ui/compose with component/model folders. `FavoritesAction` enters the
+ViewModel, `FavoritesUiState` describes durable rendering, and `FavoritesEvent`
+carries one-off shop/back navigation to the runtime screen. The stateless
+`FavoritesScreenContent` and components stay previewable without DI. No
+presentation-only `ui/data`, backend or formatter package is needed here.
 
 The storage key remains local_favorite_shops. Internal JSON field names/defaults
 match the existing saved format, including single roasterPhotoUrl fallback and

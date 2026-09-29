@@ -1,5 +1,7 @@
-package com.coffeepeek.feature.favorites.domain
+package com.coffeepeek.feature.favorites.domain.usecase
 
+import com.coffeepeek.feature.favorites.domain.model.FavoriteShop
+import com.coffeepeek.feature.favorites.domain.repository.FavoritesRepository
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest

@@ -20,7 +20,7 @@ import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.ReviewRepository
 import com.coffeepeek.domain.repository.SessionRepository
 import com.coffeepeek.domain.repository.ShopRepository
-import com.coffeepeek.feature.favorites.domain.ObserveFavoriteIdsUseCase
+import com.coffeepeek.feature.favorites.domain.usecase.ObserveFavoriteIdsUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach

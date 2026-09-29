@@ -1,4 +1,4 @@
-package com.coffeepeek.feature.favorites.impl.ui
+package com.coffeepeek.feature.favorites.impl.ui.compose.component
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -37,7 +37,7 @@ import com.coffeepeek.core.designsystem.icons.CpIcons
 import com.coffeepeek.core.designsystem.theme.CoffeePeekTheme
 import com.coffeepeek.core.designsystem.theme.CpColor
 import com.coffeepeek.core.designsystem.theme.CpDimens
-import com.coffeepeek.feature.favorites.domain.FavoriteShop
+import com.coffeepeek.feature.favorites.domain.model.FavoriteShop
 import com.coffeepeek.feature.favorites.impl.resources.Res
 import com.coffeepeek.feature.favorites.impl.resources.favorites_distance_from_you
 import com.coffeepeek.feature.favorites.impl.resources.favorites_remove_description

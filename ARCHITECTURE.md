@@ -118,12 +118,16 @@ Domain models are neither DTOs, Room entities, nor UI models. Repository
 interfaces describe capabilities without exposing HTTP, SQL, Ktor, Room, DTO,
 or entity details.
 
+Within a feature, place domain models, repository contracts and meaningful use
+cases under `model/`, `repository/` and `usecase/` respectively. Add another
+package only when it has a named responsibility.
+
 ### Data
 
 Data owns external and persistence representations and implementations:
 
 ```text
-remote/       feature-specific Ktor APIs and DTOs
+backend/      feature-specific Ktor APIs and DTOs, when present
 local/        feature-specific Room entities and DAOs
 repository/   repository implementations
 mapper/       data ↔ domain mapping
@@ -144,6 +148,17 @@ do not use Ktor, DAOs, DTOs, entities, SQL, or navigation implementation.
 
 Use a UI model only when the UI needs presentation-specific data; otherwise a
 domain model may be used directly.
+
+For migrated Compose features, keep the screen in `impl/ui/compose/`, its
+independent components in `compose/component/`, and actual state/action/event
+types in `compose/model/`. Keep the feature ViewModel at `impl/ui/`. A narrowly
+scoped `impl/ui/data/` may own presentation-only formatting, but business use
+cases stay in domain and storage/network mapping stays in data. Do not create
+empty packages to fill a template.
+
+Use one-way MVI flow where it clarifies behaviour: UI emits typed actions,
+ViewModel reduces durable state or emits one-off events, and the runtime screen
+maps navigation events to caller callbacks. No generic MVI base class is required.
 
 Give each standalone component its own named file. `NameScreen` is the runtime
 adapter that observes a lifecycle-owned ViewModel and forwards state/events to
@@ -184,6 +199,10 @@ A feature publishes a small serializable navigation contract only when another
 feature must navigate to it. The composition module owns the root graph and
 wires feature navigation builders together. Pass route arguments, not
 ViewModels, repositories, services, or implementation objects.
+Keep feature-specific entry registration/adapters in `impl/navigation/` and the
+public route/entry contract in `api/`. Neither layer owns the application back
+stack. Extract `core/navigation` only after multiple features demonstrate the
+same infrastructure requirement.
 
 Koin definitions may be declared by a feature, but application composition
 assembles them. A logical Koin module does not require its own Gradle module.

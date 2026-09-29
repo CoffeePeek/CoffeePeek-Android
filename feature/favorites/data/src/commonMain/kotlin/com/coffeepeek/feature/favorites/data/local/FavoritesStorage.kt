@@ -1,4 +1,4 @@
-package com.coffeepeek.feature.favorites.data
+package com.coffeepeek.feature.favorites.data.local
 
 import kotlinx.coroutines.flow.Flow
 

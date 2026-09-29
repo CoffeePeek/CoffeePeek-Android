@@ -4,8 +4,8 @@ import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.ShopLocation
 import com.coffeepeek.domain.repository.FavoriteRepository as LegacyFavoriteRepository
-import com.coffeepeek.feature.favorites.domain.FavoriteShop
-import com.coffeepeek.feature.favorites.domain.FavoritesRepository
+import com.coffeepeek.feature.favorites.domain.model.FavoriteShop
+import com.coffeepeek.feature.favorites.domain.repository.FavoritesRepository
 import kotlinx.coroutines.CancellationException
 
 /** Temporary bridge for existing consumers. Wire it to the SAME new repository instance as the new screen. */

@@ -1,6 +1,5 @@
-package com.coffeepeek.feature.favorites.data
+package com.coffeepeek.feature.favorites.data.local.model
 
-import com.coffeepeek.feature.favorites.domain.FavoriteShop
 import kotlinx.serialization.Serializable
 
 /** Field names/defaults intentionally match legacy LocalFavoriteShopDto. Never exported. */
@@ -21,12 +20,4 @@ internal data class StoredFavorite(
     val brewMethods: List<String> = emptyList(),
     val roasterPhotoUrl: String? = null,
     val roasterPhotoUrls: List<String> = emptyList(),
-) {
-    fun toDomain() = FavoriteShop(id, title, rating, reviewCount, cityName, priceRange,
-        photoUrl, address, latitude, longitude, isOpen, tags.toList(), brewMethods.toList(),
-        roasterPhotoUrls.ifEmpty { listOfNotNull(roasterPhotoUrl) }.toList())
-}
-
-internal fun FavoriteShop.toStored() = StoredFavorite(id, title, rating, reviewCount,
-    cityName, priceRange, photoUrl, address, latitude, longitude, isOpen, tags.toList(),
-    brewMethods.toList(), roasterPhotoUrls.firstOrNull(), roasterPhotoUrls.toList())
+)

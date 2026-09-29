@@ -15,11 +15,25 @@ For each migrated business capability (not each individual screen), normally:
 ```text
 feature/<name>/
   api/                   routes and minimal cross-feature capabilities
-  domain/                models, repository contracts, meaningful business rules
-  data/                  remote/local, DTOs/entities/DAOs, mappers, repository impl
+  domain/
+    model/               business models
+    repository/          business contracts
+    usecase/             meaningful rules/coordination, when needed
+  data/
+    backend/             feature HTTP APIs and DTOs, only when present
+    local/               persistence interfaces/entities/DAOs, when present
+    mapper/              representation ↔ domain conversion, when present
+    repository/          implementations and narrow construction factories
   impl/
     src/commonMain/.../
-      ui/                screens, ViewModels, state/events, feature components
+      <Feature>ApiImpl.kt
+      navigation/        feature entry registration; root stack stays in app
+      ui/
+        <Feature>ViewModel.kt
+        compose/
+          <Feature>Screen.kt
+          component/      one component per file, preview beside component
+          model/          state, actions, actual one-off events
 ```
 
 Each boundary becomes a separate KMP Gradle module as its code is prepared.
@@ -41,10 +55,11 @@ depend on another feature's data/impl/di from business/UI. Shared domain ABI
 must be deliberately supported, not moved to core/common.
 Composition owns the root graph and assembles feature implementations.
 
-HTTP requests belong to feature data/remote, not screens. Room persistence belongs
+HTTP requests belong to feature data/backend, not screens. Room persistence belongs
 to data/local. Core provides transport/driver infrastructure without feature DTOs,
 DAOs or endpoints. Preserve Kotlin Result and rethrow coroutine cancellation.
 Not every feature needs HTTP, Room or a use case wrapping a single repository call.
+Avoid empty packages; `formatter` and `ui/data` appear only for distinct real work.
 
 ## Modules DSL
 

@@ -1,7 +1,11 @@
-package com.coffeepeek.feature.favorites.data
+package com.coffeepeek.feature.favorites.data.repository
 
-import com.coffeepeek.feature.favorites.domain.FavoriteShop
-import com.coffeepeek.feature.favorites.domain.FavoritesRepository
+import com.coffeepeek.feature.favorites.data.local.FavoritesStorage
+import com.coffeepeek.feature.favorites.data.local.model.StoredFavorite
+import com.coffeepeek.feature.favorites.data.mapper.toDomain
+import com.coffeepeek.feature.favorites.data.mapper.toStored
+import com.coffeepeek.feature.favorites.domain.model.FavoriteShop
+import com.coffeepeek.feature.favorites.domain.repository.FavoritesRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext

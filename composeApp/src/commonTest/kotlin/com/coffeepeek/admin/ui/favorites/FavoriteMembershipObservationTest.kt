@@ -6,9 +6,9 @@ import com.coffeepeek.admin.ui.screen.shop.CheckInDraftStore
 import com.coffeepeek.admin.ui.screen.shop.ShopDetailViewModel
 import com.coffeepeek.domain.model.*
 import com.coffeepeek.domain.repository.*
-import com.coffeepeek.feature.favorites.domain.FavoriteShop
-import com.coffeepeek.feature.favorites.domain.FavoritesRepository
-import com.coffeepeek.feature.favorites.domain.ObserveFavoriteIdsUseCase
+import com.coffeepeek.feature.favorites.domain.model.FavoriteShop
+import com.coffeepeek.feature.favorites.domain.repository.FavoritesRepository
+import com.coffeepeek.feature.favorites.domain.usecase.ObserveFavoriteIdsUseCase
 import com.coffeepeek.room.model.Setting
 import com.coffeepeek.room.repository.SettingRepository
 import kotlinx.coroutines.CompletableDeferred

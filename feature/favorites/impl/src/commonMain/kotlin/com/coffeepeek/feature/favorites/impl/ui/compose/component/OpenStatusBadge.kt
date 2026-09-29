@@ -1,4 +1,4 @@
-package com.coffeepeek.feature.favorites.impl.ui
+package com.coffeepeek.feature.favorites.impl.ui.compose.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

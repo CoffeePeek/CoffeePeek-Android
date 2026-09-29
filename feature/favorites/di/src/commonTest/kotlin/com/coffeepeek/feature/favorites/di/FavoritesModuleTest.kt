@@ -1,9 +1,9 @@
 package com.coffeepeek.feature.favorites.di
 
 import com.coffeepeek.feature.favorites.api.FavoritesEntry
-import com.coffeepeek.feature.favorites.domain.FavoriteShop
-import com.coffeepeek.feature.favorites.domain.FavoritesRepository
-import com.coffeepeek.feature.favorites.domain.ObserveFavoriteIdsUseCase
+import com.coffeepeek.feature.favorites.domain.model.FavoriteShop
+import com.coffeepeek.feature.favorites.domain.repository.FavoritesRepository
+import com.coffeepeek.feature.favorites.domain.usecase.ObserveFavoriteIdsUseCase
 import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.repository.FavoriteRepository as LegacyFavoriteRepository
 import com.coffeepeek.room.model.Setting

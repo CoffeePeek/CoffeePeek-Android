@@ -35,7 +35,7 @@ Organize new code by business feature, not by a global technical layer.
 feature/<name>/
 ├── api/       intentionally public contracts only
 ├── domain/    business rules, domain models, repository interfaces
-├── data/      remote/local implementations, DTOs, entities, DAOs, mappers
+├── data/      backend/local implementations, DTOs, entities, DAOs, mappers
 └── impl/      screen entry point and ui/ presentation implementation
 ```
 
@@ -75,6 +75,27 @@ without a separate, justified architecture decision.
 The dependency graph must remain acyclic. DI and navigation must not bypass these
 boundaries.
 
+Within a migrated feature, group code by its real responsibility:
+
+```text
+domain/{model,repository,usecase}/
+data/{backend,local,mapper,repository}/
+impl/<Feature>ApiImpl.kt
+impl/navigation/
+impl/ui/<Feature>ViewModel.kt
+impl/ui/compose/<Feature>Screen.kt
+impl/ui/compose/component/
+impl/ui/compose/model/          state, actions, one-off events
+```
+
+Use `backend` only for actual remote APIs/DTOs, `local` for persistence, and
+`mapper`/`formatter` only for real conversions. `ui/data` is an exceptional home
+for strictly presentation-specific preparation, never a replacement for feature
+domain use cases or repository implementations. Do not create empty packages.
+The feature API implementation adapts the public entry contract; feature
+navigation registration may live in `impl/navigation`, while the application
+still owns its root back stack and cross-feature routing.
+
 ## Presentation and resources
 
 - Give each independent screen or component its own descriptively named Kotlin
@@ -84,6 +105,11 @@ boundaries.
   ViewModel/dependencies at the feature entry or composition boundary, collect
   state, and pass state/actions to a stateless `NameScreenContent`. Preview and
   test `NameScreenContent` with fake state, no Koin, network, or database.
+- For MVI screens, model real user intents as `Action`, durable rendering data as
+  immutable `State`, and non-replayable effects such as navigation as `Event`.
+  Send actions into one ViewModel entry point. The screen maps events to caller
+  callbacks; it does not own the app's navigation implementation. Do not invent
+  unused action/event classes or a generic MVI base class.
 - Place each component's preview beside its component in the same source file.
   For shared `commonMain` Compose UI, use paired light/dark multiplatform
   previews in that file; for Android-only UI, use `PreviewLightDark` there.

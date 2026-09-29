@@ -1,4 +1,4 @@
-package com.coffeepeek.feature.favorites.domain
+package com.coffeepeek.feature.favorites.domain.model
 
 /** A saved snapshot, not the full catalog/details aggregate or an HTTP representation. */
 data class FavoriteShop(

@@ -3,10 +3,10 @@ package com.coffeepeek.feature.favorites.di
 import com.coffeepeek.feature.favorites.api.FavoritesEntry
 import com.coffeepeek.core.coroutines.DefaultDispatcherProvider
 import kotlinx.coroutines.CoroutineDispatcher
-import com.coffeepeek.feature.favorites.data.FavoritesStorage
-import com.coffeepeek.feature.favorites.data.createFavoritesRepository
-import com.coffeepeek.feature.favorites.domain.FavoritesRepository
-import com.coffeepeek.feature.favorites.domain.ObserveFavoriteIdsUseCase
+import com.coffeepeek.feature.favorites.data.local.FavoritesStorage
+import com.coffeepeek.feature.favorites.data.repository.createFavoritesRepository
+import com.coffeepeek.feature.favorites.domain.repository.FavoritesRepository
+import com.coffeepeek.feature.favorites.domain.usecase.ObserveFavoriteIdsUseCase
 import com.coffeepeek.feature.favorites.impl.createFavoritesEntry
 import com.coffeepeek.room.model.Setting
 import com.coffeepeek.room.repository.SettingRepository
