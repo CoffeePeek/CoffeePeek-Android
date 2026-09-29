@@ -171,9 +171,10 @@ multiplatform light/dark previews; Android-only UI can use `PreviewLightDark` in
 `androidMain`. Do not move shared UI to Android solely for preview tooling.
 
 The old application BaseViewModel remains transitional for legacy screens. New
-MVI ViewModels inherit the typed core/presentation base, which only declares
-state/actions/events on top of the multiplatform lifecycle ViewModel. It does
-not copy the old global loading/error behaviour or custom work scope.
+MVI ViewModels inherit the typed core/presentation base, which owns a private
+state flow and one-off event channel on top of the multiplatform lifecycle
+ViewModel. It does not copy the old global loading/error behaviour or custom
+work scope. Each feature handles its actions, Result failures and cancellation.
 Place reusable visual tokens/components in design-system, feature-specific UI and
 assets in the feature, and user-facing strings/accessibility text in resources.
 Verify supported locales and translation parity before documenting their number.
@@ -195,11 +196,12 @@ core/design-system    theme, typography, dimensions, icons, UI primitives
 Feature-specific API services, DTOs, entities, and DAOs are not core code. Do
 not create broad `base`, `common`, `utils`, `helpers`, `misc`, or `shared`
 modules. Name cross-cutting code by its actual responsibility instead.
-The presentation base extends the multiplatform lifecycle ViewModel but does
-not own mutable state, event channels, custom scopes, global errors or loading.
-Feature impl modules override typed state/action/event members and keep mutable
-implementations private. Event-less screens may use `Nothing` and the default
-empty event stream. Use kotlinx.coroutines' existing `MutableStateFlow.update`.
+The presentation base extends the multiplatform lifecycle ViewModel and owns
+private `MutableStateFlow` plus a buffered one-off event channel. It exposes
+read-only `state`/`events`, atomic `updateState`, `currentState`, and suspending
+`sendEvent`. It does not own an action queue, custom scope, global errors or
+loading. Feature impl modules implement typed `onAction` and keep Result/error
+decisions local. Event-less screens may use `Nothing` without an event class.
 
 ## Navigation and DI
 

@@ -1,14 +1,32 @@
 package com.coffeepeek.core.presentation
 
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 
-/** Typed base for migrated feature ViewModels, without application-wide UI policy. */
-abstract class MviViewModel<State : Any, Action : Any, Event : Any> : ViewModel() {
-    abstract val state: StateFlow<State>
-    open val events: Flow<Event> = emptyFlow()
+/** Typed state and one-off event mechanics for migrated feature ViewModels. */
+abstract class MviViewModel<State : Any, Action : Any, Event : Any>(initialState: State) : ViewModel() {
+    private val mutableState = MutableStateFlow(initialState)
+    val state: StateFlow<State> = mutableState.asStateFlow()
+    private val eventChannel = Channel<Event>(Channel.BUFFERED)
+    val events: Flow<Event> = eventChannel.receiveAsFlow()
 
     abstract fun onAction(action: Action)
+
+    protected fun updateState(update: State.() -> State) {
+        mutableState.update(update)
+    }
+
+    protected val currentState: State
+        get() = state.value
+
+    /** Call from a lifecycle-owned coroutine to preserve cancellation and emission order. */
+    protected suspend fun sendEvent(event: Event) {
+        eventChannel.send(event)
+    }
 }

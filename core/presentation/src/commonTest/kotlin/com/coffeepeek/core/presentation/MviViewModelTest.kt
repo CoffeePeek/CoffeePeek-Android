@@ -1,32 +1,42 @@
 package com.coffeepeek.core.presentation
 
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class MviViewModelTest {
     private data class CounterState(val count: Int = 0)
     private data object Increment
 
-    private class CounterViewModel : MviViewModel<CounterState, Increment, Nothing>() {
-        private val mutableState = MutableStateFlow(CounterState())
-        override val state = mutableState.asStateFlow()
-
+    private class CounterViewModel : MviViewModel<CounterState, Increment, Nothing>(CounterState()) {
         override fun onAction(action: Increment) {
-            mutableState.update { it.copy(count = it.count + 1) }
+            updateState { copy(count = count + 1) }
         }
     }
 
-    @Test fun typedStateAndActionsWorkWithoutInventingEvents() = runBlocking {
-        val viewModel = CounterViewModel()
-        viewModel.onAction(Increment)
+    private class EventViewModel : MviViewModel<CounterState, Increment, String>(CounterState()) {
+        override fun onAction(action: Increment) = Unit
+        suspend fun announce(message: String) = sendEvent(message)
+    }
 
-        assertEquals(1, viewModel.state.value.count)
-        assertTrue(viewModel.events.toList().isEmpty())
+    @Test fun typedStateUpdatesAreAtomic() = runBlocking {
+        val viewModel = CounterViewModel()
+        val jobs = List(100) { launch(Dispatchers.Default) { viewModel.onAction(Increment) } }
+        jobs.joinAll()
+
+        assertEquals(100, viewModel.state.value.count)
+    }
+
+    @Test fun oneOffEventsKeepEmissionOrder() = runBlocking {
+        val viewModel = EventViewModel()
+        viewModel.announce("first")
+        viewModel.announce("second")
+
+        assertEquals("first", viewModel.events.first())
+        assertEquals("second", viewModel.events.first())
     }
 }

@@ -14,8 +14,8 @@ into the application. Do not pre-create every example module in ARCHITECTURE.md.
   schema, feature entities or migrations are moved into core. Android test-only
   schemas cover persistence, caller migrations and fail-safe missing migrations.
 - `presentation`: typed MVI ViewModel base shared by migrated feature
-  implementations. Favorites is the first subclass; mutable state, event
-  channels and error presentation remain feature-owned.
+  implementations. It owns state/event mechanics; favorites is the first
+  subclass and still owns actions, Result failures and error presentation.
 
 All foundations are independent duplicates prepared for later migration.
 `design-system` now prepares shared visual tokens, injected-font typography, icons,

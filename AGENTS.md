@@ -111,7 +111,8 @@ still owns its root back stack and cross-feature routing.
   callbacks; it does not own the app's navigation implementation. New MVI
   ViewModels inherit `core/presentation`'s typed `MviViewModel`; the old
   application `BaseViewModel` is not their parent. Do not invent unused event
-  classes: use `Nothing` and the inherited empty event stream when appropriate.
+  classes: use `Nothing` when appropriate. Action handling, `Result` failures
+  and cancellation policy remain explicit in each feature.
 - Place each component's preview beside its component in the same source file.
   For shared `commonMain` Compose UI, use paired light/dark multiplatform
   previews in that file; for Android-only UI, use `PreviewLightDark` there.
@@ -122,9 +123,10 @@ still owns its root back stack and cross-feature routing.
   visual assets/tokens in design-system only when truly shared; feature-specific
   resources stay with their feature.
 - Keep the existing application `BaseViewModel` transitional. The new typed
-  `MviViewModel` does not own mutable state, navigation, Koin, custom scopes or
-  global error/loading policy. Use `kotlinx.coroutines.flow.update` for private
-  `MutableStateFlow` changes; do not duplicate that extension in core.
+  `MviViewModel` owns a private state flow and buffered event channel but not
+  navigation, Koin, custom scopes or global error/loading policy. Its
+  `updateState` delegates to the atomic `kotlinx.coroutines.flow.update`; do
+  not add an unbounded action queue or swallow action failures in the base.
   Preserve `Result` failures and coroutine cancellation semantics.
 
 ## KMP and platforms

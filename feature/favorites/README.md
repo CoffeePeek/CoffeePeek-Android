@@ -51,9 +51,10 @@ ViewModel, `FavoritesUiState` describes durable rendering, and `FavoritesEvent`
 carries one-off shop/back navigation to the runtime screen. The stateless
 `FavoritesScreenContent` and components stay previewable without DI. No
 presentation-only `ui/data`, backend or formatter package is needed here.
-The ViewModel inherits the typed core presentation base while
-keeping its mutable state and event channel private. State changes use the
-existing `MutableStateFlow.update`, not a duplicate core extension.
+The ViewModel inherits the typed core presentation base. Core owns its private
+state flow and event channel; favorites owns the actions, repository observation,
+Result failures and cancellation handling. `updateState` performs atomic
+`MutableStateFlow.update` without duplicating that extension.
 
 The storage key remains local_favorite_shops. Internal JSON field names/defaults
 match the existing saved format, including single roasterPhotoUrl fallback and

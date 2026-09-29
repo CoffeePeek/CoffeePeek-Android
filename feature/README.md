@@ -41,7 +41,7 @@ Do not create empty placeholders or a second application. Api has no data/UI
 implementation or Koin declarations. Domain uses pure Kotlin/approved domain
 dependencies; it may depend on api only when those contracts are equally pure.
 Data depends on domain and needed core infrastructure. Impl depends on api/domain
-and design-system; new MVI ViewModels may extend core/presentation's typed base, while
+and design-system; new MVI ViewModels extend core/presentation's typed base, while
 its UI cannot access data internals. Favorites Koin and the
 temporary legacy bridge live in composeApp/androidMain. New features should be
 assembled by composeApp Koin/platform packages unless another Gradle boundary
