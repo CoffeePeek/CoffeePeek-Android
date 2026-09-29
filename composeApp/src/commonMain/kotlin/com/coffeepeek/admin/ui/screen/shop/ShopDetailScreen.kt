@@ -6,7 +6,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -34,7 +33,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,7 +45,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -103,6 +100,7 @@ import com.coffeepeek.admin.utils.currentLocalDayOfWeek
 import com.coffeepeek.admin.ui.component.PriceBynRow
 import com.coffeepeek.admin.ui.component.PriceBynIcon
 import com.coffeepeek.admin.ui.component.priceRangeLevel
+import com.coffeepeek.admin.ui.component.shopTagIcon
 import com.coffeepeek.admin.ui.component.FullScreenImageDialog
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.screen.review.CreateReviewBottomSheet
@@ -122,6 +120,7 @@ import org.koin.core.parameter.parametersOf
 
 private val GuestReviewPeekWidth = 56.dp
 private val ReviewCardMaxWidth = 320.dp
+private const val FeaturePreviewCount = 5
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -331,9 +330,6 @@ private fun ShopDetailContent(
                     priceRange = shop.priceRange,
                     schedules = details.schedules,
                 )
-                if (shop.tags.isNotEmpty()) {
-                    ShopTagRow(tags = shop.tags)
-                }
             }
         }
 
@@ -361,14 +357,12 @@ private fun ShopDetailContent(
         }
 
         if (
-            details.brewMethods.isNotEmpty() ||
             details.coffeeBeans.isNotEmpty() ||
             details.roasters.isNotEmpty() ||
             details.equipment.isNotEmpty()
         ) {
             item {
                 CoffeeDetailsSection(
-                    brewMethods = details.brewMethods,
                     coffeeBeans = details.coffeeBeans,
                     roasters = details.roasters,
                     equipment = details.equipment,
@@ -408,6 +402,13 @@ private fun ShopDetailContent(
                 onReviewPhotoClick = onReviewPhotoClick,
                 onReviewHelpfulClick = onReviewHelpfulClick,
             )
+        }
+
+        val features = shopFeatureItems(details)
+        if (features.isNotEmpty()) {
+            item {
+                ShopFeaturesSection(features = features)
+            }
         }
 
         item { Spacer(Modifier.height(CpDimens.spacing6)) }
@@ -880,37 +881,35 @@ private fun reviewCountLabel(count: Int): String {
 }
 
 
-@Composable
-private fun ShopTagRow(tags: List<String>) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-    ) {
-        tags.take(6).forEach { tag ->
-            Box(
-                modifier = Modifier
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
-                    .padding(horizontal = CpDimens.spacing3, vertical = CpDimens.spacing1),
-            ) {
-                Text(
-                    text = tag,
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+private data class ShopFeatureItem(
+    val name: String,
+    val slug: String?,
+    val isBrewMethod: Boolean,
+)
+
+private fun shopFeatureItems(details: CoffeeShopDetails): List<ShopFeatureItem> {
+    val brewMethods = details.brewMethodItems
+        .filter { it.name.isNotBlank() }
+        .map { item ->
+            ShopFeatureItem(name = item.name, slug = item.slug, isBrewMethod = true)
+        }
+        .ifEmpty {
+            details.brewMethods.map { name ->
+                ShopFeatureItem(name = name, slug = null, isBrewMethod = true)
             }
         }
-    }
-}
+    val tags = details.tagItems
+        .filter { it.name.isNotBlank() }
+        .map { item ->
+            ShopFeatureItem(name = item.name, slug = item.slug, isBrewMethod = false)
+        }
+        .ifEmpty {
+            details.shop.tags.map { name ->
+                ShopFeatureItem(name = name, slug = null, isBrewMethod = false)
+            }
+        }
 
-@Composable
-private fun MetaDot() {
-    Text(
-        text = "•",
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    return (brewMethods + tags).distinctBy { it.name.trim().lowercase() }
 }
 
 @Composable
@@ -1232,6 +1231,90 @@ private fun ReviewsSection(
 }
 
 @Composable
+private fun ShopFeaturesSection(features: List<ShopFeatureItem>) {
+    var expanded by remember(features) { mutableStateOf(false) }
+    val visibleFeatures = if (expanded) features else features.take(FeaturePreviewCount)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CpDimens.spacing4)
+            .padding(top = CpDimens.spacing6, bottom = CpDimens.spacing3),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+    ) {
+        SectionTitle("Особенности")
+        Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1)) {
+            visibleFeatures.forEach { feature ->
+                ShopFeatureRow(feature = feature)
+            }
+        }
+        if (features.size > FeaturePreviewCount) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .clip(RoundedCornerShape(CpDimens.radiusLg))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { expanded = !expanded },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = if (expanded) "Свернуть" else showAllFeaturesLabel(features.size),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShopFeatureRow(feature: ShopFeatureItem) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+    ) {
+        if (feature.isBrewMethod) {
+            Icon(
+                painter = painterResource(brewMethodIcon(feature.name)),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(28.dp),
+            )
+        } else {
+            Icon(
+                imageVector = shopTagIcon(feature.slug),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(28.dp),
+            )
+        }
+        Text(
+            text = feature.name,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+private fun showAllFeaturesLabel(count: Int): String {
+    val mod10 = count % 10
+    val mod100 = count % 100
+    val word = when {
+        mod100 in 11..14 -> "особенностей"
+        mod10 == 1 -> "особенность"
+        mod10 in 2..4 -> "особенности"
+        else -> "особенностей"
+    }
+    return "Показать все $count $word"
+}
+
+@Composable
 private fun CheckInsSection(
     checkIns: List<CheckIn>,
     onPhotoClick: (List<String>, Int) -> Unit,
@@ -1279,13 +1362,13 @@ private fun OutlinedContentCard(content: @Composable ColumnScope.() -> Unit) {
 
 @Composable
 private fun DescriptionSection(description: String) {
-    SectionCard(title = "Описание") {
+    "Описание".SectionCard({
         Text(
             text = description,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
-    }
+    })
 }
 
 @Composable
@@ -1456,67 +1539,6 @@ private fun EmptyMascotState(
 }
 
 @Composable
-private fun AddressCard(
-    address: String?,
-    canOpenMap: Boolean,
-    onOpenOnMap: () -> Unit,
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing3),
-        shape = RoundedCornerShape(CpDimens.radius2xl),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-    ) {
-        Column(
-            modifier = Modifier.padding(CpDimens.spacing4),
-            verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
-        ) {
-            if (!address.isNullOrBlank()) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(CpDimens.radiusLg))
-                            .background(CpColor.PrimaryTint10),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = CpIcons.Location,
-                            contentDescription = null,
-                            tint = CpColor.Primary,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                    Text(
-                        text = address,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-            if (canOpenMap) {
-                OutlinedButton(
-                    onClick = onOpenOnMap,
-                    modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
-                    shape = CircleShape,
-                ) {
-                    Icon(CpIcons.Map, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(CpDimens.spacing2))
-                    Text("Открыть на карте")
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun ShopDetailBottomBar(
     isCheckInLoading: Boolean,
     canOpenRoute: Boolean,
@@ -1659,72 +1681,6 @@ private fun PhotoGallery(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun StatusBadges(details: CoffeeShopDetails) {
-    val shop = details.shop
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-    ) {
-        ShopBadge(
-            text = if (shop.isOpen) "Открыто" else "Закрыто",
-            color = if (shop.isOpen) CpColor.Success else MaterialTheme.colorScheme.error,
-        )
-        if (details.isNew) ShopBadge("Новое", MaterialTheme.colorScheme.primary)
-        if (details.isVisited) ShopBadge("Посещено", MaterialTheme.colorScheme.tertiary)
-    }
-}
-
-@Composable
-private fun RatingBlock(rating: Double?, reviewCount: Int) {
-    Column(horizontalAlignment = Alignment.End) {
-        if (rating != null && rating > 0) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                Icon(
-                    CpIcons.StarFilled,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp),
-                )
-                Text(
-                    text = formatOneDecimal(rating),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-        }
-        if (reviewCount > 0) {
-            Text(
-                text = "$reviewCount отзывов",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun LocationRow(address: String) {
-    Row(verticalAlignment = Alignment.Top) {
-        Icon(
-            CpIcons.Location,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(16.dp),
-        )
-        Spacer(Modifier.width(4.dp))
-        Text(
-            text = address,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
 @Composable
 private fun ScheduleRow(
     schedule: ShopSchedule,
@@ -1816,7 +1772,6 @@ private fun ScheduleTimeText(
 
 @Composable
 private fun CoffeeDetailsSection(
-    brewMethods: List<String>,
     coffeeBeans: List<String>,
     roasters: List<CatalogItem>,
     equipment: List<String>,
@@ -1829,7 +1784,6 @@ private fun CoffeeDetailsSection(
         verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
     ) {
         RoasterDetailGroup(roasters, onRoasterClick)
-        BrewMethodsGroup("Методы заваривания", brewMethods)
         CatalogDetailGroup("Кофе", coffeeBeans)
         CatalogDetailGroup("Оборудование", equipment)
     }
@@ -1926,47 +1880,6 @@ private fun CatalogDetailGroup(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BrewMethodsGroup(title: String, items: List<String>) {
-    if (items.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3)) {
-        SectionTitle(title)
-        OutlinedContentCard {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-                verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
-            ) {
-                items.forEach { name -> BrewMethodChip(name) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BrewMethodChip(name: String) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(CpDimens.radiusSm))
-            .background(CpColor.GoldWarmSoft)
-            .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing1),
-    ) {
-        Icon(
-            painter = painterResource(brewMethodIcon(name)),
-            contentDescription = null,
-            tint = CpColor.GoldWarmHover,
-            modifier = Modifier.size(16.dp),
-        )
-        Text(
-            text = name,
-            style = MaterialTheme.typography.labelMedium,
-            color = CpColor.GoldWarmHover,
-        )
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
 private fun TagFlow(items: List<String>) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
@@ -1979,7 +1892,7 @@ private fun TagFlow(items: List<String>) {
 }
 
 @Composable
-private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun String.SectionCard(content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1990,7 +1903,7 @@ private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Un
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
         Column(modifier = Modifier.padding(CpDimens.spacing4)) {
-            SectionTitle(title)
+            SectionTitle(this@SectionCard)
             Spacer(Modifier.height(CpDimens.spacing2))
             content()
         }
@@ -2016,23 +1929,6 @@ private fun InfoChip(
             text = text,
             style = MaterialTheme.typography.labelMedium,
             color = textColor,
-        )
-    }
-}
-
-@Composable
-private fun ShopBadge(text: String, color: Color) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(CpDimens.radiusSm))
-            .background(color.copy(alpha = 0.9f))
-            .padding(horizontal = CpDimens.spacing2, vertical = 4.dp),
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
-            fontWeight = FontWeight.SemiBold,
         )
     }
 }
@@ -2092,35 +1988,6 @@ private fun instagramLabel(link: ExternalLink): String {
         .trim()
     if (handle.isBlank()) return link.displayText
     return "@$handle"
-}
-
-@Composable
-private fun ContactRow(
-    icon: ImageVector,
-    text: String,
-    onClick: (() -> Unit)? = null,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(16.dp),
-        )
-        Spacer(Modifier.width(CpDimens.spacing2))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (onClick != null) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-        )
-    }
 }
 
 @Composable
