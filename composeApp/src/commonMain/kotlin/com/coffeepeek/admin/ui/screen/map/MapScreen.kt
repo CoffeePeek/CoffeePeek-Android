@@ -53,7 +53,8 @@ import com.coffeepeek.admin.ui.component.CoffeeShopPlaceholderImage
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
 import com.coffeepeek.admin.ui.component.CpSearchField
 import com.coffeepeek.admin.ui.component.LocalFloatingNavClearance
-import com.coffeepeek.admin.ui.component.liquidGlass
+import com.coffeepeek.admin.ui.component.GlassControlIcon
+import com.coffeepeek.admin.ui.component.PlatformMapControlButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.CompositionLocalProvider
 import com.coffeepeek.domain.model.CoffeeShop
@@ -182,7 +183,10 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
             horizontalAlignment = Alignment.End,
         ) {
             MapControlButton(
+                icon = GlassControlIcon.Zones,
                 onClick = vm::toggleZones,
+                contentDescription = if (state.showZones) "Скрыть зоны" else "Показать зоны",
+                selected = state.showZones,
                 contentColor = if (state.showZones) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             ) {
                 Icon(
@@ -191,7 +195,11 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
                     modifier = Modifier.size(26.dp),
                 )
             }
-            MapControlButton(onClick = vm::requestMyLocation) {
+            MapControlButton(
+                icon = GlassControlIcon.Location,
+                onClick = vm::requestMyLocation,
+                contentDescription = "Моё местоположение",
+            ) {
                 Icon(
                     CpIcons.Navigation,
                     contentDescription = "Моё местоположение",
@@ -422,18 +430,20 @@ private fun mapShopCountLabel(count: Int): String {
 
 @Composable
 private fun MapControlButton(
+    icon: GlassControlIcon,
     onClick: () -> Unit,
+    contentDescription: String,
     modifier: Modifier = Modifier,
+    selected: Boolean = false,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     content: @Composable () -> Unit,
 ) {
-    // Liquid Glass without backdrop blur: the native map view can't be sampled by Haze.
-    Box(
-        modifier = modifier
-            .size(CpDimens.buttonHeight)
-            .liquidGlass(CircleShape, hazeState = null)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
+    PlatformMapControlButton(
+        icon = icon,
+        onClick = onClick,
+        contentDescription = contentDescription,
+        modifier = modifier,
+        selected = selected,
     ) {
         CompositionLocalProvider(LocalContentColor provides contentColor) { content() }
     }

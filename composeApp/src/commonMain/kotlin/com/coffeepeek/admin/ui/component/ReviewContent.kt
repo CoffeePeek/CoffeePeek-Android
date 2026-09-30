@@ -84,6 +84,7 @@ fun ReviewTextInput(
     placeholder: String,
     isError: Boolean = false,
     singleLine: Boolean = false,
+    maxLength: Int = Int.MAX_VALUE,
     modifier: Modifier = Modifier,
 ) {
     val shape = if (singleLine) {
@@ -91,9 +92,15 @@ fun ReviewTextInput(
     } else {
         RoundedCornerShape(CpDimens.buttonRadius)
     }
+    val fieldValue = rememberSyncedTextFieldValue(value)
     BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
+        value = fieldValue.value,
+        onValueChange = { updated ->
+            val limited = updated.limitTextLength(maxLength)
+            fieldValue.value = limited
+            onValueChange(limited.text)
+        },
+        keyboardOptions = platformTextInputOptions(),
         singleLine = singleLine,
         textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),

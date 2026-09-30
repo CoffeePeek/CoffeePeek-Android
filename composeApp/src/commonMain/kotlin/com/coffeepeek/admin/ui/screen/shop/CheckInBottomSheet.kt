@@ -298,6 +298,7 @@ fun CheckInBottomSheet(
                         placeholder = stringResource(Res.string.checkin_header_placeholder),
                         isError = headerError != null,
                         singleLine = true,
+                        maxLength = 120,
                     )
                 }
             }
@@ -317,6 +318,7 @@ fun CheckInBottomSheet(
                     onValueChange = ::onNoteChange,
                     placeholder = stringResource(Res.string.checkin_note_placeholder),
                     isError = noteError != null,
+                    maxLength = 2000,
                     modifier = Modifier.heightIn(min = 80.dp),
                 )
             }

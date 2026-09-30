@@ -73,7 +73,7 @@ CoffeePeek-Android/
 │   └── src/
 │       ├── commonMain/      Compose UI и общая логика
 │       ├── androidMain/     MapLibre, Google Auth, Android-специфика
-│       └── iosMain/         MapKit, Keychain, PhotosUI, CoreLocation
+│       └── iosMain/         MapLibre bridge, Keychain, PhotosUI, CoreLocation
 ├── iosApp/                  SwiftUI-оболочка и Xcode-проект
 ├── modules/
 │   ├── domain/              модели и интерфейсы репозиториев

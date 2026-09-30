@@ -66,6 +66,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import com.coffeepeek.admin.ui.component.liquidGlass
+import com.coffeepeek.admin.ui.component.GlassControlIcon
+import com.coffeepeek.admin.ui.component.PlatformGlassIconButton
 import com.coffeepeek.admin.ui.component.SwipeablePhotoStack
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -523,6 +525,7 @@ private fun HeroTopActions(
         verticalAlignment = Alignment.Top,
     ) {
         HeroIconButton(
+            icon = GlassControlIcon.Back,
             hazeState = hazeState,
             onClick = onBack,
             enabled = true,
@@ -682,6 +685,7 @@ private fun HeaderActionButtons(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         HeroIconButton(
+            icon = GlassControlIcon.Edit,
             hazeState = hazeState,
             onClick = onSuggestChange,
             enabled = true,
@@ -695,6 +699,7 @@ private fun HeaderActionButtons(
             )
         }
         HeroIconButton(
+            icon = if (isFavorite) GlassControlIcon.FavoriteFilled else GlassControlIcon.Favorite,
             hazeState = hazeState,
             onClick = onToggleFavorite,
             enabled = !isFavoriteLoading,
@@ -708,6 +713,7 @@ private fun HeaderActionButtons(
             )
         }
         HeroIconButton(
+            icon = GlassControlIcon.Share,
             hazeState = hazeState,
             onClick = onShare,
             enabled = true,
@@ -914,6 +920,7 @@ private fun shopFeatureItems(details: CoffeeShopDetails): List<ShopFeatureItem> 
 
 @Composable
 private fun HeroIconButton(
+    icon: GlassControlIcon,
     hazeState: HazeState,
     onClick: () -> Unit,
     enabled: Boolean,
@@ -921,25 +928,22 @@ private fun HeroIconButton(
     contentDescription: String,
     content: @Composable () -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .size(CpDimens.buttonHeight)
-            .liquidGlass(CircleShape, hazeState),
+    PlatformGlassIconButton(
+        icon = icon,
+        onClick = onClick,
+        enabled = enabled,
+        isLoading = isLoading,
+        contentDescription = contentDescription,
+        hazeState = hazeState,
     ) {
-        IconButton(
-            onClick = onClick,
-            enabled = enabled,
-            modifier = Modifier.semantics { this.contentDescription = contentDescription },
-        ) {
-            if (isLoading) {
-                CoffeePeekLoader(
-                    size = 18.dp,
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            } else {
-                content()
-            }
+        if (isLoading) {
+            CoffeePeekLoader(
+                size = 18.dp,
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        } else {
+            content()
         }
     }
 }
