@@ -199,7 +199,7 @@ private fun CalendarCard(
 ) {
     val month = state.calendarMonth
     val total = state.calendarCheckIns.values.sumOf { it.size }
-    val shops = state.calendarCheckIns.values.flatten().map(CheckIn::shopId).distinct().size
+    val shops = state.calendarCheckIns.values.flatten().map(CheckIn::shopId).filter(String::isNotBlank).distinct().size
     val checkInDates = state.calendarCheckIns.filterValues { it.isNotEmpty() }.keys
 
     Card(

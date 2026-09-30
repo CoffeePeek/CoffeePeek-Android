@@ -313,7 +313,7 @@ fun CheckInDisplayCard(
 ) {
     val cardModifier = modifier
         .fillMaxWidth()
-        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        .then(if (onClick != null && checkIn.shopId.isNotBlank()) Modifier.clickable(onClick = onClick) else Modifier)
 
     Card(
         modifier = cardModifier,

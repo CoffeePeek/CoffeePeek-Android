@@ -70,7 +70,7 @@ class CheckInRepositoryImpl(
 
     private fun CheckInDto.toDomain() = CheckIn(
         id = id,
-        shopId = shopId,
+        shopId = shop?.slug.orEmpty(),
         shopName = shopName.orEmpty(),
         note = note.orEmpty(),
         createdAt = createdAt,

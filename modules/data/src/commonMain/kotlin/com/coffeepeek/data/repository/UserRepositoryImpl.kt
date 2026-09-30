@@ -4,6 +4,7 @@ import com.coffeepeek.api.model.request.UploadedPhotoReq
 import com.coffeepeek.api.model.response.AccountDeletionRequestDto
 import com.coffeepeek.api.model.response.UserProfileDto
 import com.coffeepeek.api.service.UserApiService
+import com.coffeepeek.data.mapper.toDomain
 import com.coffeepeek.domain.model.AccountDeletionRequest
 import com.coffeepeek.domain.model.PendingPhotoUpload
 import com.coffeepeek.domain.model.UserProfile
@@ -78,8 +79,10 @@ class UserRepositoryImpl(
         userApiService.getAccountDeletionRequest().map { it?.toDomain() }
 
     override suspend fun updateUsername(username: String): Result<Unit> =
-        userApiService.updateUsername(username).onSuccess {
-            _profile.update { profile -> profile?.copy(userName = username) }
+        userApiService.updateUsername(username).map { updated ->
+            _profile.update { profile -> profile?.copy(userName = updated.username, address = updated.address?.toDomain()) }
+            publicAvatarCache.clear()
+            Unit
         }
 
     override suspend fun updateAbout(about: String): Result<Unit> =
@@ -117,6 +120,7 @@ class UserRepositoryImpl(
 }
 
 private fun UserProfileDto.toUserProfile() = UserProfile(
+    address = address?.toDomain(),
     userName = userName,
     email = email,
     about = about,

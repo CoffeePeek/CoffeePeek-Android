@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class SendReviewReq(
-    @SerialName("shopId") val shopId: String,
+    @SerialName("shop") val shopId: String,
     @SerialName("header") val header: String,
     @SerialName("comment") val comment: String,
     @SerialName("rating") val rating: RatingDto,

@@ -25,9 +25,6 @@ class ReviewRepositoryImpl(
     private val fileUrlResolver: FileUrlResolver,
 ) : ReviewRepository {
 
-    override suspend fun canCreateReview(shopId: String): Result<Pair<Boolean, String?>> =
-        reviewApiService.canCreateReview(shopId).map { it.canCreate to it.reviewId }
-
     override suspend fun createReview(input: CreateReviewInput): Result<Unit> = runCatching {
         val photos = photoRepository.uploadShopPhotos(input.photos).getOrThrow()
         reviewApiService.createReview(
@@ -94,8 +91,8 @@ class ReviewRepositoryImpl(
                         review = Review(
                             id = dto.id,
                             moderationReviewId = dto.id,
-                            shopId = dto.shopId,
-                            userId = dto.userId,
+                            shopId = dto.shop?.slug.orEmpty(),
+                            userId = "",
                             username = dto.userName.orEmpty(),
                             header = dto.header.orEmpty(),
                             comment = dto.comment,

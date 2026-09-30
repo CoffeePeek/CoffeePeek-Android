@@ -1,5 +1,6 @@
 package com.coffeepeek.api.model.response.shop
 
+import com.coffeepeek.api.model.PublicAddressDto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -7,8 +8,8 @@ import kotlinx.serialization.Serializable
 data class ReviewDto(
     @SerialName("id") val id: String,
     @SerialName("moderationReviewId") val moderationReviewId: String? = null,
-    @SerialName("userId") val userId: String,
-    @SerialName("coffeeShopId") val coffeeShopId: String,
+    @SerialName("author") val author: PublicAddressDto? = null,
+    @SerialName("shop") val shop: PublicAddressDto? = null,
     @SerialName("username") val username: String? = null,
     @SerialName("header") val header: String? = null,
     @SerialName("comment") val comment: String? = null,

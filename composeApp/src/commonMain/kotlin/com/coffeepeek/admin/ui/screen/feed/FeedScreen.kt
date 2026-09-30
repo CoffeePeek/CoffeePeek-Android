@@ -396,7 +396,7 @@ internal fun ShopCard(
     onToggleFavorite: () -> Unit,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().clickable(enabled = shop.publicAddress != null, onClick = onClick),
         shape = RoundedCornerShape(CpDimens.radiusXl),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

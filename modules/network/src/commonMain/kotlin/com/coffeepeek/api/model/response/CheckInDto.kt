@@ -4,14 +4,14 @@ import com.coffeepeek.api.model.DataResponse
 import com.coffeepeek.api.model.response.shop.ShortPhotoDto
 import com.coffeepeek.api.model.response.shop.RatingDto
 import com.coffeepeek.api.serialization.FlexibleIntSerializer
+import com.coffeepeek.api.model.PublicAddressDto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class CheckInDto(
     @SerialName("id") val id: String,
-    @SerialName("userId") val userId: String,
-    @SerialName("shopId") val shopId: String,
+    @SerialName("shop") val shop: PublicAddressDto? = null,
     @SerialName("note") val note: String? = null,
     @SerialName("createdAt") val createdAt: String = "",
     @SerialName("visitedAt") val visitedAt: String = "",
@@ -23,7 +23,7 @@ data class CheckInDto(
 
 @Serializable
 data class GetUserCheckInsResponseDto(
-    @SerialName("checkIns") val checkIns: List<CheckInDto> = emptyList(),
+    @SerialName("items") val checkIns: List<CheckInDto> = emptyList(),
     @SerialName("totalItems")
     @Serializable(with = FlexibleIntSerializer::class)
     val totalItems: Int = 0,

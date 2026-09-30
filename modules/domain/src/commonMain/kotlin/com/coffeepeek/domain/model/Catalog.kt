@@ -3,6 +3,7 @@ package com.coffeepeek.domain.model
 data class City(
     val id: String,
     val name: String,
+    val address: PublicAddress? = null,
 )
 
 data class CatalogItem(
@@ -10,6 +11,7 @@ data class CatalogItem(
     val name: String,
     val slug: String = "",
     val photoUrl: String? = null,
+    val address: PublicAddress? = null,
 )
 
 data class ShopCatalogs(

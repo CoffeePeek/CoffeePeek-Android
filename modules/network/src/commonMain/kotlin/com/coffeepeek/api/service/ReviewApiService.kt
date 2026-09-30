@@ -3,7 +3,6 @@ package com.coffeepeek.api.service
 import com.coffeepeek.api.model.ApiResponse
 import com.coffeepeek.api.model.request.SendReviewReq
 import com.coffeepeek.api.model.request.UpdateReviewReq
-import com.coffeepeek.api.model.response.CanCreateReviewResponseDto
 import com.coffeepeek.api.model.response.CreateEntityResponseDto
 import com.coffeepeek.api.model.response.GetReviewsByUserIdResponseDto
 import com.coffeepeek.api.model.response.MyModerationReviewsPageDto
@@ -20,17 +19,6 @@ import io.ktor.client.call.body
 import io.ktor.client.request.parameter
 
 class ReviewApiService(private val client: HttpClient) {
-
-    suspend fun canCreateReview(shopId: String): Result<CanCreateReviewResponseDto> = runCatching {
-        val response = client.getResult("/api/CoffeeShopReviews/can-create") {
-            parameter("shopId", shopId)
-        }.getOrThrow()
-        val apiResponse = response.body<ApiResponse<CanCreateReviewResponseDto>>()
-        if (!apiResponse.isSuccess || apiResponse.data == null) {
-            throw ApiException(apiResponse.message)
-        }
-        apiResponse.data
-    }
 
     suspend fun createReview(req: SendReviewReq): Result<Unit> = runCatching {
         val response = client.postResult("/api/ModerationReviews") {

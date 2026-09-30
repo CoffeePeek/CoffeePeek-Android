@@ -13,6 +13,7 @@ import com.coffeepeek.domain.model.PendingPhotoUpload
 import com.coffeepeek.domain.model.UpdateReviewInput
 import com.coffeepeek.domain.repository.ReviewRepository
 import com.coffeepeek.domain.repository.SessionRepository
+import com.coffeepeek.domain.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -41,6 +42,7 @@ class EditReviewViewModel(
     private val reviewRepository: ReviewRepository,
     private val sessionRepository: SessionRepository,
     private val drafts: ReviewDraftStore,
+    private val userRepository: UserRepository,
 ) : BaseViewModel() {
     private val draftKey = ReviewDraftStore.editReviewKey(reviewId)
     // Published values; a draft is stored only while the form differs from them.
@@ -58,9 +60,16 @@ class EditReviewViewModel(
 
     fun loadReview() {
         workScope.launch {
-            val session = requireAuthSession(sessionRepository) ?: return@launch
-            val userId = session.userId ?: return@launch
+            requireAuthSession(sessionRepository) ?: return@launch
             _state.update { it.copy(isLoading = true, error = null) }
+            val profile = userRepository.getMe().getOrElse { error ->
+                _state.update { it.copy(isLoading = false, error = error.message) }
+                return@launch
+            }
+            val userId = profile.address?.slug ?: run {
+                _state.update { it.copy(isLoading = false, error = "Публичный адрес профиля пока недоступен") }
+                return@launch
+            }
             reviewRepository.getUserReviews(userId, page = 1, pageSize = 100)
                 .onSuccess { page ->
                     val review = page.items.find { it.id == reviewId }

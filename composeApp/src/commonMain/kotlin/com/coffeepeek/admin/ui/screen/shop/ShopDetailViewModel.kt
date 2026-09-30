@@ -19,6 +19,7 @@ import com.coffeepeek.domain.repository.FavoriteRepository
 import com.coffeepeek.domain.repository.ReviewRepository
 import com.coffeepeek.domain.repository.SessionRepository
 import com.coffeepeek.domain.repository.ShopRepository
+import com.coffeepeek.domain.repository.UserRepository
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,6 +50,7 @@ class ShopDetailViewModel(
     private val reviewRepository: ReviewRepository,
     private val sessionRepository: SessionRepository,
     private val checkInDraftStore: CheckInDraftStore,
+    private val userRepository: UserRepository,
 ) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(ShopDetailUiState())
@@ -75,7 +77,7 @@ class ShopDetailViewModel(
 
     private suspend fun refreshDetails(showLoading: Boolean) {
         val isLoggedIn = sessionRepository.isLoggedIn()
-        val currentUserId = if (isLoggedIn) sessionRepository.getSession()?.userId else null
+        val currentUserId = if (isLoggedIn) userRepository.getMe().getOrNull()?.address?.slug else null
         shopRepository.getShopDetails(shopId)
             .mapCatching { enrichWithReviewAccess(it) }
             .onSuccess { details ->
@@ -103,10 +105,7 @@ class ShopDetailViewModel(
             // userCheckIns are the signed-in user's own — never show them to a logged-out viewer.
             return details.copy(existingReviewId = null, userCheckIns = emptyList())
         }
-        return reviewRepository.canCreateReview(shopId).fold(
-            onSuccess = { (_, reviewId) -> details.copy(existingReviewId = reviewId) },
-            onFailure = { details },
-        )
+        return details
     }
 
     fun toggleFavorite() {
@@ -345,7 +344,8 @@ class ShopDetailViewModel(
 
     fun shareShop() {
         val title = _uiState.value.details?.shop?.title?.takeIf { it.isNotBlank() }
-        val shareUrl = "https://coffeepeek.by/shops/$shopId"
+        val path = _uiState.value.details?.shop?.publicAddress?.canonicalPath ?: return
+        val shareUrl = "https://coffeepeek.by$path"
         val text = if (title != null) {
             "Нашёл кофейню «$title» в CoffeePeek — загляни: $shareUrl"
         } else {
