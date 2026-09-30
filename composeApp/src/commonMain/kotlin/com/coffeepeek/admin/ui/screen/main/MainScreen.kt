@@ -38,7 +38,7 @@ import androidx.navigation.compose.rememberNavController
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.Navigator.isHandledByRootNav
-import com.coffeepeek.admin.ui.component.FloatingBottomNavBar
+import com.coffeepeek.admin.ui.component.PlatformFloatingBottomNavBar
 import com.coffeepeek.admin.ui.component.FloatingNavItem
 import com.coffeepeek.admin.ui.component.ProvideFloatingNavClearance
 import com.coffeepeek.admin.ui.screen.feed.FeedScreen
@@ -204,7 +204,7 @@ internal fun ComposeMainScreen() {
                 }
             }
 
-            FloatingBottomNavBar(
+            PlatformFloatingBottomNavBar(
                 items = items.map { item ->
                     val isSelected = currentDestination?.hierarchy?.any { destination ->
                         destination.hasRoute(item.graph::class)
@@ -225,7 +225,7 @@ internal fun ComposeMainScreen() {
                         },
                     )
                 },
-                // The native map view can't be sampled for blur → translucent glass fallback there.
+                // Android Compose glass uses a translucent tint over the native map.
                 hazeState = tabBarHaze.takeUnless { isMapVisible },
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
