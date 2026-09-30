@@ -132,6 +132,11 @@ object Navigator {
     val pendingTabSelection = _pendingTabSelection.asStateFlow()
 
     private val _openLoginAfterSessionEnd = MutableStateFlow(false)
+    private val pendingAppLink = MutableStateFlow<Screen?>(null)
+
+    internal fun openAppLink(screen: Screen) {
+        pendingAppLink.value = screen
+    }
 
     fun consumeMapFocus() {
         _pendingMapFocus.value = null
@@ -242,6 +247,16 @@ object Navigator {
     @Composable
     private fun BaseNavigator() {
         val nav = rememberNavController()
+        val appLink by pendingAppLink.collectAsState()
+
+        LaunchedEffect(appLink) {
+            val screen = appLink ?: return@LaunchedEffect
+            nav.navigate(screen) {
+                launchSingleTop = true
+                popUpTo<Screen.Main>()
+            }
+            pendingAppLink.compareAndSet(screen, null)
+        }
 
         LaunchedEffect(Unit) {
             navigationEvents.onEach { event ->
