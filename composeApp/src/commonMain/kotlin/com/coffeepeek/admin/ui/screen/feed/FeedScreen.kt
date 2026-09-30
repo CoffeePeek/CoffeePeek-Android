@@ -54,7 +54,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -286,58 +285,6 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                     CoffeePeekLoader()
                 }
             }
-            state.visibleShops.isEmpty() && displayedShops.isEmpty() && !fillingNearby && !state.isLoading && !state.isRefreshing -> {
-                CoffeePeekPullToRefresh(
-                    listState = listState,
-                    isRefreshing = state.isRefreshing,
-                    onRefresh = vm::refresh,
-                    modifier = contentModifier,
-                ) { scrollModifier ->
-                    LazyColumn(
-                        state = listState,
-                        modifier = scrollModifier.fillMaxSize(),
-                        contentPadding = listContentPadding,
-                    ) {
-                        item {
-                            Column(
-                                modifier = Modifier
-                                    .fillParentMaxSize()
-                                    .padding(horizontal = CpDimens.spacing4),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                            ) {
-                                Image(
-                                    painter = painterResource(Res.drawable.maskot_with_magnifying_glass),
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Fit,
-                                    modifier = Modifier.size(132.dp),
-                                )
-                                Spacer(Modifier.height(CpDimens.spacing3))
-                                Text(
-                                    "Ничего не найдено",
-                                    modifier = Modifier.fillMaxWidth(),
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    textAlign = TextAlign.Center,
-                                )
-                                Spacer(Modifier.height(CpDimens.spacing2))
-                                Text(
-                                    "Попробуйте изменить запрос или сбросить фильтры",
-                                    modifier = Modifier.fillMaxWidth(),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center,
-                                )
-                                Spacer(Modifier.height(CpDimens.spacing2))
-                                TextButton(onClick = vm::clearFilters) {
-                                    Text("Сбросить поиск и фильтры")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
             else -> {
                 CoffeePeekPullToRefresh(
                     listState = listState,
@@ -360,7 +307,7 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                             )
                         }
                         if (state.isLoadingMore) {
-                            item {
+                            item(key = "loading-more") {
                                 Box(
                                     modifier = Modifier.fillMaxWidth().padding(CpDimens.spacing4),
                                     contentAlignment = Alignment.Center,
@@ -372,9 +319,71 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                                 }
                             }
                         }
+                        item(key = "add-missing-shop") {
+                            AddMissingShopCard(
+                                onAddShop = {
+                                    Navigator.navigate(Navigator.Screen.AddShop)
+                                },
+                            )
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AddMissingShopCard(onAddShop: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(CpDimens.radiusXl))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+            .padding(horizontal = CpDimens.spacing4, vertical = CpDimens.spacing6),
+        horizontalAlignment = Alignment.Start,
+    ) {
+        Image(
+            painter = painterResource(Res.drawable.maskot_with_magnifying_glass),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .size(132.dp)
+                .align(Alignment.CenterHorizontally),
+        )
+        Spacer(Modifier.height(CpDimens.spacing3))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(end = 20.dp),
+        ) {
+            Text(
+                text = "Не нашли нужную кофейню?",
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(CpDimens.spacing2))
+            Text(
+                text = "Предложите добавить её в CoffeePeek — после проверки она появится в каталоге.",
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.height(CpDimens.spacing2))
+        TextButton(
+            onClick = onAddShop,
+            contentPadding = PaddingValues(horizontal = 0.dp, vertical = CpDimens.spacing2),
+        ) {
+            Icon(
+                imageVector = CpIcons.Add,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(CpDimens.spacing2))
+            Text("Добавить кофейню")
         }
     }
 }

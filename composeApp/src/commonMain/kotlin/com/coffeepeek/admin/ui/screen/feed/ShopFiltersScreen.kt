@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -34,8 +35,12 @@ import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.ui.component.CheckmarkSection
 import com.coffeepeek.admin.ui.component.GroupSection
 import com.coffeepeek.admin.ui.component.PriceBeanSlider
+import com.coffeepeek.admin.ui.component.RoasterAvatar
 import com.coffeepeek.admin.ui.component.priceLevelHint
+import com.coffeepeek.admin.ui.component.brewMethodIcon
+import com.coffeepeek.admin.ui.component.shopTagIcon
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
 
 private val RowInset = 16.dp
 
@@ -92,21 +97,53 @@ fun ShopFiltersScreen(
                     modifier = Modifier.padding(horizontal = RowInset, vertical = 8.dp),
                 )
             }
-            CheckmarkSection("Обжарщики", state.roasters, draft.roasterIds, onToggle = {
-                draft = draft.copy(roasterIds = draft.roasterIds.toggle(it))
-            })
+            CheckmarkSection(
+                title = "Обжарщики",
+                items = state.roasters,
+                selectedIds = draft.roasterIds,
+                onToggle = { id ->
+                    draft = draft.copy(roasterIds = draft.roasterIds.toggle(id))
+                },
+                leading = { item -> RoasterAvatar(item) },
+            )
             CheckmarkSection("Зёрна", state.beans, draft.beanIds, onToggle = {
                 draft = draft.copy(beanIds = draft.beanIds.toggle(it))
             })
             CheckmarkSection("Оборудование", state.equipment, draft.equipmentIds, onToggle = {
                 draft = draft.copy(equipmentIds = draft.equipmentIds.toggle(it))
             })
-            CheckmarkSection("Метод заваривания", state.brewMethods, draft.brewMethodIds, onToggle = {
-                draft = draft.copy(brewMethodIds = draft.brewMethodIds.toggle(it))
-            })
-            CheckmarkSection("Особенности", ShopTagGroups.amenityTags(state.shopTags), draft.tagIds, onToggle = {
-                draft = draft.copy(tagIds = draft.tagIds.toggle(it))
-            })
+            CheckmarkSection(
+                title = "Метод заваривания",
+                items = state.brewMethods,
+                selectedIds = draft.brewMethodIds,
+                onToggle = { id ->
+                    draft = draft.copy(brewMethodIds = draft.brewMethodIds.toggle(id))
+                },
+                leading = { item ->
+                    Icon(
+                        painter = painterResource(brewMethodIcon(item.name)),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp),
+                    )
+                },
+            )
+            CheckmarkSection(
+                title = "Особенности",
+                items = ShopTagGroups.amenityTags(state.shopTags),
+                selectedIds = draft.tagIds,
+                onToggle = { id ->
+                    draft = draft.copy(tagIds = draft.tagIds.toggle(id))
+                },
+                leading = { item ->
+                    Icon(
+                        imageVector = shopTagIcon(item.slug),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp),
+                    )
+                },
+            )
         }
     }
 }
