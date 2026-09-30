@@ -199,11 +199,12 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
                 icon = GlassControlIcon.Location,
                 onClick = vm::requestMyLocation,
                 contentDescription = "Моё местоположение",
+                modifier = Modifier.size(CpDimens.buttonHeight + 4.dp),
             ) {
                 Icon(
                     CpIcons.Navigation,
                     contentDescription = "Моё местоположение",
-                    modifier = Modifier.size(30.dp),
+                    modifier = Modifier.size(32.dp),
                 )
             }
         }
@@ -479,6 +480,7 @@ private fun MapZoomControl(
             Icon(
                 imageVector = CpIcons.Add,
                 contentDescription = "Приблизить карту",
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -502,6 +504,7 @@ private fun MapZoomControl(
             Icon(
                 imageVector = CpIcons.Minus,
                 contentDescription = "Отдалить карту",
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(22.dp),
             )
         }
