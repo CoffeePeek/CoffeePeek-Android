@@ -17,7 +17,6 @@ internal data class UpdateUiState(
     val showPrompt: Boolean = false,
     val checking: Boolean = false,
     val message: String? = null,
-    val openingError: String? = null,
 )
 
 internal class AppUpdateState(private val repository: AppUpdateRepository) {
@@ -61,7 +60,4 @@ internal class AppUpdateState(private val repository: AppUpdateRepository) {
         }
     }
 
-    fun openingFailed() {
-        mutableState.value = mutableState.value.copy(openingError = "Не удалось открыть ссылку. Попробуйте ещё раз.")
-    }
 }
