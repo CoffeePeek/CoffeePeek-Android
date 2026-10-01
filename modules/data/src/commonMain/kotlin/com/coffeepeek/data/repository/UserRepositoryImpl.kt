@@ -58,7 +58,10 @@ class UserRepositoryImpl(
         fetchAndCacheProfile()
 
     override suspend fun getMe(): Result<UserProfile> {
-        _profile.value?.let { return Result.success(it) }
+        val session = sessionRepository.peekSession()
+        if (sessionRepository.isActiveSession(session) && session?.userId == cachedForUserId) {
+            _profile.value?.let { return Result.success(it) }
+        }
         return refreshProfile()
     }
 
@@ -105,13 +108,27 @@ class UserRepositoryImpl(
         Unit
     }
 
-    private suspend fun fetchAndCacheProfile(): Result<UserProfile> =
-        userApiService.getMe().map { dto ->
-            dto.toUserProfile().also { profile ->
-                _profile.value = profile
-                cachedForUserId = sessionRepository.peekSession()?.userId
-            }
+    private suspend fun fetchAndCacheProfile(): Result<UserProfile> {
+        val session = sessionRepository.peekSession()
+        if (!sessionRepository.isActiveSession(session)) {
+            clearProfile()
+            return Result.failure(IllegalStateException("Сессия завершена"))
         }
+        return userApiService.getMe().fold(
+            onSuccess = { dto ->
+                val current = sessionRepository.peekSession()
+                if (current?.userId != session?.userId || !sessionRepository.isActiveSession(current)) {
+                    Result.failure(IllegalStateException("Сессия изменилась"))
+                } else {
+                    val profile = dto.toUserProfile()
+                    cachedForUserId = session?.userId
+                    _profile.value = profile
+                    Result.success(profile)
+                }
+            },
+            onFailure = { Result.failure(it) },
+        )
+    }
 
     private fun clearProfile() {
         cachedForUserId = null

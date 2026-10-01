@@ -62,6 +62,10 @@ fun initKoin() {
 }
 
 private fun appModule(settingRepository: com.coffeepeek.room.repository.SettingRepository) = module {
+    single<com.coffeepeek.admin.feature.appupdate.domain.AppUpdateRepository> {
+        com.coffeepeek.admin.feature.appupdate.data.AppUpdateRepositoryImpl(get<CoffeePeekClient>().plainClient, settingRepository)
+    }
+    single { com.coffeepeek.admin.feature.appupdate.ui.AppUpdateState(get()) }
     single<CustomUrlFetcher> { createImageUrlFetcher(get<CoffeePeekClient>().client) }
     single { CheckInDraftStore() }
     single { CityPreference(settingRepository) }

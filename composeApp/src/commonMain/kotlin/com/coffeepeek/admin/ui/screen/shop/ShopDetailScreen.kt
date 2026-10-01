@@ -99,6 +99,7 @@ import com.coffeepeek.admin.ui.component.CheckInDisplayCard
 import com.coffeepeek.admin.ui.component.GuestAuthCard
 import com.coffeepeek.admin.ui.component.ReviewDisplayCard
 import com.coffeepeek.admin.utils.currentLocalDayOfWeek
+import com.coffeepeek.admin.utils.currentLocalMinuteOfDay
 import com.coffeepeek.admin.ui.component.PriceBynRow
 import com.coffeepeek.admin.ui.component.PriceBynIcon
 import com.coffeepeek.admin.ui.component.priceRangeLevel
@@ -737,7 +738,7 @@ private fun ShopStatsRow(
     priceRange: String?,
     schedules: List<ShopSchedule>,
 ) {
-    val currentDay = remember { currentLocalDayOfWeek() }
+    val currentDay = currentLocalDayOfWeek()
     val todaySchedule = remember(schedules, currentDay) {
         schedules.firstOrNull { it.dayOfWeek == currentDay }
     }
@@ -809,14 +810,14 @@ private fun ShopStatsRow(
             }
             Text(
                 text = when {
-                    todaySchedule?.isClosed == true -> "Сегодня выходной"
                     isOpen && closingTime != null -> "до $closingTime"
-                    closingTime != null -> "сегодня до $closingTime"
-                    else -> "Сегодня"
+                    isOpen -> "Сегодня"
+                    else -> nextShopOpeningLabel(schedules, currentDay, currentLocalMinuteOfDay())
+                        ?: if (todaySchedule?.isClosed == true) "Сегодня выходной" else "Расписание не указано"
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }

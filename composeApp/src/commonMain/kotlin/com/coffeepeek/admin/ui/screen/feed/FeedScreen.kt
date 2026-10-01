@@ -158,8 +158,8 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                             BadgedBox(
                                 badge = {
                                     if (state.activeFilterCount > 0) {
-                                        Badge(modifier = Modifier.size(20.dp)) {
-                                            Text(state.activeFilterCount.toString())
+                                        Badge {
+                                            Text(state.activeFilterCount.toString(), maxLines = 1)
                                         }
                                     }
                                 },

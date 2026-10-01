@@ -31,6 +31,8 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation("io.ktor:ktor-client-mock:${libs.versions.ktor.get()}")
+            implementation(libs.ktor.client.content.negotiation)
         }
     }
 }
