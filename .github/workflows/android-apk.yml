@@ -57,7 +57,7 @@ jobs:
 
           "$SDKMANAGER" \
             "platform-tools" \
-            "platforms;android-37" \
+            "platforms;android-37.0" \
             "build-tools;36.0.0"
 
       - name: Validate branch and build configuration
@@ -102,7 +102,7 @@ jobs:
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/coffeepeek-release.jks"
 
       - name: Run Android checks
-        run: ./gradlew --no-daemon testDebugUnitTest lintDebug
+        run: ./gradlew --no-daemon testDebugUnitTest :composeApp:testDirectDebugUnitTest :composeApp:testPlayDebugUnitTest lintDebug :composeApp:lintDirectDebug :composeApp:lintPlayDebug
 
       - name: Build signed release APK and AAB
         env:
@@ -110,7 +110,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon --no-configuration-cache :composeApp:assembleRelease :composeApp:bundleRelease
+        run: ./gradlew --no-daemon --no-configuration-cache :composeApp:assembleDirectRelease :composeApp:bundlePlayRelease
 
       - name: Prepare and verify APK metadata
         id: meta
@@ -118,7 +118,7 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          files=(composeApp/build/outputs/apk/release/*.apk)
+          files=(composeApp/build/outputs/apk/direct/release/*.apk)
           if [[ ${#files[@]} -ne 1 ]]; then
             echo "Expected exactly one release APK, found ${#files[@]}."
             exit 1
@@ -174,12 +174,12 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          bundles=(composeApp/build/outputs/bundle/release/*.aab)
+          bundles=(composeApp/build/outputs/bundle/playRelease/*.aab)
           [[ ${#bundles[@]} -eq 1 ]]
           jarsigner -verify -certs "${bundles[0]}"
           mkdir -p dist
           cp "${bundles[0]}" dist/coffeepeek-release.aab
-          cp composeApp/build/outputs/mapping/release/mapping.txt dist/mapping.txt
+          cp composeApp/build/outputs/mapping/playRelease/mapping.txt dist/mapping.txt
 
       - name: Upload Play artifacts
         uses: actions/upload-artifact@v4

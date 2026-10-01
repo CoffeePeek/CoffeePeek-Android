@@ -43,7 +43,7 @@ jobs:
 
           "$SDKMANAGER" \
             "platform-tools" \
-            "platforms;android-37" \
+            "platforms;android-37.0" \
             "build-tools;36.0.0"
 
       - name: Create local.properties
@@ -51,4 +51,4 @@ jobs:
         run: printf 'API_BASE_URL=https://example.com/\nGOOGLE_WEB_CLIENT_ID=\n' > local.properties
 
       - name: Build and check Android
-        run: ./gradlew --no-daemon :composeApp:assembleDebug testDebugUnitTest lintDebug
+        run: ./gradlew --no-daemon :composeApp:assembleDirectDebug :composeApp:assemblePlayDebug testDebugUnitTest :composeApp:testDirectDebugUnitTest :composeApp:testPlayDebugUnitTest lintDebug :composeApp:lintDirectDebug :composeApp:lintPlayDebug

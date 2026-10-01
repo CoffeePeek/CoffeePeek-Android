@@ -32,3 +32,11 @@ Secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_AL
 Сохраняется текущая версия `1.0.<git-commit-count>`. Следующий versionCode должен быть больше уже загруженного в Play. Не переписывайте историю main. Повторная загрузка того же versionCode в Play будет отклонена: при ошибке одного канала повторяйте только failed jobs.
 
 APK с сайта/Firebase и APK из Play могут иметь разные сертификаты, если upload key отличается от app signing key. Зарегистрируйте нужные SHA-1 для Google Sign-In; обновление между такими установками поверх приложения невозможно.
+
+## Обновление внутри приложения
+
+Сборка `play` обновляется через Play In-App Updates, без браузера. Сборка `direct` для сайта и Firebase скачивает APK через Android DownloadManager, показывает прогресс и вызывает системное подтверждение установки. Только `direct` содержит разрешение `REQUEST_INSTALL_PACKAGES`.
+
+Release tasks: `:composeApp:assembleDirectRelease :composeApp:bundlePlayRelease`. У обоих вариантов одинаковые application ID и versionCode; подписи установленных приложений должны быть совместимы с выбранным каналом.
+
+Проверка APK отклоняет другой package name, неожиданный versionCode, старую версию и несовместимую подпись. При отмене загрузка удаляется; после перезапуска восстановление выполняется по сохранённому DownloadManager ID. Необязательную карточку можно скрыть свайпом вверх, загрузка продолжится.
