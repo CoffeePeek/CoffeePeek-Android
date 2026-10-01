@@ -94,7 +94,7 @@ fun PickShopLocationDialog(
             CoffeeMap(
                 shops = emptyList(),
                 selectedShopId = null,
-                onBoundsChanged = { bounds ->
+                onBoundsChanged = { bounds, _ ->
                     cameraCenter = bounds.center()
                 },
                 onShopClick = {},
@@ -236,8 +236,8 @@ fun PickShopLocationDialog(
                                 onConfirmState.value(point.latitude, point.longitude, address)
                             },
                             enabled = !isResolvingAddress && !previewAddress.isNullOrBlank(),
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(CpDimens.buttonRadius),
+                            modifier = Modifier.weight(1f).height(CpDimens.buttonHeight),
+                            shape = RoundedCornerShape(percent = 50),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                             ),

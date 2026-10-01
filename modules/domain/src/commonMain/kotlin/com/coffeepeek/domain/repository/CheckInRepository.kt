@@ -7,4 +7,5 @@ import com.coffeepeek.domain.model.PagedResult
 interface CheckInRepository {
     suspend fun createCheckIn(input: CreateCheckInInput): Result<Unit>
     suspend fun getMyCheckIns(page: Int, pageSize: Int): Result<PagedResult<CheckIn>>
+    suspend fun getMyCheckIns(from: String, to: String, pageSize: Int): Result<List<CheckIn>>
 }

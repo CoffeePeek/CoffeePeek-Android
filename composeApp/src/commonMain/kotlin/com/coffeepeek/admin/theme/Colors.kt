@@ -7,9 +7,12 @@ object CpColor {
     // ── Brand ─────────────────────────────────────────────────────────────────
     val Primary        = Color(0xFFEAB308)
     val PrimaryHover   = Color(0xFFFACC15)
-    val PrimaryDark    = Color(0xFFCA8A04)
-    val PrimaryLight   = Color(0xFFFEF3C7)
     val PrimaryTint10  = Color(0x1AEAB308)
+    val AccentTextLight = Color(0xFF7A5700)
+    val AccentTextDark  = Color(0xFFFACC15)
+    val SwitchCheckedThumbLight = Color(0xFF684900)
+    val SwitchCheckedTrackDark = Color(0xFF9A7A28)
+    val SwitchCheckedThumbDark = Color(0xFFFFF7D6)
 
     val GoldWarm       = Color(0xFFD4A84B)
     val GoldWarmHover  = Color(0xFFB68A2E)

@@ -3,12 +3,15 @@ package com.coffeepeek.domain.model
 data class City(
     val id: String,
     val name: String,
+    val address: PublicAddress? = null,
 )
 
 data class CatalogItem(
     val id: String,
     val name: String,
     val slug: String = "",
+    val photoUrl: String? = null,
+    val address: PublicAddress? = null,
 )
 
 data class ShopCatalogs(
@@ -24,6 +27,8 @@ data class CreateShopInput(
     val name: String,
     val address: String,
     val cityId: String,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val description: String? = null,
     val priceRange: Int? = null,
     val phone: String? = null,
@@ -84,14 +89,25 @@ data class UpdateReviewInput(
     val photos: List<PendingPhotoUpload> = emptyList(),
 )
 
+enum class ShopIssueCategory {
+    OutdatedMenu,
+    ShopClosed,
+    IncorrectAddress,
+    WrongOpeningHours,
+    IncorrectPhotos,
+    Other,
+}
+
 data class CreateCheckInInput(
     val shopId: String,
+    val header: String? = null,
     val note: String? = null,
     val isPublic: Boolean = true,
     val visitedAtIso: String,
     val placeRating: Int? = null,
     val serviceRating: Int? = null,
     val coffeeRating: Int? = null,
+    val photos: List<PendingPhotoUpload> = emptyList(),
 )
 
 data class CheckIn(
@@ -101,4 +117,9 @@ data class CheckIn(
     val note: String,
     val createdAt: String,
     val reviewId: String?,
+    val visitedAt: String = "",
+    // photoUrls open fullscreen; thumbnails are for small tiles.
+    val photoUrls: List<String> = emptyList(),
+    val photoThumbnailUrls: List<String> = photoUrls,
+    val rating: ReviewRating? = null,
 )

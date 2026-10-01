@@ -3,20 +3,18 @@ package com.coffeepeek.admin.ui.component
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,17 +27,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpDimens
+import dev.chrisbanes.haze.HazeState
 
-/** Extra bottom space so list content / FABs clear the floating nav. */
+/** Extra bottom space so list content / FABs clear the bottom navigation. */
 val LocalFloatingNavClearance = compositionLocalOf { 0.dp }
 
 @Composable
@@ -59,58 +57,34 @@ data class FloatingNavItem(
     val onClick: () -> Unit,
 )
 
+/** Compose floating bar used on Android; iOS hosts a native tab bar. */
 @Composable
 fun FloatingBottomNavBar(
     items: List<FloatingNavItem>,
     modifier: Modifier = Modifier,
+    hazeState: HazeState? = LocalGlassHazeState.current,
 ) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    // Lift the bar above the near-identical screen background.
-    val barColor = if (isDark) {
-        MaterialTheme.colorScheme.surfaceVariant
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-    val borderColor = if (isDark) {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.85f)
-    } else {
-        MaterialTheme.colorScheme.outline
-    }
     val shape = RoundedCornerShape(percent = 50)
-
-    Box(
+    Row(
         modifier = modifier
-            .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(
-                horizontal = CpDimens.floatingNavHorizontalMargin,
-                vertical = CpDimens.floatingNavBottomMargin,
-            ),
-        contentAlignment = Alignment.Center,
+            .padding(horizontal = CpDimens.spacing4)
+            .padding(bottom = FloatingNavBottomMargin)
+            .fillMaxWidth()
+            .height(CpDimens.floatingNavBarHeight)
+            .liquidGlass(shape, hazeState, shadowElevation = 10.dp)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(CpDimens.floatingNavBarHeight)
-                .shadow(
-                    elevation = 20.dp,
-                    shape = shape,
-                    ambientColor = Color.Black.copy(alpha = if (isDark) 0.45f else 0.16f),
-                    spotColor = Color.Black.copy(alpha = if (isDark) 0.55f else 0.22f),
-                )
-                .clip(shape)
-                .background(barColor)
-                .border(width = 1.5.dp, color = borderColor, shape = shape)
-                .padding(horizontal = CpDimens.spacing2),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            items.forEach { item ->
-                FloatingNavBarItem(item = item)
-            }
+        items.forEach { item ->
+            FloatingNavBarItem(item = item)
         }
     }
 }
+
+/** Gap between the floating bar and the system navigation area. */
+val FloatingNavBottomMargin = 8.dp
 
 @Composable
 private fun RowScope.FloatingNavBarItem(item: FloatingNavItem) {
@@ -118,48 +92,43 @@ private fun RowScope.FloatingNavBarItem(item: FloatingNavItem) {
         targetValue = if (item.selected) {
             MaterialTheme.colorScheme.primary
         } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
+            MaterialTheme.colorScheme.onSurface
         },
         animationSpec = tween(180),
         label = "floating-nav-content",
     )
-    val indicatorColor by animateColorAsState(
+    val pillColor by animateColorAsState(
         targetValue = if (item.selected) {
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
         } else {
             Color.Transparent
         },
-        animationSpec = tween(180),
-        label = "floating-nav-indicator",
+        animationSpec = tween(220),
+        label = "floating-nav-pill",
     )
 
     Column(
         modifier = Modifier
             .weight(1f)
-            .clip(RoundedCornerShape(CpDimens.radiusXl))
-            .clickable(
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(percent = 50))
+            .background(pillColor)
+            .selectable(
+                selected = item.selected,
+                role = Role.Tab,
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = item.onClick,
-            )
-            .padding(vertical = CpDimens.spacing1),
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
     ) {
-        Box(
-            modifier = Modifier
-                .size(width = 52.dp, height = 30.dp)
-                .clip(CircleShape)
-                .background(indicatorColor),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = item.icon,
-                contentDescription = item.title,
-                tint = contentColor,
-                modifier = Modifier.size(22.dp),
-            )
-        }
+        Icon(
+            imageVector = item.icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(22.dp),
+        )
         Text(
             text = item.title,
             style = MaterialTheme.typography.labelSmall.copy(

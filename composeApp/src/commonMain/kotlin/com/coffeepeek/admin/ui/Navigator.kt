@@ -3,9 +3,19 @@ package com.coffeepeek.admin.ui
 import com.coffeepeek.admin.ui.screen.addshop.AddShopScreen
 import com.coffeepeek.admin.ui.screen.auth.registr.RegisterScreen
 import com.coffeepeek.admin.ui.screen.checkins.VisitedPlacesScreen
+import com.coffeepeek.admin.ui.screen.deleteaccount.DeleteAccountPendingScreen
 import com.coffeepeek.admin.ui.screen.editprofile.EditProfileScreen
 import com.coffeepeek.admin.ui.screen.favorites.FavoritesScreen
-import com.coffeepeek.admin.ui.screen.reviews.MyReviewsScreen
+import com.coffeepeek.admin.ui.screen.contributions.ContributionKind
+import com.coffeepeek.admin.ui.screen.contributions.MyContributionsScreen
+import com.coffeepeek.admin.ui.screen.roaster.AddRoasterScreen
+import com.coffeepeek.admin.ui.screen.roaster.RoasterDetailScreen
+import com.coffeepeek.admin.ui.screen.profile.CityScreen
+import com.coffeepeek.admin.ui.screen.profile.ThemeScreen
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +35,11 @@ import com.coffeepeek.admin.ui.screen.main.MainScreen
 import com.coffeepeek.admin.ui.screen.review.CreateReviewScreen
 import com.coffeepeek.admin.ui.screen.review.EditReviewScreen
 import com.coffeepeek.admin.ui.screen.shop.ShopDetailScreen
+import com.coffeepeek.admin.ui.screen.shop.ShopMenuGalleryScreen
+import com.coffeepeek.admin.ui.screen.shop.ShopReportScreen
+import com.coffeepeek.admin.ui.screen.shopchange.ShopChangeEditorScreen
+import com.coffeepeek.admin.ui.screen.shopchange.ShopChangeRequestDetailScreen
+import com.coffeepeek.admin.ui.screen.shopchange.SuggestShopChangeScreen
 import com.coffeepeek.admin.utils.ErrorHandler
 import com.coffeepeek.admin.utils.LoadingHandler
 import kotlinx.coroutines.CoroutineScope
@@ -37,7 +52,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import kotlinx.serialization.Serializable
+
+private const val ROOT_NAV_ANIMATION_DURATION_MS = 300
 
 object Navigator {
 
@@ -64,19 +82,38 @@ object Navigator {
         @Serializable data object FeedGraph : Screen
         @Serializable data object MapGraph : Screen
         @Serializable data object ProfileGraph : Screen
+        @Serializable data object SettingsGraph : Screen
 
         // Tabs
         @Serializable data object FeedTab : Screen
         @Serializable data object MapTab : Screen
         @Serializable data object ProfileTab : Screen
+        @Serializable data object SettingsTab : Screen
 
         // Inner screens (add here + in the graph in MainScreen)
         @Serializable data class ShopDetail(val shopId: String) : Screen
+        @Serializable data class ShopMenuGallery(val shopId: String) : Screen
+        @Serializable data class ReportShop(val shopId: String, val shopTitle: String) : Screen
+        @Serializable data class SuggestShopChange(val shopId: String) : Screen
+        @Serializable data class ShopChangeEditor(
+            val shopId: String,
+            val section: String,
+            val requestId: String = "",
+        ) : Screen
+        /** [kind] is a [ContributionKind] name. */
+        @Serializable data class MyContributions(val kind: String) : Screen
+        @Serializable data class ShopChangeRequestDetail(
+            val requestId: String,
+        ) : Screen
         @Serializable data object AddShop : Screen
+        @Serializable data object AddRoaster : Screen
+        @Serializable data class RoasterDetail(val roasterId: String) : Screen
         @Serializable data object EditProfile : Screen
+        @Serializable data object DeleteAccountPending : Screen
         @Serializable data object Favorites : Screen
-        @Serializable data object MyReviews : Screen
         @Serializable data object VisitedPlaces : Screen
+        @Serializable data object CitySettings : Screen
+        @Serializable data object ThemeSettings : Screen
         @Serializable data class CreateReview(val shopId: String) : Screen
         @Serializable data class ReviewEdit(val reviewId: String) : Screen
     }
@@ -94,12 +131,23 @@ object Navigator {
     private val _pendingTabSelection = MutableStateFlow<Screen?>(null)
     val pendingTabSelection = _pendingTabSelection.asStateFlow()
 
+    private val _openLoginAfterSessionEnd = MutableStateFlow(false)
+    private val pendingAppLink = MutableStateFlow<Screen?>(null)
+
+    internal fun openAppLink(screen: Screen) {
+        pendingAppLink.value = screen
+    }
+
     fun consumeMapFocus() {
         _pendingMapFocus.value = null
     }
 
     fun consumeTabSelection() {
         _pendingTabSelection.value = null
+    }
+
+    fun openLoginAfterSessionEnd() {
+        _openLoginAfterSessionEnd.value = true
     }
 
     fun openShopOnMap(shopId: String, latitude: Double, longitude: Double, title: String) {
@@ -116,13 +164,23 @@ object Navigator {
         is Screen.Register,
         is Screen.Main,
         is Screen.ShopDetail,
+        is Screen.ShopMenuGallery,
+        is Screen.ReportShop,
+        is Screen.SuggestShopChange,
+        is Screen.ShopChangeEditor,
+        is Screen.MyContributions,
+        is Screen.ShopChangeRequestDetail,
         is Screen.AddShop,
+        is Screen.AddRoaster,
+        is Screen.RoasterDetail,
         is Screen.EditProfile,
+        is Screen.DeleteAccountPending,
         is Screen.CreateReview,
         is Screen.ReviewEdit,
         is Screen.Favorites,
-        is Screen.MyReviews,
-        is Screen.VisitedPlaces -> true
+        is Screen.VisitedPlaces,
+        is Screen.CitySettings,
+        is Screen.ThemeSettings -> true
         else -> false
     }
 
@@ -139,6 +197,10 @@ object Navigator {
 
     fun popBack() {
         navigatorScope.launch { _navigationEvents.emit(NavEvent.PopBack) }
+    }
+
+    fun closeAuth() {
+        popBack()
     }
 
     /** Pop current screen, then navigate (ordered in one coroutine). */
@@ -162,21 +224,39 @@ object Navigator {
             message = errorMessage ?: "",
             onDismiss = { ErrorHandler.clearError() }
         )
-        LoadingDialog(show = loading)
-
         LaunchedEffect(isLoggedIn) {
             if (!isLoggedIn) {
                 ErrorHandler.clearError()
                 LoadingHandler.clearLoading()
+                if (_openLoginAfterSessionEnd.value) {
+                    _openLoginAfterSessionEnd.value = false
+                    yield()
+                    navigate(Screen.Auth)
+                }
             }
         }
 
-        BaseNavigator(isLoggedIn = isLoggedIn)
+        Box(modifier = Modifier.fillMaxSize()) {
+            key(isLoggedIn) {
+                BaseNavigator()
+            }
+            LoadingDialog(show = loading)
+        }
     }
 
     @Composable
-    private fun BaseNavigator(isLoggedIn: Boolean) {
+    private fun BaseNavigator() {
         val nav = rememberNavController()
+        val appLink by pendingAppLink.collectAsState()
+
+        LaunchedEffect(appLink) {
+            val screen = appLink ?: return@LaunchedEffect
+            nav.navigate(screen) {
+                launchSingleTop = true
+                popUpTo<Screen.Main>()
+            }
+            pendingAppLink.compareAndSet(screen, null)
+        }
 
         LaunchedEffect(Unit) {
             navigationEvents.onEach { event ->
@@ -193,12 +273,47 @@ object Navigator {
             }.launchIn(this)
         }
 
-        key(isLoggedIn) {
-            NavHost(
-                navController = nav,
-                startDestination = if (isLoggedIn) Screen.Main else Screen.Auth,
-                modifier = Modifier.fillMaxSize(),
-            ) {
+        NavHost(
+            navController = nav,
+            startDestination = Screen.Main,
+            modifier = Modifier.fillMaxSize(),
+            enterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(
+                        durationMillis = ROOT_NAV_ANIMATION_DURATION_MS,
+                        easing = FastOutSlowInEasing,
+                    ),
+                )
+            },
+            exitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(
+                        durationMillis = ROOT_NAV_ANIMATION_DURATION_MS,
+                        easing = FastOutSlowInEasing,
+                    ),
+                )
+            },
+            popEnterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(
+                        durationMillis = ROOT_NAV_ANIMATION_DURATION_MS,
+                        easing = FastOutSlowInEasing,
+                    ),
+                )
+            },
+            popExitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(
+                        durationMillis = ROOT_NAV_ANIMATION_DURATION_MS,
+                        easing = FastOutSlowInEasing,
+                    ),
+                )
+            },
+        ) {
                 composable<Screen.Auth> { AuthScreen() }
                 composable<Screen.Register> { RegisterScreen() }
                 composable<Screen.Main> { MainScreen() }
@@ -206,8 +321,42 @@ object Navigator {
                     val route = backStack.toRoute<Screen.ShopDetail>()
                     ShopDetailScreen(shopId = route.shopId)
                 }
+                composable<Screen.ShopMenuGallery> { backStack ->
+                    val route = backStack.toRoute<Screen.ShopMenuGallery>()
+                    ShopMenuGalleryScreen(shopId = route.shopId)
+                }
+                composable<Screen.ReportShop> { backStack ->
+                    val route = backStack.toRoute<Screen.ReportShop>()
+                    ShopReportScreen(shopId = route.shopId, shopTitle = route.shopTitle)
+                }
+                composable<Screen.SuggestShopChange> { backStack ->
+                    val route = backStack.toRoute<Screen.SuggestShopChange>()
+                    SuggestShopChangeScreen(shopId = route.shopId)
+                }
+                composable<Screen.ShopChangeEditor> { backStack ->
+                    val route = backStack.toRoute<Screen.ShopChangeEditor>()
+                    ShopChangeEditorScreen(
+                        shopId = route.shopId,
+                        sectionName = route.section,
+                        requestId = route.requestId,
+                    )
+                }
+                composable<Screen.MyContributions> { backStack ->
+                    val route = backStack.toRoute<Screen.MyContributions>()
+                    MyContributionsScreen(kind = ContributionKind.valueOf(route.kind))
+                }
+                composable<Screen.ShopChangeRequestDetail> { backStack ->
+                    val route = backStack.toRoute<Screen.ShopChangeRequestDetail>()
+                    ShopChangeRequestDetailScreen(requestId = route.requestId)
+                }
                 composable<Screen.AddShop> { AddShopScreen() }
+                composable<Screen.AddRoaster> { AddRoasterScreen() }
+                composable<Screen.RoasterDetail> { backStack ->
+                    val route = backStack.toRoute<Screen.RoasterDetail>()
+                    RoasterDetailScreen(roasterId = route.roasterId)
+                }
                 composable<Screen.EditProfile> { EditProfileScreen() }
+                composable<Screen.DeleteAccountPending> { DeleteAccountPendingScreen() }
                 composable<Screen.CreateReview> { backStack ->
                     val route = backStack.toRoute<Screen.CreateReview>()
                     CreateReviewScreen(shopId = route.shopId)
@@ -217,9 +366,9 @@ object Navigator {
                     EditReviewScreen(reviewId = route.reviewId)
                 }
                 composable<Screen.Favorites> { FavoritesScreen() }
-                composable<Screen.MyReviews> { MyReviewsScreen() }
                 composable<Screen.VisitedPlaces> { VisitedPlacesScreen() }
-            }
+                composable<Screen.CitySettings> { CityScreen() }
+                composable<Screen.ThemeSettings> { ThemeScreen() }
         }
     }
 }

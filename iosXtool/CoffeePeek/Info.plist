@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key>
+    <string>CoffeePeek</string>
+    <key>APIBaseURL</key>
+    <string>https://api.coffeepeek.by/</string>
+    <key>CoffeePeekDebug</key>
+    <true/>
+    <key>CADisableMinimumFrameDurationOnPhone</key>
+    <true/>
+    <key>NSCameraUsageDescription</key>
+    <string>Камера нужна, чтобы добавлять фотографии кофеен и отзывов.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Геопозиция нужна, чтобы находить кофейни рядом с вами.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Доступ к фото нужен, чтобы прикреплять изображения кофеен и отзывов.</string>
+    <key>UILaunchScreen</key>
+    <dict/>
+</dict>
+</plist>

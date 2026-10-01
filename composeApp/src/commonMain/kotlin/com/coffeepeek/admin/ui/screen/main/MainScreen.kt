@@ -1,17 +1,32 @@
 package com.coffeepeek.admin.ui.screen.main
 
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.Layout
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -23,16 +38,14 @@ import androidx.navigation.compose.rememberNavController
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.Navigator.isHandledByRootNav
-import com.coffeepeek.admin.ui.component.FloatingBottomNavBar
+import com.coffeepeek.admin.ui.component.PlatformFloatingBottomNavBar
 import com.coffeepeek.admin.ui.component.FloatingNavItem
 import com.coffeepeek.admin.ui.component.ProvideFloatingNavClearance
 import com.coffeepeek.admin.ui.screen.feed.FeedScreen
 import com.coffeepeek.admin.ui.screen.map.MapScreen
 import com.coffeepeek.admin.ui.screen.profile.ProfileScreen
+import com.coffeepeek.admin.ui.screen.profile.SettingsScreen
 import com.coffeepeek.admin.ui.icons.CpIcons
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 
 data class BottomNavItem(
     val title: String,
@@ -42,7 +55,10 @@ data class BottomNavItem(
 )
 
 @Composable
-fun MainScreen() {
+expect fun MainScreen()
+
+@Composable
+internal fun ComposeMainScreen() {
     val bottomNavController = rememberNavController()
     val pendingTabSelection by Navigator.pendingTabSelection.collectAsState()
 
@@ -100,43 +116,95 @@ fun MainScreen() {
             graph = Navigator.Screen.ProfileGraph,
             startScreen = Navigator.Screen.ProfileTab,
         ),
+        BottomNavItem(
+            title = "Настройки",
+            icon = CpIcons.Settings,
+            graph = Navigator.Screen.SettingsGraph,
+            startScreen = Navigator.Screen.SettingsTab,
+        ),
     )
 
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    var mapOpened by remember { mutableStateOf(false) }
+    val isMapVisible = currentDestination?.hasRoute<Navigator.Screen.MapTab>() == true
+    LaunchedEffect(navBackStackEntry) {
+        if (isMapVisible) mapOpened = true
+    }
     val density = LocalDensity.current
     val systemNavBottom = with(density) {
         WindowInsets.navigationBars.getBottom(this).toDp()
     }
-    val floatingClearance = systemNavBottom +
-        CpDimens.floatingNavContentClearance +
-        CpDimens.floatingNavBottomMargin
+    val floatingClearance = systemNavBottom + CpDimens.floatingNavContentClearance
+    val tabBarHaze = rememberHazeState()
 
     ProvideFloatingNavClearance(clearance = floatingClearance) {
         Box(modifier = Modifier.fillMaxSize()) {
             NavHost(
                 navController = bottomNavController,
                 startDestination = Navigator.Screen.FeedGraph,
-                modifier = Modifier.fillMaxSize(),
-                enterTransition = { fadeIn(tween(150)) },
-                exitTransition = { fadeOut(tween(150)) },
-                popEnterTransition = { fadeIn(tween(150)) },
-                popExitTransition = { fadeOut(tween(150)) },
+                // Tab content scrolls under the glass tab bar and is blurred by it.
+                modifier = Modifier.fillMaxSize().hazeSource(tabBarHaze),
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None },
+                popEnterTransition = { EnterTransition.None },
+                popExitTransition = { ExitTransition.None },
             ) {
                 navigation<Navigator.Screen.FeedGraph>(startDestination = Navigator.Screen.FeedTab) {
                     composable<Navigator.Screen.FeedTab> { FeedScreen() }
                 }
 
                 navigation<Navigator.Screen.MapGraph>(startDestination = Navigator.Screen.MapTab) {
-                    composable<Navigator.Screen.MapTab> { MapScreen() }
+                    // The map is hosted below so switching tabs does not destroy its native view.
+                    composable<Navigator.Screen.MapTab> { }
                 }
 
                 navigation<Navigator.Screen.ProfileGraph>(startDestination = Navigator.Screen.ProfileTab) {
                     composable<Navigator.Screen.ProfileTab> { ProfileScreen() }
                 }
+
+                navigation<Navigator.Screen.SettingsGraph>(startDestination = Navigator.Screen.SettingsTab) {
+                    composable<Navigator.Screen.SettingsTab> { SettingsScreen() }
+                }
             }
 
-            FloatingBottomNavBar(
+            if (mapOpened) {
+                val parentLifecycle = LocalLifecycleOwner.current.lifecycle
+                val mapOwner = remember {
+                    object : LifecycleOwner {
+                        override val lifecycle = LifecycleRegistry(this)
+                    }
+                }
+                DisposableEffect(parentLifecycle, isMapVisible) {
+                    fun syncLifecycle() {
+                        mapOwner.lifecycle.currentState = if (isMapVisible) {
+                            parentLifecycle.currentState
+                        } else {
+                            minOf(parentLifecycle.currentState, Lifecycle.State.CREATED)
+                        }
+                    }
+                    val observer = LifecycleEventObserver { _, _ -> syncLifecycle() }
+                    parentLifecycle.addObserver(observer)
+                    syncLifecycle()
+                    onDispose { parentLifecycle.removeObserver(observer) }
+                }
+                DisposableEffect(mapOwner) {
+                    onDispose { mapOwner.lifecycle.currentState = Lifecycle.State.DESTROYED }
+                }
+                Layout(
+                    content = {
+                        CompositionLocalProvider(LocalLifecycleOwner provides mapOwner) { MapScreen() }
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                ) { measurables, constraints ->
+                    val placeables = measurables.map { it.measure(constraints) }
+                    layout(constraints.maxWidth, constraints.maxHeight) {
+                        if (isMapVisible) placeables.forEach { it.placeRelative(0, 0) }
+                    }
+                }
+            }
+
+            PlatformFloatingBottomNavBar(
                 items = items.map { item ->
                     val isSelected = currentDestination?.hierarchy?.any { destination ->
                         destination.hasRoute(item.graph::class)
@@ -157,6 +225,8 @@ fun MainScreen() {
                         },
                     )
                 },
+                // Android Compose glass uses a translucent tint over the native map.
+                hazeState = tabBarHaze.takeUnless { isMapVisible },
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }

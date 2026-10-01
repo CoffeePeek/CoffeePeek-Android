@@ -1,15 +1,22 @@
 package com.coffeepeek.data.repository
 
 import com.coffeepeek.api.model.request.CreateCheckInReq
+import com.coffeepeek.api.model.response.CheckInDto
+import com.coffeepeek.api.model.response.shop.variantOr
 import com.coffeepeek.api.model.response.shop.RatingDto
 import com.coffeepeek.api.service.CheckInApiService
 import com.coffeepeek.domain.model.CheckIn
 import com.coffeepeek.domain.model.CreateCheckInInput
 import com.coffeepeek.domain.model.PagedResult
 import com.coffeepeek.domain.repository.CheckInRepository
+import com.coffeepeek.domain.repository.PhotoRepository
+import com.coffeepeek.data.util.FileUrlResolver
+import com.coffeepeek.domain.model.ReviewRating
 
 class CheckInRepositoryImpl(
     private val checkInApiService: CheckInApiService,
+    private val photoRepository: PhotoRepository,
+    private val fileUrlResolver: FileUrlResolver,
 ) : CheckInRepository {
 
     override suspend fun createCheckIn(input: CreateCheckInInput): Result<Unit> = runCatching {
@@ -26,12 +33,19 @@ class CheckInRepositoryImpl(
             null
         }
 
+        val uploadedPhotos = photoRepository.uploadReviewPhotos(input.photos)
+            .getOrThrow()
+            .toUploadedPhotoReqs()
+            .takeIf { it.isNotEmpty() }
+
         checkInApiService.createCheckIn(
             CreateCheckInReq(
                 coffeeShopId = input.shopId,
                 isPublic = input.isPublic,
                 visitedAt = input.visitedAtIso,
+                header = input.header?.takeIf { it.isNotBlank() },
                 note = input.note?.takeIf { it.isNotBlank() },
+                photos = uploadedPhotos,
                 rating = rating,
             )
         ).getOrThrow()
@@ -41,18 +55,35 @@ class CheckInRepositoryImpl(
         checkInApiService.getMyCheckIns(page, pageSize).map { response ->
             PagedResult(
                 items = response.checkIns.map { dto ->
-                    CheckIn(
-                        id = dto.id,
-                        shopId = dto.shopId,
-                        shopName = dto.shopName,
-                        note = dto.note,
-                        createdAt = dto.createdAt,
-                        reviewId = dto.reviewId,
-                    )
+                    dto.toDomain()
                 },
                 totalCount = response.totalItems,
                 totalPages = response.totalPages,
                 currentPage = response.currentPage,
             )
         }
+
+    override suspend fun getMyCheckIns(from: String, to: String, pageSize: Int): Result<List<CheckIn>> =
+        checkInApiService.getMyCheckIns(from, to, pageSize).map { response ->
+            response.checkIns.map { it.toDomain() }
+        }
+
+    private fun CheckInDto.toDomain() = CheckIn(
+        id = id,
+        shopId = shop?.slug.orEmpty(),
+        shopName = shopName.orEmpty(),
+        note = note.orEmpty(),
+        createdAt = createdAt,
+        reviewId = reviewId,
+        visitedAt = visitedAt,
+        photoUrls = photos.mapNotNull { photo ->
+            fileUrlResolver.resolve(photo.storageKey, photo.urls.variantOr(photo.fullUrl) { it.fullscreen })
+        },
+        photoThumbnailUrls = photos.mapNotNull { photo ->
+            fileUrlResolver.resolve(photo.storageKey, photo.urls.variantOr(photo.fullUrl) { it.thumbnail })
+        },
+        rating = rating?.let {
+            ReviewRating(place = it.place, service = it.service, coffee = it.coffee)
+        },
+    )
 }

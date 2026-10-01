@@ -4,8 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -13,7 +13,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 import com.coffeepeek.admin.ui.icons.CpIcons
 
 @Composable
@@ -66,21 +66,25 @@ fun AuthTextField(
             )
         }
 
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = CpDimens.authFieldHeight),
+                .height(CpDimens.authFieldHeight),
             shape = RoundedCornerShape(CpDimens.authFieldRadius),
             isError = isError,
             singleLine = true,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                fontSize = 15.sp,
+                lineHeight = 18.sp,
+            ),
+            contentPadding = CpDimens.singleLineFieldContentPadding,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = if (isDark) CpColor.AuthInputDark else Color.White,
                 unfocusedContainerColor = if (isDark) CpColor.AuthInputDark else Color.White,
                 errorContainerColor = if (isDark) CpColor.AuthInputDark else Color.White,
-                focusedBorderColor = gold,
+                focusedBorderColor = if (isDark) CpColor.DarkBorder else Color(0x66A07B36),
                 unfocusedBorderColor = if (isDark) CpColor.DarkBorder else Color(0x66A07B36),
                 errorBorderColor = MaterialTheme.colorScheme.error,
                 cursorColor = gold,
@@ -98,10 +102,14 @@ fun AuthTextField(
             } else null,
             trailingIcon = if (isPassword) {
                 {
-                    IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                    IconButton(
+                        onClick = { isPasswordVisible = !isPasswordVisible },
+                        modifier = Modifier.size(32.dp),
+                    ) {
                         Icon(
                             imageVector = if (isPasswordVisible) CpIcons.VisibilityOff else CpIcons.Visibility,
                             contentDescription = null,
+                            modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -110,7 +118,10 @@ fun AuthTextField(
             placeholder = {
                 Text(
                     text = placeholder,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 15.sp,
+                        lineHeight = 18.sp,
+                    ),
                     color = Color(0xFF9CA3AF),
                 )
             },

@@ -1,7 +1,5 @@
-rootProject.name = "CoffeePeek"
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
-
 pluginManagement {
+    includeBuild("build-logic")
     resolutionStrategy {
         eachPlugin {
             when (requested.id.id) {
@@ -38,6 +36,13 @@ pluginManagement {
     }
 }
 
+plugins {
+    id("com.coffeepeek.modules")
+}
+
+rootProject.name = "CoffeePeek"
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 dependencyResolutionManagement {
     repositories {
         maven("https://cache-redirector.jetbrains.com/repo1.maven.org/maven2")
@@ -52,9 +57,3 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-
-include(":composeApp")
-include(":modules:domain")
-include(":modules:data")
-include(":modules:network")
-include(":modules:room")

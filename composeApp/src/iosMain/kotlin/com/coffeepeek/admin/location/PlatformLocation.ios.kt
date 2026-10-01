@@ -9,12 +9,21 @@ import platform.CoreLocation.CLLocation
 import platform.CoreLocation.CLLocationManager
 import platform.CoreLocation.CLLocationManagerDelegateProtocol
 import platform.CoreLocation.CLPlacemark
+import platform.CoreLocation.kCLAuthorizationStatusAuthorizedAlways
+import platform.CoreLocation.kCLAuthorizationStatusAuthorizedWhenInUse
 import platform.Foundation.NSError
 import platform.darwin.NSObject
 import kotlin.coroutines.resume
 
 actual object PlatformLocation {
+    actual fun hasPermission(): Boolean = when (CLLocationManager().authorizationStatus) {
+        kCLAuthorizationStatusAuthorizedAlways,
+        kCLAuthorizationStatusAuthorizedWhenInUse -> true
+        else -> false
+    }
+
     actual suspend fun getLastKnownLocation(): GeoPoint? {
+        if (!hasPermission()) return null
         val manager = CLLocationManager()
         manager.location?.let { location ->
             return location.coordinate.useContents { GeoPoint(latitude, longitude) }

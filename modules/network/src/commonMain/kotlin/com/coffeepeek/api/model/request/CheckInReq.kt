@@ -9,9 +9,11 @@ import kotlinx.serialization.Serializable
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class CreateCheckInReq(
-    @SerialName("coffeeShopId") val coffeeShopId: String,
+    @SerialName("shop") val coffeeShopId: String,
     @SerialName("isPublic") val isPublic: Boolean,
     @SerialName("visitedAt") val visitedAt: String,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    @SerialName("header") val header: String? = null,
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     @SerialName("note") val note: String? = null,
     @EncodeDefault(EncodeDefault.Mode.NEVER)

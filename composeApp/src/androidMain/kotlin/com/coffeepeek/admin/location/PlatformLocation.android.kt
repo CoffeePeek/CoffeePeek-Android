@@ -19,6 +19,8 @@ actual object PlatformLocation {
     private val postalCodeRegex = Regex("""^\d{4,6}$""")
     private val postalCodeInTextRegex = Regex("""\b\d{4,6}\b""")
 
+    actual fun hasPermission(): Boolean = hasLocationPermission(Locator.appContext)
+
     actual suspend fun getLastKnownLocation(): GeoPoint? = withContext(Dispatchers.IO) {
         val context = Locator.appContext
         if (!hasLocationPermission(context)) return@withContext null

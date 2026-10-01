@@ -39,10 +39,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -51,7 +53,13 @@ import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
+import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
+import com.coffeepeek.admin.ui.component.CpCircularBackButton
+import com.coffeepeek.admin.ui.component.platformTextInputOptions
+import com.coffeepeek.admin.ui.component.rememberSyncedTextFieldValue
+import com.coffeepeek.admin.ui.component.limitTextLength
+import com.coffeepeek.admin.ui.component.PhotoSourceBottomSheet
 import com.coffeepeek.admin.utils.CpImage
 import com.coffeepeek.admin.utils.rememberPhotoPicker
 import com.coffeepeek.admin.di.platformViewModel
@@ -61,11 +69,29 @@ import com.coffeepeek.admin.di.platformViewModel
 fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
     var isPhotoLoading by remember { mutableStateOf(false) }
+    var showAvatarSourceSheet by remember { mutableStateOf(false) }
+    var showDeleteAccountDialog by remember { mutableStateOf(false) }
+    val aboutField = rememberSyncedTextFieldValue(state.about)
     val photoPicker = rememberPhotoPicker(
         maxSelection = 1,
         isLoading = { isPhotoLoading = it },
         onPhotosPicked = { images -> images.firstOrNull()?.let(vm::onAvatarPicked) },
     )
+
+    if (showAvatarSourceSheet) {
+        PhotoSourceBottomSheet(
+            onDismiss = { showAvatarSourceSheet = false },
+            onGallery = {
+                showAvatarSourceSheet = false
+                photoPicker.pickFromGallery()
+            },
+            onCamera = {
+                showAvatarSourceSheet = false
+                photoPicker.takePhoto()
+            },
+            title = "Фото профиля",
+        )
+    }
 
     // Диалог ошибки
     state.error?.let { err ->
@@ -86,22 +112,31 @@ fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
         )
     }
 
+    if (showDeleteAccountDialog) {
+        DeleteAccountDialog(
+            onConfirm = {
+                showDeleteAccountDialog = false
+                vm.startAccountDeletion()
+            },
+            onDismiss = { showDeleteAccountDialog = false },
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Редактировать профиль", style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        text = "Редактировать профиль",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
                 },
-                navigationIcon = {
-                    IconButton(onClick = { Navigator.popBack() }) {
-                        Icon(CpIcons.Back, contentDescription = "Назад")
-                    }
-                },
+                navigationIcon = { CpCircularBackButton(onClick = Navigator::popBack) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    containerColor = MaterialTheme.colorScheme.background,
                 ),
+                modifier = Modifier.padding(horizontal = CpDimens.spacing4),
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -121,52 +156,62 @@ fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
                 .padding(CpDimens.spacing4),
         ) {
             // ── Аватар ───────────────────────────────────────────────────────
-            AvatarPickerSection(
-                avatarUrl = state.avatarUrl,
-                pendingAvatar = state.pendingAvatar,
-                initials = state.username.take(2).uppercase().ifEmpty { "?" },
-                isLoading = isPhotoLoading,
-                onPickFromGallery = photoPicker.pickFromGallery,
-                onTakePhoto = photoPicker.takePhoto,
-            )
-
-            Spacer(Modifier.height(CpDimens.spacing5))
-
-            // ── Имя пользователя ─────────────────────────────────────────────
-            FieldLabel("Имя пользователя")
-            OutlinedTextField(
-                value = state.username,
-                onValueChange = vm::onUsernameChange,
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = {
-                    Text(
-                        "Ваше имя",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AvatarPickerSection(
+                    avatarUrl = state.avatarUrl,
+                    pendingAvatar = state.pendingAvatar,
+                    initials = state.username.take(2).uppercase().ifEmpty { "?" },
+                    isLoading = isPhotoLoading,
+                    onClick = { showAvatarSourceSheet = true },
+                )
+
+                Column(modifier = Modifier.weight(1f)) {
+                    FieldLabel("Имя пользователя")
+                    CompactOutlinedTextField(
+                        value = state.username,
+                        onValueChange = vm::onUsernameChange,
+                        maxLength = 64,
+                        modifier = Modifier.fillMaxWidth().height(CpDimens.buttonHeight),
+                        placeholder = {
+                            Text(
+                                "Ваше имя",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        textStyle = MaterialTheme.typography.bodyLarge,
+                        isError = state.username.isNotEmpty() && state.usernameError != null,
+                        singleLine = true,
+                        contentPadding = CpDimens.singleLineFieldContentPadding,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Words,
+                            imeAction = ImeAction.Next,
+                        ),
+                        shape = RoundedCornerShape(percent = 50),
+                        colors = fieldColors(),
                     )
-                },
-                textStyle = MaterialTheme.typography.bodyLarge,
-                isError = state.username.isNotEmpty() && state.usernameError != null,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Words,
-                    imeAction = ImeAction.Next,
-                ),
-                shape = RoundedCornerShape(CpDimens.radiusMd),
-                colors = fieldColors(),
-            )
-            FieldFooter(
-                error = if (state.username.isNotEmpty()) state.usernameError else null,
-                counter = "${state.username.length}/64",
-            )
+                    FieldFooter(
+                        error = if (state.username.isNotEmpty()) state.usernameError else null,
+                        counter = "${state.username.length}/64",
+                    )
+                }
+            }
 
             Spacer(Modifier.height(CpDimens.spacing4))
 
             // ── О себе ───────────────────────────────────────────────────────
             FieldLabel("О себе")
             OutlinedTextField(
-                value = state.about,
-                onValueChange = vm::onAboutChange,
+                value = aboutField.value,
+                onValueChange = { updated ->
+                    val limited = updated.limitTextLength(600)
+                    aboutField.value = limited
+                    vm.onAboutChange(limited.text)
+                },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
                     Text(
@@ -179,11 +224,11 @@ fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
                 isError = state.aboutError != null,
                 minLines = 4,
                 maxLines = 8,
-                keyboardOptions = KeyboardOptions(
+                keyboardOptions = platformTextInputOptions(KeyboardOptions(
                     capitalization = KeyboardCapitalization.Sentences,
                     imeAction = ImeAction.Default,
-                ),
-                shape = RoundedCornerShape(CpDimens.radiusMd),
+                )),
+                shape = RoundedCornerShape(CpDimens.buttonRadius),
                 colors = fieldColors(),
             )
             FieldFooter(
@@ -217,6 +262,26 @@ fun EditProfileScreen(vm: EditProfileViewModel = platformViewModel()) {
                 }
             }
 
+            Spacer(Modifier.height(CpDimens.spacing4))
+
+            TextButton(
+                onClick = { showDeleteAccountDialog = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    imageVector = CpIcons.Delete,
+                    contentDescription = null,
+                    tint = CpColor.Error,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(CpDimens.spacing2))
+                Text(
+                    text = "Удалить аккаунт",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = CpColor.Error,
+                )
+            }
+
             Spacer(Modifier.height(CpDimens.spacing8))
         }
     }
@@ -230,19 +295,23 @@ private fun AvatarPickerSection(
     pendingAvatar: com.coffeepeek.admin.utils.PickedImage?,
     initials: String,
     isLoading: Boolean,
-    onPickFromGallery: () -> Unit,
-    onTakePhoto: () -> Unit,
+    onClick: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Box(
+        modifier = Modifier
+            .size(104.dp)
+            .clickable(
+                enabled = !isLoading,
+                onClickLabel = "Изменить фото профиля",
+                onClick = onClick,
+            ),
     ) {
         Box(
             modifier = Modifier
+                .align(Alignment.Center)
                 .size(96.dp)
                 .clip(CircleShape)
-                .background(Brush.linearGradient(listOf(CpColor.Primary, CpColor.GoldWarm)))
-                .clickable(enabled = !isLoading, onClick = onPickFromGallery),
+                .background(Brush.linearGradient(listOf(CpColor.Primary, CpColor.GoldWarm))),
             contentAlignment = Alignment.Center,
         ) {
             when {
@@ -279,45 +348,29 @@ private fun AvatarPickerSection(
                 ) {
                     CoffeePeekLoader(size = CpDimens.loaderButton, strokeWidth = 2.dp)
                 }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(4.dp)
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = CpIcons.Camera,
-                        contentDescription = "Изменить аватар",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(14.dp),
-                    )
-                }
             }
         }
-
-        Spacer(Modifier.height(CpDimens.spacing2))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing2)) {
-            TextButton(onClick = onPickFromGallery, enabled = !isLoading) {
-                Text("Галерея", style = MaterialTheme.typography.labelLarge)
-            }
-            TextButton(onClick = onTakePhoto, enabled = !isLoading) {
-                Text("Камера", style = MaterialTheme.typography.labelLarge)
+        if (!isLoading) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = CpIcons.Camera,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(16.dp),
+                )
             }
         }
-
-        Text(
-            text = "JPG, PNG или WebP, до 5 МБ",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
+
 
 @Composable
 private fun FieldLabel(text: String) {
@@ -357,9 +410,50 @@ private fun FieldFooter(error: String?, counter: String?) {
 
 @Composable
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor    = MaterialTheme.colorScheme.primary,
+    focusedBorderColor    = MaterialTheme.colorScheme.outline,
     unfocusedBorderColor  = MaterialTheme.colorScheme.outline,
     errorBorderColor      = MaterialTheme.colorScheme.error,
     focusedContainerColor    = MaterialTheme.colorScheme.surface,
     unfocusedContainerColor  = MaterialTheme.colorScheme.surface,
 )
+
+@Composable
+private fun DeleteAccountDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = {
+            Text("Удалить аккаунт?", style = MaterialTheme.typography.headlineSmall)
+        },
+        text = {
+            Text(
+                text = "Мы отправим письмо со ссылкой для подтверждения. Аккаунт останется активным, пока вы не подтвердите удаление в браузере.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                modifier = Modifier.height(CpDimens.buttonHeight),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = CpColor.Error,
+                    contentColor = Color.White,
+                ),
+                shape = RoundedCornerShape(percent = 50),
+            ) {
+                Text("Удалить", style = MaterialTheme.typography.labelLarge)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "Отмена",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        },
+        shape = RoundedCornerShape(CpDimens.radius2xl),
+    )
+}

@@ -1,20 +1,23 @@
 package com.coffeepeek.api.model.response.shop
 
 import com.coffeepeek.api.model.DataResponse
+import com.coffeepeek.api.model.response.CheckInDto
+import com.coffeepeek.api.model.PublicAddressDto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class CoffeeShopDetailsDto(
-    @SerialName("id") val id: String,
-    @SerialName("cityId") val cityId: String = "",
-    @SerialName("name") val name: String,
+    @SerialName("address") val address: PublicAddressDto,
+    @SerialName("city") val city: PublicAddressDto? = null,
+    @SerialName("name") val name: String? = null,
     @SerialName("description") val description: String? = null,
     @SerialName("photos") val photos: List<ShortPhotoDto> = emptyList(),
     @SerialName("rating") val rating: Double = 0.0,
     @SerialName("reviewCount") val reviewCount: Int = 0,
     @SerialName("reviews") val reviews: List<ReviewDto> = emptyList(),
+    @SerialName("userCheckIns") val userCheckIns: List<CheckInDto> = emptyList(),
     @SerialName("isFavorite") val isFavorite: Boolean = false,
     @SerialName("isVisited") val isVisited: Boolean = false,
     @SerialName("canCreateReview") val canCreateReview: Boolean? = null,
@@ -25,7 +28,7 @@ data class CoffeeShopDetailsDto(
     @SerialName("type") val type: JsonElement? = null,
     @SerialName("coffeeFocus") val coffeeFocus: JsonElement? = null,
     @SerialName("location") val location: LocationDto? = null,
-    @SerialName("coffeeBeans") val coffeeBeans: List<CatalogItemDto> = emptyList(),
+    @SerialName("beans") val coffeeBeans: List<CatalogItemDto> = emptyList(),
     @SerialName("roasters") val roasters: List<CatalogItemDto> = emptyList(),
     @SerialName("equipments") val equipments: List<CatalogItemDto> = emptyList(),
     @SerialName("brewMethods") val brewMethods: List<CatalogItemDto> = emptyList(),
@@ -43,9 +46,3 @@ data class ShopContactDto(
     @SerialName("siteLink") val siteLink: String? = null,
     @SerialName("phoneNumber") val phoneNumber: String? = null,
 )
-
-@Serializable
-data class GetShopDetailsResponseDto(
-    @SerialName("shopDto") val shopDto: CoffeeShopDetailsDto,
-    @SerialName("menu") val menu: ShopMenuDto? = null,
-) : DataResponse()

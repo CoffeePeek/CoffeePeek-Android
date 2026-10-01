@@ -1,10 +1,15 @@
 package com.coffeepeek.admin.ui.screen.auth
 
+import com.coffeepeek.admin.ui.component.GlassControlIcon
+import com.coffeepeek.admin.ui.component.PlatformGlassIconButton
+import com.coffeepeek.admin.ui.component.PlatformGlassBackButton
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,8 +34,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,8 +56,6 @@ import coffeepeek.composeapp.generated.resources.maskot_happy
 import coffeepeek.composeapp.generated.resources.maskot_with_laptop
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
-import com.coffeepeek.admin.theme.ThemeManager
-import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.icons.CpIcons
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -68,6 +69,7 @@ enum class AuthMascot {
 fun AuthScreenScaffold(
     mascot: AuthMascot = AuthMascot.Laptop,
     showMascot: Boolean = true,
+    onClose: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
@@ -84,11 +86,15 @@ fun AuthScreenScaffold(
         0.dp
     }
 
+    val glassHaze = rememberHazeState()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(bg),
     ) {
+        // Blur source for the glass close button.
+        Box(Modifier.fillMaxSize().hazeSource(glassHaze)) {
         AuthAmbientBackground(isDark = isDark)
 
         Column(
@@ -144,15 +150,39 @@ fun AuthScreenScaffold(
 
             Spacer(modifier = Modifier.height(CpDimens.spacing8))
         }
+        }
 
         // Above the scroll column so clicks are not swallowed.
-        AuthThemeToggle(
+        AuthCloseButton(
+            onClick = onClose,
+            hazeState = glassHaze,
             modifier = Modifier
-                .align(Alignment.TopEnd)
+                .align(Alignment.TopStart)
                 .statusBarsPadding()
-                .padding(top = 20.dp, end = 20.dp)
+                .padding(top = 20.dp, start = 20.dp)
                 .zIndex(2f),
-            isDark = isDark,
+        )
+    }
+}
+
+@Composable
+private fun AuthCloseButton(
+    onClick: () -> Unit,
+    hazeState: HazeState,
+    modifier: Modifier = Modifier,
+) {
+    PlatformGlassIconButton(
+        icon = GlassControlIcon.Close,
+        onClick = onClick,
+        contentDescription = "Закрыть",
+        hazeState = hazeState,
+        modifier = modifier,
+    ) {
+        Icon(
+            imageVector = CpIcons.Close,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(20.dp),
         )
     }
 }
@@ -226,42 +256,6 @@ fun AuthWordmark(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun AuthThemeToggle(
-    isDark: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val themeMode by ThemeManager.themeMode.collectAsState()
-    val isSystemDark = isSystemInDarkTheme()
-    val currentlyDark = when (themeMode) {
-        ThemeMode.SYSTEM -> isSystemDark
-        ThemeMode.LIGHT -> false
-        ThemeMode.DARK -> true
-    }
-
-    Box(
-        modifier = modifier
-            .size(CpDimens.authThemeToggleSize)
-            .clip(CircleShape)
-            .background(
-                if (isDark) CpColor.DarkSurface.copy(alpha = 0.75f)
-                else CpColor.LightSurface.copy(alpha = 0.9f),
-            )
-            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-            .clickable {
-                ThemeManager.setTheme(if (currentlyDark) ThemeMode.LIGHT else ThemeMode.DARK)
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = if (currentlyDark) CpIcons.ThemeLight else CpIcons.ThemeDark,
-            contentDescription = null,
-            tint = CpColor.Primary,
-            modifier = Modifier.size(20.dp),
-        )
-    }
-}
-
-@Composable
 fun AuthOrDivider(modifier: Modifier = Modifier) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -298,26 +292,7 @@ fun AuthFooterRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onBack != null) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable(onClick = onBack)
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-            ) {
-                Icon(
-                    imageVector = CpIcons.Back,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(14.dp),
-                )
-                Spacer(modifier = Modifier.size(4.dp))
-                Text(
-                    text = "Назад",
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            PlatformGlassBackButton(onClick = onBack)
         } else {
             Spacer(modifier = Modifier.size(1.dp))
         }

@@ -10,6 +10,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.coffeepeek.admin.theme.CoffeePeekTheme
+import com.coffeepeek.admin.theme.PlatformSystemBars
 import com.coffeepeek.admin.theme.ThemeManager
 import com.coffeepeek.admin.theme.ThemeMode
 import com.coffeepeek.admin.ui.Navigator
@@ -22,6 +23,22 @@ import org.koin.compose.koinInject
 @Composable
 @Preview
 fun App(onReady: () -> Unit = {}) {
+    LaunchedEffect(Unit) {
+        onReady()
+    }
+
+    AppContent {
+        Box(Modifier.fillMaxSize()) {
+            OrientationObserver.StartObserver()
+            Navigator()
+            com.coffeepeek.admin.feature.appupdate.ui.AppUpdatePrompt()
+        }
+    }
+}
+
+/** Shared presentation environment, also used by native iOS tab controllers. */
+@Composable
+internal fun AppContent(content: @Composable () -> Unit) {
     val kamelConfig = koinInject<KamelConfig>()
     val themeMode by ThemeManager.themeMode.collectAsState()
     val isSystemDark = isSystemInDarkTheme()
@@ -31,17 +48,11 @@ fun App(onReady: () -> Unit = {}) {
         ThemeMode.LIGHT  -> false
         ThemeMode.DARK   -> true
     }
-
-    LaunchedEffect(Unit) {
-        onReady()
-    }
+    PlatformSystemBars(darkTheme)
 
     CoffeePeekTheme(darkTheme = darkTheme) {
         CompositionLocalProvider(LocalKamelConfig provides kamelConfig) {
-            Box(Modifier.fillMaxSize()) {
-                OrientationObserver.StartObserver()
-                Navigator()
-            }
+            content()
         }
     }
 }

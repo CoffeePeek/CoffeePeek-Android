@@ -4,7 +4,7 @@ import com.coffeepeek.admin.ui.icons.CpIcons
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.theme.CpColor
 import com.coffeepeek.admin.theme.CpDimens
+import com.coffeepeek.admin.ui.component.CompactOutlinedTextField
 
 @Composable
 fun AppTextField(
@@ -51,20 +52,21 @@ fun AppTextField(
             modifier = Modifier.padding(bottom = 6.dp, start = 4.dp),
         )
 
-        OutlinedTextField(
+        CompactOutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = CpDimens.inputMinHeight),
+                .height(CpDimens.inputMinHeight),
             shape = RoundedCornerShape(CpDimens.inputRadius),
+            contentPadding = CpDimens.singleLineFieldContentPadding,
             isError = isError,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor   = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 disabledContainerColor  = MaterialTheme.colorScheme.surfaceVariant,
                 errorContainerColor     = MaterialTheme.colorScheme.surface,
-                focusedBorderColor      = MaterialTheme.colorScheme.primary,
+                focusedBorderColor      = MaterialTheme.colorScheme.outline,
                 unfocusedBorderColor    = MaterialTheme.colorScheme.outline,
                 errorBorderColor        = MaterialTheme.colorScheme.error,
                 cursorColor             = MaterialTheme.colorScheme.primary,

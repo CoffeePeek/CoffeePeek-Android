@@ -5,6 +5,7 @@ import ComposeApp
 @main
 struct CoffeePeekApp: App {
     init() {
+        IosNativeMapRegistry.shared.provider = MapLibreMapProvider()
         configureGoogleSignIn()
     }
 

@@ -58,11 +58,13 @@ abstract class BaseViewModel : ViewModel(), Closeable {
      * Универсальный метод для выполнения сетевых запросов.
      * @param errorMessage Текст ошибки. Если null — выведется дефолтная ошибка
      * @param onSuccess Лямбда, которая выполнится при успехе
+     * @param onError Локальный обработчик ошибки. Если задан, глобальное окно не показывается
      * @param request Сам запрос
      */
     protected fun <T> launchRequest(
         onSuccess: (T) -> Unit = {},
         errorMessage: StringResource? = null,
+        onError: ((Exception) -> Unit)? = null,
         request: suspend () -> T
     ) {
         workScope.launch {
@@ -76,6 +78,11 @@ abstract class BaseViewModel : ViewModel(), Closeable {
 
             } catch (e: Exception) {
                 LoadingHandler.clearLoading()
+
+                if (onError != null) {
+                    onError(e)
+                    return@launch
+                }
 
                 val messageToShow = when (e) {
                     is ApiException -> e.message

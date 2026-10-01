@@ -1,21 +1,36 @@
 package com.coffeepeek.admin.ui.screen.map
 
 import com.coffeepeek.admin.base.BaseViewModel
+import com.coffeepeek.admin.settings.CityPreference
+import com.coffeepeek.admin.location.GeoPoint
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.City
+import com.coffeepeek.domain.model.CoffeeShop
 import com.coffeepeek.domain.model.CoffeeShopDetails
 import com.coffeepeek.domain.model.MapBounds
+import com.coffeepeek.domain.model.MapCluster
+import com.coffeepeek.domain.model.MapCoffeeZone
 import com.coffeepeek.domain.model.MapShop
 import com.coffeepeek.domain.model.ShopFilters
 import com.coffeepeek.domain.model.ShopSchedule
 import com.coffeepeek.domain.repository.ShopRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.max
+
+private const val MIN_MAP_ZOOM = 3f
+private const val MAX_MAP_ZOOM = 20f
 
 data class MapFiltersUi(
     val cityId: String? = null,
@@ -30,13 +45,22 @@ data class MapFiltersUi(
 )
 
 data class MapUiState(
+    val nearbyShops: List<MapShop> = emptyList(),
+    val nearbyOrigin: GeoPoint? = null,
     val shops: List<MapShop> = emptyList(),
+    val clusters: List<MapCluster> = emptyList(),
+    val zones: List<MapCoffeeZone> = emptyList(),
+    val showZones: Boolean = true,
     val selectedShop: MapShop? = null,
+    val selectedZone: MapCoffeeZone? = null,
     val selectedShopDetails: CoffeeShopDetails? = null,
     val isLoadingShopDetails: Boolean = false,
     val isLoading: Boolean = false,
-    val error: String? = null,
     val query: String = "",
+    val searchResults: List<CoffeeShop> = emptyList(),
+    val isSearchLoading: Boolean = false,
+    val searchFailed: Boolean = false,
+    val showSearchSuggestions: Boolean = false,
     val filters: MapFiltersUi = MapFiltersUi(),
     val cities: List<City> = emptyList(),
     val beans: List<CatalogItem> = emptyList(),
@@ -48,140 +72,253 @@ data class MapUiState(
     val showSearchArea: Boolean = false,
     val activeBounds: MapBounds? = null,
     val pendingBounds: MapBounds? = null,
+    val activeZoom: Float? = null,
+    val pendingZoom: Float? = null,
+    val isTruncated: Boolean = false,
     val myLocationRequest: Int = 0,
     val cameraTarget: Pair<Double, Double>? = null,
     val cameraZoom: Float? = null,
 ) {
-    val activeFilterCount: Int
-        get() {
-            var count = 0
-            if (query.isNotBlank()) count++
-            if (filters.cityId != null) count++
-            if (filters.coffeeFocus != null) count++
-            if (filters.priceRange != null) count++
-            if (filters.minRating != null) count++
-            count += filters.roasterIds.size + filters.beanIds.size +
-                filters.equipmentIds.size + filters.brewMethodIds.size + filters.tagIds.size
-            return count
-        }
 }
 
 class MapViewModel(
     private val shopRepository: ShopRepository,
+    private val cityPreference: CityPreference,
 ) : BaseViewModel() {
 
     private val _state = MutableStateFlow(MapUiState())
     val state: StateFlow<MapUiState> = _state.asStateFlow()
 
     private var boundsJob: Job? = null
+    private var nearbyJob: Job? = null
+    private var queryJob: Job? = null
     private var detailsJob: Job? = null
     private var boundsPauseJob: Job? = null
     private var selectionVersion = 0
+    private var hasManualSelection = false
     private val detailsCache = mutableMapOf<String, CoffeeShopDetails>()
     private var suppressBoundsUpdates = false
+    private var isCityReady = false
+    private var zonesCityId: String? = null
+    // Area actually requested last time (visible bounds + prefetch margin) and its zoom level.
+    private var loadedArea: MapBounds? = null
+    private var loadedZoomLevel: Int? = null
 
     init {
         loadCatalogs()
-        requestMyLocation()
+        cityPreference.selectedCityId
+            .onEach { cityId ->
+                if (!isCityReady || cityId == null || cityId == _state.value.filters.cityId) {
+                    return@onEach
+                }
+                _state.update { it.copy(filters = it.filters.copy(cityId = cityId)) }
+                _state.value.nearbyOrigin?.let { loadNearbyShops(it) }
+                searchCurrentArea()
+            }
+            .launchIn(workScope)
     }
 
-    fun onBoundsChanged(bounds: MapBounds) {
-        if (suppressBoundsUpdates) return
-        boundsJob?.cancel()
+    fun onBoundsChanged(bounds: MapBounds, zoom: Float) {
+        if (_state.value.nearbyOrigin == null) {
+            onNearbyOriginChanged((bounds.minLat + bounds.maxLat) / 2, (bounds.minLon + bounds.maxLon) / 2)
+        }
+        // Always remember the latest viewport — even while paused — so it can be loaded afterwards.
         _state.update {
             it.copy(
                 pendingBounds = bounds,
+                pendingZoom = zoom,
                 showSearchArea = false,
             )
         }
-        loadBounds(bounds)
+        if (suppressBoundsUpdates) return
+        // Small pans inside the prefetched area at the same zoom level need no new request.
+        val area = loadedArea
+        if (area != null && area.contains(bounds) && loadedZoomLevel == zoom.toInt()) return
+        boundsJob?.cancel()
+        loadBounds(bounds, zoom)
     }
 
     fun searchCurrentArea() {
         val bounds = _state.value.pendingBounds ?: _state.value.activeBounds ?: return
-        loadBounds(bounds)
+        val zoom = _state.value.pendingZoom ?: _state.value.activeZoom ?: return
+        loadBounds(bounds, zoom)
     }
 
     fun onShopSelected(shop: MapShop) {
-        if (_state.value.selectedShop?.id == shop.id) return
+        hasManualSelection = true
+        if (_state.value.selectedShop?.id == shop.id) {
+            _state.update { it.copy(selectedZone = null) }
+            return
+        }
+        _state.update { it.copy(selectedZone = null) }
         selectShop(shop)
     }
 
-    fun clearSelection() {
-        detailsJob?.cancel()
-        boundsPauseJob?.cancel()
-        suppressBoundsUpdates = false
-        selectionVersion++
+    fun onCarouselShopSelected(shop: MapShop) {
+        onShopSelected(shop)
+        _state.update { it.copy(cameraTarget = shop.latitude to shop.longitude, cameraZoom = 16f) }
+        pauseBoundsUpdates(700)
+    }
+
+    fun onNearbyOriginChanged(latitude: Double, longitude: Double) {
+        if (!latitude.isFinite() || latitude !in -85.0..85.0 || !longitude.isFinite() || longitude !in -180.0..180.0) return
+        val origin = GeoPoint(latitude, longitude)
+        if (_state.value.nearbyOrigin == origin) return
+        _state.update { it.copy(nearbyOrigin = origin) }
+        loadNearbyShops(origin)
+    }
+
+    private fun loadNearbyShops(origin: GeoPoint) {
+        if (!isCityReady) return
+        nearbyJob?.cancel()
+        val selectionAtStart = selectionVersion
+        val filters = _state.value.filters
+        nearbyJob = workScope.launch {
+            val result = shopRepository.getMapContent(nearbyMapBounds(origin), 22f, ShopFilters(cityId = filters.cityId))
+            currentCoroutineContext().ensureActive()
+            result.onSuccess { content ->
+                val nearest = nearestMapShops(content.shops, origin)
+                _state.update { it.copy(nearbyShops = nearest, shops = (it.shops + nearest).distinctBy { shop -> shop.id }) }
+                if ((!hasManualSelection && selectionVersion == selectionAtStart) || _state.value.selectedShop == null) {
+                    nearest.firstOrNull()?.let { shop ->
+                        selectShop(shop)
+                        if (_state.value.selectedZone == null) {
+                            _state.update { it.copy(cameraTarget = shop.latitude to shop.longitude, cameraZoom = 16f) }
+                            pauseBoundsUpdates(700)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun onZoneSelected(zone: MapCoffeeZone) {
         _state.update {
             it.copy(
-                selectedShop = null,
-                selectedShopDetails = null,
-                isLoadingShopDetails = false,
+                selectedZone = zone,
             )
         }
     }
 
-    fun clearError() {
-        _state.update { it.copy(error = null) }
+    fun showSelectedZoneShops() {
+        val zone = _state.value.selectedZone ?: return
+        _state.update {
+            it.copy(
+                selectedZone = null,
+                cameraTarget = zone.latitude to zone.longitude,
+                cameraZoom = 14.5f,
+            )
+        }
+        pauseBoundsUpdates(700)
     }
 
-    fun toggleFilters() {
-        _state.update { it.copy(showFilters = !it.showFilters) }
+    fun toggleZones() {
+        _state.update { it.copy(showZones = !it.showZones, selectedZone = null) }
     }
 
-    fun dismissFilters() {
-        _state.update { it.copy(showFilters = false) }
+    fun clearZoneSelection() {
+        _state.update { it.copy(selectedZone = null) }
     }
 
     fun onQueryChange(query: String) {
-        _state.update { it.copy(query = query) }
-    }
+        queryJob?.cancel()
+        _state.update {
+            it.copy(
+                query = query,
+                searchResults = emptyList(),
+                isSearchLoading = query.isNotBlank(),
+                searchFailed = false,
+                showSearchSuggestions = query.isNotBlank(),
+            )
+        }
+        if (query.isBlank()) return
 
-    fun setCity(cityId: String?) {
-        _state.update { it.copy(filters = it.filters.copy(cityId = cityId)) }
-    }
-
-    fun setCoffeeFocus(coffeeFocus: String?) {
-        _state.update { it.copy(filters = it.filters.copy(coffeeFocus = coffeeFocus)) }
-    }
-
-    fun setPriceRange(priceRange: Int?) {
-        _state.update { it.copy(filters = it.filters.copy(priceRange = priceRange)) }
-    }
-
-    fun setMinRating(rating: Double?) {
-        _state.update { it.copy(filters = it.filters.copy(minRating = rating)) }
-    }
-
-    fun toggleFilterCatalog(type: String, id: String) {
-        _state.update { state ->
-            val filters = when (type) {
-                "roaster" -> state.filters.copy(roasterIds = state.filters.roasterIds.toggle(id))
-                "bean" -> state.filters.copy(beanIds = state.filters.beanIds.toggle(id))
-                "equipment" -> state.filters.copy(equipmentIds = state.filters.equipmentIds.toggle(id))
-                "brew" -> state.filters.copy(brewMethodIds = state.filters.brewMethodIds.toggle(id))
-                "tag" -> state.filters.copy(tagIds = state.filters.tagIds.toggle(id))
-                else -> state.filters
+        queryJob = workScope.launch {
+            delay(350)
+            val state = _state.value
+            val filters = state.filters
+            shopRepository.searchShops(
+                ShopFilters(
+                    query = query.trim(),
+                    cityId = filters.cityId,
+                    coffeeFocus = filters.coffeeFocus,
+                    roasterIds = filters.roasterIds.toList(),
+                    beanIds = filters.beanIds.toList(),
+                    equipmentIds = filters.equipmentIds.toList(),
+                    brewMethodIds = filters.brewMethodIds.toList(),
+                    tagIds = filters.tagIds.toList(),
+                    priceRange = filters.priceRange,
+                    minRating = filters.minRating,
+                    page = 1,
+                    pageSize = 3,
+                ),
+            ).onSuccess { page ->
+                _state.update { current ->
+                    if (current.query != query) current else current.copy(
+                        searchResults = page.items.filter { it.toMapShopOrNull() != null },
+                        isSearchLoading = false,
+                    )
+                }
+            }.onFailure {
+                _state.update { current ->
+                    if (current.query != query) current else current.copy(
+                        isSearchLoading = false,
+                        searchFailed = true,
+                    )
+                }
             }
-            state.copy(filters = filters)
         }
     }
 
-    fun applyFilters() {
-        _state.update { it.copy(showFilters = false) }
-        searchCurrentArea()
-    }
-
-    fun clearFilters() {
-        _state.update { it.copy(query = "", filters = MapFiltersUi()) }
-        searchCurrentArea()
+    fun onSearchResultSelected(shop: CoffeeShop) {
+        hasManualSelection = true
+        val mapShop = shop.toMapShopOrNull() ?: return
+        queryJob?.cancel()
+        _state.update { current ->
+            current.copy(
+                query = shop.title,
+                searchResults = emptyList(),
+                isSearchLoading = false,
+                searchFailed = false,
+                showSearchSuggestions = false,
+                shops = (current.shops + mapShop).distinctBy { it.id },
+                cameraTarget = mapShop.latitude to mapShop.longitude,
+                cameraZoom = 16f,
+            )
+        }
+        selectShop(mapShop)
+        pauseBoundsUpdates(700)
     }
 
     fun requestMyLocation() {
         _state.update { it.copy(myLocationRequest = it.myLocationRequest + 1) }
     }
 
+    fun zoomIn() = changeZoom(1f)
+
+    fun zoomOut() = changeZoom(-1f)
+
+    private fun changeZoom(delta: Float) {
+        val current = _state.value
+        val bounds = current.pendingBounds ?: current.activeBounds ?: return
+        val zoom = current.pendingZoom ?: current.activeZoom ?: return
+        val nextZoom = (zoom + delta).coerceIn(MIN_MAP_ZOOM, MAX_MAP_ZOOM)
+        if (nextZoom == zoom) return
+
+        _state.update {
+            it.copy(
+                cameraTarget = (bounds.minLat + bounds.maxLat) / 2.0 to
+                    (bounds.minLon + bounds.maxLon) / 2.0,
+                cameraZoom = nextZoom,
+                pendingZoom = nextZoom,
+                showSearchArea = false,
+            )
+        }
+        pauseBoundsUpdates(500)
+    }
+
     fun focusOnShop(focus: com.coffeepeek.admin.ui.Navigator.MapShopFocus) {
+        hasManualSelection = true
         val shop = MapShop(
             id = focus.shopId,
             title = focus.title,
@@ -206,6 +343,12 @@ class MapViewModel(
     }
 
     fun onMyLocationApplied(latitude: Double, longitude: Double) {
+        hasManualSelection = false
+        if (_state.value.nearbyOrigin == GeoPoint(latitude, longitude)) {
+            _state.value.nearbyOrigin?.let { loadNearbyShops(it) }
+        } else {
+            onNearbyOriginChanged(latitude, longitude)
+        }
         _state.update {
             it.copy(
                 cameraTarget = latitude to longitude,
@@ -215,18 +358,14 @@ class MapViewModel(
         pauseBoundsUpdates(700)
     }
 
-    fun onLocationPermissionDenied() {
-        _state.update {
-            it.copy(error = "Нет доступа к геолокации. Разрешите в настройках приложения.")
-        }
-    }
-
     private fun loadCatalogs() {
         workScope.launch {
             shopRepository.getCatalogs()
                 .onSuccess { catalogs ->
+                    val cityId = cityPreference.resolve(catalogs.cities)
                     _state.update {
                         it.copy(
+                            filters = it.filters.copy(cityId = cityId),
                             cities = catalogs.cities,
                             beans = catalogs.beans,
                             equipment = catalogs.equipment,
@@ -235,34 +374,49 @@ class MapViewModel(
                             shopTags = catalogs.shopTags,
                         )
                     }
+                    isCityReady = true
+                    _state.value.nearbyOrigin?.let { loadNearbyShops(it) }
+                    val current = _state.value
+                    val bounds = current.pendingBounds
+                    val zoom = current.pendingZoom
+                    if (bounds != null && zoom != null) loadBounds(bounds, zoom)
                 }
-                .onFailure { err ->
-                    _state.update {
-                        it.copy(error = err.message ?: "Ошибка загрузки каталогов")
-                    }
+                .onFailure {
+                    isCityReady = true
+                    _state.value.nearbyOrigin?.let { loadNearbyShops(it) }
+                    val current = _state.value
+                    val bounds = current.pendingBounds
+                    val zoom = current.pendingZoom
+                    if (bounds != null && zoom != null) loadBounds(bounds, zoom)
                 }
         }
     }
 
-    private fun loadBounds(bounds: MapBounds) {
+    private fun loadBounds(bounds: MapBounds, zoom: Float) {
+        if (!isCityReady) return
         boundsJob?.cancel()
+        // Filters/query may have changed: until this request succeeds, the old area isn't trusted.
+        loadedArea = null
         boundsJob = workScope.launch {
             delay(250)
             _state.update {
                 it.copy(
                     isLoading = true,
-                    error = null,
                     activeBounds = bounds,
                     pendingBounds = bounds,
+                    activeZoom = zoom,
+                    pendingZoom = zoom,
                     showSearchArea = false,
                 )
             }
             val state = _state.value
             val filters = state.filters
-            shopRepository.getShopsInBounds(
-                bounds = bounds,
+            // Request a wider area than visible, so panning a few km shows already-loaded shops.
+            val requestArea = bounds.expandedForPrefetch()
+            val result = shopRepository.getMapContent(
+                bounds = requestArea,
+                zoom = zoom,
                 filters = ShopFilters(
-                    query = state.query.takeIf { it.isNotBlank() },
                     cityId = filters.cityId,
                     coffeeFocus = filters.coffeeFocus,
                     roasterIds = filters.roasterIds.toList(),
@@ -274,23 +428,36 @@ class MapViewModel(
                     minRating = filters.minRating,
                 ),
             )
-                .onSuccess { shops ->
+            currentCoroutineContext().ensureActive()
+            result.onSuccess { content ->
+                    loadedArea = requestArea
+                    loadedZoomLevel = zoom.toInt()
                     _state.update { current ->
-                        val merged = mergeShops(shops, current.selectedShop)
+                        val merged = mergeShops(content.shops + current.nearbyShops, current.selectedShop)
+                        // The API only returns zones for the current viewport, so zooming in used to drop
+                        // them. Keep every zone seen for this city; fresh data wins. Reset on city change.
+                        val knownZones = if (zonesCityId == filters.cityId) current.zones else emptyList()
+                        zonesCityId = filters.cityId
+                        val zones = (content.zones + knownZones).distinctBy { it.id }
                         current.copy(
                             shops = merged,
+                            clusters = content.clusters,
+                            zones = zones,
+                            isTruncated = content.isTruncated,
                             isLoading = false,
                             selectedShop = current.selectedShop?.let { selected ->
                                 merged.find { it.id == selected.id } ?: selected
                             },
+                            selectedZone = current.selectedZone?.takeIf { selected ->
+                                zones.any { it.id == selected.id }
+                            },
                         )
                     }
                 }
-                .onFailure { err ->
+                .onFailure {
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            error = err.message ?: "Ошибка загрузки кофеен",
                             showSearchArea = true,
                         )
                     }
@@ -348,6 +515,11 @@ class MapViewModel(
             } finally {
                 suppressBoundsUpdates = false
             }
+            // Camera moves during the pause were only recorded; load where the camera ended up.
+            val current = _state.value
+            val bounds = current.pendingBounds ?: return@launch
+            val zoom = current.pendingZoom ?: return@launch
+            onBoundsChanged(bounds, zoom)
         }
     }
 
@@ -356,8 +528,6 @@ class MapViewModel(
         pinned: MapShop?,
     ): List<MapShop> = (loaded + listOfNotNull(pinned)).distinctBy { it.id }
 
-    private fun Set<String>.toggle(id: String): Set<String> =
-        if (contains(id)) this - id else this + id
 }
 
 internal fun formatMapHoursSummary(schedules: List<ShopSchedule>): String? {
@@ -371,4 +541,41 @@ internal fun formatMapHoursSummary(schedules: List<ShopSchedule>): String? {
     val open = interval.openTime.split(":").take(2).joinToString(":")
     val close = interval.closeTime.split(":").take(2).joinToString(":")
     return "$open – $close"
+}
+
+private const val KM_PER_DEGREE_LAT = 111.32
+private const val PREFETCH_MIN_MARGIN_KM = 3.0
+private const val PREFETCH_VIEWPORT_FRACTION = 0.5
+
+/**
+ * Visible bounds padded on every side by half a viewport, but at least [minMarginKm], so moving
+ * the map a couple of km stays inside the loaded area.
+ * ponytail: ignores the antimeridian (fine for city maps); larger areas raise isTruncated sooner.
+ */
+internal fun MapBounds.expandedForPrefetch(minMarginKm: Double = PREFETCH_MIN_MARGIN_KM): MapBounds {
+    val midLat = (minLat + maxLat) / 2.0
+    val kmPerDegreeLon = KM_PER_DEGREE_LAT * cos(midLat * PI / 180.0).coerceAtLeast(0.01)
+    val latMargin = max((maxLat - minLat) * PREFETCH_VIEWPORT_FRACTION, minMarginKm / KM_PER_DEGREE_LAT)
+    val lonMargin = max((maxLon - minLon) * PREFETCH_VIEWPORT_FRACTION, minMarginKm / kmPerDegreeLon)
+    return MapBounds(
+        minLat = (minLat - latMargin).coerceAtLeast(-85.0),
+        minLon = (minLon - lonMargin).coerceAtLeast(-180.0),
+        maxLat = (maxLat + latMargin).coerceAtMost(85.0),
+        maxLon = (maxLon + lonMargin).coerceAtMost(180.0),
+    )
+}
+
+internal fun MapBounds.contains(other: MapBounds): Boolean =
+    other.minLat >= minLat && other.maxLat <= maxLat && other.minLon >= minLon && other.maxLon <= maxLon
+
+internal fun CoffeeShop.toMapShopOrNull(): MapShop? {
+    val latitude = location?.latitude ?: return null
+    val longitude = location?.longitude ?: return null
+    return MapShop(
+        id = id,
+        title = title,
+        latitude = latitude,
+        longitude = longitude,
+        type = type,
+    )
 }

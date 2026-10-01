@@ -1,3 +1,4 @@
+import com.coffeepeek.buildlogic.module
 import com.coffeepeek.config.Config
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -21,12 +22,17 @@ kotlin {
             implementation("androidx.security:security-crypto:1.0.0")
         }
         commonMain.dependencies {
-            implementation(project(":modules:domain"))
-            implementation(project(":modules:network"))
-            implementation(project(":modules:room"))
+            implementation(project(module.legacy.domain))
+            implementation(project(module.legacy.network))
+            implementation(project(module.legacy.room))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.koin.core)
             implementation(libs.ktor.serialization.kotlinx.json)
+        }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation("io.ktor:ktor-client-mock:${libs.versions.ktor.get()}")
+            implementation(libs.ktor.client.content.negotiation)
         }
     }
 }

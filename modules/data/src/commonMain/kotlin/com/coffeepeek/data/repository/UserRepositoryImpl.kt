@@ -1,8 +1,11 @@
 package com.coffeepeek.data.repository
 
 import com.coffeepeek.api.model.request.UploadedPhotoReq
+import com.coffeepeek.api.model.response.AccountDeletionRequestDto
 import com.coffeepeek.api.model.response.UserProfileDto
 import com.coffeepeek.api.service.UserApiService
+import com.coffeepeek.data.mapper.toDomain
+import com.coffeepeek.domain.model.AccountDeletionRequest
 import com.coffeepeek.domain.model.PendingPhotoUpload
 import com.coffeepeek.domain.model.UserProfile
 import com.coffeepeek.domain.repository.PhotoRepository
@@ -28,6 +31,7 @@ class UserRepositoryImpl(
     override fun observeProfile(): StateFlow<UserProfile?> = _profile.asStateFlow()
 
     private var cachedForUserId: String? = null
+    private val publicAvatarCache = mutableMapOf<String, String?>()
 
     init {
         scope.launch {
@@ -54,13 +58,34 @@ class UserRepositoryImpl(
         fetchAndCacheProfile()
 
     override suspend fun getMe(): Result<UserProfile> {
-        _profile.value?.let { return Result.success(it) }
+        val session = sessionRepository.peekSession()
+        if (sessionRepository.isActiveSession(session) && session?.userId == cachedForUserId) {
+            _profile.value?.let { return Result.success(it) }
+        }
         return refreshProfile()
     }
 
+    override suspend fun getPublicAvatarUrl(userId: String): Result<String?> {
+        if (userId.isBlank()) return Result.success(null)
+        if (publicAvatarCache.containsKey(userId)) {
+            return Result.success(publicAvatarCache[userId])
+        }
+        return userApiService.getUser(userId).map { profile ->
+            profile.avatarUrl.also { publicAvatarCache[userId] = it }
+        }
+    }
+
+    override suspend fun requestAccountDeletion(): Result<AccountDeletionRequest> =
+        userApiService.requestAccountDeletion().map { it.toDomain() }
+
+    override suspend fun getAccountDeletionRequest(): Result<AccountDeletionRequest?> =
+        userApiService.getAccountDeletionRequest().map { it?.toDomain() }
+
     override suspend fun updateUsername(username: String): Result<Unit> =
-        userApiService.updateUsername(username).onSuccess {
-            _profile.update { profile -> profile?.copy(userName = username) }
+        userApiService.updateUsername(username).map { updated ->
+            _profile.update { profile -> profile?.copy(userName = updated.username, address = updated.address?.toDomain()) }
+            publicAvatarCache.clear()
+            Unit
         }
 
     override suspend fun updateAbout(about: String): Result<Unit> =
@@ -83,13 +108,27 @@ class UserRepositoryImpl(
         Unit
     }
 
-    private suspend fun fetchAndCacheProfile(): Result<UserProfile> =
-        userApiService.getMe().map { dto ->
-            dto.toUserProfile().also { profile ->
-                _profile.value = profile
-                cachedForUserId = sessionRepository.peekSession()?.userId
-            }
+    private suspend fun fetchAndCacheProfile(): Result<UserProfile> {
+        val session = sessionRepository.peekSession()
+        if (!sessionRepository.isActiveSession(session)) {
+            clearProfile()
+            return Result.failure(IllegalStateException("Сессия завершена"))
         }
+        return userApiService.getMe().fold(
+            onSuccess = { dto ->
+                val current = sessionRepository.peekSession()
+                if (current?.userId != session?.userId || !sessionRepository.isActiveSession(current)) {
+                    Result.failure(IllegalStateException("Сессия изменилась"))
+                } else {
+                    val profile = dto.toUserProfile()
+                    cachedForUserId = session?.userId
+                    _profile.value = profile
+                    Result.success(profile)
+                }
+            },
+            onFailure = { Result.failure(it) },
+        )
+    }
 
     private fun clearProfile() {
         cachedForUserId = null
@@ -98,6 +137,7 @@ class UserRepositoryImpl(
 }
 
 private fun UserProfileDto.toUserProfile() = UserProfile(
+    address = address?.toDomain(),
     userName = userName,
     email = email,
     about = about,
@@ -105,4 +145,11 @@ private fun UserProfileDto.toUserProfile() = UserProfile(
     reviewCount = reviewCount,
     checkInCount = checkInCount,
     addedShopsCount = addedShopsCount,
+)
+
+private fun AccountDeletionRequestDto.toDomain() = AccountDeletionRequest(
+    requestId = requestId,
+    status = status,
+    expiresAtUtc = expiresAtUtc,
+    resendAvailableAtUtc = resendAvailableAtUtc,
 )

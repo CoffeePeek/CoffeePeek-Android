@@ -1,4 +1,6 @@
+import com.coffeepeek.buildlogic.module
 import com.coffeepeek.config.Config
+import com.coffeepeek.config.PrintValueTask
 import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
@@ -35,16 +37,16 @@ kotlin {
             implementation(libs.androidx.appcompat)
             implementation("androidx.core:core-splashscreen:1.0.1")
             implementation("androidx.exifinterface:exifinterface:1.4.1")
-            implementation(libs.yandex.mapkit)
+            implementation(libs.maplibre.android)
             implementation("com.google.android.gms:play-services-auth:21.3.0")
             implementation("com.microsoft.signalr:signalr:10.0.9")
             implementation("org.slf4j:slf4j-nop:2.0.16")
         }
         commonMain.dependencies {
-            implementation(project(":modules:domain"))
-            implementation(project(":modules:data"))
-            implementation(project(":modules:network"))
-            implementation(project(":modules:room"))
+            implementation(project(module.legacy.domain))
+            implementation(project(module.legacy.data))
+            implementation(project(module.legacy.network))
+            implementation(project(module.legacy.room))
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -52,6 +54,7 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(libs.phosphor.icon)
+            implementation(libs.haze)
 
             implementation(libs.androidx.navigation)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
@@ -78,17 +81,28 @@ val gitCommitCount: Provider<Int> = providers.exec {
 val appVersionCode: Provider<Int> = gitCommitCount
 val appVersionName: Provider<String> = gitCommitCount.map { "1.0.$it" }
 
-val mapkitApiKey: String = run {
-    val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.exists()) {
-        val props = Properties()
-        localPropertiesFile.inputStream().use { props.load(it) }
-        props.getProperty("MAPKIT_API_KEY")
-            ?: props.getProperty("YANDEX_MAP_API_KEY", "")
-    } else {
-        ""
-    }
+tasks.register<PrintValueTask>("printVersionName") {
+    group = "versioning"
+    description = "Prints the Android version name."
+    value.set(appVersionName)
 }
+
+tasks.register<PrintValueTask>("printVersionCode") {
+    group = "versioning"
+    description = "Prints the Android version code."
+    value.set(appVersionCode.map(Int::toString))
+}
+
+val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
+val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD")
+val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS")
+val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD")
+val releaseSigningConfigured = listOf(
+    releaseKeystorePath,
+    releaseKeystorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).all { !it.orNull.isNullOrBlank() }
 
 val googleWebClientId: String = run {
     val localPropertiesFile = rootProject.file("local.properties")
@@ -126,7 +140,6 @@ android {
         targetSdk = Config.TARGET_SDK
         versionCode = appVersionCode.get()
         versionName = appVersionName.get()
-        buildConfigField("String", "MAPKIT_API_KEY", "\"$mapkitApiKey\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
@@ -135,10 +148,21 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            create("release") {
+                storeFile = file(releaseKeystorePath.get())
+                storePassword = releaseKeystorePassword.get()
+                keyAlias = releaseKeyAlias.get()
+                keyPassword = releaseKeyPassword.get()
+            }
+        }
+    }
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.findByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

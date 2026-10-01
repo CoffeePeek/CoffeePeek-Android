@@ -3,14 +3,19 @@ package com.coffeepeek.admin.map
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.coffeepeek.domain.model.MapBounds
+import com.coffeepeek.domain.model.MapCluster
+import com.coffeepeek.domain.model.MapCoffeeZone
 import com.coffeepeek.domain.model.MapShop
 
 @Composable
 expect fun CoffeeMap(
     shops: List<MapShop>,
+    clusters: List<MapCluster> = emptyList(),
+    zones: List<MapCoffeeZone> = emptyList(),
     selectedShopId: String?,
-    onBoundsChanged: (MapBounds) -> Unit,
+    onBoundsChanged: (MapBounds, Float) -> Unit,
     onShopClick: (MapShop) -> Unit,
+    onZoneClick: (MapCoffeeZone) -> Unit = {},
     modifier: Modifier = Modifier,
     cameraTarget: Pair<Double, Double>? = null,
     cameraZoom: Float? = null,

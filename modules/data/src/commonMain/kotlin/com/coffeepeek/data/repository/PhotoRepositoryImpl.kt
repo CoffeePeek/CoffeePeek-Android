@@ -23,11 +23,20 @@ class PhotoRepositoryImpl(
     override suspend fun uploadShopPhotos(photos: List<PendingPhotoUpload>): Result<List<UploadedPhotoMeta>> =
         uploadPhotos(photos) { photoApiService.requestShopPhotoUploadUrls(it).getOrThrow() }
 
+    override suspend fun uploadReviewPhotos(photos: List<PendingPhotoUpload>): Result<List<UploadedPhotoMeta>> =
+        uploadPhotos(photos, tagging = "is_permanent=False") {
+            photoApiService.requestReviewPhotoUploadUrls(it).getOrThrow()
+        }
+
     override suspend fun uploadMenuPhotos(photos: List<PendingPhotoUpload>): Result<List<UploadedPhotoMeta>> =
         uploadPhotos(photos) { photoApiService.requestMenuPhotoUploadUrls(it).getOrThrow() }
 
+    override suspend fun uploadRoasterPhotos(photos: List<PendingPhotoUpload>): Result<List<UploadedPhotoMeta>> =
+        uploadPhotos(photos) { photoApiService.requestRoasterPhotoUploadUrls(it).getOrThrow() }
+
     private suspend fun uploadPhotos(
         photos: List<PendingPhotoUpload>,
+        tagging: String? = null,
         requestUrls: suspend (List<PhotoRequestDto>) -> List<GenerateUploadUrlDto>,
     ): Result<List<UploadedPhotoMeta>> = runCatching {
         if (photos.isEmpty()) return@runCatching emptyList()
@@ -50,6 +59,7 @@ class PhotoRepositoryImpl(
                 uploadUrl = urlDto.uploadUrl,
                 bytes = photo.bytes,
                 contentType = photo.contentType,
+                tagging = tagging,
             ).getOrThrow()
         }
 

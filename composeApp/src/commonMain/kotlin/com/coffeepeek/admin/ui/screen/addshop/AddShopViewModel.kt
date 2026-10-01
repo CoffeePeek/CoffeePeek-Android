@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class AddShopStep { BASIC, PHOTOS, SCHEDULE, CONTACTS, FEATURES }
+enum class AddShopStep { BASIC, CONTACTS, PHOTOS, FEATURES, SCHEDULE }
 
 data class DayScheduleUi(
     val dayOfWeek: Int,
@@ -182,7 +182,14 @@ class AddShopViewModel(
 
     fun onNameChange(v: String)         { _state.update { it.copy(name = v.take(55)) } }
     fun onAddressChange(v: String) {
-        _state.update { it.copy(address = v, locationHint = null) }
+        _state.update {
+            it.copy(
+                address = v,
+                latitude = null,
+                longitude = null,
+                locationHint = null,
+            )
+        }
     }
     fun onDescriptionChange(v: String)  { _state.update { it.copy(description = v) } }
     fun onCitySelect(city: City)        { _state.update { it.copy(selectedCity = city) } }
@@ -408,23 +415,25 @@ class AddShopViewModel(
     fun nextStep() {
         val s = _state.value
         when (s.currentStep) {
-            AddShopStep.BASIC -> if (s.step1Valid) _state.update { it.copy(currentStep = AddShopStep.PHOTOS) }
-            AddShopStep.PHOTOS -> _state.update { it.copy(currentStep = AddShopStep.SCHEDULE) }
-            AddShopStep.SCHEDULE -> _state.update { it.copy(currentStep = AddShopStep.CONTACTS) }
-            AddShopStep.CONTACTS -> if (s.contactsStepValid) {
-                _state.update { it.copy(currentStep = AddShopStep.FEATURES) }
+            AddShopStep.BASIC -> if (s.step1Valid) {
+                _state.update { it.copy(currentStep = AddShopStep.CONTACTS) }
             }
-            AddShopStep.FEATURES -> submit()
+            AddShopStep.CONTACTS -> if (s.contactsStepValid) {
+                _state.update { it.copy(currentStep = AddShopStep.PHOTOS) }
+            }
+            AddShopStep.PHOTOS -> _state.update { it.copy(currentStep = AddShopStep.FEATURES) }
+            AddShopStep.FEATURES -> _state.update { it.copy(currentStep = AddShopStep.SCHEDULE) }
+            AddShopStep.SCHEDULE -> submit()
         }
     }
 
     fun prevStep() {
         _state.update {
             it.copy(currentStep = when (it.currentStep) {
-                AddShopStep.PHOTOS -> AddShopStep.BASIC
-                AddShopStep.SCHEDULE -> AddShopStep.PHOTOS
-                AddShopStep.CONTACTS -> AddShopStep.SCHEDULE
-                AddShopStep.FEATURES -> AddShopStep.CONTACTS
+                AddShopStep.CONTACTS -> AddShopStep.BASIC
+                AddShopStep.PHOTOS -> AddShopStep.CONTACTS
+                AddShopStep.FEATURES -> AddShopStep.PHOTOS
+                AddShopStep.SCHEDULE -> AddShopStep.FEATURES
                 else -> it.currentStep
             })
         }
@@ -442,6 +451,8 @@ class AddShopViewModel(
                     name        = s.name.trim(),
                     address     = s.address.trim(),
                     cityId      = city.id,
+                    latitude    = s.latitude,
+                    longitude   = s.longitude,
                     description = s.description.trim().takeIf { it.isNotEmpty() },
                     priceRange  = s.priceRange,
                     phone       = s.phone.trim().takeIf { it.isNotEmpty() },

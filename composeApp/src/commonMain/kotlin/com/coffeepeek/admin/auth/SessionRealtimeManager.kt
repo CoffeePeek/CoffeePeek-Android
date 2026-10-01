@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.auth
 
 import com.coffeepeek.admin.utils.ErrorHandler
+import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.data.session.UserSessionCleaner
 import com.coffeepeek.domain.model.Session
 import com.coffeepeek.domain.repository.SessionRepository
@@ -145,9 +146,14 @@ class SessionRealtimeManager(
             ?.jsonArray
             ?.firstOrNull()
             ?.let { runCatching { json.decodeFromJsonElement<ForceLogoutPayload>(it) }.getOrNull() }
+        val reason = payload?.reason?.trim()
         activeAccessToken = null
         userSessionCleaner.clearLocalUserData()
-        ErrorHandler.showError(forceLogoutMessage(payload?.reason))
+        if (reason == "user_deleted") {
+            GoogleAuth.signOut()
+            Navigator.openLoginAfterSessionEnd()
+        }
+        ErrorHandler.showError(forceLogoutMessage(reason))
     }
 
     fun close() {
