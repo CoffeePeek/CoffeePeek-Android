@@ -57,6 +57,7 @@ fun initKoin() {
             ),
             appModule(database.settingRepository),
             imageModule(),
+            updateInstallerModule(),
         )
     }
 }

@@ -49,7 +49,7 @@ cp local.properties.example local.properties
 ### Android: сборка и запуск
 
 ```bash
-./gradlew :composeApp:assembleDebug
+./gradlew :composeApp:assembleDirectDebug
 ```
 
 Или Run `composeApp` из Android Studio на эмуляторе/устройстве.

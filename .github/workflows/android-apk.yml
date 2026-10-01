@@ -1,21 +1,21 @@
-name: Android APK
+name: Android Release
 
 on:
   push:
     branches:
       - main
-      - dev
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: android-apk-${{ github.ref }}
+  group: android-release-main
   cancel-in-progress: false
 
 jobs:
   build_apk:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
       channel: ${{ steps.meta.outputs.channel }}
@@ -42,29 +42,28 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
         with:
           cache-provider: basic
-          
-      - name: Install Android 36 SDK components
+
+      - name: Install Android 37 SDK components
         shell: bash
         run: |
           SDKMANAGER="/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager"
-      
+
           if [ ! -x "$SDKMANAGER" ]; then
             echo "sdkmanager not found at $SDKMANAGER"
             exit 1
           fi
-      
+
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-      
+
           "$SDKMANAGER" \
             "platform-tools" \
-            "platforms;android-36" \
+            "platforms;android-37.0" \
             "build-tools;36.0.0"
 
       - name: Validate branch and build configuration
         shell: bash
         env:
           API_BASE_URL_MAIN: ${{ vars.API_BASE_URL_MAIN }}
-          API_BASE_URL_DEV: ${{ vars.API_BASE_URL_DEV }}
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -73,16 +72,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "$GITHUB_REF_NAME" != "main" && "$GITHUB_REF_NAME" != "dev" ]]; then
-            echo "This workflow can publish only the main or dev branch."
-            exit 1
-          fi
-
-          if [[ "$GITHUB_REF_NAME" == "main" ]]; then
-            API_BASE_URL="$API_BASE_URL_MAIN"
-          else
-            API_BASE_URL="$API_BASE_URL_DEV"
-          fi
+          [[ "$GITHUB_REF_NAME" == "main" ]]
+          API_BASE_URL="$API_BASE_URL_MAIN"
 
           if [[ -z "$API_BASE_URL" ]]; then
             echo "The API base URL variable for $GITHUB_REF_NAME is empty."
@@ -110,13 +101,16 @@ jobs:
           umask 077
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/coffeepeek-release.jks"
 
-      - name: Build signed release APK
+      - name: Run Android checks
+        run: ./gradlew --no-daemon testDebugUnitTest :composeApp:testDirectDebugUnitTest :composeApp:testPlayDebugUnitTest lintDebug :composeApp:lintDirectDebug :composeApp:lintPlayDebug
+
+      - name: Build signed release APK and AAB
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/coffeepeek-release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon --no-configuration-cache :composeApp:assembleRelease
+        run: ./gradlew --no-daemon --no-configuration-cache :composeApp:assembleDirectRelease :composeApp:bundlePlayRelease
 
       - name: Prepare and verify APK metadata
         id: meta
@@ -124,7 +118,7 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          files=(composeApp/build/outputs/apk/release/*.apk)
+          files=(composeApp/build/outputs/apk/direct/release/*.apk)
           if [[ ${#files[@]} -ne 1 ]]; then
             echo "Expected exactly one release APK, found ${#files[@]}."
             exit 1
@@ -175,11 +169,93 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Verify and stage AAB and mapping
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          bundles=(composeApp/build/outputs/bundle/playRelease/*.aab)
+          [[ ${#bundles[@]} -eq 1 ]]
+          jarsigner -verify -certs "${bundles[0]}"
+          mkdir -p dist
+          cp "${bundles[0]}" dist/coffeepeek-release.aab
+          cp composeApp/build/outputs/mapping/playRelease/mapping.txt dist/mapping.txt
+
+      - name: Upload Play artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coffeepeek-play-${{ github.run_id }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 90
+
+  publish_play:
+    needs: build_apk
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Play credentials
+        shell: bash
+        env:
+          SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$SERVICE_ACCOUNT_JSON" | jq -e '.type == "service_account" and (.client_email | length > 0) and (.private_key | length > 0)' >/dev/null
+
+      - name: Download Play artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: coffeepeek-play-${{ github.run_id }}
+          path: dist
+
+      - name: Publish to Play internal testing
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.coffeepeek
+          releaseFiles: dist/coffeepeek-release.aab
+          mappingFile: dist/mapping.txt
+          tracks: internal
+          status: completed
+          releaseName: ${{ needs.build_apk.outputs.version_name }}
+
+  publish_firebase:
+    needs: build_apk
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Firebase credentials
+        shell: bash
+        env:
+          APP_ID: ${{ secrets.FIREBASE_APP_ID_ANDROID }}
+          SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          TESTER_GROUPS: ${{ secrets.FIREBASE_TESTER_GROUPS }}
+          TESTERS: ${{ secrets.FIREBASE_TESTERS }}
+        run: |
+          set -euo pipefail
+          [[ -n "$APP_ID" ]]
+          [[ -n "$TESTER_GROUPS" || -n "$TESTERS" ]]
+          printf '%s' "$SERVICE_ACCOUNT_JSON" | jq -e '.type == "service_account"' >/dev/null
+
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coffeepeek-apk-${{ github.run_id }}
+          path: artifacts
+
+      - name: Distribute APK to Firebase
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID_ANDROID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          groups: ${{ secrets.FIREBASE_TESTER_GROUPS }}
+          testers: ${{ secrets.FIREBASE_TESTERS }}
+          file: artifacts/coffeepeek.apk
+          releaseNotes: ${{ needs.build_apk.outputs.version_name }} (${{ github.sha }})
+
   publish_apk:
     needs: build_apk
     runs-on: ubuntu-latest
     environment:
-      name: ${{ needs.build_apk.outputs.channel == 'main' && 'production' || 'development' }}
+      name: production
       url: https://coffeepeek.by/downloads/android/${{ needs.build_apk.outputs.channel }}/coffeepeek.apk
 
     steps:
