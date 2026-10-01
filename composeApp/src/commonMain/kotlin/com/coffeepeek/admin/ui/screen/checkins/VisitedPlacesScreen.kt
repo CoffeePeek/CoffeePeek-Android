@@ -416,13 +416,6 @@ private fun CheckInListContent(
                     onPhotoClick = onPhotoClick,
                 )
             }
-            if (state.isLoadingMore) {
-                item {
-                    Box(Modifier.fillMaxWidth().padding(CpDimens.spacing3), contentAlignment = Alignment.Center) {
-                        CoffeePeekLoader(size = CpDimens.loaderButton, strokeWidth = 2.dp)
-                    }
-                }
-            }
         }
     }
 }

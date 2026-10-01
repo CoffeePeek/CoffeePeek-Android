@@ -6,6 +6,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -34,6 +36,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +47,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.CollectionInfo
+import androidx.compose.ui.semantics.collectionInfo
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.coffeepeek.admin.map.CoffeeMap
@@ -63,10 +71,20 @@ import com.coffeepeek.domain.model.MapShop
 import com.coffeepeek.domain.model.MapCoffeeZone
 import com.coffeepeek.admin.di.platformViewModel
 import com.coffeepeek.admin.utils.formatOneDecimal
+import com.coffeepeek.admin.location.rememberPermittedUserLocation
+import com.coffeepeek.admin.location.distanceToShopMeters
+import com.coffeepeek.admin.location.formatDistance
+import com.coffeepeek.domain.model.ShopLocation
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 
 @Composable
 fun MapScreen(vm: MapViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
+    val userLocation = rememberPermittedUserLocation()
+    LaunchedEffect(userLocation) {
+        userLocation?.let { vm.onNearbyOriginChanged(it.latitude, it.longitude) }
+    }
     val pendingFocus by Navigator.pendingMapFocus.collectAsState()
     val pendingFocusShop = pendingFocus?.let { focus ->
         MapShop(
@@ -238,20 +256,13 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
             }
         }
 
-        state.selectedShop?.let { shop ->
-            MapShopBottomSheet(
-                shop = shop,
-                details = state.selectedShopDetails,
-                isLoadingDetails = state.isLoadingShopDetails,
-                onOpen = { Navigator.navigate(Navigator.Screen.ShopDetail(shop.id)) },
-                onDismiss = vm::clearSelection,
+        if (state.selectedZone == null && state.selectedShop != null) {
+            MapShopCarousel(
+                state = state,
+                onSelect = vm::onCarouselShopSelected,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(
-                        start = CpDimens.spacing4,
-                        end = CpDimens.spacing4,
-                        bottom = navClearance + CpDimens.spacing4,
-                    ),
+                    .padding(bottom = navClearance + CpDimens.spacing4),
             )
         }
 
@@ -512,12 +523,67 @@ private fun MapZoomControl(
 }
 
 @Composable
+private fun MapShopCarousel(
+    state: MapUiState,
+    onSelect: (MapShop) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val selected = state.selectedShop ?: return
+    val shops = if (state.nearbyShops.any { it.id == selected.id }) state.nearbyShops else
+        listOf(selected) + state.nearbyShops.take(9)
+    key(shops.map { it.id }) {
+        val selectedIndex = shops.indexOfFirst { it.id == selected.id }.coerceAtLeast(0)
+        val pager = rememberPagerState(
+            initialPage = carouselStartPage(shops.size, selectedIndex),
+            pageCount = { if (shops.size > 1) Int.MAX_VALUE else 1 },
+        )
+        LaunchedEffect(selected.id) {
+            val currentIndex = pager.currentPage % shops.size
+            if (currentIndex != selectedIndex) {
+                val right = (selectedIndex - currentIndex + shops.size) % shops.size
+                val delta = if (right <= shops.size / 2) right else right - shops.size
+                pager.animateScrollToPage(pager.currentPage + delta)
+            }
+        }
+        LaunchedEffect(pager) {
+            snapshotFlow { pager.settledPage }.distinctUntilChanged().drop(1).collect { page ->
+                onSelect(shops[page % shops.size])
+            }
+        }
+        HorizontalPager(
+            state = pager,
+            modifier = modifier.fillMaxWidth().semantics {
+                collectionInfo = CollectionInfo(1, shops.size)
+                stateDescription = "Кофейня ${selectedIndex + 1} из ${shops.size}"
+            },
+            contentPadding = PaddingValues(horizontal = 36.dp),
+            pageSpacing = 12.dp,
+            userScrollEnabled = shops.size > 1,
+            beyondViewportPageCount = 1,
+        ) { page ->
+            val shop = shops[page % shops.size]
+            val isSelected = shop.id == selected.id
+            MapShopBottomSheet(
+                shop = shop,
+                details = state.selectedShopDetails.takeIf { isSelected },
+                isLoadingDetails = isSelected && state.isLoadingShopDetails,
+                distance = formatDistance(distanceToShopMeters(state.nearbyOrigin, ShopLocation("", shop.latitude, shop.longitude))),
+                onOpen = {
+                    if (isSelected) Navigator.navigate(Navigator.Screen.ShopDetail(shop.id)) else onSelect(shop)
+                },
+                modifier = Modifier.heightIn(min = 144.dp),
+            )
+        }
+    }
+}
+
+@Composable
 private fun MapShopBottomSheet(
     shop: MapShop,
     details: CoffeeShopDetails?,
     isLoadingDetails: Boolean,
     onOpen: () -> Unit,
-    onDismiss: () -> Unit,
+    distance: String?,
     modifier: Modifier = Modifier,
 ) {
     val photoUrl = details?.shop?.photoUrl ?: details?.photos?.firstOrNull()
@@ -597,7 +663,7 @@ private fun MapShopBottomSheet(
                         }
                     } else {
                         Text(
-                            text = if (reviewCount > 0) "$reviewCount отзывов" else "Нет отзывов",
+                            text = if (details == null) "Кофейня рядом" else if (reviewCount > 0) "$reviewCount отзывов" else "Нет отзывов",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -613,6 +679,9 @@ private fun MapShopBottomSheet(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 2.dp),
                 )
+                distance?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
 
                 when {
                     hours != null -> {
@@ -638,13 +707,6 @@ private fun MapShopBottomSheet(
                 }
             }
 
-            IconButton(onClick = onDismiss) {
-                Icon(
-                    imageVector = CpIcons.Close,
-                    contentDescription = "Закрыть",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
         }
     }
 }

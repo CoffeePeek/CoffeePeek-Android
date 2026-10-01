@@ -281,9 +281,7 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                 }
             }
             fillingNearby && displayedShops.isEmpty() -> {
-                Box(contentModifier, contentAlignment = Alignment.Center) {
-                    CoffeePeekLoader()
-                }
+                Box(contentModifier)
             }
             else -> {
                 CoffeePeekPullToRefresh(
@@ -305,19 +303,6 @@ fun FeedScreen(vm: FeedViewModel = platformViewModel()) {
                                 onClick = { Navigator.navigate(Navigator.Screen.ShopDetail(shop.id)) },
                                 onToggleFavorite = { vm.toggleFavorite(shop) },
                             )
-                        }
-                        if (state.isLoadingMore) {
-                            item(key = "loading-more") {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(CpDimens.spacing4),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    CoffeePeekLoader(
-                                        size = CpDimens.loaderButton,
-                                        strokeWidth = 2.dp,
-                                    )
-                                }
-                            }
                         }
                         item(key = "add-missing-shop") {
                             AddMissingShopCard(
