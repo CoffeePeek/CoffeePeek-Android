@@ -399,6 +399,7 @@ private fun ShopDetailContent(
         item {
             ReviewsSection(
                 reviews = details.reviews,
+                shopId = shop.id,
                 shopTitle = shop.title,
                 isLoggedIn = isLoggedIn,
                 currentUserId = currentUserId,
@@ -1141,6 +1142,7 @@ private fun PhoneContactPill(
 @Composable
 private fun ReviewsSection(
     reviews: List<Review>,
+    shopId: String,
     shopTitle: String,
     isLoggedIn: Boolean,
     currentUserId: String?,
@@ -1151,10 +1153,15 @@ private fun ReviewsSection(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = CpDimens.spacing4)
-            .padding(top = CpDimens.spacing6, bottom = CpDimens.spacing3),
-        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
+            .padding(top = CpDimens.spacing3, bottom = CpDimens.spacing2),
+        verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
     ) {
-        SectionTitle("Отзывы")
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Box(Modifier.weight(1f)) { SectionTitle("Отзывы") }
+            IconButton(onClick = { Navigator.navigate(Navigator.Screen.ShopReviews(shopId)) }) {
+                Icon(CpIcons.ChevronRight, contentDescription = "Все отзывы")
+            }
+        }
         if (reviews.isEmpty()) {
             EmptyMascotState(
                 mascot = Res.drawable.maskot_with_book,
@@ -1176,7 +1183,7 @@ private fun ReviewsSection(
 
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(itemSpacing)) {
                     items(
-                        count = reviews.size,
+                        count = reviews.take(3).size,
                         key = { index -> reviews[index].id },
                     ) { index ->
                         val review = reviews[index]
@@ -1191,7 +1198,7 @@ private fun ReviewsSection(
                                 modifier = Modifier.fillMaxWidth(),
                                 onPhotoClick = if (isBlurred) ({ _, _ -> }) else onReviewPhotoClick,
                                 onHelpfulClick = null,
-                                equalizeHeight = reviews.size > 1,
+                                equalizeHeight = false,
                             )
                         }
                     }
@@ -1207,7 +1214,7 @@ private fun ReviewsSection(
                 horizontalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
             ) {
                 items(
-                    count = reviews.size,
+                    count = reviews.take(3).size,
                     key = { index -> reviews[index].id },
                 ) { index ->
                     val review = reviews[index]
@@ -1226,7 +1233,7 @@ private fun ReviewsSection(
                             // No "helpful" on your own review.
                             onHelpfulClick = if (isOwnReview) null else ({ onReviewHelpfulClick(review.id) }),
                             showHelpfulButton = !isOwnReview,
-                            equalizeHeight = reviews.size > 1,
+                            equalizeHeight = false,
                         )
                     }
                 }
