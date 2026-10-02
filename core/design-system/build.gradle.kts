@@ -20,9 +20,13 @@ kotlin {
             api(compose.material3)
             api(libs.haze)
             implementation(libs.phosphor.icon)
+            implementation(compose.components.resources)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+        }
+        androidMain.dependencies {
+            implementation("androidx.compose.ui:ui-tooling-preview:${libs.versions.androidx.composeUi.get()}")
         }
         androidInstrumentedTest.dependencies {
             implementation(libs.androidx.compose.ui.test.junit4)
@@ -31,6 +35,15 @@ kotlin {
             implementation(libs.androidx.espresso.core)
         }
     }
+}
+
+compose.resources {
+    packageOfResClass = "com.coffeepeek.core.designsystem.resources"
+    publicResClass = false
+}
+
+dependencies {
+    add("debugImplementation", compose.uiTooling)
 }
 
 android {
