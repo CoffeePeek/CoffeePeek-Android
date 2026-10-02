@@ -292,7 +292,7 @@ fun ReviewDisplayCard(
             }
 
             savedDrinkName(review.drinkNameRu, review.drinkNameEn, review.customDrinkName)?.let {
-                Text(it, style = MaterialTheme.typography.labelMedium)
+                SavedDrinkBadge(it)
             }
             if (review.comment.isNotBlank()) {
                 if (fullVersion) Text(review.comment, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -343,12 +343,12 @@ fun CheckInDisplayCard(
             verticalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
         ) {
             CheckInHeader(checkIn = checkIn, showShopName = showShopName)
+            savedDrinkName(checkIn.drinkNameRu, checkIn.drinkNameEn, checkIn.customDrinkName)?.let {
+                SavedDrinkBadge(it)
+            }
             checkIn.rating?.let { rating ->
                 ReviewMetricCards(rating)
                 ReviewScoreRow(rating.average)
-            }
-            savedDrinkName(checkIn.drinkNameRu, checkIn.drinkNameEn, checkIn.customDrinkName)?.let {
-                Text(it, style = MaterialTheme.typography.labelMedium)
             }
             if (checkIn.note.isNotBlank()) {
                 ReviewQuote(checkIn.id, checkIn.note, padToCollapsedLines = false)
@@ -748,5 +748,22 @@ fun ReviewPhotoStrip(
                     ),
             )
         }
+    }
+}
+
+@Composable
+private fun SavedDrinkBadge(name: String) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(CpDimens.radiusMd))
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(CpIcons.Coffee, contentDescription = null,
+            tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+        Text("Напиток: $name", style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onPrimaryContainer)
     }
 }

@@ -249,7 +249,6 @@ private fun ReviewEditorBottomSheet(
                         onServiceRatingChange = onServiceRatingChange,
                         onPlaceRatingChange = onPlaceRatingChange,
                     )
-                    drinkField()
                     ReviewHeaderField(header, onHeaderChange, error = headerError)
                     ReviewCommentField(comment, onCommentChange, error = commentError)
                     ExistingReviewPhotos(existingPhotoUrls, onPhotoClick = {})
@@ -260,6 +259,7 @@ private fun ReviewEditorBottomSheet(
                         onRemovePhoto = onRemovePhoto,
                         title = if (existingPhotoUrls.isEmpty()) "Фотографии" else "Новые фото",
                     )
+                    drinkField()
                     error?.let {
                         Text(
                             text = it,

@@ -41,6 +41,7 @@ internal fun ConsumedDrinkField(
                 onClick = { expanded = true },
                 modifier = Modifier.heightIn(min = 44.dp).semantics { stateDescription = label },
                 shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
             ) {
                 Text(label, style = MaterialTheme.typography.bodyLarge)
                 Spacer(Modifier.width(8.dp))
@@ -51,11 +52,11 @@ internal fun ConsumedDrinkField(
                 onDismissRequest = { expanded = false },
                 modifier = Modifier.widthIn(min = 220.dp, max = 320.dp).heightIn(max = 320.dp),
                 shape = RoundedCornerShape(14.dp),
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp,
             ) {
                 DrinkMenuItem("Не выбран", slug == null) { onChange(null, null); expanded = false }
-                HorizontalDivider()
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 if (slug != null && selected == null) {
                     DrinkMenuItem(label, true) { expanded = false }
                 }
@@ -87,6 +88,10 @@ private fun DrinkMenuItem(label: String, isSelected: Boolean, onClick: () -> Uni
         text = { Text(label) },
         onClick = onClick,
         modifier = Modifier.heightIn(min = 44.dp).semantics { selected = isSelected },
+        colors = MenuDefaults.itemColors(
+            textColor = MaterialTheme.colorScheme.onSurface,
+            leadingIconColor = MaterialTheme.colorScheme.onSurface,
+        ),
         leadingIcon = {
             if (isSelected) {
                 Icon(CpIcons.Check, contentDescription = null, modifier = Modifier.size(18.dp))

@@ -58,9 +58,7 @@ fun CreateReviewScreen(shopId: String) {
                 .padding(CpDimens.spacing4),
             verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
         ) {
-            ConsumedDrinkField(state.drinks, state.drinkSlug, state.customDrinkName, state.drinkName,
-                    state.drinksError, vm::loadDrinks, vm::onDrinkChange)
-                ReviewHeaderField(state.header, vm::onHeaderChange, error = state.headerError)
+            ReviewHeaderField(state.header, vm::onHeaderChange, error = state.headerError)
             ReviewCommentField(state.comment, vm::onCommentChange, error = state.commentError)
             ReviewRatingCards(
                 coffeeRating = state.coffeeRating,
@@ -76,6 +74,9 @@ fun CreateReviewScreen(shopId: String) {
                 onPhotosAdded = vm::addPhotos,
                 onRemovePhoto = vm::removePhoto,
             )
+
+            ConsumedDrinkField(state.drinks, state.drinkSlug, state.customDrinkName, state.drinkName,
+                state.drinksError, vm::loadDrinks, vm::onDrinkChange)
 
             state.error?.let { error ->
                 Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -133,8 +134,6 @@ fun EditReviewScreen(reviewId: String) {
                     .padding(CpDimens.spacing4),
                 verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
             ) {
-                ConsumedDrinkField(state.drinks, state.drinkSlug, state.customDrinkName, state.drinkName,
-                    state.drinksError, vm::loadDrinks, vm::onDrinkChange)
                 ReviewHeaderField(state.header, vm::onHeaderChange, error = state.headerError)
                 ReviewCommentField(state.comment, vm::onCommentChange, error = state.commentError)
                 ReviewRatingCards(
@@ -154,6 +153,9 @@ fun EditReviewScreen(reviewId: String) {
                     title = "Новые фото",
                     hint = "Добавьте новые фото (до $MAX_REVIEW_PHOTOS). Существующие фото останутся без изменений.",
                 )
+
+                ConsumedDrinkField(state.drinks, state.drinkSlug, state.customDrinkName, state.drinkName,
+                    state.drinksError, vm::loadDrinks, vm::onDrinkChange)
 
                 state.error?.let { error ->
                     Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)

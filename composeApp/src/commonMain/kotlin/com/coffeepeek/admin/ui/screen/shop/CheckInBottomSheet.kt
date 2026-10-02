@@ -213,11 +213,6 @@ fun CheckInBottomSheet(
                 }
             }
 
-            ConsumedDrinkField(
-                drinks, draft.drinkSlug, draft.customDrinkName, draft.drinkName, drinksError, onRetryDrinks,
-                { slug, name -> onDraftChange(draft.copy(drinkSlug = slug, customDrinkName = name)) },
-            )
-
             // ── Ratings ───────────────────────────────────────────────────────
             ReviewRatingCards(
                 coffeeRating = draft.coffeeRating,
@@ -354,6 +349,11 @@ fun CheckInBottomSheet(
                 },
                 title = stringResource(Res.string.checkin_photos_label),
                 hint = "Добавьте до $MAX_REVIEW_PHOTOS фото вашего визита.",
+            )
+
+            ConsumedDrinkField(
+                drinks, draft.drinkSlug, draft.customDrinkName, draft.drinkName, drinksError, onRetryDrinks,
+                { slug, name -> onDraftChange(draft.copy(drinkSlug = slug, customDrinkName = name)) },
             )
 
             // ── Submit ────────────────────────────────────────────────────────

@@ -14,6 +14,28 @@ import kotlinx.serialization.SerializationException
 
 class PublicAddressMappingTest {
     @Test
+    fun preservesDrinkSnapshotsInShopCheckInsAndReviews() {
+        val dto = Json.decodeFromString<CoffeeShopDetailsDto>(
+            """{
+                "address":{"slug":"shop","canonicalPath":"/coffee-shops/shop","revision":1,"isAlias":false},
+                "userCheckIns":[
+                    {"id":"catalog","drinkSlug":"inactive-drink","drinkNameRu":"Сохранённое название","drinkNameEn":"Saved name"},
+                    {"id":"custom","drinkSlug":"other","customDrinkName":"Эспрессо-тоник"},
+                    {"id":"legacy"}
+                ],
+                "reviews":[{"id":"review","drinkSlug":"other","customDrinkName":"Эспрессо-тоник"}]
+            }""",
+        )
+        val details = dto.toDomain(FileUrlResolver("https://api.example"))
+        assertEquals("inactive-drink", details.userCheckIns[0].drinkSlug)
+        assertEquals("Сохранённое название", details.userCheckIns[0].drinkNameRu)
+        assertEquals("Saved name", details.userCheckIns[0].drinkNameEn)
+        assertEquals("Эспрессо-тоник", details.userCheckIns[1].customDrinkName)
+        assertNull(details.userCheckIns[2].drinkSlug)
+        assertEquals("Эспрессо-тоник", details.reviews.single().customDrinkName)
+    }
+
+    @Test
     fun mapsSlugsAndPreservesCanonicalAddressInFavorites() {
         val dto = Json.decodeFromString<CoffeeShopDetailsDto>(
             """{
