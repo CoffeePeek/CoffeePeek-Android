@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -22,8 +23,8 @@ internal fun SearchHeader(
     onQueryChange: (String) -> Unit,
     roastersSelected: Boolean,
     onSelectRoasters: (Boolean) -> Unit,
-    filterCount: Int,
-    onFilters: () -> Unit,
+    filterCount: Int = 0,
+    onFilters: (() -> Unit)? = null,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         CpSearchField(
@@ -33,8 +34,18 @@ internal fun SearchHeader(
             modifier = Modifier.weight(1f),
             fieldHeight = CpDimens.buttonHeight,
         )
-        BadgedBox(badge = { if (filterCount > 0) Badge { Text(filterCount.toString()) } }) {
-            OutlinedIconButton(onClick = onFilters, modifier = Modifier.size(CpDimens.buttonHeight), shape = CircleShape) {
+        if (onFilters != null) BadgedBox(badge = {
+            if (filterCount > 0) Box(
+                Modifier.size(22.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(filterCount.toString(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary)
+            }
+        }) {
+            OutlinedIconButton(
+                onClick = onFilters, modifier = Modifier.size(CpDimens.buttonHeight), shape = CircleShape,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            ) {
                 Icon(CpIcons.Filter, "Фильтры", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
             }
         }
@@ -48,7 +59,7 @@ internal fun SearchHeader(
             val selected = roastersSelected == roasters
             val shape = RoundedCornerShape(percent = 50)
             Row(
-                modifier = Modifier.weight(1f).height(CpDimens.buttonHeight).clip(shape)
+                modifier = Modifier.weight(1f).height(40.dp).clip(shape)
                     .background(if (selected) MaterialTheme.colorScheme.surface else androidx.compose.ui.graphics.Color.Transparent)
                     .selectable(selected = selected, role = Role.Tab, onClick = { onSelectRoasters(roasters) }),
                 verticalAlignment = Alignment.CenterVertically,
