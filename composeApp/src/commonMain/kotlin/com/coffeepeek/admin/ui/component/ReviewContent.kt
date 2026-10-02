@@ -12,8 +12,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -495,7 +493,7 @@ private fun ReviewAvatar(username: String) {
 @Composable
 private fun ReviewMetricCards(rating: ReviewRating, compact: Boolean = false) {
     Row(
-        modifier = Modifier.fillMaxWidth().then(if (compact) Modifier.horizontalScroll(rememberScrollState()) else Modifier),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(if (compact) 4.dp else CpDimens.spacing2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -504,21 +502,21 @@ private fun ReviewMetricCards(rating: ReviewRating, compact: Boolean = false) {
             image = Res.drawable.checkin_rating_atmosphere,
             label = "Аура",
             value = rating.place,
-            modifier = if (compact) Modifier else Modifier.weight(1f),
+            modifier = Modifier.weight(1f),
             compact = compact,
         )
         ReviewMetricCard(
             image = Res.drawable.checkin_rating_service,
             label = "Сервис",
             value = rating.service,
-            modifier = if (compact) Modifier else Modifier.weight(1f),
+            modifier = Modifier.weight(1f),
             compact = compact,
         )
         ReviewMetricCard(
             image = Res.drawable.checkin_rating_coffee,
             label = "Кофе",
             value = rating.coffee,
-            modifier = if (compact) Modifier else Modifier.weight(1f),
+            modifier = Modifier.weight(1f),
             compact = compact,
         )
     }
@@ -549,11 +547,14 @@ private fun ReviewMetricCard(
         )
         if (compact) {
             Text(
-                text = "$label $value",
+                text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
+            Text(value.toString(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
         } else Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,

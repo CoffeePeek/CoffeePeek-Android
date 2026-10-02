@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,8 +18,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.coffeepeek.admin.di.platformViewModel
-import com.coffeepeek.admin.location.formatDistance
-import com.coffeepeek.admin.location.rememberPermittedUserLocation
 import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.Navigator
 import com.coffeepeek.admin.ui.component.CoffeePeekLoader
@@ -34,10 +31,8 @@ import com.coffeepeek.admin.ui.component.SearchHeader
 @Composable
 internal fun RoasterListScreen(onSelectShops: () -> Unit, vm: RoasterListViewModel = platformViewModel()) {
     val state by vm.state.collectAsState()
-    val origin = rememberPermittedUserLocation()
     val listState = rememberLazyListState()
-    var showFilters by rememberSaveable { mutableStateOf(false) }
-    val visible = state.visibleItems(origin)
+    val visible = state.visibleItems
     val clearance = LocalFloatingNavClearance.current
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -46,19 +41,7 @@ internal fun RoasterListScreen(onSelectShops: () -> Unit, vm: RoasterListViewMod
                 SearchHeader(
                     query = state.query, onQueryChange = vm::onQueryChange,
                     roastersSelected = true, onSelectRoasters = { if (!it) onSelectShops() },
-                    filterCount = (if (state.nearbyOnly) 1 else 0) + (if (state.popularFirst) 1 else 0),
-                    onFilters = { showFilters = true },
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (origin != null) FilterChip(
-                        selected = state.nearbyOnly, onClick = vm::toggleNearby,
-                        label = { Text("Рядом") }, leadingIcon = { Icon(CpIcons.Distance, null, Modifier.size(18.dp)) },
-                    )
-                    FilterChip(
-                        selected = state.popularFirst, onClick = vm::togglePopular,
-                        label = { Text("Популярные") }, leadingIcon = { Icon(CpIcons.Star, null, Modifier.size(18.dp)) },
-                    )
-                }
             }
         },
     ) { padding ->
@@ -72,7 +55,7 @@ internal fun RoasterListScreen(onSelectShops: () -> Unit, vm: RoasterListViewMod
                 verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
             ) {
                 items(visible, key = { it.catalog.id }) { item ->
-                    RoasterCard(item, formatDistance(item.distance(origin)))
+                    RoasterCard(item)
                 }
                 if (state.isLoading) item {
                     Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CoffeePeekLoader() }
@@ -88,19 +71,10 @@ internal fun RoasterListScreen(onSelectShops: () -> Unit, vm: RoasterListViewMod
             }
         }
     }
-    if (showFilters) ModalBottomSheet(onDismissRequest = { showFilters = false }) {
-        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(CpDimens.spacing4)) {
-            Text("Фильтры обжарщиков", style = MaterialTheme.typography.titleLarge)
-            if (origin != null) FilterChip(selected = state.nearbyOnly, onClick = vm::toggleNearby, label = { Text("Рядом") })
-            FilterChip(selected = state.popularFirst, onClick = vm::togglePopular, label = { Text("Популярные — по числу кофеен") })
-            TextButton(onClick = vm::resetFilters) { Text("Сбросить") }
-            Button(onClick = { showFilters = false }, modifier = Modifier.fillMaxWidth()) { Text("Показать результаты") }
-        }
-    }
 }
 
 @Composable
-private fun RoasterCard(item: RoasterListItem, distance: String?) {
+private fun RoasterCard(item: RoasterListItem) {
     Card(
         onClick = { item.routeId?.let { Navigator.navigate(Navigator.Screen.RoasterDetail(it)) } },
         enabled = item.routeId != null,
@@ -108,31 +82,28 @@ private fun RoasterCard(item: RoasterListItem, distance: String?) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Column(Modifier.padding(CpDimens.spacing3), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.size(80.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
-                    val photo = item.catalog.photoUrl ?: item.details?.photos?.firstOrNull()?.fullUrl
-                    if (!photo.isNullOrBlank()) CoffeeShopImage(
-                        imageUrl = photo, contentDescription = item.catalog.name,
-                        contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize(),
-                    ) else Icon(CpIcons.Factory, null, Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.padding(CpDimens.spacing3), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(Modifier.size(56.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
+                val photo = item.catalog.photoUrl ?: item.details?.photos?.firstOrNull()?.fullUrl
+                if (!photo.isNullOrBlank()) CoffeeShopImage(
+                    imageUrl = photo, contentDescription = item.catalog.name,
+                    contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize(),
+                ) else Icon(CpIcons.Factory, null, Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(item.catalog.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                item.details?.location?.address?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(item.catalog.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    item.details?.location?.address?.takeIf { it.isNotBlank() }?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
-                    distance?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(CpIcons.Coffee, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        item.details?.let { roasterShopCountLabel(it.shops.size) } ?: "Подробнее об обжарщике",
+                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(CpIcons.Coffee, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    item.details?.let { roasterShopCountLabel(it.shops.size) } ?: "Подробнее об обжарщике",
-                    modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Icon(CpIcons.ChevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            Icon(CpIcons.ChevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

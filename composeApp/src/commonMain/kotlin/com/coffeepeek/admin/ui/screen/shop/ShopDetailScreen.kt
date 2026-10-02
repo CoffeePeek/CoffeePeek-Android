@@ -1158,7 +1158,7 @@ private fun ReviewsSection(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Box(Modifier.weight(1f)) { SectionTitle("Отзывы") }
-            IconButton(onClick = { Navigator.navigate(Navigator.Screen.ShopReviews(shopId)) }) {
+            if (reviews.isNotEmpty()) IconButton(onClick = { Navigator.navigate(Navigator.Screen.ShopReviews(shopId)) }) {
                 Icon(CpIcons.ChevronRight, contentDescription = "Все отзывы")
             }
         }

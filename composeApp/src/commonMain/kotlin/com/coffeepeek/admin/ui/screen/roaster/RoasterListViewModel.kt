@@ -1,12 +1,8 @@
 package com.coffeepeek.admin.ui.screen.roaster
 
 import com.coffeepeek.admin.base.BaseViewModel
-import com.coffeepeek.admin.location.GeoPoint
-import com.coffeepeek.admin.location.NEARBY_RADIUS_METERS
-import com.coffeepeek.admin.location.distanceToShopMeters
 import com.coffeepeek.domain.model.CatalogItem
 import com.coffeepeek.domain.model.RoasterDetails
-import com.coffeepeek.domain.model.ShopLocation
 import com.coffeepeek.domain.repository.RoasterRepository
 import com.coffeepeek.domain.repository.ShopRepository
 import kotlinx.coroutines.Job
@@ -23,30 +19,16 @@ import kotlinx.coroutines.sync.withPermit
 
 internal data class RoasterListItem(val catalog: CatalogItem, val details: RoasterDetails? = null) {
     val routeId: String? get() = catalog.address?.slug
-    fun distance(origin: GeoPoint?): Double? = details?.location?.let {
-        distanceToShopMeters(origin, ShopLocation(it.address, it.latitude, it.longitude))
-    }
 }
 
 internal data class RoasterListUiState(
     val items: List<RoasterListItem> = emptyList(),
     val query: String = "",
-    val nearbyOnly: Boolean = false,
-    val popularFirst: Boolean = false,
     val isLoading: Boolean = true,
     val error: String? = null,
 ) {
-    fun visibleItems(origin: GeoPoint?): List<RoasterListItem> {
-        val matching = items.filter {
-            it.catalog.name.contains(query.trim(), ignoreCase = true) &&
-                (!nearbyOnly || (it.distance(origin)?.let { distance -> distance <= NEARBY_RADIUS_METERS } == true))
-        }
-        return when {
-            popularFirst -> matching.sortedByDescending { it.details?.shops?.size ?: -1 }
-            nearbyOnly -> matching.sortedBy { it.distance(origin) }
-            else -> matching
-        }
-    }
+    val visibleItems: List<RoasterListItem>
+        get() = items.filter { it.catalog.name.contains(query.trim(), ignoreCase = true) }
 }
 
 internal class RoasterListViewModel(
@@ -60,9 +42,6 @@ internal class RoasterListViewModel(
     init { refresh() }
 
     fun onQueryChange(query: String) { _state.update { it.copy(query = query) } }
-    fun toggleNearby() { _state.update { it.copy(nearbyOnly = !it.nearbyOnly) } }
-    fun togglePopular() { _state.update { it.copy(popularFirst = !it.popularFirst) } }
-    fun resetFilters() { _state.update { it.copy(nearbyOnly = false, popularFirst = false) } }
 
     fun refresh() {
         loadJob?.cancel()
