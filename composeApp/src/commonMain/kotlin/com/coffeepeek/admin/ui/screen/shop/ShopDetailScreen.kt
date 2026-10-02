@@ -399,6 +399,8 @@ private fun ShopDetailContent(
         item {
             ReviewsSection(
                 reviews = details.reviews,
+                overallRating = shop.rating,
+                reviewCount = shop.reviewCount,
                 shopId = shop.id,
                 shopTitle = shop.title,
                 isLoggedIn = isLoggedIn,
@@ -1142,6 +1144,8 @@ private fun PhoneContactPill(
 @Composable
 private fun ReviewsSection(
     reviews: List<Review>,
+    overallRating: Double?,
+    reviewCount: Int,
     shopId: String,
     shopTitle: String,
     isLoggedIn: Boolean,
@@ -1162,6 +1166,7 @@ private fun ReviewsSection(
                 Icon(CpIcons.ChevronRight, contentDescription = "Все отзывы")
             }
         }
+        if (reviews.isNotEmpty()) com.coffeepeek.admin.ui.component.ReviewRatingsOverview(reviews, overallRating, reviewCount)
         if (reviews.isEmpty()) {
             EmptyMascotState(
                 mascot = Res.drawable.maskot_with_book,
@@ -1198,6 +1203,7 @@ private fun ReviewsSection(
                                 modifier = Modifier.fillMaxWidth(),
                                 onPhotoClick = if (isBlurred) ({ _, _ -> }) else onReviewPhotoClick,
                                 onHelpfulClick = null,
+                                showHelpfulButton = false,
                                 equalizeHeight = false,
                             )
                         }
@@ -1232,7 +1238,7 @@ private fun ReviewsSection(
                             onPhotoClick = onReviewPhotoClick,
                             // No "helpful" on your own review.
                             onHelpfulClick = if (isOwnReview) null else ({ onReviewHelpfulClick(review.id) }),
-                            showHelpfulButton = !isOwnReview,
+                            showHelpfulButton = false,
                             equalizeHeight = false,
                         )
                     }
