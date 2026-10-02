@@ -2,6 +2,8 @@ package com.coffeepeek.admin.ui.component
 
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
@@ -32,6 +34,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -250,8 +254,10 @@ fun ReviewDisplayCard(
     modifier: Modifier = Modifier,
     onPhotoClick: ((List<String>, Int) -> Unit)? = null,
     onEditClick: (() -> Unit)? = null,
+    onReportClick: (() -> Unit)? = null,
     onHelpfulClick: (() -> Unit)? = null,
-    showHelpfulButton: Boolean = true,
+    showHelpfulButton: Boolean = false,
+    fullVersion: Boolean = false,
     /** Side-by-side rows: pad short comments too, so neighbouring cards end up about the same height. */
     equalizeHeight: Boolean = false,
 ) {
@@ -269,8 +275,7 @@ fun ReviewDisplayCard(
             modifier = Modifier.padding(CpDimens.spacing3),
             verticalArrangement = Arrangement.spacedBy(CpDimens.spacing2),
         ) {
-            ReviewHeader(review = review, onEditClick = onEditClick)
-            ReviewMetricCards(review.rating, compact = true)
+            ReviewHeader(review = review, onEditClick = onEditClick, onReportClick = onReportClick)
 
             if (review.header.isNotBlank()) {
                 Text(
@@ -284,7 +289,8 @@ fun ReviewDisplayCard(
             }
 
             if (review.comment.isNotBlank()) {
-                ReviewQuote(review.id, review.comment, padToCollapsedLines = equalizeHeight)
+                if (fullVersion) Text(review.comment, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else ReviewQuote(review.id, review.comment, padToCollapsedLines = equalizeHeight)
             }
 
             ReviewPhotoStrip(
@@ -433,7 +439,8 @@ private fun HelpfulButton(
 }
 
 @Composable
-private fun ReviewHeader(review: Review, onEditClick: (() -> Unit)?) {
+private fun ReviewHeader(review: Review, onEditClick: (() -> Unit)?, onReportClick: (() -> Unit)?) {
+    var menuExpanded by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -450,21 +457,30 @@ private fun ReviewHeader(review: Review, onEditClick: (() -> Unit)?) {
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            if (review.createdAt.isNotBlank()) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                ReviewScoreRow(review.rating.average, compact = true)
+                if (review.createdAt.isNotBlank()) {
                 Text(
                     text = formatReviewDisplayDate(review.createdAt),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
+                }
             }
         }
-        if (onEditClick != null) {
-            IconButton(onClick = onEditClick) {
+        if (onEditClick != null || onReportClick != null) Box {
+            IconButton(onClick = { menuExpanded = true }, modifier = Modifier.semantics { contentDescription = "Действия с отзывом" }) {
                 Text(
                     text = "•••",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                onEditClick?.let { edit -> DropdownMenuItem(text = { Text("Редактировать") }, onClick = { menuExpanded = false; edit() }) }
+                onReportClick?.let { report -> DropdownMenuItem(text = { Text("Пожаловаться") }, onClick = { menuExpanded = false; report() }) }
             }
         }
     }

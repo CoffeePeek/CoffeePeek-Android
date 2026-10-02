@@ -62,6 +62,9 @@ fun ShopReviewsScreen(shopId: String) {
                     item {
                         Text(details.shop.title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    if (details.reviews.isNotEmpty()) item {
+                        com.coffeepeek.admin.ui.component.ReviewRatingsOverview(details.reviews, details.shop.rating, details.shop.reviewCount)
+                    }
                     state.actionMessage?.let { message -> item { Text(message) } }
                     if (details.reviews.isEmpty()) item { Text("Отзывов пока нет") }
                     itemsIndexed(details.reviews, key = { _, review -> review.id }) { index, review ->
@@ -73,6 +76,8 @@ fun ShopReviewsScreen(shopId: String) {
                             onPhotoClick = if (blurred) null else { urls, photoIndex -> preview = urls to photoIndex },
                             onHelpfulClick = if (blurred || own) null else ({ vm.toggleHelpful(review.id) }),
                             showHelpfulButton = !own,
+                            fullVersion = true,
+                            onReportClick = if (blurred) null else ({ Navigator.navigate(Navigator.Screen.ReportReview(review.id)) }),
                             onEditClick = if (own) ({ vm.openEditReview(review.id) }) else null,
                         )
                         if (!state.isLoggedIn && index == 0) GuestAuthCard(
