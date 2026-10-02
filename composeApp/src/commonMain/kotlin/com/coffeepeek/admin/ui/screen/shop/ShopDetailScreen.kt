@@ -149,6 +149,9 @@ fun ShopDetailScreen(shopId: String) {
     if (state.showCheckInSheet) {
         state.checkInDraft?.let { draft ->
             CheckInBottomSheet(
+                drinks = state.drinks,
+                drinksError = state.drinksError,
+                onRetryDrinks = vm::loadDrinks,
                 draft = draft,
                 isLoading = state.isCheckInLoading,
                 onDismiss = vm::dismissCheckInSheet,

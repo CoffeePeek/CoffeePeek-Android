@@ -113,6 +113,10 @@ data class Review(
     val photoUrls: List<String> = emptyList(),
     val helpfulCount: Int = 0,
     val isHelpfulByCurrentUser: Boolean = false,
+    val drinkSlug: String? = null,
+    val customDrinkName: String? = null,
+    val drinkNameRu: String? = null,
+    val drinkNameEn: String? = null,
 )
 
 data class HelpfulVote(

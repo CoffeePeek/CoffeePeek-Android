@@ -19,6 +19,10 @@ data class CheckInDto(
     @SerialName("shopName") val shopName: String? = null,
     @SerialName("photos") val photos: List<ShortPhotoDto> = emptyList(),
     @SerialName("rating") val rating: RatingDto? = null,
+    val drinkSlug: String? = null,
+    val customDrinkName: String? = null,
+    val drinkNameRu: String? = null,
+    val drinkNameEn: String? = null,
 )
 
 @Serializable

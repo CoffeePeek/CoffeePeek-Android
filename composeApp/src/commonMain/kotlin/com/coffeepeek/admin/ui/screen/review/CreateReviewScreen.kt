@@ -58,7 +58,9 @@ fun CreateReviewScreen(shopId: String) {
                 .padding(CpDimens.spacing4),
             verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
         ) {
-            ReviewHeaderField(state.header, vm::onHeaderChange, error = state.headerError)
+            ConsumedDrinkField(state.drinks, state.drinkSlug, state.customDrinkName, state.drinkName,
+                    state.drinksError, vm::loadDrinks, vm::onDrinkChange)
+                ReviewHeaderField(state.header, vm::onHeaderChange, error = state.headerError)
             ReviewCommentField(state.comment, vm::onCommentChange, error = state.commentError)
             ReviewRatingCards(
                 coffeeRating = state.coffeeRating,
@@ -131,6 +133,8 @@ fun EditReviewScreen(reviewId: String) {
                     .padding(CpDimens.spacing4),
                 verticalArrangement = Arrangement.spacedBy(CpDimens.spacing3),
             ) {
+                ConsumedDrinkField(state.drinks, state.drinkSlug, state.customDrinkName, state.drinkName,
+                    state.drinksError, vm::loadDrinks, vm::onDrinkChange)
                 ReviewHeaderField(state.header, vm::onHeaderChange, error = state.headerError)
                 ReviewCommentField(state.comment, vm::onCommentChange, error = state.commentError)
                 ReviewRatingCards(

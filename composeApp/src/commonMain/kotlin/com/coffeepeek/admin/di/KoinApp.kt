@@ -95,7 +95,7 @@ private fun appModule(settingRepository: com.coffeepeek.room.repository.SettingR
     factory { VisitedPlacesViewModel(get(), get()) }
     factory { AddRoasterViewModel(get(), get()) }
     factory { (roasterId: String) -> RoasterDetailViewModel(roasterId, get(), get()) }
-    factory { (shopId: String) -> CreateReviewViewModel(shopId, get(), get()) }
+    factory { (shopId: String) -> CreateReviewViewModel(shopId, get(), get(), get()) }
     factory { (reviewId: String) -> ReviewReportViewModel(reviewId, get(), get()) }
-    factory { (reviewId: String) -> EditReviewViewModel(reviewId, get(), get(), get(), get()) }
+    factory { (reviewId: String) -> EditReviewViewModel(reviewId, get(), get(), get(), get(), get()) }
 }

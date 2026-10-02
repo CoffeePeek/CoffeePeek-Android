@@ -1,5 +1,7 @@
 package com.coffeepeek.data.repository
 
+import com.coffeepeek.domain.model.ConsumedDrinkOption
+
 import com.coffeepeek.api.model.request.CreateShopContactReq
 import com.coffeepeek.api.model.request.CreateShopReq
 import com.coffeepeek.api.model.request.ScheduleIntervalReq
@@ -109,6 +111,10 @@ class ShopRepositoryImpl(
                 currentPage = dto.currentPage,
             )
         }
+
+    override suspend fun getConsumedDrinks() = shopApiService.getConsumedDrinks().map { options ->
+        options.map { ConsumedDrinkOption(it.slug, it.nameRu, it.nameEn) }
+    }
 
     override suspend fun getMenuDrinks(): Result<List<CoffeeDrinkDefinition>> {
         cachedMenuDrinks?.let { return Result.success(it) }

@@ -1,5 +1,7 @@
 package com.coffeepeek.admin.ui.component
 
+import com.coffeepeek.domain.model.savedDrinkName
+
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
@@ -289,6 +291,9 @@ fun ReviewDisplayCard(
                 )
             }
 
+            savedDrinkName(review.drinkNameRu, review.drinkNameEn, review.customDrinkName)?.let {
+                Text(it, style = MaterialTheme.typography.labelMedium)
+            }
             if (review.comment.isNotBlank()) {
                 if (fullVersion) Text(review.comment, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 else ReviewQuote(review.id, review.comment, padToCollapsedLines = equalizeHeight)
@@ -341,6 +346,9 @@ fun CheckInDisplayCard(
             checkIn.rating?.let { rating ->
                 ReviewMetricCards(rating)
                 ReviewScoreRow(rating.average)
+            }
+            savedDrinkName(checkIn.drinkNameRu, checkIn.drinkNameEn, checkIn.customDrinkName)?.let {
+                Text(it, style = MaterialTheme.typography.labelMedium)
             }
             if (checkIn.note.isNotBlank()) {
                 ReviewQuote(checkIn.id, checkIn.note, padToCollapsedLines = false)

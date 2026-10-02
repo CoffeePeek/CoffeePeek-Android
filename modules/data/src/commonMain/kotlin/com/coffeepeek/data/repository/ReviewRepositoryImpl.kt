@@ -1,5 +1,7 @@
 package com.coffeepeek.data.repository
 
+import com.coffeepeek.domain.model.validateConsumedDrink
+
 import com.coffeepeek.api.model.request.SendReviewReq
 import com.coffeepeek.api.model.request.UpdateReviewReq
 import com.coffeepeek.api.model.response.shop.RatingDto
@@ -29,10 +31,13 @@ class ReviewRepositoryImpl(
 
 
     override suspend fun createReview(input: CreateReviewInput): Result<Unit> = runCatching {
+        validateConsumedDrink(input.drinkSlug, input.customDrinkName)?.let { error(it) }
         val photos = photoRepository.uploadShopPhotos(input.photos).getOrThrow()
         reviewApiService.createReview(
             SendReviewReq(
                 shopId = input.shopId,
+                drinkSlug = input.drinkSlug,
+                customDrinkName = input.customDrinkName?.trim(),
                 header = input.header,
                 comment = input.comment,
                 rating = RatingDto(
@@ -48,10 +53,15 @@ class ReviewRepositoryImpl(
     // ponytail: UpdateCoffeeShopReviewCommand has no photos field, so input.photos is ignored on
     // edit. Restore photo upload here + a photos field on the command if the backend adds support.
     override suspend fun updateReview(reviewId: String, input: UpdateReviewInput): Result<Unit> = runCatching {
+        require(!input.clearDrink || (input.drinkSlug == null && input.customDrinkName == null)) { "Удаление напитка нельзя совмещать с выбором" }
+        validateConsumedDrink(input.drinkSlug, input.customDrinkName)?.let { error(it) }
         reviewApiService.updateReview(
             reviewId = reviewId,
             req = UpdateReviewReq(
+                clearDrink = input.clearDrink,
                 reviewId = reviewId,
+                drinkSlug = input.drinkSlug,
+                customDrinkName = input.customDrinkName?.trim(),
                 header = input.header,
                 comment = input.comment,
                 rating = RatingDto(
@@ -92,6 +102,10 @@ class ReviewRepositoryImpl(
                 items = response.reviewDtos.map { dto ->
                     ReviewSubmission(
                         review = Review(
+                            drinkSlug = dto.drinkSlug,
+                            customDrinkName = dto.customDrinkName,
+                            drinkNameRu = dto.drinkNameRu,
+                            drinkNameEn = dto.drinkNameEn,
                             id = dto.id,
                             moderationReviewId = dto.id,
                             shopId = dto.shop?.slug.orEmpty(),

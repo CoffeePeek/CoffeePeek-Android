@@ -56,6 +56,7 @@ fun CreateReviewBottomSheet(
     ReviewEditorBottomSheet(
         title = "Новый отзыв",
         placeName = placeName,
+        drinkField = { ConsumedDrinkField(state.drinks, state.drinkSlug, state.customDrinkName, state.drinkName, state.drinksError, vm::loadDrinks, vm::onDrinkChange) },
         header = state.header,
         comment = state.comment,
         coffeeRating = state.coffeeRating,
@@ -99,6 +100,7 @@ fun EditReviewBottomSheet(
     ReviewEditorBottomSheet(
         title = "Редактировать отзыв",
         placeName = placeName,
+        drinkField = { ConsumedDrinkField(state.drinks, state.drinkSlug, state.customDrinkName, state.drinkName, state.drinksError, vm::loadDrinks, vm::onDrinkChange) },
         header = state.header,
         comment = state.comment,
         coffeeRating = state.coffeeRating,
@@ -132,6 +134,7 @@ fun EditReviewBottomSheet(
 private fun ReviewEditorBottomSheet(
     title: String,
     placeName: String?,
+    drinkField: @Composable () -> Unit,
     header: String,
     comment: String,
     coffeeRating: Int,
@@ -246,6 +249,7 @@ private fun ReviewEditorBottomSheet(
                         onServiceRatingChange = onServiceRatingChange,
                         onPlaceRatingChange = onPlaceRatingChange,
                     )
+                    drinkField()
                     ReviewHeaderField(header, onHeaderChange, error = headerError)
                     ReviewCommentField(comment, onCommentChange, error = commentError)
                     ExistingReviewPhotos(existingPhotoUrls, onPhotoClick = {})

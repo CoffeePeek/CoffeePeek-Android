@@ -1,5 +1,11 @@
 package com.coffeepeek.admin.ui.screen.shop
 
+import com.coffeepeek.admin.ui.screen.review.ConsumedDrinkField
+
+import com.coffeepeek.domain.model.validateConsumedDrink
+
+import com.coffeepeek.domain.model.ConsumedDrinkOption
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -84,6 +90,9 @@ fun CheckInBottomSheet(
     onDraftChange: (CheckInDraft) -> Unit,
     onSubmit: (CheckInDraft) -> Unit,
     placeName: String? = null,
+    drinks: List<ConsumedDrinkOption> = emptyList(),
+    drinksError: String? = null,
+    onRetryDrinks: () -> Unit = {},
 ) {
     var headerError by remember { mutableStateOf<String?>(null) }
     var noteError by remember { mutableStateOf<String?>(null) }
@@ -203,6 +212,11 @@ fun CheckInBottomSheet(
                     }
                 }
             }
+
+            ConsumedDrinkField(
+                drinks, draft.drinkSlug, draft.customDrinkName, draft.drinkName, drinksError, onRetryDrinks,
+                { slug, name -> onDraftChange(draft.copy(drinkSlug = slug, customDrinkName = name)) },
+            )
 
             // ── Ratings ───────────────────────────────────────────────────────
             ReviewRatingCards(
@@ -361,7 +375,7 @@ fun CheckInBottomSheet(
                     }
                     onSubmit(draft)
                 },
-                enabled = !isLoading,
+                enabled = !isLoading && validateConsumedDrink(draft.drinkSlug, draft.customDrinkName) == null,
             )
         }
     }
