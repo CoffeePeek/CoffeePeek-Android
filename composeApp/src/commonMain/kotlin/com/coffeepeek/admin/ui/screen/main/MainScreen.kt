@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
@@ -99,8 +100,8 @@ internal fun ComposeMainScreen() {
 
     val items = listOf(
         BottomNavItem(
-            title = "Кофейни",
-            icon = CpIcons.Coffee,
+            title = "Поиск",
+            icon = CpIcons.Search,
             graph = Navigator.Screen.FeedGraph,
             startScreen = Navigator.Screen.FeedTab,
         ),
@@ -151,7 +152,14 @@ internal fun ComposeMainScreen() {
                 popExitTransition = { ExitTransition.None },
             ) {
                 navigation<Navigator.Screen.FeedGraph>(startDestination = Navigator.Screen.FeedTab) {
-                    composable<Navigator.Screen.FeedTab> { FeedScreen() }
+                    composable<Navigator.Screen.FeedTab> {
+                        var showRoasters by rememberSaveable { mutableStateOf(false) }
+                        if (showRoasters) {
+                            com.coffeepeek.admin.ui.screen.roaster.RoasterListScreen(onSelectShops = { showRoasters = false })
+                        } else {
+                            FeedScreen(onSelectRoasters = { showRoasters = true })
+                        }
+                    }
                 }
 
                 navigation<Navigator.Screen.MapGraph>(startDestination = Navigator.Screen.MapTab) {

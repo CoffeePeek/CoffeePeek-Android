@@ -95,7 +95,6 @@ class MapViewModel(
     private var detailsJob: Job? = null
     private var boundsPauseJob: Job? = null
     private var selectionVersion = 0
-    private var hasManualSelection = false
     private val detailsCache = mutableMapOf<String, CoffeeShopDetails>()
     private var suppressBoundsUpdates = false
     private var isCityReady = false
@@ -145,7 +144,6 @@ class MapViewModel(
     }
 
     fun onShopSelected(shop: MapShop) {
-        hasManualSelection = true
         if (_state.value.selectedShop?.id == shop.id) {
             _state.update { it.copy(selectedZone = null) }
             return
@@ -171,7 +169,6 @@ class MapViewModel(
     private fun loadNearbyShops(origin: GeoPoint) {
         if (!isCityReady) return
         nearbyJob?.cancel()
-        val selectionAtStart = selectionVersion
         val filters = _state.value.filters
         nearbyJob = workScope.launch {
             val result = shopRepository.getMapContent(nearbyMapBounds(origin), 22f, ShopFilters(cityId = filters.cityId))
@@ -179,15 +176,6 @@ class MapViewModel(
             result.onSuccess { content ->
                 val nearest = nearestMapShops(content.shops, origin)
                 _state.update { it.copy(nearbyShops = nearest, shops = (it.shops + nearest).distinctBy { shop -> shop.id }) }
-                if ((!hasManualSelection && selectionVersion == selectionAtStart) || _state.value.selectedShop == null) {
-                    nearest.firstOrNull()?.let { shop ->
-                        selectShop(shop)
-                        if (_state.value.selectedZone == null) {
-                            _state.update { it.copy(cameraTarget = shop.latitude to shop.longitude, cameraZoom = 16f) }
-                            pauseBoundsUpdates(700)
-                        }
-                    }
-                }
             }
         }
     }
@@ -271,7 +259,6 @@ class MapViewModel(
     }
 
     fun onSearchResultSelected(shop: CoffeeShop) {
-        hasManualSelection = true
         val mapShop = shop.toMapShopOrNull() ?: return
         queryJob?.cancel()
         _state.update { current ->
@@ -318,7 +305,6 @@ class MapViewModel(
     }
 
     fun focusOnShop(focus: com.coffeepeek.admin.ui.Navigator.MapShopFocus) {
-        hasManualSelection = true
         val shop = MapShop(
             id = focus.shopId,
             title = focus.title,
@@ -343,7 +329,6 @@ class MapViewModel(
     }
 
     fun onMyLocationApplied(latitude: Double, longitude: Double) {
-        hasManualSelection = false
         if (_state.value.nearbyOrigin == GeoPoint(latitude, longitude)) {
             _state.value.nearbyOrigin?.let { loadNearbyShops(it) }
         } else {

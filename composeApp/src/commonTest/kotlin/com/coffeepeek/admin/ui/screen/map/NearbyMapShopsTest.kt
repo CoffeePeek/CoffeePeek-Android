@@ -32,5 +32,10 @@ class NearbyMapShopsTest {
             }
         }
         assertEquals(0, carouselStartPage(1, 0))
+        // No selected shop: show the first card and allow swiping in either direction.
+        val unfocusedStart = carouselStartPage(10, -1)
+        assertEquals(0, unfocusedStart % 10)
+        assertEquals(9, (unfocusedStart - 1) % 10)
+        assertEquals(1, (unfocusedStart + 1) % 10)
     }
 }

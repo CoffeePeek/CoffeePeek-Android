@@ -180,7 +180,7 @@ actual fun PlatformFloatingBottomNavBar(
 
 private val FloatingNavItem.iconSymbol: String
     get() = when (title) {
-        "Кофейни" -> "cup.and.saucer.fill"
+        "Поиск" -> "magnifyingglass"
         "Карта" -> "map.fill"
         "Профиль" -> "person.crop.circle.fill"
         "Настройки" -> "gearshape.fill"
