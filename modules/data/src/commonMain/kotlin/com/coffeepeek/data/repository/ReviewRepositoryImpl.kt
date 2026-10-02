@@ -24,6 +24,9 @@ class ReviewRepositoryImpl(
     private val photoRepository: PhotoRepository,
     private val fileUrlResolver: FileUrlResolver,
 ) : ReviewRepository {
+    override suspend fun submitReviewReport(reviewId: String, text: String): Result<String> =
+        reviewApiService.submitReviewReport(reviewId, text)
+
 
     override suspend fun createReview(input: CreateReviewInput): Result<Unit> = runCatching {
         val photos = photoRepository.uploadShopPhotos(input.photos).getOrThrow()

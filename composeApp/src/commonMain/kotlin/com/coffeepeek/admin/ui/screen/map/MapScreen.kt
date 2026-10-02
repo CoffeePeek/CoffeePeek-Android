@@ -195,7 +195,8 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
                 .padding(
                     end = CpDimens.spacing4,
                     bottom = navClearance + when {
-                        hasShopCarousel || state.selectedZone != null -> 180.dp
+                        state.selectedZone != null -> 180.dp
+                        hasShopCarousel -> 132.dp
                         else -> CpDimens.spacing4
                     },
                 ),
