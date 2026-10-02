@@ -3,6 +3,7 @@ package com.coffeepeek.admin.ui.component
 import com.coffeepeek.domain.model.savedDrinkName
 
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -291,7 +292,7 @@ fun ReviewDisplayCard(
                 )
             }
 
-            savedDrinkName(review.drinkNameRu, review.drinkNameEn, review.customDrinkName)?.let {
+            savedDrinkName(review.drinkNameRu, review.drinkNameEn, review.customDrinkName, Locale.current.language)?.let {
                 SavedDrinkBadge(it)
             }
             if (review.comment.isNotBlank()) {
@@ -343,7 +344,7 @@ fun CheckInDisplayCard(
             verticalArrangement = Arrangement.spacedBy(CpDimens.spacing4),
         ) {
             CheckInHeader(checkIn = checkIn, showShopName = showShopName)
-            savedDrinkName(checkIn.drinkNameRu, checkIn.drinkNameEn, checkIn.customDrinkName)?.let {
+            savedDrinkName(checkIn.drinkNameRu, checkIn.drinkNameEn, checkIn.customDrinkName, Locale.current.language)?.let {
                 SavedDrinkBadge(it)
             }
             checkIn.rating?.let { rating ->
