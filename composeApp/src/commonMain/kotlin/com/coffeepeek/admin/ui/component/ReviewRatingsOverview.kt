@@ -1,6 +1,7 @@
 package com.coffeepeek.admin.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,11 @@ import com.coffeepeek.admin.theme.CpDimens
 import com.coffeepeek.admin.ui.icons.CpIcons
 import com.coffeepeek.admin.utils.formatOneDecimal
 import com.coffeepeek.domain.model.Review
+import coffeepeek.composeapp.generated.resources.Res
+import coffeepeek.composeapp.generated.resources.checkin_rating_coffee
+import coffeepeek.composeapp.generated.resources.checkin_rating_service
+import coffeepeek.composeapp.generated.resources.checkin_rating_atmosphere
+import org.jetbrains.compose.resources.painterResource
 
 internal data class ReviewAverages(val coffee: Double, val service: Double, val place: Double) {
     val overall: Double get() = (coffee + service + place) / 3
@@ -54,9 +60,16 @@ internal fun ReviewRatingsOverview(reviews: List<Review>, overallRating: Double?
             "Оценки по загруженным отзывам", style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        listOf("Кофе" to averages.coffee, "Сервис" to averages.service, "Аура" to averages.place).forEach { (label, value) ->
+        listOf(
+            Triple("Кофе", averages.coffee, Res.drawable.checkin_rating_coffee),
+            Triple("Сервис", averages.service, Res.drawable.checkin_rating_service),
+            Triple("Аура", averages.place, Res.drawable.checkin_rating_atmosphere),
+        ).forEach { (label, value, mascot) ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(label, Modifier.width(76.dp), style = MaterialTheme.typography.bodyMedium)
+                Row(Modifier.width(112.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Image(painterResource(mascot), contentDescription = null, modifier = Modifier.size(28.dp))
+                    Text(label, style = MaterialTheme.typography.bodyMedium)
+                }
                 Box(Modifier.weight(1f).height(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)) {
                     Box(Modifier.fillMaxWidth((value / 5).toFloat().coerceIn(0f, 1f)).height(6.dp).background(MaterialTheme.colorScheme.primary))
                 }
