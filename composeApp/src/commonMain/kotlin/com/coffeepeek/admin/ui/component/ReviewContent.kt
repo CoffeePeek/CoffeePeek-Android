@@ -36,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -478,9 +479,26 @@ private fun ReviewHeader(review: Review, onEditClick: (() -> Unit)?, onReportCli
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                onEditClick?.let { edit -> DropdownMenuItem(text = { Text("Редактировать") }, onClick = { menuExpanded = false; edit() }) }
-                onReportClick?.let { report -> DropdownMenuItem(text = { Text("Пожаловаться") }, onClick = { menuExpanded = false; report() }) }
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+                shape = RoundedCornerShape(CpDimens.radiusLg),
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp,
+                shadowElevation = 8.dp,
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                onEditClick?.let { edit -> DropdownMenuItem(
+                    text = { Text("Редактировать", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface) },
+                    trailingIcon = { Icon(CpIcons.Edit, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = { menuExpanded = false; edit() },
+                ) }
+                if (onEditClick != null && onReportClick != null) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                onReportClick?.let { report -> DropdownMenuItem(
+                    text = { Text("Пожаловаться", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface) },
+                    trailingIcon = { Icon(CpIcons.Error, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = { menuExpanded = false; report() },
+                ) }
             }
         }
     }
