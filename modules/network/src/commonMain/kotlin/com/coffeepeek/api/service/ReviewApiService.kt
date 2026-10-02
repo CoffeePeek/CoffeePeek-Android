@@ -17,8 +17,38 @@ import com.coffeepeek.api.utils.setJsonBody
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.parameter
+import io.ktor.client.plugins.expectSuccess
+import io.ktor.http.HttpStatusCode
+import kotlinx.serialization.Serializable
+
+@Serializable
+internal data class ReviewReportRequest(val text: String)
+
+@Serializable
+internal data class ReviewReportResponse(val id: String)
 
 class ReviewApiService(private val client: HttpClient) {
+
+    suspend fun submitReviewReport(reviewId: String, text: String): Result<String> = runCatching {
+        val trimmed = text.trim()
+        require(trimmed.length in 1..2000) { "Опишите проблему: от 1 до 2000 символов" }
+        val response = client.postResult("/api/CoffeeShopReviews/$reviewId/reports") {
+            expectSuccess = false
+            setJsonBody(ReviewReportRequest(trimmed))
+        }.getOrThrow()
+        when (response.status) {
+            HttpStatusCode.Unauthorized -> throw ApiException("Войдите в аккаунт, чтобы отправить жалобу")
+            HttpStatusCode.NotFound -> throw ApiException("Отзыв удалён или больше недоступен")
+            HttpStatusCode.TooManyRequests -> throw ApiException("Слишком много отправок. Попробуйте позже")
+        }
+        if (response.status != HttpStatusCode.Created) {
+            throw ApiException("Не удалось отправить жалобу. Попробуйте ещё раз")
+        }
+        val result = response.body<ApiResponse<ReviewReportResponse>>()
+        val id = result.data?.id
+        if (!result.isSuccess || id.isNullOrBlank()) throw ApiException(result.message)
+        id
+    }
 
     suspend fun createReview(req: SendReviewReq): Result<Unit> = runCatching {
         val response = client.postResult("/api/ModerationReviews") {

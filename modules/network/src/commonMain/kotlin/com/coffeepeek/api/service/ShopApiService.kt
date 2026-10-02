@@ -1,5 +1,7 @@
 package com.coffeepeek.api.service
 
+import com.coffeepeek.api.model.response.ConsumedDrinkOptionDto
+
 import com.coffeepeek.api.model.ApiResponse
 import com.coffeepeek.api.model.request.CreateShopReq
 import com.coffeepeek.api.model.request.ModerationStatusDto
@@ -63,6 +65,13 @@ class ShopApiService(private val client: HttpClient) {
         val response = client.get("/api/CoffeeShops/$id")
         val apiResponse = response.body<ApiResponse<CoffeeShopDetailsDto>>()
         if (!apiResponse.isSuccess || apiResponse.data == null) throw ApiException(apiResponse.message)
+        apiResponse.data
+    }
+
+    suspend fun getConsumedDrinks(): Result<List<ConsumedDrinkOptionDto>> = runCatching {
+        val response = client.get("/api/catalogs/drinks")
+        val apiResponse = response.body<ApiResponse<List<ConsumedDrinkOptionDto>>>()
+        if (!response.status.isSuccess() || !apiResponse.isSuccess || apiResponse.data == null) throw ApiException(apiResponse.message)
         apiResponse.data
     }
 

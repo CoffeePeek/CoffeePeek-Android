@@ -37,6 +37,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -103,6 +104,7 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
     val cameraZoom = state.cameraZoom ?: if (pendingFocus != null) 16f else null
     val isDarkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val navClearance = LocalFloatingNavClearance.current
+    val hasShopCarousel = state.selectedShop != null || state.nearbyShops.isNotEmpty()
 
     LaunchedEffect(pendingFocus) {
         pendingFocus?.let { focus ->
@@ -193,7 +195,8 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
                 .padding(
                     end = CpDimens.spacing4,
                     bottom = navClearance + when {
-                        state.selectedShop != null || state.selectedZone != null -> 180.dp
+                        state.selectedZone != null -> 180.dp
+                        hasShopCarousel -> 132.dp
                         else -> CpDimens.spacing4
                     },
                 ),
@@ -242,7 +245,7 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(
-                        bottom = navClearance + if (state.selectedShop == null) 32.dp else 148.dp,
+                        bottom = navClearance + if (hasShopCarousel) 148.dp else 32.dp,
                     )
                     .height(CpDimens.buttonHeight),
                 shape = RoundedCornerShape(percent = 50),
@@ -256,7 +259,7 @@ fun MapScreen(vm: MapViewModel = platformViewModel()) {
             }
         }
 
-        if (state.selectedZone == null && state.selectedShop != null) {
+        if (state.selectedZone == null && hasShopCarousel) {
             MapShopCarousel(
                 state = state,
                 onSelect = vm::onCarouselShopSelected,
@@ -528,16 +531,19 @@ private fun MapShopCarousel(
     onSelect: (MapShop) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val selected = state.selectedShop ?: return
-    val shops = if (state.nearbyShops.any { it.id == selected.id }) state.nearbyShops else
+    val selected = state.selectedShop
+    val selectedShopId by rememberUpdatedState(selected?.id)
+    val shops = if (selected == null || state.nearbyShops.any { it.id == selected.id }) state.nearbyShops else
         listOf(selected) + state.nearbyShops.take(9)
+    if (shops.isEmpty()) return
     key(shops.map { it.id }) {
-        val selectedIndex = shops.indexOfFirst { it.id == selected.id }.coerceAtLeast(0)
+        val selectedIndex = shops.indexOfFirst { it.id == selected?.id }.coerceAtLeast(0)
         val pager = rememberPagerState(
             initialPage = carouselStartPage(shops.size, selectedIndex),
             pageCount = { if (shops.size > 1) Int.MAX_VALUE else 1 },
         )
-        LaunchedEffect(selected.id) {
+        LaunchedEffect(selected?.id) {
+            if (selected == null) return@LaunchedEffect
             val currentIndex = pager.currentPage % shops.size
             if (currentIndex != selectedIndex) {
                 val right = (selectedIndex - currentIndex + shops.size) % shops.size
@@ -547,14 +553,15 @@ private fun MapShopCarousel(
         }
         LaunchedEffect(pager) {
             snapshotFlow { pager.settledPage }.distinctUntilChanged().drop(1).collect { page ->
-                onSelect(shops[page % shops.size])
+                val shop = shops[page % shops.size]
+                if (shop.id != selectedShopId) onSelect(shop)
             }
         }
         HorizontalPager(
             state = pager,
             modifier = modifier.fillMaxWidth().semantics {
                 collectionInfo = CollectionInfo(1, shops.size)
-                stateDescription = "Кофейня ${selectedIndex + 1} из ${shops.size}"
+                stateDescription = "Кофейня ${pager.currentPage % shops.size + 1} из ${shops.size}"
             },
             contentPadding = PaddingValues(horizontal = 36.dp),
             pageSpacing = 12.dp,
@@ -562,7 +569,7 @@ private fun MapShopCarousel(
             beyondViewportPageCount = 1,
         ) { page ->
             val shop = shops[page % shops.size]
-            val isSelected = shop.id == selected.id
+            val isSelected = shop.id == selected?.id
             MapShopBottomSheet(
                 shop = shop,
                 details = state.selectedShopDetails.takeIf { isSelected },
@@ -571,7 +578,6 @@ private fun MapShopCarousel(
                 onOpen = {
                     if (isSelected) Navigator.navigate(Navigator.Screen.ShopDetail(shop.id)) else onSelect(shop)
                 },
-                modifier = Modifier.heightIn(min = 144.dp),
             )
         }
     }

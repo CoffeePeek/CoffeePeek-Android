@@ -100,6 +100,10 @@ internal object ShopMapper {
         reviews = reviews.map { it.toDomain(fileUrls) },
         userCheckIns = userCheckIns.map { checkIn ->
             CheckIn(
+                drinkSlug = checkIn.drinkSlug,
+                customDrinkName = checkIn.customDrinkName,
+                drinkNameRu = checkIn.drinkNameRu,
+                drinkNameEn = checkIn.drinkNameEn,
                 id = checkIn.id,
                 shopId = checkIn.shop?.slug.orEmpty(),
                 shopName = checkIn.shopName.orEmpty().ifBlank { name.orEmpty() },
@@ -172,6 +176,10 @@ internal object ShopMapper {
         )
 
     fun ReviewDto.toDomain(fileUrls: FileUrlResolver) = Review(
+        drinkSlug = drinkSlug,
+        customDrinkName = customDrinkName,
+        drinkNameRu = drinkNameRu,
+        drinkNameEn = drinkNameEn,
         id = id,
         moderationReviewId = moderationReviewId,
         shopId = shop?.slug.orEmpty(),

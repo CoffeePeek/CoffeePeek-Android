@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+
 package com.coffeepeek.api.model.request
 
 import com.coffeepeek.api.model.response.shop.RatingDto
@@ -20,4 +22,8 @@ data class CreateCheckInReq(
     @SerialName("photos") val photos: List<UploadedPhotoReq>? = null,
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     @SerialName("rating") val rating: RatingDto? = null,
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val drinkSlug: String? = null,
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val customDrinkName: String? = null,
 )

@@ -78,6 +78,8 @@ data class CreateReviewInput(
     val serviceRating: Int,
     val coffeeRating: Int,
     val photos: List<PendingPhotoUpload> = emptyList(),
+    val drinkSlug: String? = null,
+    val customDrinkName: String? = null,
 )
 
 data class UpdateReviewInput(
@@ -87,6 +89,9 @@ data class UpdateReviewInput(
     val serviceRating: Int,
     val coffeeRating: Int,
     val photos: List<PendingPhotoUpload> = emptyList(),
+    val drinkSlug: String? = null,
+    val customDrinkName: String? = null,
+    val clearDrink: Boolean = false,
 )
 
 enum class ShopIssueCategory {
@@ -108,6 +113,8 @@ data class CreateCheckInInput(
     val serviceRating: Int? = null,
     val coffeeRating: Int? = null,
     val photos: List<PendingPhotoUpload> = emptyList(),
+    val drinkSlug: String? = null,
+    val customDrinkName: String? = null,
 )
 
 data class CheckIn(
@@ -122,4 +129,8 @@ data class CheckIn(
     val photoUrls: List<String> = emptyList(),
     val photoThumbnailUrls: List<String> = photoUrls,
     val rating: ReviewRating? = null,
+    val drinkSlug: String? = null,
+    val customDrinkName: String? = null,
+    val drinkNameRu: String? = null,
+    val drinkNameEn: String? = null,
 )

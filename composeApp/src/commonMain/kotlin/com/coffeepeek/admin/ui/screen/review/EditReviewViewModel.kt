@@ -1,5 +1,13 @@
 package com.coffeepeek.admin.ui.screen.review
 
+import com.coffeepeek.domain.repository.ShopRepository
+
+import com.coffeepeek.domain.model.savedDrinkName
+
+import com.coffeepeek.domain.model.validateConsumedDrink
+
+import com.coffeepeek.domain.model.ConsumedDrinkOption
+
 import com.coffeepeek.admin.base.BaseViewModel
 import com.coffeepeek.admin.settings.ReviewDraft
 import com.coffeepeek.admin.settings.ReviewDraftStore
@@ -21,6 +29,12 @@ import kotlinx.coroutines.launch
 
 data class EditReviewUiState(
     val isLoading: Boolean = true,
+    val drinkSlug: String? = null,
+    val customDrinkName: String? = null,
+    val drinkName: String? = null,
+    val drinkSelectionChanged: Boolean = false,
+    val drinks: List<ConsumedDrinkOption> = emptyList(),
+    val drinksError: String? = null,
     val header: String = "",
     val comment: String = "",
     val placeRating: Int = 5,
@@ -40,6 +54,7 @@ data class EditReviewUiState(
 class EditReviewViewModel(
     private val reviewId: String,
     private val reviewRepository: ReviewRepository,
+    private val shopRepository: ShopRepository,
     private val sessionRepository: SessionRepository,
     private val drafts: ReviewDraftStore,
     private val userRepository: UserRepository,
@@ -55,6 +70,7 @@ class EditReviewViewModel(
     private var moderationReviewId: String? = null
 
     init {
+        loadDrinks()
         loadReview()
     }
 
@@ -80,6 +96,9 @@ class EditReviewViewModel(
                     shopIdForSync = review.shopId
                     moderationReviewId = review.moderationReviewId
                     baseline = ReviewDraft(
+                        drinkSlug = review.drinkSlug,
+                        customDrinkName = review.customDrinkName,
+                        drinkName = savedDrinkName(review.drinkNameRu, review.drinkNameEn, review.customDrinkName),
                         header = review.header,
                         comment = review.comment,
                         placeRating = review.rating.place.coerceIn(1, 5),
@@ -92,6 +111,10 @@ class EditReviewViewModel(
                         it.copy(
                             isLoading = false,
                             draftRestored = false,
+                            drinkSlug = review.drinkSlug,
+                            customDrinkName = review.customDrinkName,
+                            drinkName = savedDrinkName(review.drinkNameRu, review.drinkNameEn, review.customDrinkName),
+                            drinkSelectionChanged = false,
                             header = review.header,
                             comment = review.comment,
                             placeRating = review.rating.place.coerceIn(1, 5),
@@ -102,6 +125,10 @@ class EditReviewViewModel(
                         ).let { loaded ->
                             if (draft == null && draftPhotos.isEmpty()) return@let loaded
                             loaded.copy(
+                                drinkSlug = if (draft?.drinkSelectionChanged == true) draft.drinkSlug else loaded.drinkSlug,
+                                customDrinkName = if (draft?.drinkSelectionChanged == true) draft.customDrinkName else loaded.customDrinkName,
+                                drinkName = if (draft?.drinkSelectionChanged == true) draft.drinkName else loaded.drinkName,
+                                drinkSelectionChanged = draft?.drinkSelectionChanged ?: false,
                                 header = draft?.header ?: loaded.header,
                                 comment = draft?.comment ?: loaded.comment,
                                 placeRating = draft?.placeRating ?: loaded.placeRating,
@@ -126,13 +153,27 @@ class EditReviewViewModel(
     private fun edit(transform: (EditReviewUiState) -> EditReviewUiState) {
         _state.update(transform)
         val s = _state.value
-        val current = ReviewDraft(s.header, s.comment, s.placeRating, s.serviceRating, s.coffeeRating)
+        val current = ReviewDraft(s.header, s.comment, s.placeRating, s.serviceRating, s.coffeeRating, drinkSlug = s.drinkSlug, customDrinkName = s.customDrinkName, drinkName = s.drinkName, drinkSelectionChanged = s.drinkSelectionChanged)
         if (current == baseline && s.newPhotos.isEmpty()) {
             workScope.launch { drafts.clear(draftKey) }
         } else {
             // defaultRating = -1: for edits, "blank" is decided by the baseline comparison above.
             drafts.save(draftKey, current, s.newPhotos, defaultRating = -1)
         }
+    }
+
+    fun loadDrinks() {
+        workScope.launch {
+            shopRepository.getConsumedDrinks().onSuccess { drinks ->
+                _state.update { it.copy(drinks = drinks, drinksError = null) }
+            }.onFailure { e -> _state.update { it.copy(drinksError = e.message ?: "Не удалось загрузить напитки") } }
+        }
+    }
+
+    fun onDrinkChange(slug: String?, name: String?) {
+        val changed = slug != baseline?.drinkSlug || name?.trim() != baseline?.customDrinkName?.trim()
+        edit { it.copy(drinkSlug = slug, customDrinkName = name,
+            drinkName = if (changed) null else baseline?.drinkName, drinkSelectionChanged = changed) }
     }
 
     fun onHeaderChange(v: String) {
@@ -177,6 +218,8 @@ class EditReviewViewModel(
             _state.update { it.copy(error = "Этот отзыв нельзя редактировать.") }
             return
         }
+        val drinkError = validateConsumedDrink(s.drinkSlug, s.customDrinkName)
+        if (drinkError != null) { _state.update { it.copy(error = drinkError) }; return }
         val headerError = validateReviewHeader(s.header)
         val commentError = validateReviewComment(s.comment)
         if (headerError != null || commentError != null) {
@@ -195,6 +238,9 @@ class EditReviewViewModel(
             reviewRepository.updateReview(
                 reviewId = moderationId,
                 input = UpdateReviewInput(
+                    drinkSlug = s.drinkSlug.takeIf { s.drinkSelectionChanged },
+                    customDrinkName = s.customDrinkName?.trim().takeIf { s.drinkSelectionChanged },
+                    clearDrink = s.drinkSelectionChanged && s.drinkSlug == null && baseline?.drinkSlug != null,
                     header = s.header.trim(),
                     comment = s.comment.trim(),
                     placeRating = s.placeRating,

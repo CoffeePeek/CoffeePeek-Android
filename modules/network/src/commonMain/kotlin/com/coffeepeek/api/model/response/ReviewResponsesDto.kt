@@ -41,6 +41,10 @@ data class ModerationReviewDto(
     @SerialName("createdAt") val createdAt: String = "",
     @SerialName("moderationStatus") val moderationStatus: ModerationStatusDto,
     @SerialName("photos") val photos: List<UploadedPhotoDto> = emptyList(),
+    val drinkSlug: String? = null,
+    val customDrinkName: String? = null,
+    val drinkNameRu: String? = null,
+    val drinkNameEn: String? = null,
 )
 
 @Serializable
