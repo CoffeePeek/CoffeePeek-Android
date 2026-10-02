@@ -3,6 +3,9 @@ package com.coffeepeek.admin.ui.screen.review
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.heightIn
@@ -35,15 +38,20 @@ internal fun ConsumedDrinkField(
     val selected = drinks.find { it.slug == slug }
     val label = savedName ?: selected?.nameRu?.ifBlank { selected.nameEn } ?: slug ?: "Не выбран"
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Напиток (необязательно)", style = MaterialTheme.typography.labelMedium)
-        Box {
-            TextButton(
+        Text("Напиток", style = MaterialTheme.typography.labelMedium)
+        Box(Modifier.fillMaxWidth()) {
+            OutlinedButton(
                 onClick = { expanded = true },
-                modifier = Modifier.heightIn(min = 44.dp).semantics { stateDescription = label },
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics { stateDescription = label },
+                shape = MaterialTheme.shapes.small,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f),
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ),
             ) {
-                Text(label, style = MaterialTheme.typography.bodyLarge)
+                Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Start)
                 Spacer(Modifier.width(8.dp))
                 Icon(CpIcons.ChevronUpDown, contentDescription = null, modifier = Modifier.size(18.dp))
             }
