@@ -102,7 +102,7 @@ fun EditReviewBottomSheet(
     ReviewEditorBottomSheet(
         title = "Редактировать отзыв",
         placeName = placeName,
-        drinkField = { ConsumedDrinkField(state.drinks, state.drinkSlug, state.customDrinkName, state.drinkName, state.drinksError, vm::loadDrinks, vm::onDrinkChange) },
+        drinkField = { ConsumedDrinkField(state.drinks, state.drinkSlug, state.customDrinkName, state.drinkName, state.drinksError, vm::loadDrinks, vm::onDrinkChange, state.drinkNameEn) },
         header = state.header,
         comment = state.comment,
         coffeeRating = state.coffeeRating,

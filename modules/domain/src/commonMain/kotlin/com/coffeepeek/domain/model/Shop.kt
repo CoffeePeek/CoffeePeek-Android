@@ -183,6 +183,7 @@ data class MapCoffeeZone(
     val id: String,
     val name: String,
     val description: String,
+    val color: String? = null,
     val latitude: Double,
     val longitude: Double,
     val radiusMeters: Double,

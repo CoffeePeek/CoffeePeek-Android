@@ -32,6 +32,7 @@ data class EditReviewUiState(
     val drinkSlug: String? = null,
     val customDrinkName: String? = null,
     val drinkName: String? = null,
+    val drinkNameEn: String? = null,
     val drinkSelectionChanged: Boolean = false,
     val drinks: List<ConsumedDrinkOption> = emptyList(),
     val drinksError: String? = null,
@@ -99,6 +100,7 @@ class EditReviewViewModel(
                         drinkSlug = review.drinkSlug,
                         customDrinkName = review.customDrinkName,
                         drinkName = savedDrinkName(review.drinkNameRu, review.drinkNameEn, review.customDrinkName),
+                        drinkNameEn = savedDrinkName(review.drinkNameRu, review.drinkNameEn, review.customDrinkName, "en"),
                         header = review.header,
                         comment = review.comment,
                         placeRating = review.rating.place.coerceIn(1, 5),
@@ -114,6 +116,7 @@ class EditReviewViewModel(
                             drinkSlug = review.drinkSlug,
                             customDrinkName = review.customDrinkName,
                             drinkName = savedDrinkName(review.drinkNameRu, review.drinkNameEn, review.customDrinkName),
+                            drinkNameEn = savedDrinkName(review.drinkNameRu, review.drinkNameEn, review.customDrinkName, "en"),
                             drinkSelectionChanged = false,
                             header = review.header,
                             comment = review.comment,
@@ -128,6 +131,7 @@ class EditReviewViewModel(
                                 drinkSlug = if (draft?.drinkSelectionChanged == true) draft.drinkSlug else loaded.drinkSlug,
                                 customDrinkName = if (draft?.drinkSelectionChanged == true) draft.customDrinkName else loaded.customDrinkName,
                                 drinkName = if (draft?.drinkSelectionChanged == true) draft.drinkName else loaded.drinkName,
+                                drinkNameEn = if (draft?.drinkSelectionChanged == true) draft.drinkNameEn else loaded.drinkNameEn,
                                 drinkSelectionChanged = draft?.drinkSelectionChanged ?: false,
                                 header = draft?.header ?: loaded.header,
                                 comment = draft?.comment ?: loaded.comment,
@@ -153,7 +157,7 @@ class EditReviewViewModel(
     private fun edit(transform: (EditReviewUiState) -> EditReviewUiState) {
         _state.update(transform)
         val s = _state.value
-        val current = ReviewDraft(s.header, s.comment, s.placeRating, s.serviceRating, s.coffeeRating, drinkSlug = s.drinkSlug, customDrinkName = s.customDrinkName, drinkName = s.drinkName, drinkSelectionChanged = s.drinkSelectionChanged)
+        val current = ReviewDraft(s.header, s.comment, s.placeRating, s.serviceRating, s.coffeeRating, drinkSlug = s.drinkSlug, customDrinkName = s.customDrinkName, drinkName = s.drinkName, drinkNameEn = s.drinkNameEn, drinkSelectionChanged = s.drinkSelectionChanged)
         if (current == baseline && s.newPhotos.isEmpty()) {
             workScope.launch { drafts.clear(draftKey) }
         } else {
@@ -173,7 +177,9 @@ class EditReviewViewModel(
     fun onDrinkChange(slug: String?, name: String?) {
         val changed = slug != baseline?.drinkSlug || name?.trim() != baseline?.customDrinkName?.trim()
         edit { it.copy(drinkSlug = slug, customDrinkName = name,
-            drinkName = if (changed) null else baseline?.drinkName, drinkSelectionChanged = changed) }
+            drinkName = if (changed) null else baseline?.drinkName,
+            drinkNameEn = if (changed) null else baseline?.drinkNameEn,
+            drinkSelectionChanged = changed) }
     }
 
     fun onHeaderChange(v: String) {
