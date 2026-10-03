@@ -176,6 +176,7 @@ class ShopRepositoryImpl(
                             publicAddress = zone.address.toDomain(),
                             name = zone.name,
                             description = zone.description,
+                            color = zone.color,
                             latitude = zone.latitude,
                             longitude = zone.longitude,
                             radiusMeters = zone.radiusMeters,

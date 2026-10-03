@@ -218,6 +218,7 @@ private fun nativeMapStateJson(
     append("],\"zones\":[")
     zones.joinTo(this, separator = ",") { zone ->
         "{\"id\":${zone.id.jsonValue()},\"name\":${zone.name.jsonValue()}," +
+            "\"color\":${zoneColorForMap(zone.color, isDarkTheme).jsonValue()}," +
             "\"lat\":${zone.latitude},\"lon\":${zone.longitude}," +
             "\"radius\":${zone.radiusMeters},\"polygon\":[" +
             zone.polygon.joinToString(",") { (lat, lon) -> "[$lat,$lon]" } + "]}"
